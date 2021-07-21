@@ -1,0 +1,27 @@
+﻿<Window x:Class="RACApplication.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RACApplication"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="Remote Application Controller" Height="584.4" Width="338.6" Loaded="Window_Loaded" ResizeMode="CanMinimize">
+    <Grid>
+        <Label x:Name="label" Content="Connection to Coordinator" HorizontalAlignment="Left" Margin="45,160,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_Coord" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,160,0,0" Source="images/buttonbad.png" />
+        <Label x:Name="label_Copy" Content="Resolved SDP (STUN Description)" HorizontalAlignment="Left" Margin="45,191,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_Stun" Height="30" VerticalAlignment="Top" Margin="10,192,0,0" Source="images/buttonbad.png" HorizontalAlignment="Left" Width="30" />
+        <Label x:Name="label_Copy1" Content="Available Servers:" HorizontalAlignment="Left" Margin="10,234,0,0" VerticalAlignment="Top"/>
+        <ListBox x:Name="LB_Servers" Margin="10,265,10,38.4" SelectionChanged="LB_Servers_SelectionChanged"/>
+        <Button x:Name="BTN_Connect" Content="Connect" HorizontalAlignment="Left" Margin="10,0,0,6.8" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Connect_Click"/>
+        <Label x:Name="label_Copy2" Content="Worker Active" HorizontalAlignment="Left" Margin="45,128,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_Worker" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,128,0,0" Source="images/buttonbad.png" />
+        <Button x:Name="BTN_Disconnect" Content="Disconnect" HorizontalAlignment="Left" Margin="99,0,0,6.8" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Disconnect_Click" />
+        <Label x:Name="label_Copy5" Content="Coordinator Address:" HorizontalAlignment="Left" Margin="11,10,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="TB_CoordAddr" Height="23" HorizontalAlignment="Left" TextWrapping="Wrap" Text="70.185.114.136:12021" VerticalAlignment="Top" Width="200" Margin="13,41,0,0"/>
+        <Button x:Name="BTN_Start" Content="Join" HorizontalAlignment="Left" Margin="14,69,0,0" Width="75" Click="BTN_Start_Click" Height="25" VerticalAlignment="Top"/>
+        <Button x:Name="BTN_Stop" Content="Stop" HorizontalAlignment="Left" Margin="99,69,0,0" Width="75" Click="BTN_Stop_Click" Height="25" VerticalAlignment="Top"/>
+
+    </Grid>
+</Window>

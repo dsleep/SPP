@@ -1,0 +1,47 @@
+﻿<Window x:Class="ThroughTestApplication.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ThroughTestApplication"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
+        Title="Network Transfer Test" Height="587.32" Width="911.558" Loaded="Window_Loaded" ResizeMode="CanMinimize" Closing="Window_Closing">
+
+    <Grid>
+        <Label x:Name="label" Content="Connection to Coordinator:" HorizontalAlignment="Left" Margin="42,41,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_Worker" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Source="images/buttonbad.png"  />
+        <Label x:Name="label_Copy" Content="Resolved SDP (STUN Description):" HorizontalAlignment="Left" Margin="41,70,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_Stun" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,68,0,0" Source="images/buttonbad.png" />
+        <Button x:Name="BTN_Start" Content="Start" Margin="0,11,9.6,0" Click="BTN_Start_Click" Height="25" VerticalAlignment="Top" HorizontalAlignment="Right" Width="75"/>
+        <Button x:Name="BTN_Stop" Content="Stop" Margin="0,41,8.6,0" Click="BTN_Stop_Click" HorizontalAlignment="Right" Width="75" Height="25" VerticalAlignment="Top"/>
+        <Label x:Name="label_Copy4" Content="Worked Process:" HorizontalAlignment="Left" Margin="43,10,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_Coord" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,38,0,0" Source="images/buttonbad.png"  />
+        <Label x:Name="label_Copy5" Content="Coordinator Address:" HorizontalAlignment="Left" Margin="11,104,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="TB_CoordAddr" Height="23" Margin="11,134,9.6,0" TextWrapping="Wrap" Text="70.185.114.136:12021" VerticalAlignment="Top" TextChanged="TB_Args_TextChanged"/>
+
+      
+        <Label x:Name="label_Copy1" Content="Available Peers:" HorizontalAlignment="Left" Margin="11,170,0,0" VerticalAlignment="Top"/>
+        <ListBox x:Name="LB_Servers" Margin="11,201,9.6,291.6" SelectionChanged="LB_Servers_SelectionChanged"/>
+        <Button x:Name="BTN_Connect" Content="Connect" Margin="10,0,0,9.6" HorizontalAlignment="Left" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Connect_Click"/>
+        <Button x:Name="BTN_Disconnect" Content="Disconnect" Margin="90,0,0,9.6" HorizontalAlignment="Left" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Disconnect_Click"/>
+
+        <oxy:Plot Title="Network Traffic" Name="PL_Net"  Margin="10,271,0,0" Height="236" VerticalAlignment="Top" HorizontalAlignment="Left" Width="422">
+            <oxy:Plot.Series>
+                <oxy:LineSeries Title="Incoming(KBs)" ItemsSource="{Binding IncomingKBs}" Color="Black"/>
+                <oxy:LineSeries Title="Outgoing(KBs)" ItemsSource="{Binding OutgoingKBs}" Color="Green"/>
+                <oxy:LineSeries Title="CC Outgoing(KBs)" ItemsSource="{Binding CCRateKBs}" Color="Red"/>
+            </oxy:Plot.Series>
+
+        </oxy:Plot>
+        
+        <oxy:Plot Title="Buffers" x:Name="PL_Net_Buffers"  Margin="0,271,9.8,0" HorizontalAlignment="Right" Width="422" Height="236" VerticalAlignment="Top">
+            <oxy:Plot.Series>
+                <oxy:LineSeries Title="Outgoing Buffer Size(KBs)" ItemsSource="{Binding OutgoingKBBuffer}" Color="Green"/>
+                <oxy:LineSeries Title="Outgoing Message Count" ItemsSource="{Binding OutgoingMessageCount}" Color="Blue"/>
+            </oxy:Plot.Series>
+
+        </oxy:Plot>
+    </Grid>
+</Window>
