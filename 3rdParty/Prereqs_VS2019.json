@@ -1,0 +1,29 @@
+{
+	"urlroot": "https://github.com/dsleep/SPP/releases/download/v1/",
+	"modules": [
+		{
+			"Path": "jsoncpp",
+			"Version": 1
+		},
+		{
+			"Path": "libav",
+			"Version": 1
+		},
+		{
+			"Path": "libav_CUDA",
+			"Version": 1
+		},
+		{
+			"Path": "libjuice",
+			"Version": 1
+		},
+		{
+			"Path": "OxyPlot.Core.2.0.0",
+			"Version": 1
+		},
+		{
+			"Path": "OxyPlot.Wpf.2.0.0",
+			"Version": 1
+		}
+	]
+}
