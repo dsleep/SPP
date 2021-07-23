@@ -7,6 +7,8 @@
 #include "json/json.h"
 #include "SPPLogging.h"
 
+#include "SPPJsonUtils.h"
+
 #include "SPPMemory.h"
 #include "SPPNetworkConnection.h"
 #include "SPPNetworkMessenger.h"
@@ -25,19 +27,10 @@ struct RemoteClient
 	std::string GUID;
 };
 
-template<typename T>
-T RandomFloat(T a, T b) 
-{
-	T random = ((T)rand()) / (T)RAND_MAX;
-	T diff = b - a;
-	T r = random * diff;
-	return a + r;
-}
-
 /// <summary>
 /// 
 /// </summary>
-class VideoConnection : public NetworkConnection
+class DataTransferConnection : public NetworkConnection
 {
 protected:
 	std::chrono::high_resolution_clock::time_point LastImageCap;
@@ -50,7 +43,7 @@ protected:
 	SimplePolledRepeatingTimer< std::chrono::milliseconds > DataSendTimer;
 
 public:
-	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer)
+	DataTransferConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer)
 	{
 		SendBuffer.resize(10 * 1024 * 1024);
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
@@ -107,15 +100,33 @@ bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string
 	return false;
 }
 
-IPv4_SocketAddress RemoteCoordAddres("70.185.114.136", 12021);
+
+
+IPv4_SocketAddress RemoteCoordAddres;
+std::string StunURL;
+uint16_t StunPort;
 
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
+	{
+		Json::Value JsonConfig;
+		SE_ASSERT(FileToJson("config.txt", JsonConfig));
+
+		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
+		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
+		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
+
+		SE_ASSERT(!STUN_URL.isNull());
+		SE_ASSERT(!STUN_PORT.isNull());
+		SE_ASSERT(!COORDINATOR_IP.isNull());
+
+		StunURL = STUN_URL.asCString();
+		StunPort = STUN_PORT.asUInt();
+		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());
+	}
 
 	std::string IPMemoryID;
-	std::string AppPath;
-	std::string AppCommandline;
 
 	for (int i = 0; i < argc; ++i)
 	{
@@ -123,13 +134,9 @@ int main(int argc, char* argv[])
 
 		auto Arg = std::string(argv[i]);
 		ParseCC(Arg, "-MEM=", IPMemoryID);
-		ParseCC(Arg, "-APP=", AppPath);
-		ParseCC(Arg, "-CMDLINE=", AppCommandline);
 	}
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID.c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
 
 	IPCMappedMemory ipcMem(IPMemoryID.c_str(), 2 * 1024 * 1024, false);
 
@@ -138,15 +145,13 @@ int main(int argc, char* argv[])
 	// START OS NETWORKING
 	GetOSNetwork();
 
-	std::string SimpleAppName = AppPath.empty() ? "Desktop" : std::filesystem::path(AppPath).stem().generic_string();
-
 	auto ThisRUNGUID = std::generate_hex(3);
 
-	auto juiceSocket = std::make_shared<UDPJuiceSocket>();
+	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
 	auto coordSocket = std::make_shared<UDPSocket>();
 
 	std::string ConnectToServer;
-	std::shared_ptr< VideoConnection > videoConnection;
+	std::shared_ptr< DataTransferConnection > videoConnection;
 
 	using namespace std::chrono_literals;
 
@@ -244,14 +249,14 @@ int main(int argc, char* argv[])
 			if (videoConnection->IsValid() == false)
 			{
 				videoConnection.reset();
-				juiceSocket = std::make_shared<UDPJuiceSocket>();
+				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
 			}
 		}
 		else
 		{
 			if (juiceSocket->IsConnected())
 			{
-				videoConnection = std::make_shared< VideoConnection >(juiceSocket);
+				videoConnection = std::make_shared< DataTransferConnection >(juiceSocket);
 				videoConnection->CreateTranscoderStack(
 					// allow reliability to UDP
 					std::make_shared< ReliabilityTranscoder >(),

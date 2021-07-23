@@ -43,5 +43,7 @@
             </oxy:Plot.Series>
 
         </oxy:Plot>
+        <Button x:Name="BTN_Begin" Content="Begin" Margin="265,0,0,9.6" HorizontalAlignment="Left" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Begin_Click"/>
+        <Button x:Name="BTN_End" Content="End" Margin="345,0,0,9.6" HorizontalAlignment="Left" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_End_Click"/>
     </Grid>
 </Window>

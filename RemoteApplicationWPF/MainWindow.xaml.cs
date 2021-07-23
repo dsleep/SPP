@@ -107,9 +107,6 @@ namespace RAMApplication
             public NetData NETDATA { get; set; }
         };
 
-
-        private static int HardValue = 60;
-
         void timer_Tick(object sender, EventArgs e)
         {
             bool IsWorkValid = (WorkerID != 0 && C_IsChildRunning(WorkerID));

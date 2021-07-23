@@ -24,6 +24,10 @@
 		{
 			"Path": "OxyPlot.Wpf.2.0.0",
 			"Version": 1
+		},
+		{
+			"Path": "eigen",
+			"Version": 1
 		}
 	]
 }

@@ -317,6 +317,16 @@ namespace ThroughTestApplication
                
             }
         }
+
+        private void BTN_Begin_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void BTN_End_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
 
