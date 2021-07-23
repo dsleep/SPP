@@ -3,7 +3,8 @@
 	"modules": [
 		{
 			"Path": "jsoncpp",
-			"Version": 1
+			"Version": 1,			
+			"BinCopy": [ "bin/win64/vc16/*.dll" ]
 		},
 		{
 			"Path": "libav",

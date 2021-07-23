@@ -133,13 +133,13 @@ def CheckPrereqs():
 							hasWildCard = binCopy.find('*') 
 							
 							if hasWildCard == -1:
-								print(DownloadUtils.RunAndWait("Robocopy ./{0}/{1} {2} /NP /NFL /NDL /E".format( curModule['Path'], binCopy, "../../Binaries")))
+								print(DownloadUtils.RunAndWait("Robocopy ./{0}/{1} {2} /NP /NFL /NDL /E".format( curModule['Path'], binCopy, "../Binaries")))
 							else:
 								copyPath = binCopy[:hasWildCard]
 								wildcardValue = binCopy[hasWildCard:]
-								print(DownloadUtils.RunAndWait("Robocopy ./{0}/{1} {2} /IF {3} /NP /NFL /NDL /E".format( curModule['Path'], copyPath, "../../Binaries", wildcardValue)))						
+								print(DownloadUtils.RunAndWait("Robocopy ./{0}/{1} {2} /IF {3} /NP /NFL /NDL /E".format( curModule['Path'], copyPath, "../Binaries", wildcardValue)))						
 						else:
-							print(DownloadUtils.RunAndWait("cp ./{0}/{1} {2}".format(curModule['Path'], binCopy, "../../Binaries")))
+							print(DownloadUtils.RunAndWait("cp ./{0}/{1} {2}".format(curModule['Path'], binCopy, "../Binaries")))
 							
 						
 				with open(TextFileName, 'w') as f:
