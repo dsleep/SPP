@@ -29,6 +29,11 @@
 		{
 			"Path": "eigen",
 			"Version": 1
+		},
+		{
+			"Path": "dxc",
+			"Version": 1,
+			"BinCopy": [ "bin/x64/*.dll" ]
 		}
 	]
 }
