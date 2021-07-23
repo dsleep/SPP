@@ -76,6 +76,13 @@ namespace RACApplication
             mmVSBinaryRead = new BinaryReader(mmVS, Encoding.ASCII);
             mmVSBinaryWrite = new BinaryWriter(mmVS, Encoding.ASCII);
 
+#if DEBUG
+            WorkerID = C_CreateChildProcess("remoteviewerd.exe",
+#else
+            WorkerID = C_CreateChildProcess("remoteviewer.exe",
+#endif
+                "-MEM=" + mmfGUID.ToString());
+
             DispatcherTimer timer = new DispatcherTimer();
             timer.Interval = TimeSpan.FromMilliseconds(250);
             timer.Tick += timer_Tick;
@@ -146,9 +153,9 @@ namespace RACApplication
                         IMG_Stun.Source = StunGood ? GoodState : BadState;
                     }
 
+                    HostList.Clear();
                     if (appStatus.HOSTS != null)
-                    {
-                        HostList.Clear();
+                    {                        
                         foreach (var curHost in appStatus.HOSTS)
                         {
                             HostList[curHost.GUID] = String.Format("{0} Running... {1}", curHost.NAME, curHost.APPNAME);                                                    
@@ -201,27 +208,6 @@ namespace RACApplication
 
         }
 
-        private void BTN_Start_Click(object sender, RoutedEventArgs e)
-        {
-            BTN_Start.IsEnabled = false;
-#if DEBUG
-            WorkerID = C_CreateChildProcess("remoteviewerd.exe", 
-#else
-            WorkerID = C_CreateChildProcess("remoteviewer.exe",
-#endif
-                "-MEM=" + mmfGUID.ToString());
-        }
-
-        private void BTN_Stop_Click(object sender, RoutedEventArgs e)
-        {
-            if(WorkerID != 0)
-            {
-                C_CloseChild(WorkerID);
-                WorkerID = 0;
-
-                BTN_Start.IsEnabled = true;
-            }
-        }
     }
 }
 

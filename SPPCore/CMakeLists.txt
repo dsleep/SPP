@@ -38,6 +38,9 @@ target_sources(SPPCore
 				
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSpan.h"
 		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonUtils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonUtils.cpp"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPString.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPString.h"
 

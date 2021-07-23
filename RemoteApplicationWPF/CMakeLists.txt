@@ -40,12 +40,6 @@ set_property(SOURCE App.xaml PROPERTY VS_XAML_TYPE "ApplicationDefinition")
 set_property(SOURCE "Images/buttongood.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
 set_property(SOURCE "Images/buttonbad.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
 
-#set_property(TARGET RAM
-#    PROPERTY VS_PACKAGE_REFERENCES
-#		"OxyPlot.Core_2.0.0"
-#		"OxyPlot.Wpf_2.0.0"
-#)
-
 set_property(TARGET RAM PROPERTY VS_DOTNET_REFERENCES
     "Microsoft.CSharp"
     "PresentationCore"
@@ -61,19 +55,7 @@ set_property(TARGET RAM PROPERTY VS_DOTNET_REFERENCES
     "System.Xml.Linq"
     "System.Text.Json"
     "System.Runtime.CompilerServices.Unsafe"
-    "WindowsBase")
-	
-
-set_property(TARGET RAM PROPERTY 
-    VS_DOTNET_REFERENCE_OxyPlot.Core 
-    ${THIRD_PARTY}/OxyPlot.Core.2.0.0/lib/net45/OxyPlot.dll
-)
-
-set_property(TARGET RAM PROPERTY 
-    VS_DOTNET_REFERENCE_OxyPlot.Wpf
-    ${THIRD_PARTY}/OxyPlot.Wpf.2.0.0/lib/net45/OxyPlot.Wpf.dll
-)
-
+    "WindowsBase")    
 
 set_property(TARGET RAM PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.7.2")
 set_property(TARGET RAM PROPERTY WIN32_EXECUTABLE TRUE)

@@ -200,6 +200,8 @@ namespace SPP
 		/// </summary>
 		/// <returns></returns>
 		bool IsValid() const;
+
+		bool IsConnected() const;
 		
 		// connection state
 		virtual void Tick();

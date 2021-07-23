@@ -16,6 +16,7 @@
 #include <thread>
 #include <type_traits> 
 #include <vector>
+#include <iomanip>
 
 namespace SPP
 {
@@ -109,4 +110,14 @@ namespace SPP
 	};
 
 	SPP_CORE_API double TimeSinceAppStarted();
+
+	template<typename ClockType, typename ClockTimePoint>
+	std::string TimePointToString(const ClockTimePoint& time, const std::string& format)
+	{
+		std::time_t tt = ClockType::to_time_t(time);
+		std::tm tm = *std::gmtime(&tt);
+		std::stringstream ss;
+		ss << std::put_time(&tm, format.c_str());
+		return ss.str();
+	}
 }

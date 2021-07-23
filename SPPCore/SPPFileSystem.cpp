@@ -55,7 +55,16 @@ namespace SPP
 
 	bool LoadFileToString(const char* FileName, std::string& oFileString)
 	{	
-		//TODO
+		auto fileStream = std::make_unique<std::ifstream>(FileName, std::ifstream::in);
+		 
+		if (fileStream->is_open())
+		{
+			std::stringstream strStream;
+			strStream << fileStream->rdbuf();
+			oFileString = strStream.str();
+			return true;
+		}
+
 		return false;
 	}
 }

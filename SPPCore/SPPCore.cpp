@@ -7,6 +7,8 @@
 #include "ThreadPool.h"
 #include "SPPTiming.h"
 
+#include <filesystem>
+
 #if _WIN32
 	#include "SPPWin32Core.h"
 #endif
@@ -31,6 +33,11 @@ namespace SPP
 
 		SPP_LOGGER.Attach<ConsoleLog>();
 		SPP_LOGGER.SetLogLevel(LOG_INFO);
+#if _WIN32
+		auto ProcessName = GetProcessName();
+		std::string ProcessNameAsLog = std::filesystem::path(ProcessName).stem().generic_string() + "_LOG.txt";
+		SPP_LOGGER.Attach<FileLogger>(ProcessNameAsLog.c_str());
+#endif
 		
 		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %", Commandline ? Commandline : "NULL");
 				

@@ -27,6 +27,13 @@ namespace SPP
 {
 	SPP_CORE_API LogEntry LOG_WIN32CORE("WIN32CORE");
 
+	std::string GetProcessName()
+	{
+		char Filename[MAX_PATH]; //this is a char buffer
+		GetModuleFileNameA(GetModuleHandle(nullptr), Filename, sizeof(Filename));
+		return Filename;
+	}
+
 	PlatformInfo GetPlatformInfo()	
 	{
 		SYSTEM_INFO info = { 0 };
@@ -77,6 +84,9 @@ namespace SPP
 
 		STARTUPINFOA si = { 0 };
 		si.cb = sizeof(si);
+		//si.dwFlags = STARTF_USESHOWWINDOW;
+		//si.wShowWindow = SW_HIDE;
+
 		DWORD dwCreationFlags = 0;
 		dwCreationFlags |= CREATE_NEW_CONSOLE;
 		bSuccess = CreateProcessA(ProcessPath, (LPSTR)Commandline,

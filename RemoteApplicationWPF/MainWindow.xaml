@@ -7,8 +7,8 @@
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
         DataContext="{Binding RelativeSource={RelativeSource Self}}"
-        Title="Remote Application Manager" Height="720.12" Width="624.358" Loaded="Window_Loaded" ResizeMode="CanMinimize" Closing="Window_Closing">
-    
+        Title="Remote Application Manager" Height="384.417" Width="624.358" Loaded="Window_Loaded" ResizeMode="CanMinimize" Closing="Window_Closing">
+
     <Grid>
         <Label x:Name="label" Content="Connection to Coordinator:" HorizontalAlignment="Left" Margin="42,41,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Worker" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" Source="images/buttonbad.png"  />
@@ -22,19 +22,10 @@
         <TextBox x:Name="TB_Args" Height="23" Margin="11,191,40.6,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" TextChanged="TB_Args_TextChanged"/>
 
         <Button x:Name="AppBrowse" Content="*" HorizontalAlignment="Right" Width="20" Height="20" VerticalAlignment="Top" Margin="0,134,16.6,0" Click="AppBrowse_Click"/>
-        <Label x:Name="label_Copy3" Content="Connected Client" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="41,289,0,0"/>
-        <Image x:Name="IMG_Client" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,288,0,0" Source="images/buttonbad.png"  />
-        <TextBox x:Name="TB_Args_Copy" Height="23" Margin="10,323,41.6,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" IsReadOnly="True"/>
+        <Label x:Name="label_Copy3" Content="Connected Client" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="41,232,0,0"/>
+        <Image x:Name="IMG_Client" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,231,0,0" Source="images/buttonbad.png"  />
+        <TextBox x:Name="TB_Args_Copy" Height="23" Margin="10,266,41.6,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" IsReadOnly="True"/>
         <Label x:Name="label_Copy4" Content="Worked Process:" HorizontalAlignment="Left" Margin="43,10,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Coord" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,38,0,0" Source="images/buttonbad.png"  />
-        <Label x:Name="label_Copy5" Content="Coordinator Address:" HorizontalAlignment="Left" Margin="11,219,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="TB_CoordAddr" Height="23" Margin="11,250,40.6,0" TextWrapping="Wrap" Text="70.185.114.136:12021" VerticalAlignment="Top" TextChanged="TB_Args_TextChanged"/>
-
-        <oxy:Plot Title="Net Outgoing(KB/s)" Name="PL_Net"  Margin="0,0,41.6,68.4" HorizontalAlignment="Right" Width="565" Height="236" VerticalAlignment="Bottom">
-            <oxy:Plot.Series>
-                <oxy:LineSeries ItemsSource="{Binding Points}" Color="Black"/>
-            </oxy:Plot.Series>
-
-        </oxy:Plot>
     </Grid>
 </Window>

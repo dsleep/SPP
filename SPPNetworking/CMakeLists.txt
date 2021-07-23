@@ -5,7 +5,7 @@ add_library(SPPNetworking SHARED "")
 
 set_target_properties(SPPNetworking PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPNetworking SPPCore )
+add_dependencies( SPPNetworking SPPCore SPPDatabase )
 
 # will need define to not create empty dll export
 target_compile_definitions(SPPNetworking
@@ -46,7 +46,8 @@ target_link_directories(SPPNetworking
 			
 target_link_libraries(SPPNetworking 
 	PUBLIC
-		SPPCore )
+		SPPCore
+		SPPDatabase )
 
 target_link_libraries(SPPNetworking 
 	PRIVATE

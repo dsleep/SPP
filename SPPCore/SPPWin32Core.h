@@ -18,6 +18,8 @@ namespace SPP
 		uint32_t ProcessorCount;
 	};
 
+	SPP_CORE_API std::string GetProcessName();
+
 	SPP_CORE_API PlatformInfo GetPlatformInfo();
 	SPP_CORE_API uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline);
 	SPP_CORE_API bool IsChildRunning(uint32_t processID);

@@ -27,15 +27,13 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using OxyPlot;
-using OxyPlot.Series;
 
 namespace RAMApplication
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    public partial class MainWindow : Window
     {
         private BitmapImage GoodState = null;
         private BitmapImage BadState = null;
@@ -67,19 +65,6 @@ namespace RAMApplication
 
         public MainWindow()
         {
-            this.MyModel = new PlotModel { Title = "Example 1" };
-            this.MyModel.Series.Add(new FunctionSeries(Math.Cos, 0, 10, 0.1, "cos(x)"));
-
-            this.Points = new List<DataPoint>
-                              {
-                                  new DataPoint(0, 4),
-                                  new DataPoint(10, 13),
-                                  new DataPoint(20, 15),
-                                  new DataPoint(30, 16),
-                                  new DataPoint(40, 12),
-                                  new DataPoint(50, 12)
-                              };
-
             InitializeComponent();
 
  #if DEBUG
@@ -103,26 +88,9 @@ namespace RAMApplication
             timer.Interval = TimeSpan.FromMilliseconds(250);
             timer.Tick += timer_Tick;
             timer.Start();
-
             
         }
-
-        //basic ViewModelBase
-        internal void RaisePropertyChanged(string prop)
-        {
-            if (PropertyChanged != null) { PropertyChanged(this, new PropertyChangedEventArgs(prop)); }
-        }
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        public PlotModel MyModel 
-        {
-            get; 
-            private set; 
-        }
-
-        public IList<DataPoint> Points { get; private set; }
-
-
+       
         public class NetData
         {
             public float OUTGOINGKBS { get; set; }
@@ -199,15 +167,7 @@ namespace RAMApplication
                     {
                         ClientGood = appStatus.CONNECTED;
                         IMG_Client.Source = ClientGood ? GoodState : BadState;
-                    }
-
-                    //
-                    this.Points.Add(new DataPoint(HardValue, 5));
-                    RaisePropertyChanged("Points");
-
-                    HardValue += 10;
-
-                    PL_Net.InvalidatePlot(true);
+                    }          
 
                 }
 

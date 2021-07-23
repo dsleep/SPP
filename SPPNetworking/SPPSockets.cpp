@@ -228,6 +228,11 @@ namespace SPP
 	}
 #endif
 
+	IPv4_SocketAddress::IPv4_SocketAddress(const char* IpAddrAndPort)
+	{
+		sscanf(IpAddrAndPort, "%hhu.%hhu.%hhu.%hhu:%hu", &UIPAddr.Addr1, &UIPAddr.Addr2, &UIPAddr.Addr3, &UIPAddr.Addr4, &Port);
+	}
+
 	IPv4_SocketAddress::IPv4_SocketAddress(const char *IpAddr, uint16_t InPort)
 	{
 		inet_pton(

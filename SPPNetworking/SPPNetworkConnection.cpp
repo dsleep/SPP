@@ -91,6 +91,11 @@ namespace SPP
 		return _NetworkState != EConnectionState::DISCONNECTED;
 	}
 
+	bool NetworkConnection::IsConnected() const
+	{
+		return _NetworkState == EConnectionState::CONNECTED;
+	}
+	
 	void NetworkConnection::_SendState()
 	{
 		_PingTimer.Reset();

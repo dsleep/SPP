@@ -30,7 +30,8 @@ namespace SPP
 
 		IPv4_SocketAddress() { }
 
-		IPv4_SocketAddress(const char *IpAddr, uint16_t InPort);
+		IPv4_SocketAddress(const char* IpAddrAndPort);
+		IPv4_SocketAddress(const char *IpAddr, uint16_t InPort);		
 
 		IPv4_SocketAddress(uint8_t InAddr1, uint8_t InAddr2, uint8_t InAddr3, uint8_t InAddr4, uint16_t InPort)
 		{
@@ -39,12 +40,7 @@ namespace SPP
 			UIPAddr.Addr3 = InAddr3;
 			UIPAddr.Addr4 = InAddr4;
 			Port = InPort;
-		}
-
-		IPv4_SocketAddress(std::string inString)
-		{
-			sscanf(inString.c_str(),"%u.%u.%u.%u:%u",&UIPAddr.Addr1, &UIPAddr.Addr2, &UIPAddr.Addr3, &UIPAddr.Addr4, &Port);
-		}
+		}	
 
 		bool IsValidRemote() const
 		{
@@ -53,7 +49,7 @@ namespace SPP
 
 		std::string ToString() const
 		{
-			return std::string_format("%u.%u.%u.%u:%u", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4, Port);
+			return std::string_format("%hhu.%hhu.%hhu.%hhu:%hhu", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4, Port);
 		}
 
 		bool operator==(const IPv4_SocketAddress &InCompare) const
@@ -223,7 +219,7 @@ namespace SPP
 	};
 
 
-	SPP_CORE_API OSNetwork& GetOSNetwork();
+	SPP_NETWORKING_API OSNetwork& GetOSNetwork();
 	SPP_NETWORKING_API bool IsOpenUDPPort(uint16_t InPort);	
 }
 
