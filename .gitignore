@@ -6,6 +6,7 @@
 *.lo
 *.o
 *.obj
+*.pyc
 
 # Precompiled Headers
 *.gch
@@ -31,5 +32,16 @@
 *.out
 *.app
 
-#VO Directories
+#VS Directories
 .vs/
+
+#CMAKE
+CMAKEBUILD/
+
+#3rdparty
+3rdParty/*
+!3rdParty/Prereqs_VS2019.json
+
+#Binaries
+Binaries/*
+!Binaries/config.txt
