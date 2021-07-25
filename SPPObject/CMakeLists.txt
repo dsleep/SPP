@@ -33,5 +33,15 @@ target_link_libraries( SPPObject
 
 install(TARGETS SPPObject DESTINATION "${SPP_ROOT}/INSTALL")
 
+#####
 
+add_executable( ObjectGenerator "")
+add_dependencies( ObjectGenerator SPPCore SPPObject)			
+target_sources( ObjectGenerator 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/ObjectGenerator.cpp" )		
+target_link_libraries( ObjectGenerator SPPCore SPPObject )
+set_target_properties( ObjectGenerator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET ObjectGenerator PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET ObjectGenerator PROPERTY VS_DPI_AWARE "PerMonitor")
 

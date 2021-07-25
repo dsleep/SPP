@@ -1,0 +1,54 @@
+{
+	"prereqs" : [ "World" ],
+			
+	"structs" :
+	[
+		{
+			"name": "Person",
+			"parent": "Object",
+			"description" : "Do stuff and things",
+			"structs" : 
+			[
+				{
+					"name": "Person",
+					"parent": "Object",
+					"description" : "Do stuff and things",
+					"fields" :
+					[
+						{ "name": "ID", "type" : "uint8", "default" : "0" },
+						{ "name": "Health", "type" : "float", "default" : "23.4f" }
+					],
+					"functions" :
+					[
+						{ 
+							"name": "DoJump", 
+							"return_type" : "uint8",
+							"fields" :
+							[
+								{ "name": "ID", "type" : "uint8", "default" : "0" },
+								{ "name": "ID", "type" : "uint8", "default" : "0" }
+							]
+						}
+					]
+				}
+			],			
+			"fields" :
+			[
+				{ "name": "ID", "type" : "uint8", "default" : "0" },
+				{ "name": "Health", "type" : "float", "default" : "23.4f" }
+			],
+			"functions" :
+			[
+				{ 
+					"name": "DoJump", 
+					"return_type" : "uint8",
+					"fields" :
+					[
+						{ "name": "ID", "type" : "uint8", "default" : "0" },
+						{ "name": "ID", "type" : "uint8", "default" : "0" }
+					]
+				}
+			]
+		}
+	]
+}
