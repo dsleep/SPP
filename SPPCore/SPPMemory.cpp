@@ -60,17 +60,28 @@ namespace SPP
 				0,
 				MemorySize);
 
-			if (bIsNew)
-			{
-				memset(_impl->dataLink, 0, MemorySize);
-			}
 
 			std::string MutexName = std::string(MappedName) + "_M";
 
-			_impl->hFileMutex = OpenMutexA(
-				MUTEX_ALL_ACCESS,
-				false,             // initially not owned
-				MutexName.c_str());             // unnamed mutex
+			if (bIsNew)
+			{
+				memset(_impl->dataLink, 0, MemorySize);
+
+				_impl->hFileMutex = CreateMutexA(
+					nullptr,
+					false,             // initially not owned
+					MutexName.c_str());             // unnamed mutex
+			}
+			else
+			{
+				_impl->hFileMutex = OpenMutexA(
+					MUTEX_ALL_ACCESS,
+					false,             // initially not owned
+					MutexName.c_str());             // unnamed mutex
+			}
+
+
+			
 
 			if (_impl->hFileMutex)
 			{

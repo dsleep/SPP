@@ -62,8 +62,6 @@ namespace SPP
 	};
 
 
-	SPP_OBJECT_API std::unordered_map< NumberedString, std::function< class SPPObject* (const ObjectPath&) >, NumberedString::HASH >& INTERNEL_GetObjectAllocationMap();
-
 	#define DEFINE_SPP_OBJECT(ourClass,parentClass)	\
 		public: \
 			ourClass(const ObjectPath& InPath) : parentClass(InPath) { } \
@@ -94,91 +92,84 @@ namespace SPP
 			}
 
 
+	struct SPP_OBJECT_API SPPMetaType
+	{		
+		std::string _name;
+	};
+
+	struct SPP_OBJECT_API SPPString_META : public SPPMetaType
+	{
+		SPPString_META()
+		{
+			_name = "std::string";
+		}
+
+		static std::shared_ptr<SPPString_META> GetSharedMeta()
+		{
+			static std::shared_ptr<SPPString_META> sO;
+			if (!sO) sO = std::make_shared< SPPString_META >();
+			return sO;
+		}
+	};
+
+	class SPP_OBJECT_API SPPField
+	{
+	protected:
+		std::string _name;
+		uint32_t _offset;
+		std::shared_ptr< SPPMetaType > _type;
+
+	public:
+
+	};
+
+	class SPPMetaStruct : public SPPMetaType
+	{
+	protected:
+		std::shared_ptr< SPPMetaType > _parent;
+		std::vector< class SPPField > _fields;
+	};
+
+	struct SPPObject_META;
+
 	class SPP_OBJECT_API SPPObject
 	{
 	protected:
 		ObjectPath _path;
 		SPPObject(const ObjectPath& InPath);
 
-	public:		
+		SPPObject* nextObj = nullptr;
+		SPPObject* prevObj = nullptr;
+
+		void Link();
+		void Unlink();
+		bool Finalize() { return true; }
+
+	public:				
 		virtual const char* GetOurClassName() const = 0;
-		static std::shared_ptr<SPPObject> _createobject(const ObjectPath& pathIn, const char* ObjName, bool bGlobalRef=false);
+		virtual ~SPPObject();
 
-		template<typename T>
-		static std::shared_ptr<T> CreateObject(const ObjectPath& pathIn, bool bGlobalRef = false)
-		{
-			return std::dynamic_pointer_cast<T>(_createobject(pathIn, T::GetStaticClassName(), bGlobalRef) );
-		}
+		//static std::shared_ptr< SPPObject_META> GetMetaType();
+		//static const char* GetStaticClassName()
+		//{
+		//	return "SPPObject";
+		//}
 	};
 
-	template<typename T>
-	struct TObjectReference
+	struct SPP_OBJECT_API SPPObject_META : public SPPMetaType
 	{
-	private:
-		static_assert(std::is_base_of<SPPObject, T>::value, "Must be based on object");
-		std::weak_ptr<T> _reference;
-
-	public:
-		TObjectReference() = default;
-
-		T* operator->() 
-		{
-			if (auto lckItem = _reference.lock())
-			{
-				return lckItem.get();
-			}
-
-			return nullptr;
-		}
-
-		TObjectReference& operator= (const TObjectReference &inOperator)
-		{
-			_reference = inOperator;
-			return *this;
-		}
-
-		TObjectReference& operator= (std::shared_ptr<T> inOperator)
-		{
-			_reference = inOperator;
-			return *this;
-		}
-
-		operator bool() const
-		{
-			auto lckItem = _reference.lock();
-			return (lckItem);
-		}
-
-		void Clear()
-		{
-			_reference.reset();
-		}
+		virtual SPPObject* Allocate(const ObjectPath& InPath) const = 0;
 	};
 
-	template<typename T>
-	struct TOwningObjectReference
+
+	SPP_OBJECT_API SPPObject* AllocateObject(const SPPObject_META &MetaType, const ObjectPath& InPath);
+	SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const ObjectPath& InPath);
+
+	template<typename ObjectType>
+	ObjectType* TAllocateObject(const ObjectPath& InPath)
 	{
-	private:
-		static_assert(std::is_base_of<SPPObject, T>::value, "Must be based on object");
-		std::shared_ptr<T> _reference;
+		return static_cast<ObjectType*>(AllocateObject(ObjectType::GetMetaType(), InPath));
+	}
 
-	public:
-		TOwningObjectReference() = default;
-
-		T* operator->()
-		{
-			return _reference.get();
-		}
-
-		operator bool() const
-		{
-			return (_reference);
-		}
-
-		void Clear()
-		{
-			_reference.reset();
-		}
-	};
 
 }

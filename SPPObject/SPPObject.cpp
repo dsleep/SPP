@@ -10,21 +10,29 @@
 
 namespace SPP
 {
-	namespace internal
+	
+	static SPPObject* GFirstObject = nullptr;
+	void SPPObject::Link()
 	{
-		static std::mutex MapLock;
-		static uint32_t nameIdx = 1;
-
-		static std::map<std::string, uint32_t>& GetNameToID()
+		GFirstObject = this;
+		this->nextObj = GFirstObject;
+		if (GFirstObject) GFirstObject->prevObj = this;
+	}
+	void SPPObject::Unlink()
+	{
+		if (GFirstObject == this)
 		{
-			static std::map<std::string, uint32_t> sO;
-			return sO;
+			GFirstObject = nextObj;
 		}
-
-		static std::map<uint32_t, const char*>& GetIDToName()
+		else
 		{
-			static std::map<uint32_t, const char*> sO;
-			return sO;
+			SE_ASSERT(GFirstObject->prevObj);
+
+			GFirstObject->prevObj->nextObj = nextObj;
+			nextObj->prevObj = prevObj;
+
+			nextObj = nullptr;
+			prevObj = nullptr;
 		}
 	}
 
@@ -70,69 +78,14 @@ namespace SPP
 		return true;
 	}
 
-	struct Referencer
-	{
-		virtual ~Referencer() {}
-		virtual std::shared_ptr< SPPObject > GetObject() = 0;
-	};
-
-
-	struct StrongReferencer : public Referencer
-	{
-		std::shared_ptr< SPPObject > _obj;
-
-		StrongReferencer(std::shared_ptr< SPPObject > InObj) : _obj(InObj) {}
-
-		virtual ~StrongReferencer() {}
-		virtual std::shared_ptr< SPPObject > GetObject() override
-		{
-			return _obj;
-		}
-	};
-
-	struct WeakReferencer : public Referencer
-	{
-		std::weak_ptr< SPPObject > _obj;
-
-		WeakReferencer(std::shared_ptr< SPPObject > InObj) : _obj(InObj) {}
-
-		virtual ~WeakReferencer() {}
-		virtual std::shared_ptr< SPPObject > GetObject() override
-		{
-			return _obj.lock();
-		}
-	};
-
-	static std::unordered_map<ObjectPath, Referencer*, ObjectPath::HASH>& GetObjectMapTable()
-	{
-		static std::unordered_map<ObjectPath, Referencer*, ObjectPath::HASH> sO;
-		return sO;
-	}
-
-
-	std::shared_ptr<SPPObject> GetObject(const ObjectPath &pathIn)
-	{
-		auto& curTable = GetObjectMapTable();
-
-		auto found = curTable.find(pathIn);
-
-		if (found != curTable.end())
-		{
-			return found->second->GetObject();
-		}
-
-		return nullptr;
-	}
-
-	std::unordered_map< NumberedString, std::function< SPPObject* (const ObjectPath& ) >, NumberedString::HASH >& INTERNEL_GetObjectAllocationMap()
-	{
-		static std::unordered_map< NumberedString, std::function< SPPObject* (const ObjectPath& ) >, NumberedString::HASH > sO;
-		return sO;
-	}
-
 	SPPObject::SPPObject(const ObjectPath& InPath) : _path(InPath)
 	{
+		Link();
+	}
 
+	SPPObject::~SPPObject()
+	{
+		Unlink();
 	}
 
 	ObjectPath::ObjectPath(const char* InPath)
@@ -162,42 +115,44 @@ namespace SPP
 		return hashValue;
 	}
 
-	std::shared_ptr<SPPObject> SPPObject::_createobject(const ObjectPath& pathIn, const char *ObjName, bool bGlobalRef)
+	static std::map< std::string, SPPObject_META* > &GetObjectMetaMap()
 	{
-		auto& curTable = GetObjectMapTable();
+		static std::map< std::string, SPPObject_META* > sO;
+		return sO;
+	}
 
-		auto& allocMap = INTERNEL_GetObjectAllocationMap();
-		NumberedString sObjName(ObjName);
-		auto allocFnc = allocMap.find(sObjName);
+	static const SPPObject_META *GetObjectMetaType(const char* ObjectType)
+	{
+		auto &MetaMap = GetObjectMetaMap();
+		auto foundEle = MetaMap.find(ObjectType);
+		return (foundEle != MetaMap.end()) ? foundEle->second : nullptr;
+	}
 
-		SE_ASSERT(allocFnc != allocMap.end());
-				
-		auto found = curTable.find(pathIn);
+	static void RegisterObjectMetaType(const char* ObjectType, SPPObject_META* InMetaType)
+	{
+		auto& MetaMap = GetObjectMetaMap();
+		MetaMap[ObjectType] = InMetaType;
+	}
 
-		if (found != curTable.end())
-		{
-			auto HasObject = found->second->GetObject();
-			if (HasObject)
-			{
-				return HasObject;
-			}
-			delete found->second;
-		}
+	//std::shared_ptr< SPPObject_META> SPPObject::GetMetaType()
+	//{
+	//	static std::shared_ptr<SPPObject_META> sO;
+	//	if (!sO)
+	//	{
+	//		sO = std::make_shared< SPPObject_META >();
+	//		RegisterObjectMetaType(GetStaticClassName(), sO.get());
+	//	}
+	//	return sO;
+	//}
 
-		SPPObject* allocatedObject = allocFnc->second(pathIn);
-		SE_ASSERT(allocatedObject != nullptr);
+	SPPObject* AllocateObject(const SPPObject_META& MetaType, const ObjectPath& InPath)
+	{
+		return MetaType.Allocate(InPath);
+	}
 
-		auto oObjectRef = std::shared_ptr<SPPObject>(allocatedObject);
-
-		if (bGlobalRef)
-		{
-			curTable[pathIn] = new StrongReferencer(oObjectRef);
-		}
-		else
-		{
-			curTable[pathIn] = new WeakReferencer(oObjectRef);
-		}
-
-		return oObjectRef;
+	SPPObject* AllocateObject(const char* ObjectType, const ObjectPath& InPath)
+	{
+		auto* MetaType = GetObjectMetaType(ObjectType);
+		return MetaType ? AllocateObject(*MetaType, InPath) : nullptr;
 	}
 }
