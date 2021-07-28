@@ -134,6 +134,7 @@ namespace SPP
 
 	class SPP_OBJECT_API SPPObject
 	{
+		friend struct SPPObject_META;
 	protected:
 		ObjectPath _path;
 		SPPObject(const ObjectPath& InPath);
@@ -145,22 +146,23 @@ namespace SPP
 		void Unlink();
 		bool Finalize() { return true; }
 
-	public:				
-		virtual const char* GetOurClassName() const = 0;
+	public:		
+		 
+		virtual const char* GetOurClassName() const;
 		virtual ~SPPObject();
+		virtual std::shared_ptr<SPPObject_META> GetMetaType() const;
 
-		//static std::shared_ptr< SPPObject_META> GetMetaType();
-		//static const char* GetStaticClassName()
-		//{
-		//	return "SPPObject";
-		//}
+		static std::shared_ptr<SPPObject_META> GetStaticMetaType();
+		static const char* GetStaticClassName();
 	};
 
-	struct SPP_OBJECT_API SPPObject_META : public SPPMetaType
+	struct SPP_OBJECT_API SPPObject_META : public SPPMetaStruct
 	{
-		virtual SPPObject* Allocate(const ObjectPath& InPath) const = 0;
+		virtual SPPObject* Allocate(const ObjectPath& InPath) const
+		{
+			return new SPPObject(InPath);
+		}
 	};
-
 
 	SPP_OBJECT_API SPPObject* AllocateObject(const SPPObject_META &MetaType, const ObjectPath& InPath);
 	SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const ObjectPath& InPath);
@@ -168,7 +170,7 @@ namespace SPP
 	template<typename ObjectType>
 	ObjectType* TAllocateObject(const ObjectPath& InPath)
 	{
-		return static_cast<ObjectType*>(AllocateObject(ObjectType::GetMetaType(), InPath));
+		return static_cast<ObjectType*>(AllocateObject(*ObjectType::GetStaticMetaType(), InPath));
 	}
 
 

@@ -88,6 +88,52 @@ namespace SPP
 		Unlink();
 	}
 
+	static std::map< std::string, SPPObject_META* >& GetObjectMetaMap()
+	{
+		static std::map< std::string, SPPObject_META* > sO;
+		return sO;
+	}
+
+	static const SPPObject_META* GetObjectMetaType(const char* ObjectType)
+	{
+		auto& MetaMap = GetObjectMetaMap();
+		auto foundEle = MetaMap.find(ObjectType);
+		return (foundEle != MetaMap.end()) ? foundEle->second : nullptr;
+	}
+
+	static void RegisterObjectMetaType(const char* ObjectType, SPPObject_META* InMetaType)
+	{
+		auto& MetaMap = GetObjectMetaMap();
+		MetaMap[ObjectType] = InMetaType;
+	}
+
+
+	std::shared_ptr<SPPObject_META> SPPObject::GetStaticMetaType()
+	{
+		static std::shared_ptr<SPPObject_META> sO;
+		if (!sO)
+		{
+			sO = std::make_shared< SPPObject_META >();
+			RegisterObjectMetaType(GetStaticClassName(), sO.get());
+		}
+		return sO;
+	}
+
+	std::shared_ptr< SPPObject_META> SPPObject::GetMetaType() const
+	{
+		return SPPObject::GetStaticMetaType();
+	}
+
+	const char* SPPObject::GetStaticClassName()
+	{
+		return "SPPObject";
+	}
+
+	const char* SPPObject::GetOurClassName() const
+	{
+		return SPPObject::GetStaticClassName();
+	}
+
 	ObjectPath::ObjectPath(const char* InPath)
 	{
 		auto splitPath = std::str_split(InPath, '.');
@@ -113,37 +159,7 @@ namespace SPP
 		}
 
 		return hashValue;
-	}
-
-	static std::map< std::string, SPPObject_META* > &GetObjectMetaMap()
-	{
-		static std::map< std::string, SPPObject_META* > sO;
-		return sO;
-	}
-
-	static const SPPObject_META *GetObjectMetaType(const char* ObjectType)
-	{
-		auto &MetaMap = GetObjectMetaMap();
-		auto foundEle = MetaMap.find(ObjectType);
-		return (foundEle != MetaMap.end()) ? foundEle->second : nullptr;
-	}
-
-	static void RegisterObjectMetaType(const char* ObjectType, SPPObject_META* InMetaType)
-	{
-		auto& MetaMap = GetObjectMetaMap();
-		MetaMap[ObjectType] = InMetaType;
-	}
-
-	//std::shared_ptr< SPPObject_META> SPPObject::GetMetaType()
-	//{
-	//	static std::shared_ptr<SPPObject_META> sO;
-	//	if (!sO)
-	//	{
-	//		sO = std::make_shared< SPPObject_META >();
-	//		RegisterObjectMetaType(GetStaticClassName(), sO.get());
-	//	}
-	//	return sO;
-	//}
+	}	
 
 	SPPObject* AllocateObject(const SPPObject_META& MetaType, const ObjectPath& InPath)
 	{
@@ -155,4 +171,66 @@ namespace SPP
 		auto* MetaType = GetObjectMetaType(ObjectType);
 		return MetaType ? AllocateObject(*MetaType, InPath) : nullptr;
 	}
+
+	class OTexture : public SPPObject
+	{
+		friend struct OTexture_META;
+
+	protected:
+		uint16_t _width;
+		uint16_t _height;
+
+	public:
+
+		OTexture(const ObjectPath& InPath) : SPPObject(InPath) { }
+		virtual const char* GetOurClassName() const
+		{
+			return OTexture::GetStaticClassName();
+		}
+		virtual std::shared_ptr<SPPObject_META> GetMetaType() const
+		{
+			return OTexture::GetStaticMetaType();
+		}
+		virtual ~OTexture() = default;
+		
+		static std::shared_ptr<SPPObject_META> GetStaticMetaType()
+		{
+			static std::shared_ptr<SPPObject_META> sO;
+			if (!sO)
+			{
+				sO = std::make_shared< SPPObject_META >();
+				RegisterObjectMetaType(GetStaticClassName(), sO.get());
+			}
+			return sO;
+		}
+		static const char* GetStaticClassName()
+		{
+			return "Texture";
+		}
+	};
+
+	class SPPInt32Field : public SPPField
+	{
+	protected:
+		std::string _name;
+		uint32_t _offset;
+		std::shared_ptr< SPPMetaType > _type;
+
+	public:
+
+	};
+
+	struct OTexture_META  : public SPPObject_META
+	{
+		OTexture_META() : SPPObject_META()
+		{
+			_parent = OTexture::GetStaticMetaType();
+			//_fields.push_back();
+		}
+
+		virtual SPPObject* Allocate(const ObjectPath& InPath) const
+		{
+			return new OTexture(InPath);
+		}
+	};
 }

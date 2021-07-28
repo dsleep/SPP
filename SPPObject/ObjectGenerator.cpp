@@ -102,7 +102,7 @@ void ParseFunction(FunctionInfo& oFunction, Json::Value InObject )
 	if (!FieldsValue.isNull())
 	{
 		SE_ASSERT(FieldsValue.isArray());
-		for (int32_t Iter = 0; Iter < FieldsValue.size(); Iter++)
+		for (uint32_t Iter = 0; Iter < FieldsValue.size(); Iter++)
 		{
 			FieldInfo field;
 			ParseField(field, FieldsValue[Iter]);
@@ -123,7 +123,7 @@ void ParseObject(StructInfo&oObject, Json::Value InObject )
 	if (!FieldsValue.isNull())
 	{
 		SE_ASSERT(FieldsValue.isArray());
-		for (int32_t Iter = 0; Iter < FieldsValue.size(); Iter++)
+		for (uint32_t Iter = 0; Iter < FieldsValue.size(); Iter++)
 		{
 			FieldInfo field;
 			ParseField(field, FieldsValue[Iter]);
@@ -133,7 +133,7 @@ void ParseObject(StructInfo&oObject, Json::Value InObject )
 	if (!FunctionsValue.isNull())
 	{
 		SE_ASSERT(FunctionsValue.isArray());
-		for (int32_t Iter = 0; Iter < FunctionsValue.size(); Iter++)
+		for (uint32_t Iter = 0; Iter < FunctionsValue.size(); Iter++)
 		{
 			FunctionInfo function;
 			ParseFunction(function, FunctionsValue[Iter]);
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 	Json::Value Objects = JsonConfig.get("classes", Json::Value::nullSingleton());
 	SE_ASSERT(Objects.isArray());
 
-	for(int32_t Iter = 0; Iter < Objects.size(); Iter++)
+	for(uint32_t Iter = 0; Iter < Objects.size(); Iter++)
 	{
 		StructInfo objectinfo;
 		ParseObject(objectinfo, Objects[Iter]);
