@@ -459,7 +459,7 @@ namespace SPP
 	void NetworkConnection::SendMessage(const void *Data, int32_t DataLength, uint16_t MsgMaskInfo)
 	{
 		// must have transcoders
-		SE_ASSERT(_Transcoders.size() > 0, RR_HARD_ASSERT);
+		SE_ASSERT(_Transcoders.size() > 0);
 		_Transcoders.back()->Send(this, Data, DataLength, MsgMaskInfo);
 	}
 	void NetworkConnection::ReceivedRawData(const void *Data, int32_t DataLength, uint16_t MsgMaskInfo)
