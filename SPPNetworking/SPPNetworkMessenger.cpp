@@ -205,14 +205,14 @@ namespace SPP
 	{
 		if (_sentCount > 0)
 		{
-			SPP_LOG(LOG_NMSREL, LOG_INFO, " - loss %f", ((float)_resentCount / (float)_sentCount) * 100.0f);
+			SPP_LOG(LOG_NMSREL, LOG_INFO, " - resends(loss) %%%3.2f", ((float)_resentCount / (float)_sentCount) * 100.0f);
 		}
+
+		SPP_LOG(LOG_NMSREL, LOG_INFO, " - current outgoing size %d", _outgoingReliableMessages.size());
+		SPP_LOG(LOG_NMSREL, LOG_INFO, " - current incoming size %d", _incomingReliableMessages.size());
 
 		_sentCount = 0;
 		_resentCount = 0;
-
-		//SPP_LOG(LOG_NMSREL, LOG_INFO, " - reliable msg count %d at %d KB", _outgoingReliableMessages.size(), _currentBufferedAmount / 1024);
-		//SPP_LOG(LOG_NMSREL, LOG_INFO, " - resend req %d by timer %d", _resendRequests, _resendByTimer);
 	}
 
 	std::string ReliabilityTranscoder::ReportString()
@@ -302,27 +302,38 @@ namespace SPP
 					SPP_LOG(LOG_NMSREL, LOG_VERBOSE, " - positive ack");
 					_lastRecvAckTime = HighResClock::now();
 
-					// no incrementing we either are removing or break out
-					for (auto it = _outgoingReliableMessages.begin(); it != _outgoingReliableMessages.end();)
-					{												
-						if ((*it)->Index == Header.Data._ackMessage.Index)
+					// the first HaveMsg will always be our correct reliable consecutive point
+					// all ones after may be sparse but are messages we do have and can be cleared out over here
+					bool bFirstMessage = true;
+					for (auto it = _outgoingReliableMessages.begin();it != _outgoingReliableMessages.end();)
+					{
+						int32_t CurrentIncDelta = DistanceToIndex(Header.Data._ackMessage.Index, _outGoingIndices.Reliable);
+						int32_t IdxDelta = DistanceToIndex((*it)->Index, _outGoingIndices.Reliable);
+						
+						if ((bFirstMessage && IdxDelta <= CurrentIncDelta) ||
+							(*it)->Index == Header.Data._ackMessage.Index)
 						{
 							//We rcv a ACK with a higher index, clear up all the older _outgoingReliableMessages
 							SPP_LOG(LOG_NMSREL, LOG_VERBOSE, " - clearing confirmed id: %d", (*it)->Index);
-							_reliablesAwaitingAck--;	
+							_reliablesAwaitingAck--;
 							_currentBufferedAmount -= (*it)->MemSize();
 
 							_sendHealth += (float)((*it)->SendCount - 1) / 30.0f;
-							it = _outgoingReliableMessages.erase(it);							
-							lastRecvReliableIdx = Header.Data._ackMessage.Index;								
+							it = _outgoingReliableMessages.erase(it);
 						}
-						else
+						else if(!bFirstMessage)
+						{
+							(*it)->bHasSent = false;
+						}
+
+						if (CurrentIncDelta <= IdxDelta)
 						{
 							if (DataView.Remaining() > sizeof(uint16_t))
 							{
 								uint16_t nextIdx;
 								DataView >> nextIdx;
 								Header.Data._ackMessage.Index = nextIdx;
+								bFirstMessage = false;
 							}
 							else
 							{
@@ -330,7 +341,16 @@ namespace SPP
 								break;
 							}
 						}
+						else if (it == _outgoingReliableMessages.end())
+						{
+							break;
+						}
+						else
+						{
+							it++;
+						}
 					}
+					
 					
 					for (auto it = _outgoingReliableMessages.begin(); it != _outgoingReliableMessages.end(); ++it)
 					{
@@ -346,21 +366,21 @@ namespace SPP
 				}
 
 				// they want one...
-				if (Header.Data._ackMessage.bRequest)
-				{
-					SPP_LOG(LOG_NMSREL, LOG_VERBOSE, " - negative ack %u current head %u", Header.Data._ackMessage.Index, 
-						_outGoingIndices.Reliable);
+				//if (Header.Data._ackMessage.bRequest)
+				//{
+				//	SPP_LOG(LOG_NMSREL, LOG_VERBOSE, " - negative ack %u current head %u", Header.Data._ackMessage.Index, 
+				//		_outGoingIndices.Reliable);
 
-					for (auto it = _outgoingReliableMessages.begin(); it != _outgoingReliableMessages.end(); ++it)
-					{
-						if ((*it)->Index == Header.Data._ackMessage.Index)
-						{	
-							(*it)->bHasSent = false;
-							_resendRequests++;
-							break;
-						}
-					}
-				}
+				//	for (auto it = _outgoingReliableMessages.begin(); it != _outgoingReliableMessages.end(); ++it)
+				//	{
+				//		if ((*it)->Index == Header.Data._ackMessage.Index)
+				//		{	
+				//			(*it)->bHasSent = false;
+				//			_resendRequests++;
+				//			break;
+				//		}
+				//	}
+				//}
 			}
 
 			SPP_LOG(LOG_NMSREL, LOG_VERBOSE, " - reliability at IDX: %d with %d left", Header.Data._ackMessage.Index, _outgoingReliableMessages.size());
@@ -422,22 +442,30 @@ namespace SPP
 						Header.Data._standardMessage.Index,
 						DataView.GetData(), DataView.Size());
 
-					for (auto& inc : _incomingReliableMessages)
+					bool bWasAdded = false;
+					for (auto it = _incomingReliableMessages.begin(); it != _incomingReliableMessages.end();++it)
 					{
-						int32_t storedIdxDelta = DistanceToIndex(inc->Index, _incomingIndices.Reliable);
+						int32_t storedIdxDelta = DistanceToIndex((*it)->Index, _incomingIndices.Reliable);
 						if (IdxDelta == storedIdxDelta)
 						{
+							bWasAdded = true;
 							break;
 						}
 						else if (IdxDelta < storedIdxDelta)
 						{
 							auto NewIncReliable = std::make_unique<StoredReliableMessage>((uint16_t)
-								Header.Data._standardMessage.Index,
-								DataView.GetData(), DataView.Size());
-							_incomingReliableMessages.push_back(std::move(NewIncReliable));
+								Header.Data._standardMessage.Index,	DataView.GetData(), DataView.Size());
+							_incomingReliableMessages.insert(it,std::move(NewIncReliable));
+							bWasAdded = true;
 							break;
 						}
-					}					
+					}	
+					if (!bWasAdded)
+					{
+						auto NewIncReliable = std::make_unique<StoredReliableMessage>((uint16_t)
+							Header.Data._standardMessage.Index,	DataView.GetData(), DataView.Size());
+						_incomingReliableMessages.push_back(std::move(NewIncReliable));
+					}
 				}
 				else if (IdxDelta < 0)
 				{
@@ -468,9 +496,7 @@ namespace SPP
 		if (auto Parent = _PreviousTranscoder.lock())
 		{
 			for (auto &Message : _outgoingReliableMessages)
-			{				
-				int32_t IdxDelta = DistanceToIndex(Message->Index, lastRecvReliableIdx);
-		
+			{						
 				if (Message->bHasSent == false)
 				{
 					if (InConnection->IsSaturated())
@@ -493,7 +519,7 @@ namespace SPP
 				}					
 			}
 
-			// this approach needed?!
+			// if its not empty
 			//if (!_incomingReliableMessages.empty())
 			//{
 			//	FMessageHeaderReliability AckMessageOut;
@@ -502,8 +528,8 @@ namespace SPP
 			//	AckMessageOut.Data._ackMessage.Index = _incomingIndices.Reliable;
 			//	BinaryBlobSerializer MessageData;
 			//	MessageData << AckMessageOut;
-
-			//	uint16_t RequestIndex = (_incomingIndices.Reliable + 1);
+			//	
+			//	uint16_t RequestIndex = _incomingIndices.Reliable + 1;
 			//	for (auto it = _incomingReliableMessages.begin(); it != _incomingReliableMessages.end();)
 			//	{
 			//		while (true)
@@ -529,8 +555,8 @@ namespace SPP
 			AckMessageOut.Data._ackMessage.Index = (_incomingIndices.Reliable - 1);
 			BinaryBlobSerializer MessageData;
 			MessageData << AckMessageOut;
-
-			for (auto it = _incomingReliableMessages.begin(); it != _incomingReliableMessages.end();)
+			// send what we got
+			for (auto it = _incomingReliableMessages.begin(); it != _incomingReliableMessages.end(); ++it)
 			{
 				MessageData << (*it)->Index;				
 			}
