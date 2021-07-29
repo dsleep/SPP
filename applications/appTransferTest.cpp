@@ -24,7 +24,7 @@ struct RemoteClient
 {
 	std::chrono::steady_clock::time_point LastUpdate;
 	std::string Name;
-	std::string GUID;
+	std::string SDP;
 };
 
 /// <summary>
@@ -148,9 +148,15 @@ int main(int argc, char* argv[])
 	auto ThisRUNGUID = std::generate_hex(3);
 
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-	auto coordSocket = std::make_shared<UDPSocket>();
 
-	std::string ConnectToServer;
+	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
+	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
+
+	coordinator->SetKeyPair("GUID", ThisRUNGUID);
+	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
+	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+
+	bool bInitiatedConnection = false;
 	std::shared_ptr< DataTransferConnection > videoConnection;
 
 	using namespace std::chrono_literals;
@@ -160,16 +166,61 @@ int main(int argc, char* argv[])
 
 	std::map<std::string, RemoteClient> Hosts;
 
+	coordinator->SetSQLRequestCallback([&Hosts, &juiceSocket, localCoord = coordinator.get()](const std::string& InValue)
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, "CALLBACK: %s", InValue.c_str());
+
+			Json::Value root;
+			Json::CharReaderBuilder Builder;
+			Json::CharReader* reader = Builder.newCharReader();
+			std::string Errors;
+
+			bool parsingSuccessful = reader->parse((char*)InValue.data(), (char*)(InValue.data() + InValue.length()), &root, &Errors);
+			delete reader;
+			if (!parsingSuccessful)
+			{
+				return;
+			}
+
+			for (int32_t Iter = 0; Iter < root.size(); Iter++)
+			{
+				auto CurrentEle = root[Iter];
+
+				Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
+				Json::Value ConnectToValue = CurrentEle.get("GUIDCONNECTTO", Json::Value::nullSingleton());
+				Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
+
+				if (!ConnectToValue.isNull() && !SDPValue.isNull() && !GUIDValue.isNull())
+				{
+					localCoord->SetKeyPair("GUIDCONNECTTO", GUIDValue.asCString());
+					juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
+					return;
+				}
+
+				Json::Value NameValue = CurrentEle.get("NAME", Json::Value::nullSingleton());
+				Json::Value GuidValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
+
+				std::string GUIDStr = GuidValue.asCString();
+				{
+					Hosts[GUIDStr] = RemoteClient{
+						std::chrono::steady_clock::now(),
+						std::string(NameValue.asCString())
+					};
+				}
+			}
+		});
+
 	auto LastSentTime = std::chrono::steady_clock::now();
 	auto LastRecvUpdateFromCoordinator = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 
 	while (true)
 	{
+		coordinator->Update();
 		auto CurrentTime = std::chrono::steady_clock::now();
 
 		//write status
 		{
-			bool IsConnectedToCoord = (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRecvUpdateFromCoordinator).count() < 4);
+			bool IsConnectedToCoord = coordinator->IsConnected();
 
 			Json::Value JsonMessage;
 			JsonMessage["COORD"] = IsConnectedToCoord;
@@ -183,7 +234,7 @@ int main(int argc, char* argv[])
 				{
 					Json::Value SingleHost;
 					SingleHost["NAME"] = value.Name;
-					SingleHost["GUID"] = value.GUID;
+					SingleHost["GUID"] = key;
 					HostValues.append(SingleHost);
 				}
 				JsonMessage["HOSTS"] = HostValues;
@@ -211,33 +262,49 @@ int main(int argc, char* argv[])
 			outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
 			ipcMem.WriteMemory(outData.GetData(), outData.Size());
 
-			//GUID JOINING SYSTEM
+			// app wants to connect
+			char GUIDToJoin[7];
+			ipcMem.ReadMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
+			GUIDToJoin[6] = 0;
+
+			if (GUIDToJoin[0])
 			{
-				// app wants to connect
-				char GUIDToJoin[7];
-				ipcMem.ReadMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
-				GUIDToJoin[6] = 0;
+				std::string GUIDStr = GUIDToJoin;
+				SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s", GUIDStr.c_str());
 
-				if (GUIDToJoin[0])
+				for (auto& [key, value] : Hosts)
 				{
-					std::string GUIDStr = GUIDToJoin;
-					SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s", GUIDStr.c_str());
-
-					for (auto& [key, value] : Hosts)
+					if (key == GUIDStr)
 					{
-						if (value.GUID == GUIDStr)
+						if (juiceSocket->HasRemoteSDP() == false)
 						{
-							if (juiceSocket->HasRemoteSDP() == false)
-							{
-								juiceSocket->SetRemoteSDP_BASE64(key.c_str());
-								ConnectToServer = value.GUID;
-							}
+							bInitiatedConnection = true;
+							coordinator->SetKeyPair("GUIDCONNECTTO", key);
 						}
 					}
 				}
+			}
 
-				memset(GUIDToJoin, 0, 6);
-				ipcMem.WriteMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
+			memset(GUIDToJoin, 0, 6);
+			ipcMem.WriteMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
+		}
+
+		if (juiceSocket->IsReady())
+		{
+			coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
+
+			if (!videoConnection &&
+				std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
+			{
+				{
+					auto SQLRequest = std::string_format("SELECT GUID, NAME FROM clients WHERE GUID != '%s'", ThisRUNGUID.c_str());
+					coordinator->SQLRequest(SQLRequest.c_str());
+				}
+				{
+					auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
+					coordinator->SQLRequest(SQLRequest.c_str());
+				}
+				LastRequestJoins = CurrentTime;
 			}
 		}
 
@@ -250,11 +317,21 @@ int main(int argc, char* argv[])
 			{
 				videoConnection.reset();
 				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+				SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
+			}
+			else if (videoConnection->IsConnected())
+			{
+				coordinator->SetKeyPair("GUIDCONNECTTO", "");
 			}
 		}
 		else
 		{
-			if (juiceSocket->IsConnected())
+			if (juiceSocket->HasProblem())
+			{
+				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+				SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
+			}
+			else if (juiceSocket->IsConnected())
 			{
 				videoConnection = std::make_shared< DataTransferConnection >(juiceSocket);
 				videoConnection->CreateTranscoderStack(
@@ -262,89 +339,11 @@ int main(int argc, char* argv[])
 					std::make_shared< ReliabilityTranscoder >(),
 					// push on the splitter so we can ignore sizes
 					std::make_shared< MessageSplitTranscoder >());
-				if (!ConnectToServer.empty())
-				{
-					videoConnection->Connect();
-				}
+				videoConnection->Connect();
 			}
 		}
 
 		// it has an active SDP response (gathering done)
-		if (juiceSocket->IsReady())
-		{
-			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSentTime).count() > 1)
-			{
-				Json::Value JsonMessage;
-
-				JsonMessage["SENDALL"] = 1;
-				JsonMessage["NAME"] = GetOSNetwork().HostName;
-				JsonMessage["SDP"] = std::string(juiceSocket->GetSDP_BASE64());
-				JsonMessage["GUID"] = ThisRUNGUID;
-				if (!ConnectToServer.empty())
-				{
-					JsonMessage["CONNECT"] = ConnectToServer;
-				}
-
-				Json::StreamWriterBuilder wbuilder;
-				std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-				coordSocket->SendTo(RemoteCoordAddres, StrMessage.c_str(), StrMessage.size());
-				LastSentTime = std::chrono::steady_clock::now();
-			}
-
-			// send we sent we should get a reponse from coord
-			IPv4_SocketAddress currentAddress;
-			auto packetSize = coordSocket->ReceiveFrom(currentAddress, BufferRead.data(), BufferRead.size() - 1);
-
-			if (packetSize > 0)
-			{
-				Json::Value root;
-				Json::CharReaderBuilder Builder;
-				Json::CharReader* reader = Builder.newCharReader();
-				std::string Errors;
-
-				bool parsingSuccessful = reader->parse((char*)BufferRead.data(), (char*)(BufferRead.data() + packetSize), &root, &Errors);
-				delete reader;
-				if (!parsingSuccessful)
-				{
-					break;
-				}
-
-				Json::Value NameValue = root.get("NAME", Json::Value::nullSingleton());
-				Json::Value SDPValue = root.get("SDP", Json::Value::nullSingleton());
-				Json::Value GuidValue = root.get("GUID", Json::Value::nullSingleton());
-
-				if (SDPValue.isNull() == false &&
-					GuidValue.isNull() == false &&
-					NameValue.isNull() == false)
-				{
-					std::string SDPString = SDPValue.asCString();
-
-					Hosts[SDPString] = RemoteClient{
-						std::chrono::steady_clock::now(),
-						std::string(NameValue.asCString()),
-						std::string(GuidValue.asCString()) };
-				}
-
-				Json::Value ServerTime = root.get("SERVERTIME", Json::Value::nullSingleton());
-				if (ServerTime.isNull() == false)
-				{
-					LastRecvUpdateFromCoordinator = std::chrono::steady_clock::now();
-				}
-
-				if (juiceSocket->HasRemoteSDP() == false)
-				{
-					Json::Value ClientConnection = root.get("CONNECTSDP", Json::Value::nullSingleton());
-
-					if (ClientConnection.isNull() == false)
-					{
-						std::string SDPString = ClientConnection.asCString();
-						SPP_LOG(LOG_APP, LOG_INFO, "Recv Remote SDP: starting connetion to %s", SDPString.c_str());
-						juiceSocket->SetRemoteSDP_BASE64(SDPString.c_str());
-					}
-				}
-			}
-		}
-
 		std::this_thread::sleep_for(1ms);
 	}
 

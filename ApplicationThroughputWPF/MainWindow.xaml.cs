@@ -250,8 +250,6 @@ namespace ThroughTestApplication
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            TB_CoordAddr.Text = Properties.Settings.Default.CoordinatorURL;
-
             IMG_Worker.Source = BadState;
             IMG_Coord.Source = BadState;
             IMG_Stun.Source = BadState;
@@ -288,8 +286,6 @@ namespace ThroughTestApplication
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            Properties.Settings.Default.CoordinatorURL = TB_CoordAddr.Text;
-            Properties.Settings.Default.Save();
         }
 
         private void LB_Servers_SelectionChanged(object sender, SelectionChangedEventArgs e)

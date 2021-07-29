@@ -10,6 +10,7 @@
 #include "SPPSockets.h"
 #include "SPPNetworkConnection.h"
 #include "SPPSTLUtils.h"
+#include <set>
 
 #define NETWORK_MESSAGE_TEMPLATE(ID, Name,Func,...) auto MP_##Name = std::make_shared< RedRiver::TMessageProcessor<ID, ##__VA_ARGS__> > ( #Name, Func );
 
@@ -91,8 +92,21 @@ namespace SPP
 			{
 				return (int32_t)(sizeof(StoredMessage) + Message.size());
 			}
-
 		};
+
+		struct StoredReliableMessage
+		{
+			uint16_t Index;
+			std::vector<uint8_t> Message; 
+			
+			StoredReliableMessage(uint16_t InIndex, const void* ArrayData, int64_t Length)
+			{
+				Index = InIndex;
+				Message.resize(Length);
+				memcpy(Message.data(), ArrayData, Length);
+			}
+		};
+
 		uint16_t lastSentReliableIdx = 23;
 		uint16_t lastRecvReliableIdx = 23;
 		int32_t _reliablesAwaitingAck = 0;
@@ -100,6 +114,7 @@ namespace SPP
 		int32_t _resendRequests = 0;
 		int32_t _resendByTimer = 0;
 		std::list< std::unique_ptr< StoredMessage > > _outgoingReliableMessages;
+		std::list< std::unique_ptr< StoredReliableMessage > > _incomingReliableMessages;
 		HighResClock::time_point _lastRecvAckTime;
 		
 		uint32_t _sentCount = 0;
@@ -120,7 +135,7 @@ namespace SPP
 		virtual void Update(NetworkConnection *InConnection);
 		//
 		virtual int32_t GetBufferedAmount() const override { return _currentBufferedAmount; }
-		virtual int32_t GetBufferedMessageCount() const override { return _outgoingReliableMessages.size(); }		
+		virtual int32_t GetBufferedMessageCount() const override { return (int32_t) _outgoingReliableMessages.size(); }
 		//
 		virtual void Report() override;
 

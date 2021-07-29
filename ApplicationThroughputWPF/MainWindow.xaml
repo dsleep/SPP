@@ -18,12 +18,10 @@
         <Button x:Name="BTN_Stop" Content="Stop" Margin="0,41,8.6,0" Click="BTN_Stop_Click" HorizontalAlignment="Right" Width="75" Height="25" VerticalAlignment="Top"/>
         <Label x:Name="label_Copy4" Content="Worked Process:" HorizontalAlignment="Left" Margin="43,10,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Coord" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,38,0,0" Source="images/buttonbad.png"  />
-        <Label x:Name="label_Copy5" Content="Coordinator Address:" HorizontalAlignment="Left" Margin="11,104,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="TB_CoordAddr" Height="23" Margin="11,134,9.6,0" TextWrapping="Wrap" Text="70.185.114.136:12021" VerticalAlignment="Top" TextChanged="TB_Args_TextChanged"/>
 
-      
-        <Label x:Name="label_Copy1" Content="Available Peers:" HorizontalAlignment="Left" Margin="11,170,0,0" VerticalAlignment="Top"/>
-        <ListBox x:Name="LB_Servers" Margin="11,201,9.6,291.6" SelectionChanged="LB_Servers_SelectionChanged"/>
+
+        <Label x:Name="label_Copy1" Content="Available Peers:" HorizontalAlignment="Left" Margin="10,101,0,0" VerticalAlignment="Top"/>
+        <ListBox x:Name="LB_Servers" Margin="10,132,10.8,291.6" SelectionChanged="LB_Servers_SelectionChanged"/>
         <Button x:Name="BTN_Connect" Content="Connect" Margin="10,0,0,9.6" HorizontalAlignment="Left" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Connect_Click"/>
         <Button x:Name="BTN_Disconnect" Content="Disconnect" Margin="90,0,0,9.6" HorizontalAlignment="Left" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Disconnect_Click"/>
 
