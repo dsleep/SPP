@@ -225,7 +225,8 @@ namespace RAMApplication
                 WorkerID = C_CreateChildProcess("applicationhost.exe",
 #endif
                 "-MEM=" + mmfGUID.ToString() +
-                    " -APP=\"" + TB_AppPath.Text + "\"", false);
+                    " -APP=\"" + TB_AppPath.Text + "\"" +
+                    " -CMDLINE=\"" + TB_Args.Text + "\"", true);
 
                 BTN_Start.IsEnabled = false;
             }

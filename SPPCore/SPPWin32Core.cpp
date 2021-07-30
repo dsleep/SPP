@@ -97,6 +97,10 @@ namespace SPP
 	
 		auto pi = std::make_shared< PROCESS_INFORMATION >(PROCESS_INFORMATION{ 0 });
 
+		std::string OutputCommandline = std::filesystem::path(ProcessPath).filename().generic_string();
+		OutputCommandline += " ";
+		OutputCommandline += Commandline;
+
 		STARTUPINFOA si = { 0 };
 		si.cb = sizeof(si);
 		if (bStartVisible == false)
@@ -106,7 +110,7 @@ namespace SPP
 		}
 		DWORD dwCreationFlags = 0;
 		dwCreationFlags |= CREATE_NEW_CONSOLE;
-		bSuccess = CreateProcessA(ProcessPath, (LPSTR)Commandline,
+		bSuccess = CreateProcessA(ProcessPath, (LPSTR)OutputCommandline.c_str(),
 			NULL, NULL, FALSE,
 			dwCreationFlags, NULL, NULL, &si, pi.get());
 		if (bSuccess == 0) 
