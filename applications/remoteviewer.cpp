@@ -187,25 +187,17 @@ public:
 	void UpdateWindowMessages()
 	{
 		MSG msg = { 0 };
-		uint32_t popMessages = 0;
-		while (popMessages++ < 5)
+		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) == TRUE)
 		{
-			if (PeekMessage(&msg, _ourWindow, 0, 0, PM_REMOVE))
+			if (GetMessage(&msg, NULL, 0, 0))
 			{
-				if (WM_QUIT == msg.message)
-				{
-					bIsAllDone = true;
-					break;
-				}
-				else
-				{
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				}
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
 			}
-			else
+			else 
 			{
-				break;
+				bIsAllDone = true;
+				return;
 			}
 		}
 	}
@@ -406,7 +398,7 @@ LRESULT SimpleGlutApp::LocalWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 		//SPP_LOG(LOG_APP, LOG_INFO, "%u : %u : %u", uMsg, wParam, lParam);
 
 	}
-	else if (uMsg >= WM_LBUTTONDOWN && uMsg <= WM_MOUSELAST)
+	else if (uMsg >= WM_MOUSEMOVE && uMsg <= WM_MOUSELAST)
 	{
 		uint16_t X = (uint16_t)(lParam & 0xFFFFF);
 		uint16_t Y = (uint16_t)((lParam >> 16) & 0xFFFFF);
