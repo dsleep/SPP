@@ -24,7 +24,7 @@ if '%errorlevel%' NEQ '0' (
     CD /D "%~dp0"
 :--------------------------------------  
 
-where /q python
+python --version 2>NUL
 IF ERRORLEVEL 1 (
     ECHO Install Python and ensure its on the path!!!!
 	PAUSE
