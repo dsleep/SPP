@@ -45,7 +45,7 @@ namespace SPP
 
 	std::map< uint32_t, std::shared_ptr< PROCESS_INFORMATION > > hostedChildProcesses;
 
-	uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline)
+	uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible)
 	{
 		SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: %s %s", ProcessPath, Commandline);
 
@@ -57,12 +57,27 @@ namespace SPP
 			return 0;
 		}
 		
+		bool bCreateJob = true;
+
 		HANDLE hJob = nullptr;
 		if (bIsProcessInJob) 
 		{
+			bCreateJob = false;
 			SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: already in job");
+
+			JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
+			QueryInformationJobObject(NULL, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli), NULL);
+
+			SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  silent break away %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK));
+			SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  kill on close %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE));
+			SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  break away %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_BREAKAWAY_OK));
+
+			bCreateJob = (jeli.BasicLimitInformation.LimitFlags & (JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)) != 0;
+
+			SPP_LOG(LOG_WIN32CORE, LOG_INFO, " - bCreateJob %d", bCreateJob);
 		}
-		else
+		
+		if(bCreateJob)
 		{
 			hJob = CreateJobObject(NULL, NULL);
 			if (hJob == NULL) 
@@ -84,9 +99,11 @@ namespace SPP
 
 		STARTUPINFOA si = { 0 };
 		si.cb = sizeof(si);
-		//si.dwFlags = STARTF_USESHOWWINDOW;
-		//si.wShowWindow = SW_HIDE;
-
+		if (bStartVisible == false)
+		{
+			si.dwFlags = STARTF_USESHOWWINDOW;
+			si.wShowWindow = SW_HIDE;
+		}
 		DWORD dwCreationFlags = 0;
 		dwCreationFlags |= CREATE_NEW_CONSOLE;
 		bSuccess = CreateProcessA(ProcessPath, (LPSTR)Commandline,
@@ -149,9 +166,9 @@ namespace SPP
 	}
 }
 
-uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline)
+uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible)
 {
-	return SPP::CreateChildProcess(ProcessPath, Commandline);
+	return SPP::CreateChildProcess(ProcessPath, Commandline, bStartVisible);
 }
 
 bool C_IsChildRunning(uint32_t processID)

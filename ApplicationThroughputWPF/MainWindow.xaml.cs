@@ -61,7 +61,9 @@ namespace ThroughTestApplication
 #endif
 
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
-        private extern static UInt32 C_CreateChildProcess(string ProcessPath, string Commandline);
+        private extern static UInt32 C_InitializeCore();
+        [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
+        private extern static UInt32 C_CreateChildProcess(string ProcessPath, string Commandline, bool bStartVisible);
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
         private extern static bool C_IsChildRunning(UInt32 ProcessID);
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
@@ -103,8 +105,8 @@ namespace ThroughTestApplication
             {
                 if(arguments[1] == "-startanother")
                 {
-                    C_CreateChildProcess("simpleconnectioncoordinatord.exe", "");
-                    C_CreateChildProcess("AppThroughPut.exe", "");                    
+                    C_CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
+                    C_CreateChildProcess("AppThroughPut.exe", "", true);                    
                 }
             }
 #endif
@@ -267,7 +269,7 @@ namespace ThroughTestApplication
 #else
             WorkerID = C_CreateChildProcess("appTransferTest.exe",
 #endif
-                "-MEM=" + mmfGUID.ToString() );
+                "-MEM=" + mmfGUID.ToString(), true);
         }
 
         private void BTN_Stop_Click(object sender, RoutedEventArgs e)

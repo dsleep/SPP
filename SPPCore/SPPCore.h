@@ -59,3 +59,5 @@ namespace SPP
 	
 	SPP_CORE_API extern std::unique_ptr<class ThreadPool> CPUThreaPool;
 }
+
+extern "C" SPP_CORE_API void C_IntializeCore();

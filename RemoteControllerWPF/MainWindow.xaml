@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RACApplication"
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
-        Title="Remote Application Controller" Height="366" Width="338.6" Loaded="Window_Loaded" ResizeMode="CanMinimize">
+        Title="Remote Application Controller" Height="381.429" Width="338.6" Loaded="Window_Loaded" ResizeMode="CanMinimize">
     <Grid>
         <Label x:Name="label" Content="Connection to Coordinator" HorizontalAlignment="Left" Margin="45,43,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Coord" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,43,0,0" Source="images/buttonbad.png" />
@@ -17,7 +17,7 @@
         <Button x:Name="BTN_Connect" Content="Connect" HorizontalAlignment="Left" Margin="10,0,0,6.8" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Connect_Click"/>
         <Label x:Name="label_Copy2" Content="Worker Active" HorizontalAlignment="Left" Margin="45,11,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Worker" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,11,0,0" Source="images/buttonbad.png" />
-        <Button x:Name="BTN_Disconnect" Content="Disconnect" HorizontalAlignment="Left" Margin="99,0,0,6.8" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Disconnect_Click" />
+        <Image x:Name="IMG_ConnectionState" Height="30" VerticalAlignment="Bottom" Margin="0,0,10,10" Source="images/buttonbad.png" HorizontalAlignment="Right" Width="30" />
 
     </Grid>
 </Window>

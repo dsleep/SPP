@@ -13,6 +13,7 @@ add_executable(RAC
 	Images/AppIcon.ico
 	Images/buttongood.png
 	Images/buttonbad.png
+    Images/buttonnuetral.png
 
     Properties/AssemblyInfo.cs
     Properties/Resources.Designer.cs
@@ -37,6 +38,7 @@ csharp_set_xaml_cs_properties(
 set_property(SOURCE App.xaml PROPERTY VS_XAML_TYPE "ApplicationDefinition")
 set_property(SOURCE "Images/buttongood.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
 set_property(SOURCE "Images/buttonbad.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
+set_property(SOURCE "Images/buttonnuetral.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
 
 set_property(TARGET RAC PROPERTY VS_DOTNET_REFERENCES
     "Microsoft.CSharp"

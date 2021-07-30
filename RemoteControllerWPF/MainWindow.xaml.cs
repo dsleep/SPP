@@ -33,6 +33,8 @@ namespace RACApplication
     {
         private BitmapImage GoodState = null;
         private BitmapImage BadState = null;
+        private BitmapImage OkState = null;        
+
         private MemoryMappedFile mmf = null;
         private MemoryMappedViewStream mmVS = null;
         private Mutex mmfMutex = null;
@@ -45,6 +47,7 @@ namespace RACApplication
         private bool WorkerGood = false;
         private bool CoordGood = false;
         private bool StunGood = false;
+        private int ConnStatus = 0;
 
 #if DEBUG
         private const string DllFilePath = "SPPCored.dll";
@@ -53,7 +56,7 @@ namespace RACApplication
 #endif
 
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
-        private extern static UInt32 C_CreateChildProcess(string ProcessPath, string Commandline);
+        private extern static UInt32 C_CreateChildProcess(string ProcessPath, string Commandline, bool bStartVisible);
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
         private extern static bool C_IsChildRunning(UInt32 ProcessID);
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
@@ -65,6 +68,7 @@ namespace RACApplication
 
             GoodState = new BitmapImage(new Uri(@"./images/buttongood.png", UriKind.Relative));
             BadState = new BitmapImage(new Uri(@"./images/buttonbad.png", UriKind.Relative));
+            OkState = new BitmapImage(new Uri(@"./images/buttonnuetral.png", UriKind.Relative));
 
             mmfGUID = Guid.NewGuid();
             string mmfGUIDStr = mmfGUID.ToString();
@@ -81,7 +85,7 @@ namespace RACApplication
 #else
             WorkerID = C_CreateChildProcess("remoteviewer.exe",
 #endif
-                "-MEM=" + mmfGUID.ToString());
+                "-MEM=" + mmfGUID.ToString(), false);
 
             DispatcherTimer timer = new DispatcherTimer();
             timer.Interval = TimeSpan.FromMilliseconds(250);
@@ -100,6 +104,7 @@ namespace RACApplication
         {
             public bool COORD { get; set; }
             public bool RESOLVEDSDP { get; set; }
+            public int CONNSTATUS { get; set; }
 
             public List<Host> HOSTS { get; set; }
         };
@@ -115,6 +120,8 @@ namespace RACApplication
                 WorkerGood = IsWorkValid;
                 IMG_Worker.Source = WorkerGood ? GoodState : BadState;
             }
+
+            //BTN_Connect
 
             if (IsWorkValid == false)
             {
@@ -151,6 +158,24 @@ namespace RACApplication
                     {
                         StunGood = appStatus.RESOLVEDSDP;
                         IMG_Stun.Source = StunGood ? GoodState : BadState;
+                    }
+
+                    if (ConnStatus != appStatus.CONNSTATUS)
+                    {
+                        ConnStatus = appStatus.CONNSTATUS;
+                        switch(ConnStatus)
+                        {
+                            case 0:
+                                BTN_Connect.IsEnabled = true;
+                                IMG_ConnectionState.Source = BadState;
+                                break;
+                            case 1:
+                                IMG_ConnectionState.Source = OkState;
+                                break;
+                            case 2:
+                                IMG_ConnectionState.Source = GoodState;
+                                break;
+                        }
                     }
 
                     HostList.Clear();
@@ -195,6 +220,8 @@ namespace RACApplication
                 var ServerString = LB_Servers.SelectedItem.ToString();
                 mmVSBinaryWrite.Write(ServerString.ToCharArray());    
                 mmfMutex.ReleaseMutex();
+
+                BTN_Connect.IsEnabled = false;
             }
         }
 

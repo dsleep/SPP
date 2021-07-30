@@ -89,6 +89,15 @@ namespace SPP
 		_impl->KeyMapping[Key] = Value;
 	}
 
+	void UDP_SQL_Coordinator::GetLocalKeyValue(const std::string& Key, std::string& Value)
+	{
+		auto findKey = _impl->KeyMapping.find(Key);
+		if (findKey != _impl->KeyMapping.end())
+		{
+			Value = findKey->second;
+		}
+	}
+
 	void UDP_SQL_Coordinator::SetSQLRequestCallback(std::function<void(const std::string&)> InReponseFunc)
 	{
 		_impl->ResponseFunc = InReponseFunc;

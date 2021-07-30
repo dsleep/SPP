@@ -21,13 +21,13 @@ namespace SPP
 	SPP_CORE_API std::string GetProcessName();
 
 	SPP_CORE_API PlatformInfo GetPlatformInfo();
-	SPP_CORE_API uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline);
+	SPP_CORE_API uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible = true);
 	SPP_CORE_API bool IsChildRunning(uint32_t processID);
 	SPP_CORE_API void CloseChild(uint32_t processID);
 
 	SPP_CORE_API void AddDLLSearchPath(const char* InPath);
 }
 
-extern "C" SPP_CORE_API uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline);
+extern "C" SPP_CORE_API uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible);
 extern "C" SPP_CORE_API bool C_IsChildRunning(uint32_t processID);
 extern "C" SPP_CORE_API void C_CloseChild(uint32_t processID);

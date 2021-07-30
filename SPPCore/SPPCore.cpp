@@ -53,3 +53,9 @@ namespace SPP
 		srand((unsigned int)time(NULL));
 	}
 }
+
+
+void C_IntializeCore()
+{
+	SPP::IntializeCore("");
+}

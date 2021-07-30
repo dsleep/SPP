@@ -24,6 +24,7 @@ namespace SPP
 		void SetSQLRequestCallback(std::function<void(const std::string&)> InReponseFunc);
 		void SQLRequest(const std::string& InSQL);
 		void SetKeyPair(const std::string &Key, const std::string &Value);
+		void GetLocalKeyValue(const std::string& Key, std::string& Value);
 
 		bool IsConnected() const;
 		void Update();

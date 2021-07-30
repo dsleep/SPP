@@ -177,7 +177,9 @@ public:
 		DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 		ReleaseDC(hWnd, hDC);
 
-		ShowWindow(hWnd, SW_SHOW);
+		ShowWindow(hWnd, SW_SHOWDEFAULT);
+		ShowWindow(hWnd, SW_SHOWDEFAULT);
+		ShowWindow(hWnd, SW_SHOWNORMAL);
 
 		return hWnd;
 	}
@@ -572,6 +574,24 @@ int main(int argc, char* argv[])
 			Json::Value JsonMessage;
 			JsonMessage["COORD"] = coordinator->IsConnected();
 			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
+
+			if (!videoConnection)
+			{
+				std::string ConnectKey;
+				coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);				
+				JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;				
+			}			
+			else
+			{
+				if (videoConnection->IsConnected())
+				{
+					JsonMessage["CONNSTATUS"] = 2;
+				}
+				else
+				{
+					JsonMessage["CONNSTATUS"] = 1;
+				}
+			}
 
 			if (Hosts.empty() == false)
 			{

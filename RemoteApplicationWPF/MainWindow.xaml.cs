@@ -56,8 +56,12 @@ namespace RAMApplication
         private const string DllFilePath = "SPPCore.dll";
 #endif
 
+
+
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
-        private extern static UInt32 C_CreateChildProcess(string ProcessPath, string Commandline);
+        private extern static void C_IntializeCore();
+        [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
+        private extern static UInt32 C_CreateChildProcess(string ProcessPath, string Commandline, bool bStartVisible);
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
         private extern static bool C_IsChildRunning(UInt32 ProcessID);
         [DllImport(DllFilePath, CharSet = CharSet.Ansi)]
@@ -67,9 +71,10 @@ namespace RAMApplication
         {
             InitializeComponent();
 
- #if DEBUG
-            C_CreateChildProcess("RAC.exe", "");
-            C_CreateChildProcess("simpleconnectioncoordinatord.exe", "");
+#if DEBUG
+            C_IntializeCore();
+            C_CreateChildProcess("RAC.exe", "", true);
+            C_CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
 #endif
 
             GoodState = new BitmapImage(new Uri(@"./images/buttongood.png", UriKind.Relative));
@@ -109,13 +114,22 @@ namespace RAMApplication
 
         void timer_Tick(object sender, EventArgs e)
         {
-            bool IsWorkValid = (WorkerID != 0 && C_IsChildRunning(WorkerID));
+            // if there is an ID but its not running set it to 0
+            if(WorkerID != 0 && C_IsChildRunning(WorkerID) == false)
+            {
+                WorkerID = 0;
+            }
+
+            bool IsWorkValid = (WorkerID != 0);
 
             if (WorkerGood != IsWorkValid)
             {
                 WorkerGood = IsWorkValid;
                 IMG_Worker.Source = WorkerGood ? GoodState : BadState;
             }
+
+            BTN_Stop.IsEnabled = WorkerGood;
+            BTN_Start.IsEnabled = !WorkerGood;
 
             if (IsWorkValid == false)
             {          
@@ -181,6 +195,8 @@ namespace RAMApplication
             IMG_Coord.Source = BadState;
             IMG_Stun.Source = BadState;
             IMG_Client.Source = BadState;
+
+            BTN_Stop.IsEnabled = false;
         }
 
         private void button_Click(object sender, RoutedEventArgs e)
@@ -201,13 +217,18 @@ namespace RAMApplication
 
         private void BTN_Start_Click(object sender, RoutedEventArgs e)
         {
+            if (WorkerID == 0)
+            {
 #if DEBUG
-            WorkerID = C_CreateChildProcess("applicationhostd.exe", 
+                WorkerID = C_CreateChildProcess("applicationhostd.exe",
 #else
-            WorkerID = C_CreateChildProcess("applicationhost.exe",
+                WorkerID = C_CreateChildProcess("applicationhost.exe",
 #endif
                 "-MEM=" + mmfGUID.ToString() +
-                " -APP=\"" + TB_AppPath.Text + "\"" );
+                    " -APP=\"" + TB_AppPath.Text + "\"", false);
+
+                BTN_Start.IsEnabled = false;
+            }
         }
 
         private void BTN_Stop_Click(object sender, RoutedEventArgs e)
