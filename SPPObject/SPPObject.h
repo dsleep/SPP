@@ -92,9 +92,13 @@ namespace SPP
 			}
 
 
-	struct SPP_OBJECT_API SPPMetaType
-	{		
+	class SPP_OBJECT_API SPPMetaType
+	{	
+	protected:
 		std::string _name;
+	public:
+		virtual void Write(class Serializer& InSerializer, const uint8_t* InData) const = 0;
+		virtual void Read(class Serializer& InSerializer, uint8_t* OutData) const = 0;
 	};
 
 	struct SPP_OBJECT_API SPPString_META : public SPPMetaType
@@ -104,6 +108,8 @@ namespace SPP
 			_name = "std::string";
 		}
 
+
+
 		static std::shared_ptr<SPPString_META> GetSharedMeta()
 		{
 			static std::shared_ptr<SPPString_META> sO;
@@ -112,15 +118,11 @@ namespace SPP
 		}
 	};
 
-	class SPP_OBJECT_API SPPField
+	struct SPPField
 	{
-	protected:
-		std::string _name;
-		uint32_t _offset;
-		std::shared_ptr< SPPMetaType > _type;
-
-	public:
-
+		std::string name;
+		uint32_t offset;
+		std::shared_ptr< SPPMetaType > type;
 	};
 
 	class SPPMetaStruct : public SPPMetaType
@@ -128,6 +130,9 @@ namespace SPP
 	protected:
 		std::shared_ptr< SPPMetaType > _parent;
 		std::vector< class SPPField > _fields;
+
+		virtual bool Write(class Serializer& InSerializer);
+		virtual bool Read(class Serializer& Serializer);
 	};
 
 	struct SPPObject_META;

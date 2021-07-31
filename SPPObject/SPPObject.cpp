@@ -209,15 +209,58 @@ namespace SPP
 		}
 	};
 
-	class SPPInt32Field : public SPPField
+
+	class SPPMetaStruct : public SPPMetaType
 	{
 	protected:
-		std::string _name;
-		uint32_t _offset;
-		std::shared_ptr< SPPMetaType > _type;
+		std::shared_ptr< SPPMetaType > _parent;
+		std::vector< class SPPField > _fields;
 
 	public:
+		virtual void Write(class Serializer& InSerializer, const uint8_t *InData) const override
+		{
+			if (_parent)
+			{
+				_parent->Write(InSerializer, InData);
+			}
 
+			for (auto& field : _fields)
+			{
+				field.type->Write(InSerializer, InData + field.offset);
+			}
+		}
+		virtual void Read(class Serializer& InSerializer, uint8_t* OutData) const override
+		{
+			if (_parent)
+			{
+				_parent->Read(InSerializer, OutData);
+			}
+
+			for (auto& field : _fields)
+			{
+				field.type->Read(InSerializer, OutData + field.offset);
+			}
+		}
+	};
+	
+	template<typename T>
+	struct TPODType : public SPPMetaType
+	{
+		static std::shared_ptr< TPODType<T> > GetSharedMeta()
+		{
+			static std::shared_ptr< TPODType<T> > sO;
+			if (!sO) sO = std::make_shared< TPODType<T> >();
+			return sO;
+		}
+
+		virtual bool Write(class Serializer& InSerializer)
+		{
+
+		}
+		virtual bool Read(class Serializer& Serializer)
+		{
+
+		}
 	};
 
 	struct OTexture_META  : public SPPObject_META
@@ -225,7 +268,7 @@ namespace SPP
 		OTexture_META() : SPPObject_META()
 		{
 			_parent = OTexture::GetStaticMetaType();
-			//_fields.push_back();
+			_fields.push_back({ "_width", offsetof(OTexture, _width), TPODType<uint16_t>::GetSharedMeta() });
 		}
 
 		virtual SPPObject* Allocate(const ObjectPath& InPath) const
