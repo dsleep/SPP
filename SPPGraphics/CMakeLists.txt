@@ -47,19 +47,7 @@ target_sources( SPPGraphics
 		"${CMAKE_CURRENT_LIST_DIR}/SPPTerrain.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.h"
-				
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/d3dx12.h"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Buffers.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Buffers.h"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Device.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Device.h"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Shaders.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Shaders.h"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Textures.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Textures.h"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Utils.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/DX12Utils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.h"				
 
 		)
 
@@ -68,21 +56,15 @@ target_include_directories(SPPEngine
 		"${CMAKE_CURRENT_LIST_DIR}" )
 		
 target_include_directories(SPPGraphics 
-	PRIVATE  	
-		"${CMAKE_CURRENT_LIST_DIR}/DX12"
-		
+	PRIVATE  			
 		"${THIRD_PARTY}/stb" 		
 		"${THIRD_PARTY}/assimp/include"
-		"${THIRD_PARTY}/dxc/include"
 		"${THIRD_PARTY}/eigen/include/eigen3"
 		"${THIRD_PARTY}/fbtBlendHeaderOnly292"
 		"${THIRD_PARTY}/metis-5.1.0/include" )
 		
 target_link_directories(SPPGraphics 
 	PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/x64/DEBUG"
-		
-		"${THIRD_PARTY}/dxc/lib/x64"
 		"${THIRD_PARTY}/assimp/lib/debug"
 		"${THIRD_PARTY}/metis-5.1.0/lib/debug")		
 		
@@ -93,10 +75,6 @@ target_link_libraries( SPPGraphics
 		
 target_link_libraries( SPPGraphics 
 	PRIVATE
-		d3d12
-		dxgi
-		d3dcompiler
-		dxguid
 		metis )
 
 install(TARGETS SPPGraphics DESTINATION "${SPP_ROOT}/INSTALL")

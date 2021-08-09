@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "SPPObject.h"
 #include "SPPGraphics.h"
 #include "SPPGPUResources.h"
 #include "SPPMath.h"
@@ -256,7 +255,7 @@ namespace SPP
 
 		virtual uint32_t GetVertexCount() const override
 		{
-			return ourVertSpan.GetCount();
+			return (uint32_t) ourVertSpan.GetCount();
 		}
 		virtual void ResizeVertices(uint32_t NewCount) override
 		{
@@ -269,7 +268,7 @@ namespace SPP
 		}
 		virtual uint32_t GetIndexCount() const override
 		{
-			return ourIndexSpan.GetCount();
+			return (uint32_t) ourIndexSpan.GetCount();
 		}
 		virtual void ResizeIndices(uint32_t NewCount) override
 		{
@@ -376,10 +375,8 @@ namespace SPP
 		std::shared_ptr< MeshMaterial > material;
 	};	
 
-	class SPP_GRAPHICS_API Mesh : public SPPObject
+	class SPP_GRAPHICS_API Mesh 
 	{
-		DEFINE_SPP_OBJECT(Mesh, SPPObject);
-
 	protected:
 		std::vector< std::shared_ptr<MeshElement> > _elements;
 		AABB _bounds;

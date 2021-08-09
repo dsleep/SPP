@@ -14,8 +14,6 @@
 
 namespace SPP
 {
-	IMPLEMENT_SPP_OBJECT(Mesh);
-
 	LogEntry LOG_MESH("MESH");
 
 	template<>
@@ -63,17 +61,17 @@ namespace SPP
 				{
 					auto meshShaderResource = std::make_shared< ArrayResource >();
 					blobAsset >> *meshShaderResource;
-					newMeshElement->MeshletResource = CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
+					newMeshElement->MeshletResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
 				}
 				{
 					auto meshShaderResource = std::make_shared< ArrayResource >();
 					blobAsset >> *meshShaderResource;
-					newMeshElement->UniqueVertexIndexResource = CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
+					newMeshElement->UniqueVertexIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
 				}
 				{
 					auto meshShaderResource = std::make_shared< ArrayResource >();
 					blobAsset >> *meshShaderResource;
-					newMeshElement->PrimitiveIndexResource = CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
+					newMeshElement->PrimitiveIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
 				}
 
 
@@ -83,12 +81,12 @@ namespace SPP
 				blobAsset >> *verticesResource;
 				blobAsset >> *indicesResource;
 
-				newMeshElement->VertexResource = CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
-				newMeshElement->IndexResource = CreateStaticBuffer(GPUBufferType::Index, indicesResource);
+				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
+				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, indicesResource);
 
 				_elements.push_back(newMeshElement);
 
-				RegisterMeshElement(newMeshElement);
+				//RegisterMeshElement(newMeshElement);
 			}
 		}
 		else
@@ -132,26 +130,26 @@ namespace SPP
 					auto meshShaderResource = std::make_shared< ArrayResource >();
 					auto pMeshlets = meshShaderResource->InitializeFromType<Meshlet>(meshlets.size());
 					memcpy(pMeshlets, meshlets.data(), sizeof(Meshlet) * meshlets.size());
-					newMeshElement->MeshletResource = CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);					
+					newMeshElement->MeshletResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
 				}
 				{
 					auto meshShaderResource = std::make_shared< ArrayResource >();
 					auto puniqueVertexIndices = meshShaderResource->InitializeFromType<Meshlet>(DivRoundUp(uniqueVertexIndices.size(), 4));
 					memcpy(puniqueVertexIndices, uniqueVertexIndices.data(), sizeof(uint8_t) * uniqueVertexIndices.size());
-					newMeshElement->UniqueVertexIndexResource = CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);					
+					newMeshElement->UniqueVertexIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
 				}
 				{
 					auto meshShaderResource = std::make_shared< ArrayResource >();
 					auto pprimitiveIndices = meshShaderResource->InitializeFromType<PackedTriangle>(primitiveIndices.size());
 					memcpy(pprimitiveIndices, primitiveIndices.data(), sizeof(PackedTriangle) * primitiveIndices.size());
-					newMeshElement->PrimitiveIndexResource = CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);					
+					newMeshElement->PrimitiveIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
 				}
 
-				newMeshElement->VertexResource = CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
-				newMeshElement->IndexResource = CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);
+				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
+				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);
 
 				_elements.push_back(newMeshElement);
-				RegisterMeshElement(newMeshElement);
+				//RegisterMeshElement(newMeshElement);
 			}
 
 //			Assimp::Importer importer;

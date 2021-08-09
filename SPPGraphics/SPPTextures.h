@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "SPPObject.h"
 #include "SPPGraphics.h"
 #include "SPPGPUResources.h"
 #include "SPPMath.h"
@@ -20,10 +19,8 @@ namespace SPP
         uint8_t R, G, B, A;
     };   
 
-    class SPP_GRAPHICS_API TextureObject : public SPPObject
+    class SPP_GRAPHICS_API TextureObject
     {
-        DEFINE_SPP_OBJECT(TextureObject, SPPObject);
-
     private:
         int32_t _width;
         int32_t _height;

@@ -14,10 +14,6 @@
 
 namespace SPP
 {
-	IMPLEMENT_SPP_OBJECT(ShaderObject);
-	IMPLEMENT_SPP_OBJECT(MaterialObject);
-	IMPLEMENT_SPP_OBJECT(TesslationMaterialObject);
-
 	template<typename T>
 	class ThreadSafeList
 	{
@@ -64,8 +60,8 @@ namespace SPP
 		GetGPUResourceList().Remove(this);
 	}
 
-	extern void BegineResourceCopy();
-	extern void EndResourceCopy();
+	void BegineResourceCopy() { }
+	void EndResourceCopy() { }
 
 	void MakeResidentAllGPUResources()
 	{
@@ -84,9 +80,14 @@ namespace SPP
 	
 	void ShaderObject::LoadFromDisk(const AssetPath& FilePath, const char* EntryPoint, EShaderType InType)
 	{
-		_shader = SPP::CreateShader(InType);
+		_shader = GGI()->CreateShader(InType);
 		SE_ASSERT(_shader);
 		_shader->CompileShaderFromFile(FilePath, EntryPoint);
 	}
 
+
+	IGraphicsInterface* GGI()
+	{
+		return nullptr;
+	}
 }

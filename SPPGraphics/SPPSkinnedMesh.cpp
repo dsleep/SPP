@@ -6,6 +6,5 @@
 
 namespace SPP
 {
-	IMPLEMENT_SPP_OBJECT(SkinnedMesh);
 
 }

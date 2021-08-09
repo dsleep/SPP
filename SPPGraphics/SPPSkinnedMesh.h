@@ -126,8 +126,6 @@ namespace SPP
 
 	class SPP_GRAPHICS_API SkinnedMesh : public Mesh
 	{
-		DEFINE_SPP_OBJECT(SkinnedMesh, Mesh);
-
 	protected:
 
 	public:

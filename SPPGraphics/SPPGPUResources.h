@@ -332,23 +332,11 @@ namespace SPP
         virtual void Dispatch(const Vector3i& ThreadGroupCounts) = 0;
     };
 
-    SPP_GRAPHICS_API std::shared_ptr< GPUShader > CreateShader(EShaderType InType);
-    SPP_GRAPHICS_API std::shared_ptr< GPUComputeDispatch > CreateComputeDispatch(std::shared_ptr< GPUShader> InCS);
 
-    SPP_GRAPHICS_API std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr);
 
-    SPP_GRAPHICS_API bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement);
-    SPP_GRAPHICS_API bool UnregisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement);
-
-    SPP_GRAPHICS_API std::shared_ptr< GPUInputLayout > CreateInputLayout();
-    SPP_GRAPHICS_API std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
-    SPP_GRAPHICS_API std::shared_ptr< GPURenderTarget > CreateRenderTarget();
-    SPP_GRAPHICS_API std::shared_ptr< GraphicsDevice > CreateGraphicsDevice(const char* InType = nullptr);
-
-    class SPP_GRAPHICS_API ShaderObject : public SPPObject
+   
+    class SPP_GRAPHICS_API ShaderObject 
     {
-        DEFINE_SPP_OBJECT(ShaderObject, SPPObject);
-
     private:
         std::shared_ptr<GPUShader> _shader;
 
@@ -360,27 +348,23 @@ namespace SPP
         }
     };
 
-    class SPP_GRAPHICS_API MaterialObject : public SPPObject
+    class SPP_GRAPHICS_API MaterialObject 
     {
-        DEFINE_SPP_OBJECT(MaterialObject, SPPObject);
-
     public:
         EBlendState blendState = EBlendState::Disabled;
         ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
         EDepthState depthState = EDepthState::Enabled;
 
-        TObjectReference<ShaderObject> meshShader;
-        TObjectReference<ShaderObject> vertexShader;
-        TObjectReference<ShaderObject> pixelShader;
+        ShaderObject* meshShader = nullptr;
+        ShaderObject* vertexShader = nullptr;
+        ShaderObject* pixelShader = nullptr;
     };
 
-    class SPP_GRAPHICS_API TesslationMaterialObject : public MaterialObject
+    class SPP_GRAPHICS_API TesslationMaterialObject 
     {
-        DEFINE_SPP_OBJECT(TesslationMaterialObject, MaterialObject);
-
     public:
-        TObjectReference<ShaderObject> domainShader;
-        TObjectReference<ShaderObject> hullShader;
+        ShaderObject* domainShader = nullptr;
+        ShaderObject* hullShader = nullptr;
     };
    
     struct SimpleColoredLine
@@ -398,4 +382,19 @@ namespace SPP
     public:
         void AddLine(Vector2 Start, Vector2 End, const Color3 InColor = Color3(255, 255, 255));
     };
+
+    struct IGraphicsInterface
+    {
+        virtual std::shared_ptr< GPUShader > CreateShader(EShaderType InType) = 0;
+        virtual std::shared_ptr< GPUComputeDispatch > CreateComputeDispatch(std::shared_ptr< GPUShader> InCS) = 0;
+
+        virtual std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
+
+        virtual std::shared_ptr< GPUInputLayout > CreateInputLayout() = 0;
+        virtual std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
+        virtual std::shared_ptr< GPURenderTarget > CreateRenderTarget() = 0;
+        virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice(const char* InType = nullptr) = 0;
+    };
+
+    SPP_GRAPHICS_API IGraphicsInterface* GGI();
 }

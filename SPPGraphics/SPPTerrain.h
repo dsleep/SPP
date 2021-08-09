@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "SPPObject.h"
 #include "SPPGraphics.h"
 #include "SPPGPUResources.h"
 #include "SPPMath.h"
@@ -20,10 +19,8 @@ namespace SPP
 	};
 
 
-	class SPP_GRAPHICS_API Terrain : public SPPObject
+	class SPP_GRAPHICS_API Terrain
 	{
-		DEFINE_SPP_OBJECT(Terrain, SPPObject);
-
 	private:
 		std::vector< std::shared_ptr<MeshElement> > _elements;
 
@@ -32,7 +29,7 @@ namespace SPP
 		uint32_t _numVertices = 0;
 		uint32_t _numIndices = 0;
 
-		TObjectReference<TesslationMaterialObject> _terrainMaterial;
+		class TesslationMaterialObject* _terrainMaterial;
 
 	public:
 		void Create();

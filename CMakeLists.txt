@@ -70,8 +70,12 @@ set(SPP_TARGET_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Binaries)
 
 include_directories( "${THIRD_PARTY}" )
 
-list(APPEND SPPProjects "SPPCore" "SPPDatabase" "SPPNetworking" "SPPCapture" "SPPVideo" "SPPObject" "SPPEngine"
-	"applications" "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
+list(APPEND SPPProjects 
+	"SPPCore" "SPPDatabase" "SPPNetworking" "SPPCapture" 
+	"SPPVideo" "SPPObject" "SPPEngine" "SPPGraphics" "SPPCEF"
+	"SPPDX12" 
+	"applications" 
+	"RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
 
 # set working directory
 function(add_executable target_name)

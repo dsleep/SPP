@@ -6,8 +6,6 @@
 
 namespace SPP
 {
-	IMPLEMENT_SPP_OBJECT(Terrain);
-
 	void Terrain::Create()
 	{
 		auto newMeshElement = std::make_shared<MeshElement>();
@@ -60,8 +58,8 @@ namespace SPP
 			}
 		}
 
-		newMeshElement->VertexResource = CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
-		newMeshElement->IndexResource = CreateStaticBuffer(GPUBufferType::Index, indicesResource);
+		newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
+		newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, indicesResource);
 
 		_elements.push_back(newMeshElement);
 	}

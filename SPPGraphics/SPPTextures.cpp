@@ -2,7 +2,6 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
-#include "SPPObject.h"
 #include "SPPGraphics.h"
 #include "SPPGPUResources.h"
 #include "SPPTextures.h"
@@ -13,12 +12,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "XTK12/DDS.h"
+//#include "XTK12/DDS.h"
 
 namespace SPP
 {
-	IMPLEMENT_SPP_OBJECT(TextureObject);
-
+#if 0
 	inline bool LoadDDSTextureDataFromFile(
 		const char* fileName,
 		std::vector<uint8_t>& ddsData,
@@ -167,4 +165,5 @@ namespace SPP
 
 		return false;
 	}
+#endif
 }
