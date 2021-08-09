@@ -40,6 +40,11 @@ set(CMAKE_DEBUG_POSTFIX "d" )
 	
 set(USE_VS_MULTIPROCESS ON CACHE BOOL "Use MultiProcessor compiling on VS")
 
+set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
+set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
+set(USE_DX12 OFF CACHE BOOL "Use DX 12S")
+
+
 #General C++ Compiling
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -70,12 +75,33 @@ set(SPP_TARGET_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Binaries)
 
 include_directories( "${THIRD_PARTY}" )
 
+list(APPEND 
+		SPPProjects 
+			"SPPCore" 
+			"SPPDatabase" 
+			"SPPNetworking" 
+			"SPPCapture" 
+			"SPPVideo" 
+			"SPPObject" 
+			"SPPEngine" )
+	
+if(USE_CEF)
+	list(APPEND SPPProjects "SPPCEF")
+endif()
+
+if(USE_GRAPHICS)
+	list(APPEND SPPProjects "SPPGraphics")
+	
+	if(USE_DX12)
+		list(APPEND SPPProjects "SPPDX12")	
+	endif()	
+endif()
+
 list(APPEND SPPProjects 
-	"SPPCore" "SPPDatabase" "SPPNetworking" "SPPCapture" 
-	"SPPVideo" "SPPObject" "SPPEngine" "SPPGraphics" "SPPCEF"
-	"SPPDX12" 
 	"applications" 
-	"RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
+	"RemoteControllerWPF" 
+	"RemoteApplicationWPF" 
+	"ApplicationThroughputWPF")
 
 # set working directory
 function(add_executable target_name)
