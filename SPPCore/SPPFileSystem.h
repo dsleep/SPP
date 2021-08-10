@@ -13,7 +13,7 @@
 #ifdef _WIN32
 	#include <filesystem>
 	namespace stdfs = std::filesystem;
-#elif definfed(__linux__)
+#elif defined(__linux__)
 	#include <experimental/filesystem>	
 	namespace stdfs = std::experimental::filesystem;
 #else
