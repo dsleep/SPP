@@ -42,7 +42,8 @@
 		},
 		{
 			"Path": "assimp",
-			"Version": 1
+			"Version": 1,
+			"BinCopy": [ "bin/*.dll" ]
 		},
 		{
 			"Path": "metis",
@@ -50,7 +51,7 @@
 		},
 		{
 			"Path": "fbtBlendHeaderOnly",
-			"Version": 1
+			"Version": 2
 		},
 		{
 			"Path": "stb",

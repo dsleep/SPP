@@ -49,6 +49,14 @@ namespace SPP
 
 	extern bool ReadyMeshElement(std::shared_ptr<MeshElement> InMeshElement);
 
+	// lazy externs
+	extern std::shared_ptr< GPUShader > DX12_CreateShader(EShaderType InType);
+	extern std::shared_ptr< GPUComputeDispatch> DX_12CreateComputeDispatch(std::shared_ptr< GPUShader> InCS);
+	extern std::shared_ptr< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern std::shared_ptr< GPUInputLayout > DX12_CreateInputLayout();
+	extern std::shared_ptr< GPURenderTarget > DX12_CreateRenderTarget();
+	extern std::shared_ptr< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+
 	static DescriptorTableConfig _tableRegions[] =
 	{
 		{ HDT_MeshInfos, 1 },
@@ -968,7 +976,7 @@ namespace SPP
 		}
 	};
 
-	std::shared_ptr<GPUComputeDispatch> CreateComputeDispatch(std::shared_ptr< GPUShader> InCS)
+	std::shared_ptr<GPUComputeDispatch> DX_12CreateComputeDispatch(std::shared_ptr< GPUShader> InCS)
 	{
 		return std::make_shared< D3D12ComputeDispatch >(InCS);
 	}
@@ -1028,13 +1036,13 @@ namespace SPP
 	public:
 		D3D12RenderScene()
 		{
-			_debugVS = GGI()->CreateShader(EShaderType::Vertex);
+			_debugVS = DX12_CreateShader(EShaderType::Vertex);
 			_debugVS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
 
-			_debugPS = GGI()->CreateShader(EShaderType::Pixel);
+			_debugPS = DX12_CreateShader(EShaderType::Pixel);
 			_debugPS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
 
-			_debugLayout = GGI()->CreateInputLayout();
+			_debugLayout = DX12_CreateInputLayout();
 			_debugLayout->InitializeLayout({
 					{ "POSITION",  InputLayoutElementType::Float3, offsetof(DebugVertex,position) },
 					{ "COLOR",  InputLayoutElementType::Float3, offsetof(DebugVertex,color) }
@@ -1054,7 +1062,7 @@ namespace SPP
 
 			_debugResource = std::make_shared< ArrayResource >();
 			_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
-			_debugBuffer = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
+			_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
 		}
 
 		void DrawDebug()
@@ -1589,8 +1597,50 @@ namespace SPP
 	}
 	
 
-	std::shared_ptr< GraphicsDevice > CreateGraphicsDevice(const char* InType)
+	std::shared_ptr< GraphicsDevice > DX12_CreateGraphicsDevice()
 	{
 		return std::make_shared< DX12Device>();
 	}
+		
+	struct DXGraphicInterface : public IGraphicsInterface
+	{
+		// hacky so one GGI per DLL
+		DXGraphicInterface()
+		{
+			SET_GGI(this);
+		}
+
+		virtual std::shared_ptr< GPUShader > CreateShader(EShaderType InType) override
+		{			
+			return DX12_CreateShader(InType);
+		}
+		virtual std::shared_ptr< GPUComputeDispatch > CreateComputeDispatch(std::shared_ptr< GPUShader> InCS) override
+		{
+			return DX_12CreateComputeDispatch(InCS);
+		}
+		virtual std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
+		{
+			return DX12_CreateStaticBuffer(InType, InCpuData);
+		}
+		virtual std::shared_ptr< GPUInputLayout > CreateInputLayout() override
+		{
+			return DX12_CreateInputLayout();
+		}
+		virtual std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format,
+			std::shared_ptr< ArrayResource > RawData = nullptr,
+			std::shared_ptr< ImageMeta > InMetaInfo = nullptr) override
+		{
+			return DX12_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
+		}
+		virtual std::shared_ptr< GPURenderTarget > CreateRenderTarget() override
+		{
+			return DX12_CreateRenderTarget();
+		}
+		virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() override
+		{
+			return DX12_CreateGraphicsDevice();
+		}
+	};
+
+	static DXGraphicInterface staticDGI;
 }

@@ -213,7 +213,7 @@ namespace SPP
 		}
 	}
 
-	std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	std::shared_ptr< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
 		switch (InType)
 		{
@@ -275,7 +275,7 @@ namespace SPP
 			MeshInfosArray = std::make_shared< ArrayResource >();
 			auto pMeshInfos = MeshInfosArray->InitializeFromType<MeshInfo>(MAX_MESH_ELEMENTS);
 			memset(pMeshInfos, 0, MeshInfosArray->GetTotalSize());
-			MeshInfoResource = CreateStaticBuffer(GPUBufferType::Generic, MeshInfosArray);
+			MeshInfoResource = DX12_CreateStaticBuffer(GPUBufferType::Generic, MeshInfosArray);
 
 			//their data
 			_verticesDescriptorTable = GGraphicsDevice->GetPresetDescriptorHeap(HDT_MeshletVertices);
@@ -429,7 +429,7 @@ namespace SPP
 		return GMeshState->UnregisterMeshElement(InMeshElement);
 	}
 
-	std::shared_ptr< GPUInputLayout > CreateInputLayout()
+	std::shared_ptr< GPUInputLayout > DX12_CreateInputLayout()
 	{
 		return std::make_unique<D3D12InputLayout>();		
 	}

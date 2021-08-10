@@ -506,17 +506,6 @@ namespace SPP
 
 		const auto pApp = reinterpret_cast<Win32Application*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
-		if (message >= WM_KEYFIRST && message <= WM_KEYLAST)
-		{
-			//return SendMessage(message, wParam, lParam)
-			SPP_LOG(LOG_Win32App, LOG_INFO, "%u : %u : %u", message, wParam, lParam);
-		}
-		else if (message >= WM_MOUSEFIRST && message <= WM_MOUSELAST)
-		{
-			//SendMessage 
-			SPP_LOG(LOG_Win32App, LOG_INFO, "%u : %u : %u", message, wParam, lParam);
-		}
-
 		switch (message)
 		{
 		case WM_CREATE:

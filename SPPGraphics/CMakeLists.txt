@@ -60,7 +60,7 @@ target_include_directories(SPPGraphics
 		"${THIRD_PARTY}/stb" 		
 		"${THIRD_PARTY}/assimp/include"
 		"${THIRD_PARTY}/eigen/include/eigen3"
-		"${THIRD_PARTY}/fbtBlendHeaderOnly/292"
+		"${THIRD_PARTY}/fbtBlendHeaderOnly/293_LTS"
 		"${THIRD_PARTY}/metis/include" )
 		
 target_link_directories(SPPGraphics 

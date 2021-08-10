@@ -85,9 +85,13 @@ namespace SPP
 		_shader->CompileShaderFromFile(FilePath, EntryPoint);
 	}
 
-
+	static IGraphicsInterface* GGIPtr = nullptr;
 	IGraphicsInterface* GGI()
 	{
-		return nullptr;
+		return GGIPtr;
+	}
+	void SET_GGI(IGraphicsInterface* InGraphicsIterface)
+	{
+		GGIPtr = InGraphicsIterface;
 	}
 }
