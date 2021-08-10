@@ -33,20 +33,12 @@ target_include_directories(SPPDX12
 		
 target_include_directories(SPPDX12 
 	PRIVATE  			
-		"${THIRD_PARTY}/stb" 		
-		"${THIRD_PARTY}/assimp/include"
-		"${THIRD_PARTY}/dxc/include"
-		"${THIRD_PARTY}/eigen/include/eigen3"
-		"${THIRD_PARTY}/fbtBlendHeaderOnly292"
-		"${THIRD_PARTY}/metis-5.1.0/include" )
+		"${THIRD_PARTY}/dxc/include" )
 		
 target_link_directories(SPPDX12 
 	PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/x64/DEBUG"
-		
-		"${THIRD_PARTY}/dxc/lib/x64"
-		"${THIRD_PARTY}/assimp/lib/debug"
-		"${THIRD_PARTY}/metis-5.1.0/lib/debug")		
+		"${CMAKE_CURRENT_LIST_DIR}/DX12/x64/DEBUG"		
+		"${THIRD_PARTY}/dxc/lib/x64")		
 		
 		
 target_link_libraries( SPPDX12 
@@ -59,8 +51,7 @@ target_link_libraries( SPPDX12
 		d3d12
 		dxgi
 		d3dcompiler
-		dxguid
-		metis )
+		dxguid )
 
 install(TARGETS SPPDX12 DESTINATION "${SPP_ROOT}/INSTALL")
 

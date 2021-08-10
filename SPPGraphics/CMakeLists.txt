@@ -60,13 +60,13 @@ target_include_directories(SPPGraphics
 		"${THIRD_PARTY}/stb" 		
 		"${THIRD_PARTY}/assimp/include"
 		"${THIRD_PARTY}/eigen/include/eigen3"
-		"${THIRD_PARTY}/fbtBlendHeaderOnly292"
-		"${THIRD_PARTY}/metis-5.1.0/include" )
+		"${THIRD_PARTY}/fbtBlendHeaderOnly/292"
+		"${THIRD_PARTY}/metis/include" )
 		
 target_link_directories(SPPGraphics 
 	PRIVATE
-		"${THIRD_PARTY}/assimp/lib/debug"
-		"${THIRD_PARTY}/metis-5.1.0/lib/debug")		
+		"${THIRD_PARTY}/assimp/lib"		
+		debug "${THIRD_PARTY}/metis/lib/Debug" optimized "${THIRD_PARTY}/metis/lib/Rebug" )		
 		
 		
 target_link_libraries( SPPGraphics 
