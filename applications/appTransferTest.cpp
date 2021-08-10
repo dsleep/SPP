@@ -14,7 +14,7 @@
 #include "SPPNetworkMessenger.h"
 #include "SPPWin32Core.h"
 
-#include <filesystem>
+#include "SPPFileSystem.h"
 
 using namespace SPP;
 

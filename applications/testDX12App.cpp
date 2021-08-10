@@ -11,7 +11,6 @@
 #include <tchar.h>
 #include <memory>
 #include <thread>
-#include <filesystem>
 #include <optional>
 
 #include "SPPString.h"
@@ -27,6 +26,7 @@
 #include "SPPTerrain.h"
 #include "SPPPythonInterface.h"
 #include "ThreadPool.h"
+#include "SPPFileSystem.h"
 
 #include <condition_variable>
 
@@ -61,7 +61,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	IntializeGraphics();	
 
 	// setup global asset path
-	SPP::GAssetPath = std::filesystem::absolute(std::filesystem::current_path() / "..\\Assets\\").generic_string();
+	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
 
 	//SPP::CallPython();
 	int ErrorCode = 0;		

@@ -8,8 +8,6 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 
-
-#include <filesystem>
 #include <list>
 #include <stdio.h>
 #include <stdarg.h>
@@ -97,7 +95,7 @@ namespace SPP
 	
 		auto pi = std::make_shared< PROCESS_INFORMATION >(PROCESS_INFORMATION{ 0 });
 
-		std::string OutputCommandline = std::filesystem::path(ProcessPath).filename().generic_string();
+		std::string OutputCommandline = stdfs::path(ProcessPath).filename().generic_string();
 		OutputCommandline += " ";
 		OutputCommandline += Commandline;
 

@@ -7,7 +7,6 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 
-#include <filesystem>
 #include <list>
 #include <stdio.h>
 #include <stdarg.h>

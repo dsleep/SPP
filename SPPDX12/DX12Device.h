@@ -34,7 +34,6 @@
 #include <wrl.h>
 #include <shellapi.h>
 #include <stdexcept>
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 

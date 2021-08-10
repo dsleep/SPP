@@ -6,7 +6,6 @@
 
 #include "SPPCore.h"
 #include <string>
-#include <filesystem>
 
 #if _WIN32 && !defined(SPP_ENGINE_STATIC)
 

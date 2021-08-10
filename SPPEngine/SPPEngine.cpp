@@ -3,6 +3,7 @@
 // recognized in your jurisdiction.
 
 #include "SPPEngine.h"
+#include "SPPFileSystem.h"
 
 namespace SPP
 {
@@ -20,7 +21,7 @@ namespace SPP
 
 	std::string AssetPath::GetExtension() const
 	{
-		return std::filesystem::path(_finalPath).extension().generic_string();
+		return stdfs::path(_finalPath).extension().generic_string();
 	}
 
 	std::string AssetPath::GetRelativePath() const

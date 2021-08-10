@@ -9,7 +9,8 @@
 #include "SPPTiming.h"
 #include "SPPJsonUtils.h"
 
-#include <filesystem>
+#include "SPPFileSystem.h"
+
 #include <iomanip>
 
 using namespace SPP;
@@ -31,7 +32,7 @@ int main()
 
 	GetOSNetwork();
 
-	std::filesystem::remove("coordDB.db");
+	stdfs::remove("coordDB.db");
 
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator( new UDP_SQL_Coordinator(RemoteCoordAddres.Port,
 			{ 

@@ -23,7 +23,7 @@
 #include "SPPWin32Core.h"
 #include "SPPJsonUtils.h"
 
-#include <filesystem>
+#include "SPPFileSystem.h"
 
 using namespace SPP;
 
@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
 	// START OS NETWORKING
 	GetOSNetwork();
 
-	std::string SimpleAppName = AppPath.empty() ? "Desktop" : std::filesystem::path(AppPath).stem().generic_string();
+	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
 
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
 

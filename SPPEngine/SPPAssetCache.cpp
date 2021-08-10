@@ -10,12 +10,12 @@ namespace SPP
 	std::shared_ptr<BinaryBlobSerializer> GetCachedAsset(const AssetPath& AssetPath, const std::string Tag)
 	{
 		auto relativePath = AssetPath.GetRelativePath();
-		auto CachePath = std::filesystem::path(GAssetPath) / "CACHE" / (relativePath + Tag + ".BIN");
+		auto CachePath = stdfs::path(GAssetPath) / "CACHE" / (relativePath + Tag + ".BIN");
 
-		if (std::filesystem::exists(CachePath))
+		if (stdfs::exists(CachePath))
 		{
-			std::filesystem::file_time_type assetTime = std::filesystem::last_write_time(*AssetPath);
-			std::filesystem::file_time_type cacheTime = std::filesystem::last_write_time(CachePath.generic_string().c_str());
+			stdfs::file_time_type assetTime = stdfs::last_write_time(*AssetPath);
+			stdfs::file_time_type cacheTime = stdfs::last_write_time(CachePath.generic_string().c_str());
 
 			if (cacheTime >= assetTime)
 			{
@@ -33,10 +33,10 @@ namespace SPP
 	void PutCachedAsset(const AssetPath& AssetPath, const BinaryBlobSerializer &InBinaryBlob, const std::string Tag)
 	{
 		auto relativePath = AssetPath.GetRelativePath();
-		auto CachePath = std::filesystem::path(GAssetPath) / "CACHE" / (relativePath + Tag + ".BIN");
+		auto CachePath = stdfs::path(GAssetPath) / "CACHE" / (relativePath + Tag + ".BIN");
 		auto parentPath = CachePath.parent_path();
 
-		std::filesystem::create_directories(parentPath);
+		stdfs::create_directories(parentPath);
 
 		WriteArrayToFile(CachePath.generic_string().c_str(), InBinaryBlob.GetArray());
 	}

@@ -10,6 +10,16 @@
 #include <memory>
 #include <stdexcept>
 	
+#ifdef _WIN32
+	#include <filesystem>
+	namespace stdfs = std::filesystem;
+#elif definfed(__linux__)
+	#include <experimental/filesystem>	
+	namespace stdfs = std::experimental::filesystem;
+#else
+	#error "Unsupported platform"
+#endif
+
 namespace SPP
 {
 	SPP_CORE_API bool LoadFileToArray(const char* FileName, std::vector<uint8_t>& oFileData);

@@ -8,6 +8,7 @@
 #include "DX12Buffers.h"
 #include "DX12Textures.h"
 
+#include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
 #include "SPPLogging.h"
@@ -19,12 +20,12 @@ static std::wstring GetLatestWinPixGpuCapturerPath()
 	LPWSTR programFilesPath = nullptr;
 	SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
 
-	std::filesystem::path pixInstallationPath = programFilesPath;
+	stdfs::path pixInstallationPath = programFilesPath;
 	pixInstallationPath /= "Microsoft PIX";
 
 	std::wstring newestVersionFound;
 
-	for (auto const& directory_entry : std::filesystem::directory_iterator(pixInstallationPath))
+	for (auto const& directory_entry : stdfs::directory_iterator(pixInstallationPath))
 	{
 		if (directory_entry.is_directory())
 		{
