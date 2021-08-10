@@ -34,6 +34,27 @@
 			"Path": "dxc",
 			"Version": 1,
 			"BinCopy": [ "bin/x64/*.dll" ]
-		}
+		},
+		{
+			"Path": "cef",
+			"Version": 1,
+			"BinCopy": [ "bin" ]
+		},
+		{
+			"Path": "assimp",
+			"Version": 1
+		},
+		{
+			"Path": "metis",
+			"Version": 1
+		},
+		{
+			"Path": "fbtBlendHeaderOnly",
+			"Version": 1
+		},
+		{
+			"Path": "stb",
+			"Version": 1
+		}		
 	]
 }
