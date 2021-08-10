@@ -35,11 +35,20 @@ target_sources(SPPObject
 
 target_include_directories(SPPObject 
 	PUBLIC  	
-		"${CMAKE_CURRENT_LIST_DIR}" )
+		"${CMAKE_CURRENT_LIST_DIR}"
+		"${THIRD_PARTY}/rttr/include" )
 
+target_link_directories(SPPObject 
+	PRIVATE
+		"${THIRD_PARTY}/rttr" )
+		
 target_link_libraries( SPPObject 
 	PUBLIC
 		SPPCore )
+		
+target_link_libraries(SPPObject 
+	PRIVATE
+		debug rttr_core_d optimized rttr_core )		
 
 install(TARGETS SPPObject DESTINATION "${SPP_ROOT}/INSTALL")
 

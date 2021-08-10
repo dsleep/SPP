@@ -6,6 +6,7 @@
 
 #include "SPPCore.h"
 #include "SPPNumberedString.h"
+#include "SPPSerialization.h"
 #include <vector>
 #include <list>
 #include <string>
@@ -13,6 +14,9 @@
 #include <functional>
 #include <map>
 #include <unordered_map>
+
+#include <rttr/registration>
+#include <rttr/registration_friend>
 
 #if _WIN32 && !defined(SPP_OBJECT_STATIC)
 
@@ -31,7 +35,7 @@
 
 namespace SPP
 {	
-	class SPP_OBJECT_API ObjectPath
+	class SPP_OBJECT_API MetaPath
 	{
 	private:
 		std::vector< NumberedString > _path;
@@ -42,107 +46,33 @@ namespace SPP
 			return _path.size();
 		}
 
-		ObjectPath() = default;
-		ObjectPath(const char* InPath);
+		MetaPath() = default;
+		MetaPath(const char* InPath);
 
 		size_t Hash() const;
 
 		const NumberedString &operator[](uint32_t index) const;
 
-		bool operator< (const ObjectPath& cmpTo) const;
-		bool operator==(const ObjectPath& cmpTo) const;
+		bool operator< (const MetaPath& cmpTo) const;
+		bool operator==(const MetaPath& cmpTo) const;
 
 		struct HASH
 		{
-			size_t operator()(const ObjectPath& InValue) const
+			size_t operator()(const MetaPath& InValue) const
 			{
 				return InValue.Hash();
 			}
 		};
 	};
 
-
-	#define DEFINE_SPP_OBJECT(ourClass,parentClass)	\
-		public: \
-			ourClass(const ObjectPath& InPath) : parentClass(InPath) { } \
-			ourClass(ourClass const&) = delete;	\
-			ourClass& operator=(ourClass const&) = delete; \
-			virtual ~ourClass() { } \
-			static const char *GetStaticClassName()  \
-			{ \
-				return #ourClass; \
-			} \
-			virtual const char *GetOurClassName() const override \
-			{ \
-				return #ourClass; \
-			} 		
-
-	#define IMPLEMENT_SPP_OBJECT(ourClass)	\
-			namespace REGAUTO##ourClass \
-			{ \
-				struct RegisterMe \
-				{ \
-					RegisterMe() \
-					{ \
-						auto &rMap = INTERNEL_GetObjectAllocationMap(); \
-						rMap[NumberedString(ourClass::GetStaticClassName())] = [](const ObjectPath& InPath) { return new ourClass(InPath); }; \
-					} \
-				}; \
-				RegisterMe _autoREG; \
-			}
-
-
-	class SPP_OBJECT_API SPPMetaType
-	{	
-	protected:
-		std::string _name;
-	public:
-		virtual void Write(class Serializer& InSerializer, const uint8_t* InData) const = 0;
-		virtual void Read(class Serializer& InSerializer, uint8_t* OutData) const = 0;
-	};
-
-	struct SPP_OBJECT_API SPPString_META : public SPPMetaType
-	{
-		SPPString_META()
-		{
-			_name = "std::string";
-		}
-
-
-
-		static std::shared_ptr<SPPString_META> GetSharedMeta()
-		{
-			static std::shared_ptr<SPPString_META> sO;
-			if (!sO) sO = std::make_shared< SPPString_META >();
-			return sO;
-		}
-	};
-
-	struct SPPField
-	{
-		std::string name;
-		uint32_t offset;
-		std::shared_ptr< SPPMetaType > type;
-	};
-
-	class SPPMetaStruct : public SPPMetaType
-	{
-	protected:
-		std::shared_ptr< SPPMetaType > _parent;
-		std::vector< class SPPField > _fields;
-
-		virtual bool Write(class Serializer& InSerializer);
-		virtual bool Read(class Serializer& Serializer);
-	};
-
-	struct SPPObject_META;
-
 	class SPP_OBJECT_API SPPObject
 	{
-		friend struct SPPObject_META;
+		RTTR_ENABLE()
+		RTTR_REGISTRATION_FRIEND
+
 	protected:
-		ObjectPath _path;
-		SPPObject(const ObjectPath& InPath);
+		MetaPath _path;
+		SPPObject(const MetaPath& InPath);
 
 		SPPObject* nextObj = nullptr;
 		SPPObject* prevObj = nullptr;
@@ -151,32 +81,18 @@ namespace SPP
 		void Unlink();
 		bool Finalize() { return true; }
 
-	public:		
-		 
-		virtual const char* GetOurClassName() const;
+	public:				
 		virtual ~SPPObject();
-		virtual std::shared_ptr<SPPObject_META> GetMetaType() const;
-
-		static std::shared_ptr<SPPObject_META> GetStaticMetaType();
-		static const char* GetStaticClassName();
 	};
+	
+	//SPP_OBJECT_API SPPObject* AllocateObject(const SPPObject_META &MetaType, const MetaPath& InPath);
+	//SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath);
 
-	struct SPP_OBJECT_API SPPObject_META : public SPPMetaStruct
-	{
-		virtual SPPObject* Allocate(const ObjectPath& InPath) const
-		{
-			return new SPPObject(InPath);
-		}
-	};
-
-	SPP_OBJECT_API SPPObject* AllocateObject(const SPPObject_META &MetaType, const ObjectPath& InPath);
-	SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const ObjectPath& InPath);
-
-	template<typename ObjectType>
-	ObjectType* TAllocateObject(const ObjectPath& InPath)
-	{
-		return static_cast<ObjectType*>(AllocateObject(*ObjectType::GetStaticMetaType(), InPath));
-	}
+	//template<typename ObjectType>
+	//ObjectType* TAllocateObject(const MetaPath& InPath)
+	//{
+		//return static_cast<ObjectType*>(AllocateObject(*ObjectType::GetStaticMetaType(), InPath));
+	//}
 
 
 }
