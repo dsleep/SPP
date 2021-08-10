@@ -97,11 +97,11 @@ if(USE_GRAPHICS)
 	endif()	
 endif()
 
-list(APPEND SPPProjects 
-	"applications" 
-	"RemoteControllerWPF" 
-	"RemoteApplicationWPF" 
-	"ApplicationThroughputWPF")
+list(APPEND SPPProjects "applications" )
+	
+if(OS_WINDOWS)
+	list(APPEND SPPProjects "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
+endif()
 
 # set working directory
 function(add_executable target_name)
