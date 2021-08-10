@@ -45,10 +45,12 @@ namespace SPP
 
 		CPUThreaPool = std::make_unique< ThreadPool >(nthreads - 1);
 
+#if _WIN32
 		auto Info = GetPlatformInfo();
 
 		SPP_LOG(LOG_CORE, LOG_INFO, " - core count %u", nthreads);
 		SPP_LOG(LOG_CORE, LOG_INFO, " - page size %u", Info.PageSize);
+#endif
 
 		srand((unsigned int)time(NULL));
 	}
