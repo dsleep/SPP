@@ -45,7 +45,7 @@ namespace SPP
 			AVCodec * codec = NULL;
 			while (codec = av_codec_next(codec))
 			{
-				SPP_LOG(LOG_LAV, LOG_INFO, "Found LIBAV Codec: %s type %s", codec->name, av_codec_is_encoder(codec) ? "encoder" : "decoder");
+				SPP_LOG(LOG_LAV, LOG_VERBOSE, "Found LIBAV Codec: %s type %s", codec->name, av_codec_is_encoder(codec) ? "encoder" : "decoder");
 			}
 		}
 	}

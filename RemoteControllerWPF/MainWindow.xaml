@@ -18,6 +18,6 @@
         <Label x:Name="label_Copy2" Content="Worker Active" HorizontalAlignment="Left" Margin="45,11,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Worker" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,11,0,0" Source="images/buttonbad.png" />
         <Image x:Name="IMG_ConnectionState" Height="30" VerticalAlignment="Bottom" Margin="0,0,10,10" Source="images/buttonbad.png" HorizontalAlignment="Right" Width="30" />
-
+        <CheckBox x:Name="CB_ShowConsole" Content="Show Console" VerticalAlignment="Top" Margin="0,10,10,0" HorizontalAlignment="Right" Checked="CB_ShowConsole_Checked" />
     </Grid>
 </Window>

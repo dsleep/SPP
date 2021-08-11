@@ -226,7 +226,7 @@ namespace RAMApplication
 #endif
                 "-MEM=" + mmfGUID.ToString() +
                     " -APP=\"" + TB_AppPath.Text + "\"" +
-                    " -CMDLINE=\"" + TB_Args.Text + "\"", true);
+                    " -CMDLINE=\"" + TB_Args.Text + "\"", (CB_ShowConsole.IsChecked == true));
 
                 BTN_Start.IsEnabled = false;
             }
@@ -251,6 +251,11 @@ namespace RAMApplication
             Properties.Settings.Default.ApplicationPath = TB_AppPath.Text;
             Properties.Settings.Default.ApplicationCommandline = TB_Args.Text;
             Properties.Settings.Default.Save();
+        }
+
+        private void CB_ShowConsole_Checked(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

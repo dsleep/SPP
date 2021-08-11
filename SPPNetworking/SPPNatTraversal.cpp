@@ -165,9 +165,11 @@ namespace SPP
 				bool parsingSuccessful = reader->parse((char*)_impl->BufferRead.data(), (char*)(_impl->BufferRead.data() + packetSize), &root, &Errors);
 				delete reader;
 				if (parsingSuccessful)
-				{
+				{		
 					if (_impl->IsHost)
 					{
+						SPP_LOG(LOG_COORD, LOG_INFO, "Client ping at %s", currentAddress.ToString().c_str());
+							
 						Json::Value HasSQLRequest = root.get("SQL", Json::Value::nullSingleton());
 						Json::Value SQLResults;
 

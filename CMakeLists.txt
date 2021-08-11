@@ -42,7 +42,9 @@ set(USE_VS_MULTIPROCESS ON CACHE BOOL "Use MultiProcessor compiling on VS")
 
 set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
 set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
-set(USE_DX12 OFF CACHE BOOL "Use DX 12S")
+set(USE_DX12 OFF CACHE BOOL "Use DX12")
+set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
+
 
 
 #General C++ Compiling
@@ -107,6 +109,10 @@ if(OS_WINDOWS)
 		if(USE_DX12)
 			list(APPEND SPPProjects "SPPDX12")	
 		endif()	
+		
+		if(USE_OPENGL)
+			list(APPEND SPPProjects "SPPOpenGL")	
+		endif()			
 	endif()
 endif()
 

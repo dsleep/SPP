@@ -80,13 +80,6 @@ namespace RACApplication
             mmVSBinaryRead = new BinaryReader(mmVS, Encoding.ASCII);
             mmVSBinaryWrite = new BinaryWriter(mmVS, Encoding.ASCII);
 
-#if DEBUG
-            WorkerID = C_CreateChildProcess("remoteviewerd.exe",
-#else
-            WorkerID = C_CreateChildProcess("remoteviewer.exe",
-#endif
-                "-MEM=" + mmfGUID.ToString(), false);
-
             DispatcherTimer timer = new DispatcherTimer();
             timer.Interval = TimeSpan.FromMilliseconds(250);
             timer.Tick += timer_Tick;
@@ -208,6 +201,7 @@ namespace RACApplication
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            LaunchChildProcess();
         }
 
         private void BTN_Connect_Click(object sender, RoutedEventArgs e)
@@ -235,6 +229,26 @@ namespace RACApplication
 
         }
 
+        private void LaunchChildProcess()
+        {
+            if (WorkerID != 0)
+            {
+                C_CloseChild(WorkerID);
+                WorkerID = 0;
+            }
+
+#if DEBUG
+            WorkerID = C_CreateChildProcess("remoteviewerd.exe",
+#else
+            WorkerID = C_CreateChildProcess("remoteviewer.exe",
+#endif
+                "-MEM=" + mmfGUID.ToString(), (CB_ShowConsole.IsChecked == true));
+        }
+
+        private void CB_ShowConsole_Checked(object sender, RoutedEventArgs e)
+        {
+            LaunchChildProcess();
+        }
     }
 }
 

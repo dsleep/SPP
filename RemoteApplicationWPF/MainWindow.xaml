@@ -27,5 +27,6 @@
         <TextBox x:Name="TB_Args_Copy" Height="23" Margin="10,266,41.6,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" IsReadOnly="True"/>
         <Label x:Name="label_Copy4" Content="Worked Process:" HorizontalAlignment="Left" Margin="43,10,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Coord" Height="28" Width="28" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,38,0,0" Source="images/buttonbad.png"  />
+        <CheckBox x:Name="CB_ShowConsole" Content="Show Console" VerticalAlignment="Top" Margin="0,10,16.6,0" HorizontalAlignment="Right" Checked="CB_ShowConsole_Checked" />
     </Grid>
 </Window>
