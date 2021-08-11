@@ -2,8 +2,6 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
-#pragma once
-
 #include "SPPMemory.h"
 #include "SPPLogging.h"
 #include <string>

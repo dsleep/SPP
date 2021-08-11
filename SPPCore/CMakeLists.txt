@@ -33,8 +33,6 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/SPPFileSystem.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPFileSystem.h"
 				
-		"${CMAKE_CURRENT_LIST_DIR}/SPPWin32Core.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPWin32Core.h"
 				
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSpan.h"
 		
@@ -54,6 +52,16 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/ThreadPool.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPTiming.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPArrayResource.h" )
+		
+	
+if(OS_WINDOWS)
+	
+	target_sources(SPPCore
+		PRIVATE	
+			"${CMAKE_CURRENT_LIST_DIR}/SPPWin32Core.cpp"
+			"${CMAKE_CURRENT_LIST_DIR}/SPPWin32Core.h" )
+
+endif()
 
 target_include_directories(SPPCore 
 	PUBLIC  	
@@ -65,10 +73,21 @@ target_link_directories(SPPCore
 		"${THIRD_PARTY}/jsoncpp/lib/${LIB_PATH_POSTFIX}"
 		)
 
+if(OS_WINDOWS)
+	
 target_link_libraries(SPPCore 
 	PUBLIC
 		debug jsoncppd optimized jsoncpp 
 		)
+
+else()
+
+target_link_libraries(SPPCore 
+	PUBLIC
+		jsoncpp 
+		)
+
+endif()
 
 install(TARGETS SPPCore DESTINATION "${SPP_ROOT}/INSTALL")
 

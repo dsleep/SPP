@@ -30,7 +30,9 @@
 #include "ThreadPool.h"
 
 // Windows Header Files
-#include <windows.h>
+#if _WIN32
+	#include <windows.h>
+#endif
 
 namespace SPP
 {
@@ -80,9 +82,10 @@ namespace SPP
 		}
 	}	
 
-
+#if _WIN32
 	uint32_t GetCurrentThreadID()
 	{
 		return ::GetCurrentThreadId();
 	}
+#endif
 }

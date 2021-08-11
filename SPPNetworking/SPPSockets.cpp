@@ -6,6 +6,7 @@
 #include "SPPSockets.h"
 #include "SPPLogging.h"
 
+#include <string.h>
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -77,15 +78,14 @@ namespace SPP
 		address.sin_addr.s_addr = (InAddr.UIPAddr.IPAddr);
 		return address;
 	}
-
-#if _WIN32
-
+	
 	OSNetwork& GetOSNetwork()
 	{
 		static OSNetwork sO;
 		return sO;
 	}
 
+#if _WIN32
 	void StartOSNetworkingSystems(OSNetwork *InMaster)
 	{
 		WSADATA data;
@@ -166,24 +166,14 @@ namespace SPP
 		WSACleanup();
 	}
 
-	OSNetwork::OSNetwork()
-	{
-		StartOSNetworkingSystems(this);
-	}
-
-	OSNetwork::~OSNetwork()
-	{
-		WSACleanup();
-	}
-
 #else
-	void StartOSNetworkingSystems()
+	void StartOSNetworkingSystems(OSNetwork *InMaster)
 	{		
 		char ac[80];
 		if (gethostname(ac, sizeof(ac)) == 0) 
 		{
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, "Host Name: %s", ac);
-			HostName = ac;
+			InMaster->HostName = ac;
 		}
 		
 		struct ifaddrs * ifAddrStruct = NULL;
@@ -215,7 +205,7 @@ namespace SPP
 				{
 					auto IPAddr = ToIPv4_SocketAddress(*pAddress);
 					SPP_LOG(LOG_SOCKETS, LOG_INFO, "LOCAL %s IP Address %s", ifa->ifa_name, IPAddr.ToString().c_str()); 						
-					InterfaceAddresses.push_back(IPAddr);
+					InMaster->InterfaceAddresses.push_back(IPAddr);
 				}				
 			}
 		}
@@ -226,7 +216,17 @@ namespace SPP
 	void ShutdownOSNetworking()
 	{
 	}
-#endif
+#endif	
+	
+	OSNetwork::OSNetwork()
+	{
+		StartOSNetworkingSystems(this);
+	}
+
+	OSNetwork::~OSNetwork()
+	{
+		ShutdownOSNetworking();
+	}
 
 	IPv4_SocketAddress::IPv4_SocketAddress(const char* IpAddrAndPort)
 	{
@@ -297,7 +297,7 @@ namespace SPP
 		SPP_LOG(LOG_UDP, LOG_INFO, "Create UDPSocket Port %d Type %d", InPort, InSocketType);
 
 		// Creating socket file descriptor 
-		if ((_impl->Socket = socket(AF_INET, SOCK_DGRAM, 0)) == 0)
+		if ((_impl->Socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		{
 			SPP_LOG(LOG_UDP, LOG_WARNING, " - failed socket");
 			return; //return if socket cannot be created
@@ -316,7 +316,7 @@ namespace SPP
 			}
 		}		
 
-		sockaddr_in address;
+		sockaddr_in address = { 0 };
 		address.sin_family = AF_INET;
 		address.sin_addr.s_addr = INADDR_ANY;
 		address.sin_port = htons(InPort);
@@ -329,7 +329,11 @@ namespace SPP
 				SPP_LOG(LOG_UDP, LOG_WARNING, " - failed binding");
 				return;
 			}
-		}
+			else
+			{			
+				SPP_LOG(LOG_UDP, LOG_WARNING, " - bound port");
+			}
+		}	
 
 		int32_t bufsize = OS_SOCK_BUFFER_SIZES;
 		socklen_t len = sizeof(bufsize);

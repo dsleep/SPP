@@ -59,6 +59,14 @@ if(MSVC)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
 	endif()
 	
+else()
+	
+	# set position independent
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fPIC")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+
+	link_libraries(stdc++fs dl pthread)
+
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_CURRENT_SOURCE_DIR}/Binaries/ReleaseWithDebug/lib)
@@ -80,21 +88,26 @@ list(APPEND
 			"SPPCore" 
 			"SPPDatabase" 
 			"SPPNetworking" 
-			"SPPCapture" 
-			"SPPVideo" 
+			 )
+			
+if(OS_WINDOWS)
+	list(APPEND SPPProjects
+			"SPPEngine" 
 			"SPPObject" 
-			"SPPEngine" )
+			"SPPCapture" 
+			"SPPVideo" )
 	
-if(USE_CEF)
-	list(APPEND SPPProjects "SPPCEF")
-endif()
+	if(USE_CEF)
+		list(APPEND SPPProjects "SPPCEF")
+	endif()
 
-if(USE_GRAPHICS)
-	list(APPEND SPPProjects "SPPGraphics")
-	
-	if(USE_DX12)
-		list(APPEND SPPProjects "SPPDX12")	
-	endif()	
+	if(USE_GRAPHICS)
+		list(APPEND SPPProjects "SPPGraphics")
+		
+		if(USE_DX12)
+			list(APPEND SPPProjects "SPPDX12")	
+		endif()	
+	endif()
 endif()
 
 list(APPEND SPPProjects "applications" )

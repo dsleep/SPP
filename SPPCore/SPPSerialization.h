@@ -5,6 +5,9 @@
 #pragma once
 
 #include "SPPCore.h"
+#include <string.h>
+
+#include <stdio.h>
 #include <vector>
 #include <list>
 #include <deque>

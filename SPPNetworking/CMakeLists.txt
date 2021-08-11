@@ -49,10 +49,20 @@ target_link_libraries(SPPNetworking
 		SPPCore
 		SPPDatabase )
 
-target_link_libraries(SPPNetworking 
-	PRIVATE
-		"juice-static"
-		"Bcrypt" )
+if(OS_WINDOWS)
+
+	target_link_libraries(SPPNetworking 
+		PRIVATE
+			"juice-static"
+			"Bcrypt" )
+
+else()
+
+	target_link_libraries(SPPNetworking 
+		PRIVATE
+			"juice" )
+
+endif()
 
 install(TARGETS SPPNetworking DESTINATION "${SPP_ROOT}/INSTALL")
 

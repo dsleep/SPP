@@ -12,6 +12,8 @@ set_target_properties( simpleconnectioncoordinator PROPERTIES DEBUG_POSTFIX ${CM
 set_property(TARGET simpleconnectioncoordinator PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonitor")
 
+if(OS_WINDOWS)
+
 ##########
 add_executable( applicationhost "")
 add_dependencies( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture)			
@@ -114,3 +116,4 @@ if(USE_GRAPHICS AND USE_DX12)
 	#set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor")
 endif()
 
+endif()
