@@ -52,7 +52,7 @@
 		{
 			"Path": "fbtBlendHeaderOnly",
 			"Version": 2
-		,
+		},
 		{
 			"Path": "stb",
 			"Version": 1
