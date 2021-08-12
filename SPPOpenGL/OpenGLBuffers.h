@@ -16,6 +16,7 @@ namespace SPP
 	public:
 		OpenGLBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 		virtual ~OpenGLBuffer();	
+		virtual void UploadToGpu() override { }
 	};
 	
 }

@@ -66,7 +66,7 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, AppWindow);
 
-		_mainScene = SPP::CreateRenderScene();
+		_mainScene = GGI()->CreateRenderScene();
 		auto& cam = _mainScene->GetCamera();
 		cam.GetCameraPosition()[1] = 100;
 

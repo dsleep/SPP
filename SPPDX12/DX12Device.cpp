@@ -1286,14 +1286,7 @@ namespace SPP
 			}
 		};
 	};
-
-	std::shared_ptr<RenderScene> CreateRenderScene()
-	{
-		return std::make_shared< D3D12RenderScene >();
-	}
-
-	
-
+		
 	void D3D12RenderableMesh::AddToScene(class RenderScene* InScene)
 	{
 		auto _meshData = _meshElements.front();
@@ -1640,6 +1633,11 @@ namespace SPP
 		virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() override
 		{
 			return DX12_CreateGraphicsDevice();
+		}
+
+		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
+		{
+			return std::make_shared< D3D12RenderScene >();
 		}
 	};
 

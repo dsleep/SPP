@@ -6,12 +6,7 @@ add_library(SPPDX12 SHARED "")
 set_target_properties(SPPDX12 PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 add_dependencies( SPPDX12 SPPEngine )
-
-# will need define to not create empty dll export
-target_compile_definitions( SPPDX12
-	PRIVATE
-		SPP_DX12_EXPORT=1)
-				
+			
 target_sources( SPPDX12
 	PRIVATE			
 		"${CMAKE_CURRENT_LIST_DIR}/d3dx12.h"

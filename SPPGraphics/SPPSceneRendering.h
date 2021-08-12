@@ -146,7 +146,5 @@ namespace SPP
 		virtual void BeginFrame() { };
 		virtual void Draw() { };
 		virtual void EndFrame() { };
-	};
-	
-	SPP_GRAPHICS_API std::shared_ptr<RenderScene> CreateRenderScene();
+	};	
 }

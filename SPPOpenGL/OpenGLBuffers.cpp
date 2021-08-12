@@ -16,4 +16,9 @@ namespace SPP
 	{
 		glDeleteBuffers(1, &_bufferID);
 	}
+
+	std::shared_ptr< GPUBuffer > OpenGL_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	{
+		return std::make_shared< OpenGLBuffer>(InType, InCpuData);
+	}
 }

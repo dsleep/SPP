@@ -394,6 +394,8 @@ namespace SPP
         virtual std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
         virtual std::shared_ptr< GPURenderTarget > CreateRenderTarget() = 0;
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
+
+        virtual std::shared_ptr< class RenderScene > CreateRenderScene() = 0;
     };
 
     // global graphics interface

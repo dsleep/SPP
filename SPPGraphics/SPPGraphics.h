@@ -7,17 +7,13 @@
 #include "SPPEngine.h"
 
 #if _WIN32 && !defined(SPP_GRAPHICS_STATIC)
-
 	#ifdef SPP_GRAPHICSE_EXPORT
 		#define SPP_GRAPHICS_API __declspec(dllexport)
 	#else
 		#define SPP_GRAPHICS_API __declspec(dllimport)
 	#endif
-
-	#else
-
-		#define SPP_GRAPHICS_API 
-
+#else
+	#define SPP_GRAPHICS_API 
 #endif
 
 

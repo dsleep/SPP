@@ -74,7 +74,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		dx12Device->Initialize(1280, 720, app->GetOSWindow());
 
 
-		auto mainScene = SPP::CreateRenderScene();
+		auto mainScene = GGI()->CreateRenderScene();
 		auto& cam = mainScene->GetCamera();
 		cam.GetCameraPosition()[1] = 100;
 
