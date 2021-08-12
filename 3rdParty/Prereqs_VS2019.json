@@ -52,9 +52,13 @@
 		{
 			"Path": "fbtBlendHeaderOnly",
 			"Version": 2
-		},
+		,
 		{
 			"Path": "stb",
+			"Version": 1
+		},
+		{
+			"Path": "glew",
 			"Version": 1
 		}		
 	]
