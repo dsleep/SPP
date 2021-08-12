@@ -7,13 +7,13 @@
 
 namespace SPP
 {	
-	OpenGLBuffer::OpenGLBuffer(std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InCpuData)
+	OpenGLBuffer::OpenGLBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InCpuData)
 	{
-		
+		glGenBuffers(1, &_bufferID);
 	}
 
 	OpenGLBuffer::~OpenGLBuffer()
 	{
-
+		glDeleteBuffers(1, &_bufferID);
 	}
 }

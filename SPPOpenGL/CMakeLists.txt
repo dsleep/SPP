@@ -10,7 +10,8 @@ add_dependencies( SPPOpenGL SPPEngine )
 # will need define to not create empty dll export
 target_compile_definitions( SPPOpenGL
 	PRIVATE
-		SPP_OPENGL_EXPORT=1)
+		SPP_OPENGL_EXPORT=1
+		GLEW_STATIC=1)
 				
 target_sources( SPPOpenGL
 	PRIVATE			
@@ -32,12 +33,11 @@ target_include_directories(SPPOpenGL
 		
 target_include_directories(SPPOpenGL 
 	PRIVATE  			
-		"${THIRD_PARTY}/dxc/include" )
+		"${THIRD_PARTY}/glew/include" )
 		
 target_link_directories(SPPOpenGL 
 	PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/DX12/x64/DEBUG"		
-		"${THIRD_PARTY}/dxc/lib/x64")		
+		"${THIRD_PARTY}/glew/lib")		
 		
 		
 target_link_libraries( SPPOpenGL 
@@ -47,10 +47,8 @@ target_link_libraries( SPPOpenGL
 		
 target_link_libraries( SPPOpenGL 
 	PRIVATE
-		d3d12
-		dxgi
-		d3dcompiler
-		dxguid )
+		debug "Debug/x64/glew32sd" optimized "Release/x64/glew32s"
+		opengl32 )
 
 install(TARGETS SPPOpenGL DESTINATION "${SPP_ROOT}/INSTALL")
 

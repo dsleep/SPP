@@ -11,14 +11,13 @@ namespace SPP
 	class OpenGLTexture : public GPUTexture
 	{
 	protected:
+		GLuint _textureID = 0;
 
 	public:
-
-
 		OpenGLTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
-
-		virtual void UploadToGpu() override { }
+		virtual void UploadToGpu() override;
+		virtual ~OpenGLTexture();
 			 
 		//void CreateSRV()
 		//{

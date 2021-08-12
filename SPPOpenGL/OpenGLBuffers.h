@@ -11,12 +11,11 @@ namespace SPP
 	class OpenGLBuffer : public GPUBuffer
 	{
 	protected:
+		GLuint _bufferID = 0;
 
 	public:
-		OpenGLBuffer(std::shared_ptr< ArrayResource > InCpuData);
-
-		virtual ~OpenGLBuffer();
-	
+		OpenGLBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+		virtual ~OpenGLBuffer();	
 	};
 	
 }
