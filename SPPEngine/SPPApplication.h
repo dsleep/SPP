@@ -37,6 +37,12 @@ namespace SPP
 		std::function<void(int32_t, int32_t)> mouseMove;
 	};
 
+	enum class AppFlags
+	{
+		SupportOpenGL,
+		None
+	};
+
 	class SPP_ENGINE_API ApplicationWindow : public ApplicationEvents, public InputEvents
 	{
 	protected:
@@ -52,7 +58,7 @@ namespace SPP
 			oHeight = _height;
 		}
 
-		virtual bool Initialize(int32_t Width, int32_t Height, void* hInstance) = 0;
+		virtual bool Initialize(int32_t Width, int32_t Height, void* hInstance=nullptr, AppFlags Flags = AppFlags::None) = 0;
 		virtual void* GetOSWindow() = 0;
 		virtual void DrawImageToWindow(int32_t Width, int32_t Height, const void* InData, int32_t InDataSize, uint8_t BPP) = 0;
 		virtual int32_t Run() = 0;

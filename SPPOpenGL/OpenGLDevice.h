@@ -24,18 +24,28 @@ namespace SPP
 	class OpenGLDevice : public GraphicsDevice
 	{
 	protected:
+		int32_t _deviceWidth = 0;
+		int32_t _deviceHeight = 0;
+		void* _hwndPtr = nullptr;
 
 	public:
 
-		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) override { }
-		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight) override { }
+		OpenGLDevice();
+		virtual ~OpenGLDevice();
+		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) override;
+		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight) override;
 
-		virtual int32_t GetDeviceWidth() const override { return -1; }
-		virtual int32_t GetDeviceHeight() const override { return -1; }
+		virtual void BeginFrame() override;
+		virtual void EndFrame() override;
 
-		virtual void BeginFrame() override { }
-		virtual void EndFrame() override { }
-		virtual void MoveToNextFrame() { };
-		
+		virtual int32_t GetDeviceWidth() const
+		{
+			return _deviceWidth;
+		}
+		virtual int32_t GetDeviceHeight() const
+		{
+			return _deviceHeight;
+		}
+
 	};
 }

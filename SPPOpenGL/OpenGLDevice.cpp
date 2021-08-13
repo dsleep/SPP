@@ -2,6 +2,10 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
+#ifdef _WIN32
+#include <windows.h>	
+#endif
+
 #include "OpenGLDevice.h"
 
 #include "OpenGLShaders.h"
@@ -29,6 +33,71 @@ namespace SPP
 	std::shared_ptr< GraphicsDevice > OpenGL_CreateGraphicsDevice()
 	{
 		return std::make_shared< OpenGLDevice>();
+	}
+
+
+	class GraphicsDevice* GGraphicsDevice = nullptr;
+
+	OpenGLDevice::OpenGLDevice()
+	{
+		SE_ASSERT(GGraphicsDevice == nullptr );
+		GGraphicsDevice = this;
+	}
+
+	OpenGLDevice::~OpenGLDevice()
+	{
+		GGraphicsDevice = nullptr;
+	}
+
+	void OpenGLDevice::Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
+	{
+		_deviceWidth = InitialWidth;
+		_deviceHeight = InitialHeight;
+		_hwndPtr = OSWindow;
+
+
+#ifdef _WIN32
+		auto hDC = GetDC((HWND)OSWindow);
+		auto hRC = wglCreateContext(hDC);
+		wglMakeCurrent(hDC, hRC);
+#endif
+	}
+	void OpenGLDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
+	{
+		_deviceWidth = NewWidth;
+		_deviceHeight = NewHeight;
+	}
+
+	void OpenGLDevice::BeginFrame() {}
+	void OpenGLDevice::EndFrame() {}
+
+
+	class OpenGLScene : public RenderScene
+	{
+	protected:
+
+	private:
+		virtual void BeginFrame()
+		{
+
+		}
+		virtual void Draw()
+		{
+			glViewport(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+			glClear(GL_COLOR_BUFFER_BIT);
+
+
+			glFlush();
+		}
+		virtual void EndFrame()
+		{
+
+		}
+	};
+
+	std::shared_ptr< RenderScene > OpenGL_CreateRenderScene()
+	{
+		return std::make_shared< OpenGLScene>();
 	}
 		
 	struct OpenGLGraphicInterface : public IGraphicsInterface
@@ -71,7 +140,7 @@ namespace SPP
 		}
 		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
 		{
-			return nullptr;
+			return OpenGL_CreateRenderScene();
 		}
 	};
 

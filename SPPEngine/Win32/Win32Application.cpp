@@ -329,7 +329,7 @@ namespace SPP
 		int Run(HINSTANCE hInstance, int nCmdShow);
 		HWND GetHwnd() { return m_hwnd; }
 
-		virtual bool Initialize(int32_t Width, int32_t Height, void* hInstance) override;
+		virtual bool Initialize(int32_t Width, int32_t Height, void* hInstance = nullptr, AppFlags Flags = AppFlags::None) override;
 		virtual void DrawImageToWindow(int32_t Width, int32_t Height, const void* InData, int32_t InDataSize, uint8_t BPP) override;
 		virtual int32_t Run() override;
 		virtual int32_t RunOnce() override;
@@ -342,7 +342,7 @@ namespace SPP
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	};
 
-	bool Win32Application::Initialize(int32_t Width, int32_t Height, void* hInstance)
+	bool Win32Application::Initialize(int32_t Width, int32_t Height, void* hInstance, AppFlags Flags)
 	{
 		// Parse the command line parameters
 		int argc;
@@ -379,6 +379,37 @@ namespace SPP
 			nullptr,		// We aren't using menus.
 			(HINSTANCE)hInstance,
 			(LPVOID)this);
+
+		if (Flags == AppFlags::SupportOpenGL)
+		{
+			auto hDC = GetDC(m_hwnd);
+
+			PIXELFORMATDESCRIPTOR pfd;
+
+			/* there is no guarantee that the contents of the stack that become
+			   the pfd are zeroed, therefore _make sure_ to clear these bits. */
+			memset(&pfd, 0, sizeof(pfd));
+			pfd.nSize = sizeof(pfd);
+			pfd.nVersion = 1;
+			pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+			pfd.iPixelType = PFD_TYPE_RGBA;
+			pfd.cColorBits = 32;
+
+			auto pf = ChoosePixelFormat(hDC, &pfd);
+			if (pf == 0)
+			{
+				MessageBoxA(NULL, "ChoosePixelFormat() failed: Cannot find a suitable pixel format.", "Error", MB_OK);
+				return 0;
+			}
+			if (SetPixelFormat(hDC, pf, &pfd) == FALSE)
+			{
+				MessageBoxA(NULL, "SetPixelFormat() failed: Cannot set format specified.", "Error", MB_OK);
+				return 0;
+			}
+
+			DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+			ReleaseDC(m_hwnd, hDC);
+		}
 
 		ShowWindow(m_hwnd, SW_SHOW);
 
