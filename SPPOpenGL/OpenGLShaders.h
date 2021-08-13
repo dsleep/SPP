@@ -17,6 +17,11 @@ namespace SPP
 		OpenGLShader(EShaderType InType);
 		virtual ~OpenGLShader();
 
+		GLuint GetShaderID() const 
+		{
+			return _shaderID;		
+		}
+
 		virtual void UploadToGpu() override;
 		virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main") override;
 	};

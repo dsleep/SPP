@@ -9,7 +9,7 @@
 
 #pragma comment( lib, "dxcompiler.lib" )
 
-#define REL_SHADER_PATH "shaders"
+#define REL_SHADER_PATH "shaders/OpenGL"
 
 namespace SPP
 {

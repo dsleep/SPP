@@ -15,8 +15,11 @@
 
 #include <map>
 
+#include <thread>
+#include <chrono>
+
 namespace SPP
-{		
+{
 	LogEntry LOG_Win32App("Win32App");
 
 	std::map<uint32_t, std::string> Win32MessageMap =
@@ -344,20 +347,14 @@ namespace SPP
 
 	bool Win32Application::Initialize(int32_t Width, int32_t Height, void* hInstance, AppFlags Flags)
 	{
-		// Parse the command line parameters
-		int argc;
-		const auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-		//pFramework->ParseCommandLineArgs(argv, argc);
-		LocalFree(argv);
-
 		// Initialize the window class.
 		WNDCLASSEX windowClass = { 0 };
 		windowClass.cbSize = sizeof(WNDCLASSEX);
-		windowClass.style = CS_HREDRAW | CS_VREDRAW;
+		windowClass.style = (Flags == AppFlags::SupportOpenGL) ? CS_OWNDC : (CS_HREDRAW | CS_VREDRAW);
 		windowClass.lpfnWndProc = WindowProc;
 		windowClass.hInstance = (HINSTANCE)hInstance;
 		windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-		windowClass.lpszClassName = L"DXFrameworkClass";
+		windowClass.lpszClassName = L"SPPWIN32";
 		RegisterClassEx(&windowClass);
 
 		_width = Width;
@@ -370,7 +367,7 @@ namespace SPP
 		m_hwnd = CreateWindow(
 			windowClass.lpszClassName,
 			L"APP",
-			WS_OVERLAPPEDWINDOW,
+			WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 			CW_USEDEFAULT,
 			CW_USEDEFAULT,
 			windowRect.right - windowRect.left,
@@ -421,13 +418,13 @@ namespace SPP
 		//GetClientRect(m_hwnd, &windowRect);
 		//MapWindowPoints(m_hwnd, GetParent(m_hwnd), (LPPOINT)&windowRect, 2);
 		//ClipCursor(&windowRect);
-				
+
 		//POINT setPosition{ (windowRect.left + windowRect.right) / 2, (windowRect.top + windowRect.bottom) / 2 };
 		//SetCursorPos(setPosition.x, setPosition.y);
 
 		return true;
 	}
-	
+
 	void Win32Application::DrawImageToWindow(int32_t Width, int32_t Height, const void* InData, int32_t InDataSize, uint8_t BPP)
 	{
 		HDC hDC = GetDC(m_hwnd);
@@ -474,52 +471,34 @@ namespace SPP
 
 	int32_t Win32Application::Run()
 	{
+
+		using namespace std::chrono_literals;
+
 		ShowWindow(m_hwnd, SW_SHOW);
 
 		MSG msg = {};
-		while (true) 
-		{			
-			if (PeekMessage(&msg, m_hwnd, 0, 0, PM_REMOVE))
+		while (true)
+		{
+			MSG msg = { 0 };
+			while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) == TRUE)
 			{
-				if (WM_QUIT == msg.message) 
-				{
-					break;
-				}
-				else 
+				if (GetMessage(&msg, NULL, 0, 0))
 				{
 					TranslateMessage(&msg);
 					DispatchMessage(&msg);
-
-					//manage cursor
-					//if (_bIsFocused)
-					//{
-					//	RECT windowRect;
-					//	GetClientRect(m_hwnd, &windowRect);
-					//	MapWindowPoints(m_hwnd, GetParent(m_hwnd), (LPPOINT)&windowRect, 2);
-					//	ClipCursor(&windowRect);
-
-					//	POINT currentPos;
-					//	POINT setPosition{ (windowRect.left + windowRect.right) / 2, (windowRect.top + windowRect.bottom) / 2 };
-					//	if (GetCursorPos(&currentPos))
-					//	{
-					//		//cursor position now in p.x and p.y
-					//		if (mouseMove)
-					//		{
-					//			mouseMove(currentPos.x - setPosition.x, currentPos.y - setPosition.y);
-					//		}
-					//	}
-
-					//	SetCursorPos(setPosition.x, setPosition.y);
-					//}
 				}
-			}
-			else 
-			{
-				if (_msgLoop)
+				else
 				{
-					_msgLoop();
+					return 0;
 				}
 			}
+
+			if (_msgLoop)
+			{
+				_msgLoop();
+			}
+
+			std::this_thread::sleep_for(1ms);
 		}
 
 		// Return this part of the WM_QUIT message to Windows.
@@ -561,67 +540,67 @@ namespace SPP
 		}
 		return 0;
 
-		case WM_SETFOCUS:
-			pApp->_bIsFocused = true;
-			break;
+		//case WM_SETFOCUS:
+		//	pApp->_bIsFocused = true;
+		//	break;
 
-		case WM_KILLFOCUS:
-			pApp->_bIsFocused = false;
-			break;
+		//case WM_KILLFOCUS:
+		//	pApp->_bIsFocused = false;
+		//	break;
 
-		case WM_MOVE:
-			if (pApp->_windowMoved)
-				pApp->_windowMoved();
-			return 0;
+		//case WM_MOVE:
+		//	if (pApp->_windowMoved)
+		//		pApp->_windowMoved();
+		//	return 0;
 
-		case WM_SIZE:
-			if (wParam == SIZE_MINIMIZED)
-			{
-				if (!s_minimized)
-				{
-					s_minimized = true;
-					if (!s_in_suspend && pApp->_onSuspend)
-						pApp->_onSuspend();
-					s_in_suspend = true;
-				}
-			}
-			else if (s_minimized)
-			{
-				s_minimized = false;
-				if (s_in_suspend && pApp->_onResume)
-					pApp->_onResume();
-				s_in_suspend = false;
-			}
-			else if (!s_in_sizemove && pApp->_onSizeChanged)
-			{
-				pApp->_width = LOWORD(lParam);
-				pApp->_height = HIWORD(lParam);
-				pApp->_onSizeChanged(pApp->_width, pApp->_height);
-			}
-			return 0;
+		//case WM_SIZE:
+		//	if (wParam == SIZE_MINIMIZED)
+		//	{
+		//		if (!s_minimized)
+		//		{
+		//			s_minimized = true;
+		//			if (!s_in_suspend && pApp->_onSuspend)
+		//				pApp->_onSuspend();
+		//			s_in_suspend = true;
+		//		}
+		//	}
+		//	else if (s_minimized)
+		//	{
+		//		s_minimized = false;
+		//		if (s_in_suspend && pApp->_onResume)
+		//			pApp->_onResume();
+		//		s_in_suspend = false;
+		//	}
+		//	else if (!s_in_sizemove && pApp->_onSizeChanged)
+		//	{
+		//		pApp->_width = LOWORD(lParam);
+		//		pApp->_height = HIWORD(lParam);
+		//		pApp->_onSizeChanged(pApp->_width, pApp->_height);
+		//	}
+		//	return 0;
 
-		case WM_ENTERSIZEMOVE:
-			s_in_sizemove = true;
-			return 0;
+		//case WM_ENTERSIZEMOVE:
+		//	s_in_sizemove = true;
+		//	return 0;
 
-		case WM_EXITSIZEMOVE:
-			s_in_sizemove = false;
-			if (pApp->_onSizeChanged)
-			{
-				RECT rc;
-				GetClientRect(hWnd, &rc);
+		//case WM_EXITSIZEMOVE:
+		//	s_in_sizemove = false;
+		//	if (pApp->_onSizeChanged)
+		//	{
+		//		RECT rc;
+		//		GetClientRect(hWnd, &rc);
 
-				const auto w = rc.right - rc.left;
-				const auto h = rc.bottom - rc.top;
+		//		const auto w = rc.right - rc.left;
+		//		const auto h = rc.bottom - rc.top;
 
-				if (pApp->_width != w || pApp->_height != h)
-				{
-					pApp->_onSizeChanged(w, h);
-					pApp->_width = w;
-					pApp->_height = h;
-				}
-			}
-			return 0;
+		//		if (pApp->_width != w || pApp->_height != h)
+		//		{
+		//			pApp->_onSizeChanged(w, h);
+		//			pApp->_width = w;
+		//			pApp->_height = h;
+		//		}
+		//	}
+		//	return 0;
 
 		case WM_KEYDOWN:
 			if (pApp->keyDown) pApp->keyDown(static_cast<uint8_t>(wParam));
@@ -661,12 +640,16 @@ namespace SPP
 				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Middle);
 			return 0;
 
-		//case WM_MOUSEMOVE:
-		//	if (pApp->mouseMove)
-		//		pApp->mouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-		//	return 0;
+			//case WM_MOUSEMOVE:
+			//	if (pApp->mouseMove)
+			//		pApp->mouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			//	return 0;
 
 		case WM_DESTROY:
+			PostQuitMessage(0);
+			return 0;
+
+		case WM_CLOSE:
 			PostQuitMessage(0);
 			return 0;
 		}

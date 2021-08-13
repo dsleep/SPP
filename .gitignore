@@ -6,6 +6,8 @@
 *.lo
 *.o
 *.obj
+*.pyc
+*.tmp
 
 # Precompiled Headers
 *.gch
@@ -33,3 +35,11 @@
 
 #VO Directories
 .vs/
+
+#3rd party Directories
+3rdParty/
+!3rdParty/*.json
+Binaries/
+!Binaries/*.txt
+CMAKEBUILD/
+.visualgdb/

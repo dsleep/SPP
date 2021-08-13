@@ -32,10 +32,7 @@
 
 #define MAX_LOADSTRING 100
 
-
 using namespace SPP;
-
-
 using namespace std::chrono_literals;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -80,10 +77,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto openGLDevice = GGI()->CreateGraphicsDevice();
 		openGLDevice->Initialize(1280, 720, app->GetOSWindow());
 
+		//auto pixelShader = GGI()->CreateShader(EShaderType::Pixel);
+		//pixelShader->CompileShaderFromFile("shaders/OpenGL/FullScene.hlsl","mainImage");
+
 		auto mainScene = GGI()->CreateRenderScene();
 		auto& cam = mainScene->GetCamera();
 		cam.GetCameraPosition()[2] = -100;
-
 	
 		SPP::Vector2 mouseDelta(0,0);
 		uint8_t keys[255] = { 0 };

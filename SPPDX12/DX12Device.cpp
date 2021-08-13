@@ -813,11 +813,6 @@ namespace SPP
 		uintptr_t ds = 0;
 		uintptr_t cs = 0;
 
-		int32_t StateHash()
-		{
-			return (int32_t)blendState + (int32_t)rasterizerState + (int32_t)depthState;
-		}
-
 		bool operator<(const D3D12PipelineStateKey& compareKey)const
 		{
 			if (blendState != compareKey.blendState)

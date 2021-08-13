@@ -5,8 +5,6 @@
 #include "OpenGLShaders.h"
 #include "SPPLogging.h"
 
-#define REL_SHADER_PATH "shaders"
-
 namespace SPP
 {
 	LogEntry LOG_OpenGLShader("OpenGLShader");
@@ -49,7 +47,7 @@ namespace SPP
 		int InfoLogLength;
 
 		// Compile Vertex Shader
-		printf("Compiling shader : %s\n", *FileName);
+		SPP_LOG(LOG_OpenGLShader, LOG_INFO, "Compiling shader : %s", *FileName);
 		char const* SourcePointer = ShaderCode.c_str();
 		glShaderSource(_shaderID, 1, &SourcePointer, NULL);
 		glCompileShader(_shaderID);
@@ -61,7 +59,7 @@ namespace SPP
 		{
 			std::vector<char> ShaderErrorMessage(InfoLogLength + 1);
 			glGetShaderInfoLog(_shaderID, InfoLogLength, NULL, &ShaderErrorMessage[0]);
-			printf("%s\n", &ShaderErrorMessage[0]);
+			SPP_LOG(LOG_OpenGLShader, LOG_INFO, "%s", &ShaderErrorMessage[0]);
 		}
 
 		return true;
