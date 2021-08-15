@@ -498,7 +498,7 @@ namespace SPP
 				_msgLoop();
 			}
 
-			std::this_thread::sleep_for(1ms);
+			std::this_thread::sleep_for(0ms);
 		}
 
 		// Return this part of the WM_QUIT message to Windows.

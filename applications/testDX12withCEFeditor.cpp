@@ -63,168 +63,26 @@ public:
 	{
 		_mainDXWindow = (HWND)AppWindow;
 
+#ifdef _DEBUG
+		LoadLibraryA("SPPOpenGLd.dll");
+#else
+		LoadLibraryA("SPPOpenGL.dll");
+#endif
+
+
+		RECT rect;
+		GetClientRect(_mainDXWindow, &rect);
+
+		int32_t WindowSizeX = rect.right - rect.left;
+		int32_t WindowSizeY = rect.bottom - rect.top;
+
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
-		_graphicsDevice->Initialize(1280, 720, AppWindow);
+		_graphicsDevice->Initialize(WindowSizeX, WindowSizeY, AppWindow);
 
 		_mainScene = GGI()->CreateRenderScene();
 		auto& cam = _mainScene->GetCamera();
 		cam.GetCameraPosition()[1] = 100;
 
-#if 0
-		auto mesh = SPP::SPPObject::CreateObject<SPP::Mesh>("mesh.gunmesh");
-		mesh->LoadMesh("meshes/circle.obj");
-
-
-		//meshlets
-		auto meshletSimpleAS = SPP::SPPObject::CreateObject<SPP::ShaderObject>("bleep.meshletAS");
-		meshletSimpleAS->LoadFromDisk("shaders/SimpleMeshletAS.hlsl", "main", SPP::EShaderType::Amplification);
-
-		auto meshletSimpleMS = SPP::SPPObject::CreateObject<SPP::ShaderObject>("bleep.meshletMS");
-		meshletSimpleMS->LoadFromDisk("shaders/SimpleMeshletMS.hlsl", "main", SPP::EShaderType::Mesh);
-
-		auto meshletSimplePS = SPP::SPPObject::CreateObject<SPP::ShaderObject>("bleep.meshletPS");
-		meshletSimplePS->LoadFromDisk("shaders/SimpleMeshletPS.hlsl", "main", SPP::EShaderType::Pixel);
-
-		cachedObjs.push_back(meshletSimpleAS);
-		cachedObjs.push_back(meshletSimpleMS);
-		cachedObjs.push_back(meshletSimplePS);
-
-		//auto meshMaterialMeshShaders = SPP::SPPObject::CreateObject<SPP::MaterialObject>("bleep.materialmesh");
-		//meshMaterialMeshShaders->meshShader = meshletSimpleMS;
-		//meshMaterialMeshShaders->pixelShader = meshletSimplePS;
-
-		//auto meshMatMeshShader = std::make_shared<SPP::MeshMaterial>();		
-
-		//auto meshMaterial = SPP::SPPObject::CreateObject<SPP::MaterialObject>("bleep.material");
-		//auto meshVSShader = SPP::SPPObject::CreateObject<SPP::ShaderObject>("bleep.material.vs");
-		//{			
-		//	meshVSShader->LoadFromDisk("shaders/unlitMesh.hlsl", "main_vs", SPP::EShaderType::Vertex);
-		//	meshMaterial->vertexShader = meshVSShader;
-		//}
-
-		//auto meshPSShader = SPP::SPPObject::CreateObject<SPP::ShaderObject>("bleep.material.ps");
-		//{
-		//	meshPSShader->LoadFromDisk("shaders/unlitMesh.hlsl", "main_ps", SPP::EShaderType::Pixel);
-		//	meshMaterial->pixelShader = meshPSShader;
-		//}
-
-		//auto textureTest = SPP::SPPObject::CreateObject<SPP::TextureObject>("bleep.texture");
-		//textureTest->LoadFromDisk("texture/cerberus_A.png");
-
-		meshMat = std::make_shared<SPP::MeshMaterial>();
-
-
-		meshMat->meshShader = meshletSimpleMS->GetGPUShader();
-		meshMat->amplificationShader = meshletSimpleAS->GetGPUShader();
-		meshMat->pixelShader = meshletSimplePS->GetGPUShader();
-
-		//meshMat->vertexShader = meshMaterial->vertexShader->GetGPUShader();
-		//meshMat->pixelShader = meshMaterial->pixelShader->GetGPUShader();
-
-		auto meshVertexLayout = SPP::CreateInputLayout();
-		meshVertexLayout->InitializeLayout({
-				{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },
-				{ "NORMAL",    SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,normal) },
-				{ "TANGENT",   SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,tangent) },
-				{ "BITANGENT", SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,bitangent) },
-				{ "TEXCOORD",  SPP::InputLayoutElementType::Float2, offsetof(SPP::MeshVertex,texcoord) } });
-
-		meshMat->layout = meshVertexLayout;
-		//meshMatMeshShader->layout = meshVertexLayout;
-		//meshMat->SetTextureUnit(0, textureTest->GetGPUTexture());
-
-		auto& meshElements = mesh->GetMeshElements();
-
-		for (auto& curMesh : meshElements)
-		{
-			curMesh->material = meshMat;
-		}
-
-
-		for (int32_t X = -5; X <= 5; X++)
-		{
-			for (int32_t Y = -5; Y <= 5; Y++)
-			{
-				auto newMeshToDraw = SPP::CreateRenderableMesh(true);
-
-				auto& pos = newMeshToDraw->GetPosition();
-
-				auto& scale = newMeshToDraw->GetScale();
-
-				pos[0] = X * 1000;
-				pos[1] = 10;
-				pos[2] = Y * 1000;
-
-				scale[0] = 100.0f;
-				scale[1] = 100.0f;
-				scale[2] = 100.0f;
-
-				MeshesToDraw.push_back(newMeshToDraw);
-				newMeshToDraw->SetMeshData(meshElements);
-				newMeshToDraw->AddToScene(_mainScene.get());
-			}
-		}
-
-#endif
-		////////////////////////////////////
-		//TERRRAIN SECTION
-		////////////////////////////////////
-
-#if 0
-		auto mainTerrain = SPP::SPPObject::CreateObject< SPP::Terrain >("TerrainMain");
-		mainTerrain->Create();
-
-		auto terrainShaderVS = SPP::SPPObject::CreateObject< SPP::ShaderObject>("TerrainMain.VertexSO");
-		terrainShaderVS->LoadFromDisk("shaders/TerrainVS.hlsl", "main", SPP::EShaderType::Vertex);
-		auto terrainShaderDS = SPP::SPPObject::CreateObject< SPP::ShaderObject>("TerrainMain.DomainSO");
-		terrainShaderDS->LoadFromDisk("shaders/TerrainDS.hlsl", "main", SPP::EShaderType::Domain);
-		auto terrainShaderHS = SPP::SPPObject::CreateObject< SPP::ShaderObject>("TerrainMain.HullSO");
-		terrainShaderHS->LoadFromDisk("shaders/TerrainHS.hlsl", "main", SPP::EShaderType::Hull);
-		auto terrainShaderPS = SPP::SPPObject::CreateObject< SPP::ShaderObject>("TerrainMain.PixelSO");
-		terrainShaderPS->LoadFromDisk("shaders/TerrainPS.hlsl", "main", SPP::EShaderType::Pixel);
-
-		auto terrainHeightMap = SPP::SPPObject::CreateObject< SPP::TextureObject>("TerrainMain.HeightMap");
-		terrainHeightMap->LoadFromDisk("texture/terrain/sanddunesheightmap.jpg");
-
-		//
-		auto terrainDisplacementMap = SPP::SPPObject::CreateObject< SPP::TextureObject>("TerrainMain.DisplacementMap");
-		terrainDisplacementMap->LoadFromDisk("texture/terrain/tdsmeeko_8K_Displacement.dds");
-		auto normalMap = SPP::SPPObject::CreateObject< SPP::TextureObject>("TerrainMain.NormalMap");
-		normalMap->LoadFromDisk("texture/terrain/tdsmeeko_8K_Normal.dds");
-		auto albedoMap = SPP::SPPObject::CreateObject< SPP::TextureObject>("TerrainMain.AlbedoMap");
-		albedoMap->LoadFromDisk("texture/terrain/tdsmeeko_8K_Albedo.dds");
-
-		auto terrainVertexLayout = SPP::CreateInputLayout();
-		terrainVertexLayout->InitializeLayout({
-				{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) }
-			});
-
-
-		auto terrainMat = std::make_shared<SPP::MeshMaterial>();
-		terrainMat->layout = terrainVertexLayout;
-
-		terrainMat->vertexShader = terrainShaderVS->GetGPUShader();
-		terrainMat->domainShader = terrainShaderDS->GetGPUShader();
-		terrainMat->hullShader = terrainShaderHS->GetGPUShader();
-		terrainMat->pixelShader = terrainShaderPS->GetGPUShader();
-
-		terrainMat->SetTextureUnit(0, terrainHeightMap->GetGPUTexture());
-		terrainMat->SetTextureUnit(1, terrainDisplacementMap->GetGPUTexture());
-		terrainMat->SetTextureUnit(2, normalMap->GetGPUTexture());
-		terrainMat->SetTextureUnit(3, albedoMap->GetGPUTexture());
-
-
-		auto terrainRenderableMesh = SPP::CreateRenderableMesh();
-
-		MeshesToDraw.push_back(terrainRenderableMesh);
-
-		auto& terrainMeshElements = mainTerrain->GetMeshElements();
-		terrainMeshElements.front()->topology = SPP::EDrawingTopology::PatchList_4ControlPoints;
-		terrainMeshElements.front()->material = terrainMat;
-
-		terrainRenderableMesh->SetMeshData(terrainMeshElements);
-		terrainRenderableMesh->AddToScene(_mainScene.get());
-#endif
 		SPP::MakeResidentAllGPUResources();
 
 		_lastTime = std::chrono::high_resolution_clock::now();
@@ -232,6 +90,14 @@ public:
 
 	void Update()
 	{
+		RECT rect;
+		GetClientRect(_mainDXWindow, &rect);
+
+		int32_t WindowSizeX = rect.right - rect.left;
+		int32_t WindowSizeY = rect.bottom - rect.top;
+
+		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
+
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
 		_lastTime = CurrentTime;
@@ -333,7 +199,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		std::thread runCEF([hInstance, editor = gameEditor.get()]()
 		{
 			SPP::RunBrowser(hInstance,
-				"http://spp/SPPEditor/html/index.html",
+				"http://spp/assets/web/editor/index.html",
 				{
 					std::bind(&EditorEngine::Initialize, editor, std::placeholders::_1),
 					std::bind(&EditorEngine::Update, editor),

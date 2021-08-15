@@ -425,7 +425,7 @@ namespace client {
 
 		wcex.cbSize = sizeof(WNDCLASSEX);
 
-		wcex.style = CS_HREDRAW | CS_VREDRAW;
+		wcex.style = CS_OWNDC;// CS_HREDRAW | CS_VREDRAW;
 		wcex.lpfnWndProc = RootWndProc;
 		wcex.cbClsExtra = 0;
 		wcex.cbWndExtra = 0;
@@ -641,11 +641,18 @@ namespace client {
 		if (browser_window_)
 			browser_hwnd = browser_window_->GetWindowHandle();
 
+
+		const float device_scale_factor = GetWindowScaleFactor(_gameWindow);
+
 		// Resize all controls.
 		HDWP hdwp = BeginDeferWindowPos(browser_hwnd ? 2 : 1);
 		
-		hdwp = DeferWindowPos(hdwp, _gameWindow, NULL, _gameWidowRect.left, _gameWidowRect.top - shiftHeight,
-			_gameWidowRect.right - _gameWidowRect.left, _gameWidowRect.bottom - _gameWidowRect.top - shiftHeight, SWP_NOZORDER);
+		hdwp = DeferWindowPos(hdwp, _gameWindow, NULL, 
+			_gameWidowRect.left * device_scale_factor, 
+			(_gameWidowRect.top - shiftHeight) * device_scale_factor,
+			(_gameWidowRect.right - _gameWidowRect.left) * device_scale_factor,
+			(_gameWidowRect.bottom - _gameWidowRect.top - shiftHeight) * device_scale_factor,
+			SWP_NOZORDER);
 
 		if (browser_hwnd)
 		{
@@ -729,8 +736,41 @@ namespace client {
 			// Create the child controls.
 			int x_offset = 0;
 
-			_gameWindow = CreateWindow(	L"GAMEWINDOW", L"game", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_DISABLED, x_offset, 0, 300, 300, hwnd_, nullptr, hInstance, this);
+			_gameWindow = CreateWindow(	L"GAMEWINDOW", 
+				L"game", 
+				WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_DISABLED,
+				x_offset, 0, 300, 300, hwnd_, nullptr, hInstance, this);
 			CHECK(_gameWindow);		
+
+			{
+				auto hDC = GetDC(_gameWindow);
+
+				PIXELFORMATDESCRIPTOR pfd;
+
+				/* there is no guarantee that the contents of the stack that become
+				   the pfd are zeroed, therefore _make sure_ to clear these bits. */
+				memset(&pfd, 0, sizeof(pfd));
+				pfd.nSize = sizeof(pfd);
+				pfd.nVersion = 1;
+				pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
+				pfd.iPixelType = PFD_TYPE_RGBA;
+				pfd.cColorBits = 32;
+
+				auto pf = ChoosePixelFormat(hDC, &pfd);
+				if (pf == 0)
+				{
+					MessageBoxA(NULL, "ChoosePixelFormat() failed: Cannot find a suitable pixel format.", "Error", MB_OK);
+					//return 0;
+				}
+				if (SetPixelFormat(hDC, pf, &pfd) == FALSE)
+				{
+					MessageBoxA(NULL, "SetPixelFormat() failed: Cannot set format specified.", "Error", MB_OK);
+					//return 0;
+				}
+
+				DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+				ReleaseDC(_gameWindow, hDC);
+			}
 						
 			if (!with_osr_) 
 			{
