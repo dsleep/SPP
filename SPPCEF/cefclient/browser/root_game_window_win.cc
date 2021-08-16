@@ -631,7 +631,7 @@ namespace client {
 		if (browser_window_)
 			browser_window_->Show();
 
-		auto shiftHeight = 20;// FindExtraWindowHeight(hwnd_);
+		auto shiftHeight = 10;// FindExtraWindowHeight(hwnd_);
 
 		RECT rect;
 		GetClientRect(hwnd_, &rect);

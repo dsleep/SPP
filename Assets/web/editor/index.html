@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>SPP</title>
+        <meta charset="utf-8">
+		<link rel="stylesheet" href="./fontawesome/css/all.css">        
+        <script type="text/javascript" src="./jQuery/jquery-3.5.1.js"></script>		
+		<script type="text/javascript" src="./GoldenLayout/goldenlayout.min.js"></script>		
+		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-base.css" />
+		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-dark-theme.css" />
+		
+	<style>
+	
+	
+    </style>
+
+    </head>
+    <body>
+	
+	
+<script>
+
+var config = {
+	settings:{
+		hasHeaders: true,
+		constrainDragToContainer: true,
+		reorderEnabled: false,
+		selectionEnabled: false,
+		popoutWholeStack: false,
+		blockedPopoutsThrowError: true,
+		closePopoutsOnUnload: false,
+		showPopoutIcon: false,
+		showMaximiseIcon: true,
+		showCloseIcon: false
+    },
+	dimensions: {
+        minItemWidth: 200,
+        minItemHeight: 150
+    },
+	content: [{
+			type: 'row',
+			content:[{
+				type: 'column',
+				width: 10,
+				
+				content:[
+					{
+					  type: 'stack',
+					  content:[
+					  {						
+						type: 'component',
+						isClosable: false,
+						componentName: 'sourcesComp',
+						title:'Primitives'
+					  }
+					  ]
+					},
+					{
+					  type: 'component',
+					  isClosable: false,
+					  componentName: 'testComponent',
+					  title:'Object Tree'
+					}]
+				},{
+					type: 'column',
+					content:[{
+						height: 85,
+						type: 'component',
+						componentName: 'gameViewComp',
+						isClosable: false,
+						title:'View'
+					},{
+						type: 'row',
+						
+						content:[
+							
+							{
+							type: 'component',
+							isClosable: false,
+							componentName: 'testComponent',
+							title:'Controls'
+							}
+							
+							]
+					}]
+				}]
+    }]
+};
+
+
+var myLayout = new GoldenLayout( config );
+var initialState = null;
+
+myLayout.registerComponent( 'testComponent', function( container, componentState ){	
+	 container.getElement().html( '<div id="testContainer" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+});
+
+myLayout.registerComponent( 'gameViewComp', function( container, componentState ){	
+	container.getElement().html( '<div id="gameView" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+	
+	container.on( 'resize', function()
+	{
+		var leftPos  = $("#gameView")[0].getBoundingClientRect().left   + $(window)['scrollLeft']();
+		var rightPos = $("#gameView")[0].getBoundingClientRect().right  + $(window)['scrollLeft']();
+		var topPos   = $("#gameView")[0].getBoundingClientRect().top    + $(window)['scrollTop']();
+		var bottomPos= $("#gameView")[0].getBoundingClientRect().bottom + $(window)['scrollTop']();
+		
+		console.log("leftPos:" + leftPos);
+		console.log("rightPos:" + rightPos);
+		console.log("topPos:" + topPos);
+		console.log("bottomPos:" + bottomPos);
+		
+		window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
+	});
+});
+
+myLayout.registerComponent( 'sourcesComp', function( container, componentState ){	
+	 container.getElement().html( '<div id="layers" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+});
+
+myLayout.registerComponent( 'coordsComp', function( container, componentState ){	
+	 container.getElement().html( '<div id="gameview" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+});
+
+myLayout.registerComponent( 'playbackComponent', function( container, componentState ){
+	
+	container.getElement().html( '<div id="playbackstuff" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+});
+
+
+myLayout.on( 'initialised', function(){
+    initialState = myLayout.toConfig();  
+	
+	
+
+	//$('#CesiumWEB').load("./cesiumWebExample.html");	
+	//$('#sourcesID').load("./source.html");	
+	//$('#playbackID').load("./playback.html");	
+	//$('#coordsID').load("./coordinates.html");	
+	
+	//load up the cesium logic
+	//var newScript = document.createElement('script');
+	//newScript.type = 'text/javascript';
+	//newScript.src = "./js/CesiumLogic.js";
+	//document.getElementsByTagName('head')[0].appendChild(newScript);
+});
+
+myLayout.init();
+
+
+function ResetLayout()
+{
+	//myLayout.destroy();
+	//myLayout.config = initialState;
+	//myLayout.init();
+}
+
+
+	</script>
+
+    </body>
+	
+</html>
