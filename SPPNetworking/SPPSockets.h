@@ -205,6 +205,29 @@ namespace SPP
 		virtual int32_t Receive(void *buf, uint16_t InBufferSizee) override;
 	};
 
+#if _WIN32
+	class SPP_NETWORKING_API BlueToothConnection : public Interface_PeerConnection
+	{
+	protected:
+		struct PlatImpl;
+		std::unique_ptr<PlatImpl> _impl;
+
+	public:
+		BlueToothConnection();
+		~BlueToothConnection();
+
+		bool Connect(char* ConnectionString);
+		void SendData(const char* Data, int Size);
+		void CloseLocal();
+
+		//Interface_Communication
+		bool IsConnected();
+
+		virtual void Send(const void* buf, uint16_t BufferSize) override;
+		virtual int32_t Receive(void* buf, uint16_t InBufferSize) override;
+	};
+#endif
+
 	class SPP_NETWORKING_API OSNetwork
 	{
 		friend SPP_NETWORKING_API OSNetwork& GetOSNetwork();

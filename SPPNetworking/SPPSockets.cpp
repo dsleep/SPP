@@ -23,6 +23,9 @@
 	#include "Windows.h"
 
 	#include "winsock2.h"
+
+	#include <ws2bth.h>
+
 	#include "ws2def.h"
 	#include <ws2tcpip.h>
 	using socklen_t = int32_t;
@@ -61,6 +64,7 @@ namespace SPP
 {
 	LogEntry LOG_SOCKETS("Sockets");
 	LogEntry LOG_UDP("UDPSocket");
+	LogEntry LOG_BT("BlueTooth");
 		
 	IPv4_SocketAddress ToIPv4_SocketAddress(const sockaddr_in &InAddr)
 	{
@@ -773,6 +777,173 @@ namespace SPP
 		std::unique_lock<std::mutex> lck(_sendMutex);
 		_sendBuffer.insert(_sendBuffer.end(), (uint8_t*)buf, (uint8_t*)buf + BufferSize);
 	}
+
+	//BLUETOOTH
+#if _WIN32
+	struct BlueToothConnection::PlatImpl
+	{
+		SOCKET Socket = INVALID_SOCKET;
+	};
+
+	BlueToothConnection::BlueToothConnection() : _impl(new PlatImpl())
+	{
+	}
+
+	BlueToothConnection::~BlueToothConnection()
+	{
+		CloseLocal();
+	}
+
+	void BlueToothConnection::CloseLocal()
+	{
+		if (_impl->Socket != INVALID_SOCKET)
+		{
+			closesocket(_impl->Socket);
+			_impl->Socket = INVALID_SOCKET;
+		}
+	}
+
+
+	bool BlueToothConnection::Listen(uint16_t InPort)
+	{
+	}
+
+	bool BlueToothConnection::Connect(char* ConnectionString)
+	{
+		SOCKADDR_BTH RemoteBthAddr = { 0 };
+
+		SPP_LOG(LOG_BT, LOG_INFO,"BlueToothConnection::Connect to %s", ConnectionString);
+
+		int iAddrLen = sizeof(RemoteBthAddr);
+		ULONG ulRetCode = WSAStringToAddressA(ConnectionString,
+			AF_BTH,
+			NULL,
+			(LPSOCKADDR)&RemoteBthAddr,
+			&iAddrLen);
+
+
+		CloseLocal();
+
+		// Open a bluetooth socket using RFCOMM protocol
+		//
+		_impl->Socket = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
+		if (INVALID_SOCKET == _impl->Socket)
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | socket() call failed. WSAGetLastError = [%d]", WSAGetLastError());			
+			return false;
+		}
+
+		RemoteBthAddr.addressFamily = AF_BTH;
+		RemoteBthAddr.port = 1;
+
+		/* seems to do nothing
+		u_long iMode = 0;
+		ulRetCode = ioctlsocket(_impl->Socket, FIONBIO, &iMode);
+		if (ulRetCode != NO_ERROR)
+		{
+			printf("ioctlsocket failed with error: %ld\n", ulRetCode);
+		}*/
+
+		//
+		// Connect the socket (pSocket) to a given remote socket represented by address (pServerAddr)
+		//
+		if (SOCKET_ERROR == connect(_impl->Socket,
+			(struct sockaddr*)&RemoteBthAddr,
+			sizeof(SOCKADDR_BTH)))
+		{
+			int errorCode = WSAGetLastError();
+			switch (errorCode)
+			{
+			case WSAEISCONN:
+				SPP_LOG(LOG_BT, LOG_INFO, "already connected!");
+				break;
+			case WSAEWOULDBLOCK:
+			case WSAEALREADY:
+			case WSAEHOSTDOWN:
+				SPP_LOG(LOG_BT, LOG_INFO, "client connect() error %d", errorCode);
+				break;
+			default:
+				SPP_LOG(LOG_BT, LOG_INFO, "client connect() unknown error %d", errorCode);
+				return false;
+			}
+
+			return false;
+		}
+		else
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "BlueTooth connected!");
+		}
+
+		return true;
+	}
+
+	bool BlueToothConnection::IsConnected()
+	{
+		return (_impl->Socket != INVALID_SOCKET);
+	}
+
+	int32_t BlueToothConnection::Receive(void* buf, uint16_t InBufferSize)
+	{
+		if (_impl->Socket != INVALID_SOCKET)
+		{
+			FD_SET ReadSet;
+			FD_ZERO(&ReadSet);
+			FD_SET(_impl->Socket, &ReadSet);
+
+			// Setup timeval variable
+			struct timeval timeout;
+			timeout.tv_sec = 0;
+			timeout.tv_usec = 50;
+
+			select((int)(_impl->Socket + 1), &ReadSet, NULL, NULL, &timeout);
+
+			if (FD_ISSET(_impl->Socket, &ReadSet))
+			{
+				int RecievedLength = recv(_impl->Socket,
+					(char*)buf,
+					InBufferSize,
+					0);
+
+				if (RecievedLength == 0)
+				{
+					CloseLocal();
+				}
+				else if (RecievedLength < 0)
+				{
+					int errorCode = WSAGetLastError();
+
+					if (errorCode == WSAEWOULDBLOCK)
+					{
+						// do nothing
+						//printf("recieved would block... %d\n", errno);
+					}
+					else
+					{
+						SPP_LOG(LOG_BT, LOG_INFO, "recieved error... %d", errno);
+						CloseLocal();
+					}
+				}
+				else
+				{
+					return RecievedLength;
+				}
+			}
+		}
+
+		return 0;
+	}
+
+	void BlueToothConnection::Send(const void* buf, uint16_t BufferSize)
+	{
+		if (SOCKET_ERROR == send(_impl->Socket,
+			(const char*)buf,
+			BufferSize,
+			0))
+		{
+			//
+		}		
+	}
+#endif
 }
 	
 
