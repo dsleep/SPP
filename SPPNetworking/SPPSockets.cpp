@@ -804,9 +804,9 @@ namespace SPP
 	}
 
 
-	bool BlueToothConnection::Listen(uint16_t InPort)
-	{
-	}
+	//bool BlueToothConnection::Listen(uint16_t InPort)
+	//{
+	//}
 
 	bool BlueToothConnection::Connect(char* ConnectionString)
 	{

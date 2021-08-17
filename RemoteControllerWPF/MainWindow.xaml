@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:RACApplication"
         xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
-        Title="Remote Application Controller" Height="381.429" Width="338.6" Loaded="Window_Loaded" ResizeMode="CanMinimize">
+        Title="TIPS Application Controller" Height="381.429" Width="338.6" Loaded="Window_Loaded" ResizeMode="CanMinimize"
+        Icon="./images/AppIcon.ico" Background="#FFD4EDFF">
     <Grid>
         <Label x:Name="label" Content="Connection to Coordinator" HorizontalAlignment="Left" Margin="45,43,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Coord" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,43,0,0" Source="images/buttonbad.png" />

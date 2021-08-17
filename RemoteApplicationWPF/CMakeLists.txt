@@ -39,6 +39,7 @@ csharp_set_xaml_cs_properties(
 set_property(SOURCE App.xaml PROPERTY VS_XAML_TYPE "ApplicationDefinition")
 set_property(SOURCE "Images/buttongood.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
 set_property(SOURCE "Images/buttonbad.png" PROPERTY VS_TOOL_OVERRIDE "Resource")
+set_property(SOURCE "Images/AppIcon.ico" PROPERTY VS_TOOL_OVERRIDE "Resource")
 
 set_property(TARGET RAM PROPERTY VS_DOTNET_REFERENCES
     "Microsoft.CSharp"

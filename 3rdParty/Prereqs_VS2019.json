@@ -29,37 +29,6 @@
 		{
 			"Path": "eigen",
 			"Version": 1
-		},
-		{
-			"Path": "dxc",
-			"Version": 1,
-			"BinCopy": [ "bin/x64/*.dll" ]
-		},
-		{
-			"Path": "cef",
-			"Version": 1,
-			"BinCopy": [ "bin" ]
-		},
-		{
-			"Path": "assimp",
-			"Version": 1,
-			"BinCopy": [ "bin/*.dll" ]
-		},
-		{
-			"Path": "metis",
-			"Version": 1
-		},
-		{
-			"Path": "fbtBlendHeaderOnly",
-			"Version": 2
-		},
-		{
-			"Path": "stb",
-			"Version": 1
-		},
-		{
-			"Path": "glew",
-			"Version": 1
 		}		
 	]
 }
