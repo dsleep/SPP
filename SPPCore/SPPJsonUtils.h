@@ -11,5 +11,6 @@
 namespace SPP
 {
 	SPP_CORE_API bool StringToJson(const std::string& InString, Json::Value& outValue);
+	SPP_CORE_API bool MemoryToJson(const void *InData, size_t DataSize, Json::Value& outValue);
 	SPP_CORE_API bool FileToJson(const char* FileName, Json::Value& outValue);
 }

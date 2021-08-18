@@ -11,16 +11,16 @@ namespace SPP
 {
 	SPP_CORE_API LogEntry LOG_JSON("JSON");
 
-	bool StringToJson(const std::string& InString, Json::Value &outValue)
+	bool MemoryToJson(const void* InData, size_t DataSize, Json::Value& outValue)
 	{
 		Json::Value root;
 		Json::CharReaderBuilder Builder;
 		Json::CharReader* reader = Builder.newCharReader();
 		std::string Errors;
 
-		bool parsingSuccessful = reader->parse((char*)InString.data(), (char*)(InString.data() + InString.length()), &root, &Errors);
+		bool parsingSuccessful = reader->parse((const char*)InData, (const char*)InData + DataSize, &root, &Errors);
 		delete reader;
-		
+
 		if (parsingSuccessful == false)
 		{
 			return false;
@@ -28,6 +28,11 @@ namespace SPP
 
 		outValue = root;
 		return true;
+	}
+
+	bool StringToJson(const std::string& InString, Json::Value &outValue)
+	{
+		return MemoryToJson(InString.data(), InString.length(), outValue);
 	}
 
 	bool FileToJson(const char* FileName, Json::Value& outValue)

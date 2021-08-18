@@ -29,6 +29,10 @@
 		{
 			"Path": "eigen",
 			"Version": 1
-		}		
+		},
+		{
+			"Path": "cryptopp",
+			"Version": 1
+		}	
 	]
 }

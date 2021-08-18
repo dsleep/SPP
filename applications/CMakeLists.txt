@@ -15,6 +15,28 @@ set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonito
 if(OS_WINDOWS)
 
 ##########
+add_executable( networkTest "")
+add_dependencies( networkTest SPPNetworking)			
+target_sources( networkTest 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/networkTest.cpp" )		
+target_link_libraries( networkTest SPPNetworking )
+set_target_properties( networkTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET networkTest PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET networkTest PROPERTY VS_DPI_AWARE "PerMonitor")
+
+##########
+add_executable( encryptionTest "")
+add_dependencies( encryptionTest SPPCrypto )			
+target_sources( encryptionTest 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/encryptionTest.cpp" )		
+target_link_libraries( encryptionTest SPPCrypto )
+set_target_properties( encryptionTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET encryptionTest PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET encryptionTest PROPERTY VS_DPI_AWARE "PerMonitor")
+
+##########
 add_executable( applicationhost "")
 add_dependencies( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture)			
 target_sources( applicationhost 
@@ -53,11 +75,11 @@ set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVi
 
 ##########
 add_executable( appTransferTest "")
-add_dependencies( appTransferTest SPPNetworking )			
+add_dependencies( appTransferTest SPPCrypto SPPNetworking )			
 target_sources( appTransferTest 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/appTransferTest.cpp" )		
-target_link_libraries( appTransferTest SPPNetworking )
+target_link_libraries( appTransferTest SPPNetworking SPPCrypto )
 set_target_properties( appTransferTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET appTransferTest PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET appTransferTest PROPERTY VS_DPI_AWARE "PerMonitor")

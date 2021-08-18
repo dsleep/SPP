@@ -44,8 +44,8 @@ set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
 set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
 set(USE_DX12 OFF CACHE BOOL "Use DX12")
 set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
-
-
+set(USE_CRYPTOCPP ON CACHE BOOL "Include lib Cryptopp")
+set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
 
 #General C++ Compiling
 set(CMAKE_CXX_STANDARD 17)
@@ -91,6 +91,15 @@ list(APPEND
 			"SPPDatabase" 
 			"SPPNetworking" 
 			 )
+
+if(USE_CRYPTOCPP)
+
+list(APPEND 
+		SPPProjects 
+			"SPPCrypto" 
+			 )
+
+endif()
 			
 if(OS_WINDOWS)
 	list(APPEND SPPProjects

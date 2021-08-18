@@ -13,12 +13,14 @@
         <Image x:Name="IMG_Coord" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,43,0,0" Source="images/buttonbad.png" />
         <Label x:Name="label_Copy" Content="Resolved SDP (STUN Description)" HorizontalAlignment="Left" Margin="45,74,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Stun" Height="30" VerticalAlignment="Top" Margin="10,75,0,0" Source="images/buttonbad.png" HorizontalAlignment="Left" Width="30" />
-        <Label x:Name="label_Copy1" Content="Available Servers:" HorizontalAlignment="Left" Margin="10,110,0,0" VerticalAlignment="Top"/>
-        <ListBox x:Name="LB_Servers" Margin="10,141,10,0" SelectionChanged="LB_Servers_SelectionChanged" Height="151" VerticalAlignment="Top"/>
+        <Label x:Name="label_Copy1" Content="Available Servers:" HorizontalAlignment="Left" Margin="10,148,0,0" VerticalAlignment="Top"/>
+        <ListBox x:Name="LB_Servers" Margin="10,179,10,0" SelectionChanged="LB_Servers_SelectionChanged" Height="113" VerticalAlignment="Top"/>
         <Button x:Name="BTN_Connect" Content="Connect" HorizontalAlignment="Left" Margin="10,0,0,6.8" Width="75" Height="25" VerticalAlignment="Bottom" Click="BTN_Connect_Click"/>
         <Label x:Name="label_Copy2" Content="Worker Active" HorizontalAlignment="Left" Margin="45,11,0,0" VerticalAlignment="Top"/>
         <Image x:Name="IMG_Worker" Height="30" Width="30" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,11,0,0" Source="images/buttonbad.png" />
         <Image x:Name="IMG_ConnectionState" Height="30" VerticalAlignment="Bottom" Margin="0,0,10,10" Source="images/buttonbad.png" HorizontalAlignment="Right" Width="30" />
         <CheckBox x:Name="CB_ShowConsole" Content="Show Console" VerticalAlignment="Top" Margin="0,10,10,0" HorizontalAlignment="Right" Checked="CB_ShowConsole_Checked" />
+        <Label x:Name="label_Copy3" Content="Bluetooth Device Connection" HorizontalAlignment="Left" Margin="45,109,0,0" VerticalAlignment="Top"/>
+        <Image x:Name="IMG_BT_Connection" Height="30" VerticalAlignment="Top" Margin="10,110,0,0" Source="images/buttonbad.png" HorizontalAlignment="Left" Width="30" />
     </Grid>
 </Window>

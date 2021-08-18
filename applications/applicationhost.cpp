@@ -78,7 +78,7 @@ protected:
 	std::string AppCommandline;
 
 public:
-	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer)
+	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer, true)
 	{
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
 
