@@ -51,7 +51,7 @@ target_link_libraries(SPPNetworking
 
 if(USE_CRYPTOCPP AND USE_CRYPTOCPP_NETCONN)
 	target_compile_definitions(SPPNetworking
-			PRIVATE
+			PUBLIC
 				SPP_NETCONN_CRYPTO=1)
 
 	add_dependencies( SPPNetworking SPPCrypto )	

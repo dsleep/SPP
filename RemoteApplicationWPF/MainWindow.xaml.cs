@@ -73,7 +73,7 @@ namespace RAMApplication
 
 #if DEBUG
             C_IntializeCore();
-            C_CreateChildProcess("RAC.exe", "", true);
+            C_CreateChildProcess("TipsApplicationController.exe", "", true);
             C_CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
 #endif
 
