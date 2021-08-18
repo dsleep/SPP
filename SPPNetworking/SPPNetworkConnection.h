@@ -10,17 +10,29 @@
 #include "SPPSockets.h"
 #include "SPPTiming.h"
 #include "SPPSTLUtils.h"
+#include "SPPJsonUtils.h"
+
+#ifdef SPP_NETCONN_CRYPTO
+	#include "SPPCrypto.h"
+#endif
 
 namespace SPP
 {
 	enum class EConnectionState : uint8_t
 	{
-		PENDING = 0,
-		SAYING_HI = 1,
-		RECV_WELCOME = 2,
-		AUTHENTICATE = 3,
-		CONNECTED = 4,
-		DISCONNECTED = 5
+		UNKNOWN = 0,
+
+		S_WAITING = 1,
+		S_SENDING_PUBLIC_KEY = 2,
+		
+		C_SAYING_HI = 3,
+		C_SENDING_SHARED_KEY = 4,
+		
+		AUTHENTICATE_PASSWORD = 5,
+
+		CONNECTED = 6,
+		DISCONNECTED = 7,
+		STATE_COUNT = 8
 	};
 
 	namespace EMessageMask
@@ -89,10 +101,19 @@ namespace SPP
 		using HighResClock = std::chrono::high_resolution_clock;
 
 	protected:
+
+#ifdef SPP_NETCONN_CRYPTO
+		RSA_Cipher _rsaCipherLocal;
+		RSA_Cipher _rsaCipherRemote;
+
+		AES_Cipher _aesCipherShared;
+#endif
+
 		bool _bIsServer = true;
 		bool _bNeedsEndianSwap = false;
 
-		EConnectionState _NetworkState = EConnectionState::PENDING;
+		EConnectionState _networkState = EConnectionState::UNKNOWN;
+		EConnectionState _remoteState = EConnectionState::UNKNOWN;
 
 		ConnectionStats _stats;
 		ConnectionSettings _settings;
@@ -106,6 +127,8 @@ namespace SPP
 		BinaryBlobSerializer _outGoingStream;
 		BinaryBlobSerializer _incomingStream;
 
+		std::string _serverPassword;
+
 		std::string _localGUID;
 		std::string _remoteGUID;	
 
@@ -118,7 +141,7 @@ namespace SPP
 		void _UpdateNetworkFlow();
 		void _AppendToOutoing(const void* Data, uint16_t DataLength);
 		void _ImmediatelySendOutGoing();
-		void _SendJSONConstrolString(const std::string& InValue);
+		void _SendJSONConstrolMessage(const std::vector<uint8_t> &Data, bool Encrypted);
 		void _SendGenericMessage(const char* Message);
 
 		void _SendState();
@@ -127,7 +150,7 @@ namespace SPP
 		virtual void _RawSend(const void* buf, uint16_t DataLength);
 
 	public:
-		NetworkConnection(std::shared_ptr< Interface_PeerConnection > InPeer);
+		NetworkConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool bIsServer);
 		virtual ~NetworkConnection() = default;
 
 		bool IsServer() const
@@ -171,6 +194,11 @@ namespace SPP
 			_Transcoders.back()->_NextTranscoder = shared_from_this();
 		}
 
+		void SetPassword(const std::string InPassword)
+		{
+			_serverPassword = InPassword;
+		}
+
 		/// <summary>
 		/// 
 		/// </summary>
@@ -205,10 +233,19 @@ namespace SPP
 		
 		// connection state
 		virtual void Tick();
+		
+		void SERVER_ProcessControlMessages(Json::Value& jsonMessage);
+		void CLIENT_ProcessControlMessages(Json::Value& jsonMessage);
+		void ProcessControlMessages(const std::vector<uint8_t>& ControlMsg, bool Encrypted);
 
-		void ProcessControlMessages(const std::string &ControlMsg);
 		virtual int32_t GetBufferedAmount() const override;
 		virtual int32_t GetBufferedMessageCount() const override;
+
+
+#ifdef SPP_NETCONN_CRYPTO
+		void EncryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData);
+		void DecryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData);
+#endif
 
 		bool IsSaturated() const {
 			return bIsSaturated;

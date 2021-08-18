@@ -16,6 +16,8 @@
 
 #include "SPPFileSystem.h"
 
+#include "SPPCrypto.h"
+
 using namespace SPP;
 
 LogEntry LOG_APP("APP");
@@ -109,6 +111,36 @@ uint16_t StunPort;
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
+
+	RSA_Cipher rsaServer;
+	rsaServer.GenerateKeyPair(1024);
+
+	auto rsaPublicKey = rsaServer.GetPublicKey();
+
+	RSA_Cipher rsaClient(rsaPublicKey);
+
+	AES_Cipher aescipher;
+	aescipher.GenerateKey();
+	auto symmetricKey = aescipher.GetKey();
+
+	auto encryptedKey = rsaClient.EncryptString(symmetricKey);
+
+	auto symmetricKeyCheck = rsaServer.DecryptString(encryptedKey);
+
+	std::vector<uint8_t> DataCheck;
+	DataCheck.resize(500 * 1024);
+	for (int32_t Iter = 0; Iter < DataCheck.size(); Iter++)
+	{
+		DataCheck[Iter] = (uint8_t) (Iter % 256);
+	}
+
+	std::vector<uint8_t> encryptedData, decryptedData;
+	aescipher.EncryptData(DataCheck.data(), DataCheck.size(), encryptedData);
+
+	aescipher.DecryptData(encryptedData.data(), encryptedData.size(), decryptedData);
+
+	SE_ASSERT(DataCheck == decryptedData);
+
 	{
 		Json::Value JsonConfig;
 		SE_ASSERT(FileToJson("config.txt", JsonConfig));

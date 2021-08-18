@@ -12,52 +12,52 @@
 #include <mutex>
 
 #if _WIN32
-	#ifndef WIN32_LEAN_AND_MEAN
-	#define WIN32_LEAN_AND_MEAN
-	#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 
-	#ifndef NOMINMAX
-	#define NOMINMAX
-	#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
-	#include "Windows.h"
+#include "Windows.h"
 
-	#include "winsock2.h"
+#include "winsock2.h"
 
-	#include <ws2bth.h>
+#include <ws2bth.h>
 
-	#include "ws2def.h"
-	#include <ws2tcpip.h>
-	using socklen_t = int32_t;
-	using sock_opt = char;
-	#pragma comment(lib, "Ws2_32.lib")
+#include "ws2def.h"
+#include <ws2tcpip.h>
+using socklen_t = int32_t;
+using sock_opt = char;
+#pragma comment(lib, "Ws2_32.lib")
 
-	#define SOCKET_VALID(x) (x != INVALID_SOCKET)
-	#define HAS_SOCKET_ERROR(x) (x == SOCKET_ERROR)
-	#define HAS_CRITICAL_SOCKET_ERROR(x) (x != WSAEWOULDBLOCK && x != WSAEALREADY && x != WSAENOTCONN)
-	
+#define SOCKET_VALID(x) (x != INVALID_SOCKET)
+#define HAS_SOCKET_ERROR(x) (x == SOCKET_ERROR)
+#define HAS_CRITICAL_SOCKET_ERROR(x) (x != WSAEWOULDBLOCK && x != WSAEALREADY && x != WSAENOTCONN)
+
 #else
-	#include <unistd.h>
-	#include <fcntl.h>
-	#include <sys/socket.h>
-	#include <netinet/in.h>
-	#include <netinet/udp.h>
-	#include <netinet/tcp.h>
-	#include <arpa/inet.h>
-	#include <ifaddrs.h>
-	#include <errno.h> 
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/udp.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <errno.h> 
 
-	using SOCKET = int;
-	using sock_opt = int;
-	#define INVALID_SOCKET 0
+using SOCKET = int;
+using sock_opt = int;
+#define INVALID_SOCKET 0
 
-	#define HAS_SOCKET_ERROR(x) (x < 0)
-	#define HAS_CRITICAL_SOCKET_ERROR(x) (x != EAGAIN && x != EWOULDBLOCK && x != ENOTCONN)
-	#define SOCKET_VALID(x) (x >= 0)
+#define HAS_SOCKET_ERROR(x) (x < 0)
+#define HAS_CRITICAL_SOCKET_ERROR(x) (x != EAGAIN && x != EWOULDBLOCK && x != ENOTCONN)
+#define SOCKET_VALID(x) (x >= 0)
 #endif
 
 #define OS_SOCK_BUFFER_SIZES (10 * 1024 * 1024)
-	
+
 #include <cmath>
 
 namespace SPP
@@ -65,8 +65,8 @@ namespace SPP
 	LogEntry LOG_SOCKETS("Sockets");
 	LogEntry LOG_UDP("UDPSocket");
 	LogEntry LOG_BT("BlueTooth");
-		
-	IPv4_SocketAddress ToIPv4_SocketAddress(const sockaddr_in &InAddr)
+
+	IPv4_SocketAddress ToIPv4_SocketAddress(const sockaddr_in& InAddr)
 	{
 		IPv4_SocketAddress Out;
 		Out.Port = ntohs(InAddr.sin_port);
@@ -74,7 +74,7 @@ namespace SPP
 		return Out;
 	}
 
-	sockaddr_in ToSockAddr_In(const IPv4_SocketAddress &InAddr)
+	sockaddr_in ToSockAddr_In(const IPv4_SocketAddress& InAddr)
 	{
 		sockaddr_in address = { 0 };
 		address.sin_family = AF_INET;
@@ -82,7 +82,7 @@ namespace SPP
 		address.sin_addr.s_addr = (InAddr.UIPAddr.IPAddr);
 		return address;
 	}
-	
+
 	OSNetwork& GetOSNetwork()
 	{
 		static OSNetwork sO;
@@ -90,20 +90,20 @@ namespace SPP
 	}
 
 #if _WIN32
-	void StartOSNetworkingSystems(OSNetwork *InMaster)
+	void StartOSNetworkingSystems(OSNetwork* InMaster)
 	{
 		WSADATA data;
 		WSAStartup(MAKEWORD(2, 2), &data);
 
 		char ac[80];
-		if (gethostname(ac, sizeof(ac)) != SOCKET_ERROR) 
+		if (gethostname(ac, sizeof(ac)) != SOCKET_ERROR)
 		{
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, "Host Name: %s", ac);
 			InMaster->HostName = ac;
 		}
 
 		SOCKET sd = WSASocket(AF_INET, SOCK_DGRAM, 0, 0, 0, 0);
-		if (sd == SOCKET_ERROR) 
+		if (sd == SOCKET_ERROR)
 		{
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, "Failed to get a socket. Error %d ", WSAGetLastError());
 			return;
@@ -112,7 +112,7 @@ namespace SPP
 		INTERFACE_INFO InterfaceList[20];
 		unsigned long nBytesReturned;
 		if (WSAIoctl(sd, SIO_GET_INTERFACE_LIST, 0, 0, &InterfaceList,
-			sizeof(InterfaceList), &nBytesReturned, 0, 0) == SOCKET_ERROR) 
+			sizeof(InterfaceList), &nBytesReturned, 0, 0) == SOCKET_ERROR)
 		{
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, "Failed calling WSAIoctl: error %d", WSAGetLastError());
 			return;
@@ -124,15 +124,15 @@ namespace SPP
 		{
 			std::cout << std::endl;
 
-			sockaddr_in *pAddress;
-			pAddress = (sockaddr_in *) & (InterfaceList[i].iiAddress);
+			sockaddr_in* pAddress;
+			pAddress = (sockaddr_in*)&(InterfaceList[i].iiAddress);
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, "(%s)", inet_ntoa(pAddress->sin_addr));
-			pAddress = (sockaddr_in *) & (InterfaceList[i].iiBroadcastAddress);
+			pAddress = (sockaddr_in*)&(InterfaceList[i].iiBroadcastAddress);
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, " - has bcast %s", inet_ntoa(pAddress->sin_addr));
-			pAddress = (sockaddr_in *) & (InterfaceList[i].iiNetmask);
+			pAddress = (sockaddr_in*)&(InterfaceList[i].iiNetmask);
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, " - netmask %s", inet_ntoa(pAddress->sin_addr));
 
-			
+
 			u_long nFlags = InterfaceList[i].iiFlags;
 
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, " Iface is %s", (nFlags & IFF_UP) ? "up" : "down");
@@ -148,7 +148,7 @@ namespace SPP
 			}
 			else
 			{
-				auto ipaddr = (sockaddr_in *) & (InterfaceList[i].iiAddress);
+				auto ipaddr = (sockaddr_in*)&(InterfaceList[i].iiAddress);
 				InMaster->InterfaceAddresses.push_back(ToIPv4_SocketAddress(*ipaddr));
 			}
 
@@ -171,18 +171,18 @@ namespace SPP
 	}
 
 #else
-	void StartOSNetworkingSystems(OSNetwork *InMaster)
-	{		
+	void StartOSNetworkingSystems(OSNetwork* InMaster)
+	{
 		char ac[80];
-		if (gethostname(ac, sizeof(ac)) == 0) 
+		if (gethostname(ac, sizeof(ac)) == 0)
 		{
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, "Host Name: %s", ac);
 			InMaster->HostName = ac;
 		}
-		
-		struct ifaddrs * ifAddrStruct = NULL;
-		struct ifaddrs * ifa = NULL;
-		void * tmpAddrPtr = NULL;
+
+		struct ifaddrs* ifAddrStruct = NULL;
+		struct ifaddrs* ifa = NULL;
+		void* tmpAddrPtr = NULL;
 
 		getifaddrs(&ifAddrStruct);
 
@@ -191,37 +191,37 @@ namespace SPP
 			if (!ifa->ifa_addr) {
 				continue;
 			}
-			if (ifa->ifa_addr->sa_family == AF_INET) 
+			if (ifa->ifa_addr->sa_family == AF_INET)
 			{
-				 // check it is IP4
-			    // is a valid IP4 Address
-				sockaddr_in *pAddress = (struct sockaddr_in *)ifa->ifa_addr;
-				
-			    tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+				// check it is IP4
+			   // is a valid IP4 Address
+				sockaddr_in* pAddress = (struct sockaddr_in*)ifa->ifa_addr;
+
+				tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
 				char addressBuffer[INET_ADDRSTRLEN];
 				inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-				
+
 				std::string IPName = ifa->ifa_name;
-				
+
 				auto findIdx = IPName.find_first_of("eth");
-				
+
 				if (findIdx == 0)
 				{
 					auto IPAddr = ToIPv4_SocketAddress(*pAddress);
-					SPP_LOG(LOG_SOCKETS, LOG_INFO, "LOCAL %s IP Address %s", ifa->ifa_name, IPAddr.ToString().c_str()); 						
+					SPP_LOG(LOG_SOCKETS, LOG_INFO, "LOCAL %s IP Address %s", ifa->ifa_name, IPAddr.ToString().c_str());
 					InMaster->InterfaceAddresses.push_back(IPAddr);
-				}				
+				}
 			}
 		}
 		if (ifAddrStruct != NULL) freeifaddrs(ifAddrStruct);
-		
+
 	}
 
 	void ShutdownOSNetworking()
 	{
 	}
 #endif	
-	
+
 	OSNetwork::OSNetwork()
 	{
 		StartOSNetworkingSystems(this);
@@ -237,7 +237,7 @@ namespace SPP
 		sscanf(IpAddrAndPort, "%hhu.%hhu.%hhu.%hhu:%hu", &UIPAddr.Addr1, &UIPAddr.Addr2, &UIPAddr.Addr3, &UIPAddr.Addr4, &Port);
 	}
 
-	IPv4_SocketAddress::IPv4_SocketAddress(const char *IpAddr, uint16_t InPort)
+	IPv4_SocketAddress::IPv4_SocketAddress(const char* IpAddr, uint16_t InPort)
 	{
 		inet_pton(
 			AF_INET,
@@ -246,18 +246,18 @@ namespace SPP
 		);
 		Port = InPort;
 	}
-	
-	
+
+
 	struct UDPSocket::PlatImpl
 	{
 		SOCKET Socket = INVALID_SOCKET;
 
 	};
 
-	void UDPSocket::SendTo(const IPv4_SocketAddress &Address, const void *buf, uint16_t BufferSize)
+	void UDPSocket::SendTo(const IPv4_SocketAddress& Address, const void* buf, uint16_t BufferSize)
 	{
 		sockaddr_in Platform_Addr = ToSockAddr_In(Address);
-		int32_t socketValue = sendto(_impl->Socket, (const char*)buf, (int)BufferSize, 0, (sockaddr *)&Platform_Addr, sizeof(sockaddr_in));
+		int32_t socketValue = sendto(_impl->Socket, (const char*)buf, (int)BufferSize, 0, (sockaddr*)&Platform_Addr, sizeof(sockaddr_in));
 
 		if (HAS_SOCKET_ERROR(socketValue))
 		{
@@ -267,18 +267,18 @@ namespace SPP
 			SPP_LOG(LOG_UDP, LOG_WARNING, "UDPSocket::SendTo error %d", socketValue);
 			return;
 		}
-		
+
 		SE_ASSERT(socketValue == BufferSize);
 	}
 
-	int32_t UDPSocket::ReceiveFrom(IPv4_SocketAddress &Address, void *buf, uint16_t InBufferSize)
+	int32_t UDPSocket::ReceiveFrom(IPv4_SocketAddress& Address, void* buf, uint16_t InBufferSize)
 	{
 		struct sockaddr_in Platform_Addr = { 0 };
 		Platform_Addr.sin_family = AF_INET;
 		Platform_Addr.sin_addr.s_addr = INADDR_ANY;
 
 		socklen_t SockLength = sizeof(sockaddr_in);
-		int32_t DataRecv = recvfrom(_impl->Socket, (char*)buf, InBufferSize, 0, (sockaddr *)&Platform_Addr, &SockLength);
+		int32_t DataRecv = recvfrom(_impl->Socket, (char*)buf, InBufferSize, 0, (sockaddr*)&Platform_Addr, &SockLength);
 		Address = ToIPv4_SocketAddress(Platform_Addr);
 
 
@@ -295,7 +295,7 @@ namespace SPP
 
 		return DataRecv;
 	}
-		
+
 	UDPSocket::UDPSocket(uint16_t InPort, UDPSocketOptions::Value InSocketType) : _impl(new PlatImpl()), _socketType(InSocketType)
 	{
 		SPP_LOG(LOG_UDP, LOG_INFO, "Create UDPSocket Port %d Type %d", InPort, InSocketType);
@@ -318,7 +318,7 @@ namespace SPP
 			{
 				return; //return if socket cannot be set to Broadcast
 			}
-		}		
+		}
 
 		sockaddr_in address = { 0 };
 		address.sin_family = AF_INET;
@@ -326,7 +326,7 @@ namespace SPP
 		address.sin_port = htons(InPort);
 
 		if (InPort)
-		{			
+		{
 			// Forcefully attaching socket to the port  
 			if (bind(_impl->Socket, (struct sockaddr*)&address, sizeof(address)) < 0)
 			{
@@ -334,17 +334,17 @@ namespace SPP
 				return;
 			}
 			else
-			{			
+			{
 				SPP_LOG(LOG_UDP, LOG_WARNING, " - bound port");
 			}
-		}	
+		}
 
 		int32_t bufsize = OS_SOCK_BUFFER_SIZES;
 		socklen_t len = sizeof(bufsize);
-		setsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (const char *)&bufsize, sizeof(int));		
-		getsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (char*) &bufsize, &len);
+		setsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (const char*)&bufsize, sizeof(int));
+		getsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (char*)&bufsize, &len);
 		//SE_ASSERT(bufsize >= OS_SOCK_BUFFER_SIZES);
-		setsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (const char *)&bufsize, sizeof(int));
+		setsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (const char*)&bufsize, sizeof(int));
 		getsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (char*)&bufsize, &len);
 		//SE_ASSERT(bufsize >= OS_SOCK_BUFFER_SIZES);
 		// where socketfd is the socket you want to make non-blocking
@@ -385,7 +385,6 @@ namespace SPP
 	struct TCPSocket::PlatImpl
 	{
 		SOCKET Socket = INVALID_SOCKET;
-
 		PlatImpl() { }
 		PlatImpl(SOCKET InSocket) : Socket(InSocket) { }
 	};
@@ -397,37 +396,37 @@ namespace SPP
 		{
 			return;
 		}
-					   
+
 		SetSocketOptions();
-		
+
 		_IsValid = true;
 	}
 
-	TCPSocket::TCPSocket(const IPv4_SocketAddress &InRemoteAddr) : TCPSocket()
+	TCPSocket::TCPSocket(const IPv4_SocketAddress& InRemoteAddr) : TCPSocket()
 	{
 		_remoteAddr = InRemoteAddr;
 	}
 
-	TCPSocket::TCPSocket(std::unique_ptr<PlatImpl> &&InImpl, IPv4_SocketAddress InRemoteAddr) : _impl(std::move(InImpl)), _remoteAddr(InRemoteAddr)
+	TCPSocket::TCPSocket(std::unique_ptr<PlatImpl>&& InImpl, IPv4_SocketAddress InRemoteAddr) : _impl(std::move(InImpl)), _remoteAddr(InRemoteAddr)
 	{
 	}
 
-	void TCPSocket::Connect(const IPv4_SocketAddress &Address)
+	void TCPSocket::Connect(const IPv4_SocketAddress& Address)
 	{
 		_state = TCPSocketState::Connecting;
 
 		sockaddr_in Platform_Addr = ToSockAddr_In(Address);
 
-		int result = connect(_impl->Socket, (sockaddr *)&Platform_Addr, sizeof(sockaddr_in));
-		
+		int result = connect(_impl->Socket, (sockaddr*)&Platform_Addr, sizeof(sockaddr_in));
+
 		if (HAS_SOCKET_ERROR(result))
 		{
 #if _WIN32
 			int errorCode = WSAGetLastError();
 			switch (errorCode)
 			{
-			case WSAEISCONN:    
-				SPP_LOG(LOG_TCP, LOG_WARNING, "already connected");				
+			case WSAEISCONN:
+				SPP_LOG(LOG_TCP, LOG_WARNING, "already connected");
 			case WSAEWOULDBLOCK:
 			case WSAEALREADY:
 				break;
@@ -457,14 +456,14 @@ namespace SPP
 	bool TCPSocket::Listen(uint16_t InPort)
 	{
 		_listenPort = InPort;
-			 
+
 		sockaddr_in address;
 		address.sin_family = AF_INET;
 		address.sin_addr.s_addr = INADDR_ANY;
 		address.sin_port = htons(_listenPort);
 
 		// start listening on the server
-		int result = bind(_impl->Socket, (struct sockaddr *)&address, sizeof(sockaddr_in));
+		int result = bind(_impl->Socket, (struct sockaddr*)&address, sizeof(sockaddr_in));
 
 		if (HAS_SOCKET_ERROR(result))
 		{
@@ -482,28 +481,28 @@ namespace SPP
 			result = WSAGetLastError();
 #endif
 			SPP_LOG(LOG_TCP, LOG_WARNING, "listen() error %d", result);
-			
+
 			return false;
 		}
-				
+
 		{
 			SPP_LOG(LOG_TCP, LOG_WARNING, "is listening on port %u", InPort);
-			
-		}			
+
+		}
 
 		SPP_LOG(LOG_TCP, LOG_WARNING, "created listen socket %u", InPort);
 
 		_state = TCPSocketState::Listening;
 		return true;
 	}
-	   
-	void TCPSocket::Send(const void *buf, uint16_t BufferSize)
+
+	void TCPSocket::Send(const void* buf, uint16_t BufferSize)
 	{
 		if (_bIsBroken) return;
 
-		int result = send(_impl->Socket, (const char*)buf, (int) BufferSize, 0);
+		int result = send(_impl->Socket, (const char*)buf, (int)BufferSize, 0);
 
-		if (HAS_SOCKET_ERROR(result))		
+		if (HAS_SOCKET_ERROR(result))
 		{
 #if _WIN32
 			result = WSAGetLastError();
@@ -514,9 +513,9 @@ namespace SPP
 			{
 				SPP_LOG(LOG_TCP, LOG_WARNING, "TCPSocket::Send error %d", result);
 				_bIsBroken = true;
-			}				
+			}
 			return;
-		}		
+		}
 	}
 
 	void TCPSocket::SetSocketOptions()
@@ -531,15 +530,15 @@ namespace SPP
 
 		int32_t bufsize = OS_SOCK_BUFFER_SIZES;
 		socklen_t len = sizeof(bufsize);
-		setsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (const char *)&bufsize, sizeof(int));
+		setsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (const char*)&bufsize, sizeof(int));
 		getsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (char*)&bufsize, &len);
 		//RR_ASSERT(bufsize >= OS_SOCK_BUFFER_SIZES);
-		setsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (const char *)&bufsize, sizeof(int));
+		setsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (const char*)&bufsize, sizeof(int));
 		getsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (char*)&bufsize, &len);
 		//RR_ASSERT(bufsize >= OS_SOCK_BUFFER_SIZES);
 	}
 
-	int32_t TCPSocket::Receive(void *buf, uint16_t InBufferSize)
+	int32_t TCPSocket::Receive(void* buf, uint16_t InBufferSize)
 	{
 		if (_bIsBroken) return -1;
 		//ioctlsocket(mySocket, FIONREAD, &howMuchInBuffer);
@@ -562,7 +561,7 @@ namespace SPP
 			//SPP_LOG(LOG_TCP, LOG_WARNING, "TCPSocket::Receive error %d", DataRecv);	
 			return -1;
 		}
-		
+
 		return DataRecv;
 	}
 
@@ -577,12 +576,12 @@ namespace SPP
 		if (SOCKET_VALID(OSSocket) == false)
 		{
 			return nullptr;
-		}		
+		}
 
 		IPv4_SocketAddress Address = ToIPv4_SocketAddress(Platform_Addr);
 
 		SPP_LOG(LOG_TCP, LOG_WARNING, "TCPSocket::Accept Address %s", Address.ToString().c_str());
-		
+
 		std::shared_ptr< TCPSocket > NewSocket = std::make_shared< TCPSocket >(std::make_unique<PlatImpl>(OSSocket), Address);
 		NewSocket->_state = TCPSocketState::Connected;
 		NewSocket->_bLocalOpen = false;
@@ -597,15 +596,15 @@ namespace SPP
 	{
 	}
 
-	TCPSocketThreaded::TCPSocketThreaded(const IPv4_SocketAddress &InRemoteAddr) : TCPSocket(InRemoteAddr)
+	TCPSocketThreaded::TCPSocketThreaded(const IPv4_SocketAddress& InRemoteAddr) : TCPSocket(InRemoteAddr)
 	{
 	}
 
-	TCPSocketThreaded::TCPSocketThreaded(std::unique_ptr<PlatImpl> &&InImpl, IPv4_SocketAddress InRemoteAddr) : TCPSocket(std::move(InImpl), InRemoteAddr)
+	TCPSocketThreaded::TCPSocketThreaded(std::unique_ptr<PlatImpl>&& InImpl, IPv4_SocketAddress InRemoteAddr) : TCPSocket(std::move(InImpl), InRemoteAddr)
 	{
 	}
 
-	void TCPSocketThreaded::Connect(const IPv4_SocketAddress &Address)
+	void TCPSocketThreaded::Connect(const IPv4_SocketAddress& Address)
 	{
 		TCPSocket::Connect(Address);
 		BeginThreading();
@@ -640,7 +639,7 @@ namespace SPP
 
 	TCPSocketThreaded::~TCPSocketThreaded()
 	{
-		EndThreading();	
+		EndThreading();
 	}
 	void TCPSocketThreaded::BeginThreading()
 	{
@@ -661,7 +660,7 @@ namespace SPP
 		{
 			SE_ASSERT(_socketThread->joinable());
 			_socketThread->join();
-			_socketThread = nullptr;		
+			_socketThread = nullptr;
 		}
 	}
 
@@ -682,7 +681,7 @@ namespace SPP
 			//DATA RECV
 			{
 				int result = recv(_impl->Socket, (char*)localRecv.data(), localRecv.size(), 0);
-						
+
 				if (HAS_SOCKET_ERROR(result))
 				{
 #if _WIN32
@@ -701,8 +700,8 @@ namespace SPP
 				else if (result > 0)
 				{
 					std::unique_lock<std::mutex> lck(_recvMutex);
-					_recvBuffer.insert(_recvBuffer.end(), localRecv.begin(), localRecv.begin() + result);					
-				}	
+					_recvBuffer.insert(_recvBuffer.end(), localRecv.begin(), localRecv.begin() + result);
+				}
 				else if (result == 0)
 				{
 					_bRunning = false;
@@ -711,7 +710,7 @@ namespace SPP
 					break;
 				}
 			}
-			
+
 			//DATA SEND
 			{
 				std::unique_lock<std::mutex> lck(_sendMutex);
@@ -719,7 +718,7 @@ namespace SPP
 				if (sendAmount > 0)
 				{
 					int result = send(_impl->Socket, (const char*)_sendBuffer.data(), sendAmount, 0);
-								
+
 					if (HAS_SOCKET_ERROR(result))
 					{
 #if _WIN32
@@ -737,25 +736,25 @@ namespace SPP
 					}
 					else
 					{
-						if(result != sendAmount)						
+						if (result != sendAmount)
 						{
 							SPP_LOG(LOG_TCP, LOG_WARNING, "*******send amount differed %d versus %d", result, sendAmount);
 							sendAmount = result;
 						}
 
-						if(sendAmount > 0)
+						if (sendAmount > 0)
 						{
 							_sendBuffer.erase(_sendBuffer.begin(), _sendBuffer.begin() + sendAmount);
 						}
 					}
 				}
 			}
-			
+
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 	}
 
-	int32_t TCPSocketThreaded::Receive(void *buf, uint16_t InBufferSize)
+	int32_t TCPSocketThreaded::Receive(void* buf, uint16_t InBufferSize)
 	{
 		if (_bIsBroken) return -1;
 
@@ -770,8 +769,8 @@ namespace SPP
 		return -1;
 	}
 
-	void TCPSocketThreaded::Send(const void *buf, uint16_t BufferSize)
-	{	
+	void TCPSocketThreaded::Send(const void* buf, uint16_t BufferSize)
+	{
 		if (_bIsBroken) return;
 
 		std::unique_lock<std::mutex> lck(_sendMutex);
@@ -780,21 +779,32 @@ namespace SPP
 
 	//BLUETOOTH
 #if _WIN32
+
+	GUID g_guidServiceClass{ 0xb62c4e8d, 0x62cc, 0x404b, 0xbb, 0xbf, 0xbf, 0x3e, 0x3b, 0xbb, 0x13, 0x74 };
+
 	struct BlueToothConnection::PlatImpl
 	{
 		SOCKET Socket = INVALID_SOCKET;
+		std::unique_ptr<CSADDR_INFO> advertiseInfo;
 	};
 
 	BlueToothConnection::BlueToothConnection() : _impl(new PlatImpl())
 	{
+		// Open a bluetooth socket using RFCOMM protocol
+		//
+		_impl->Socket = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
+		if (INVALID_SOCKET == _impl->Socket)
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | socket() call failed. WSAGetLastError = [%d]", WSAGetLastError());
+		}
 	}
 
 	BlueToothConnection::~BlueToothConnection()
 	{
-		CloseLocal();
+		CloseDown();
 	}
 
-	void BlueToothConnection::CloseLocal()
+	void BlueToothConnection::CloseDown()
 	{
 		if (_impl->Socket != INVALID_SOCKET)
 		{
@@ -803,16 +813,74 @@ namespace SPP
 		}
 	}
 
+	bool BlueToothConnection::Listen(uint16_t InPort)
+	{
+		SOCKADDR_BTH    SockAddrBthLocal = { 0 };
 
-	//bool BlueToothConnection::Listen(uint16_t InPort)
-	//{
-	//}
+		//
+		// Setting address family to AF_BTH indicates winsock2 to use Bluetooth port
+		//
+		SockAddrBthLocal.addressFamily = AF_BTH;
+		SockAddrBthLocal.port = BT_PORT_ANY;
+
+		//
+		// bind() associates a local address and port combination
+		// with the socket just created. This is most useful when
+		// the application is a server that has a well-known port
+		// that clients know about in advance.
+		//
+		if (SOCKET_ERROR == bind(_impl->Socket,
+			(struct sockaddr*)&SockAddrBthLocal,
+			sizeof(SOCKADDR_BTH)))
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | bind() call failed w/socket = [0x%I64X]. WSAGetLastError=[%d]", (ULONG64)_impl->Socket, WSAGetLastError());
+			return false;
+		}
+
+		//
+		// CSADDR_INFO
+		_impl->advertiseInfo.reset(new CSADDR_INFO{ 0 });
+
+		LPCSADDR_INFO lpCSAddrInfo = _impl->advertiseInfo.get();
+		lpCSAddrInfo->LocalAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
+		lpCSAddrInfo->LocalAddr.lpSockaddr = (LPSOCKADDR)&SockAddrBthLocal;
+		lpCSAddrInfo->RemoteAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
+		lpCSAddrInfo->RemoteAddr.lpSockaddr = (LPSOCKADDR)&SockAddrBthLocal;
+		lpCSAddrInfo->iSocketType = SOCK_STREAM;
+		lpCSAddrInfo->iProtocol = BTHPROTO_RFCOMM;
+
+		// If we got an address, go ahead and advertise it.
+		WSAQUERYSET wsaQuerySet = { 0 };
+		ZeroMemory(&wsaQuerySet, sizeof(WSAQUERYSET));
+		wsaQuerySet.dwSize = sizeof(WSAQUERYSET);
+		wsaQuerySet.lpServiceClassId = (LPGUID)&g_guidServiceClass;
+		// should be something like "Sample Bluetooth Server"
+		wsaQuerySet.lpszServiceInstanceName = L"BT SERVER";
+		wsaQuerySet.lpszComment = L"SPP BT Service";
+		wsaQuerySet.dwNameSpace = NS_BTH;
+		wsaQuerySet.dwNumberOfCsAddrs = 1;      // Must be 1.
+		wsaQuerySet.lpcsaBuffer = lpCSAddrInfo; // Required.
+
+		if (SOCKET_ERROR == WSASetService(&wsaQuerySet, RNRSERVICE_REGISTER, 0)) 
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | WSASetService() call failed. WSAGetLastError=[%d]", WSAGetLastError());
+			return false;
+		}
+
+		if (SOCKET_ERROR == listen(_impl->Socket, 1))
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | listen() call failed w/socket = [0x%I64X]. WSAGetLastError=[%d]", (ULONG64)_impl->Socket, WSAGetLastError());
+			return false;
+		}
+
+		return true;
+	}
 
 	bool BlueToothConnection::Connect(char* ConnectionString)
 	{
 		SOCKADDR_BTH RemoteBthAddr = { 0 };
 
-		SPP_LOG(LOG_BT, LOG_INFO,"BlueToothConnection::Connect to %s", ConnectionString);
+		SPP_LOG(LOG_BT, LOG_INFO, "BlueToothConnection::Connect to %s", ConnectionString);
 
 		int iAddrLen = sizeof(RemoteBthAddr);
 		ULONG ulRetCode = WSAStringToAddressA(ConnectionString,
@@ -821,17 +889,6 @@ namespace SPP
 			(LPSOCKADDR)&RemoteBthAddr,
 			&iAddrLen);
 
-
-		CloseLocal();
-
-		// Open a bluetooth socket using RFCOMM protocol
-		//
-		_impl->Socket = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-		if (INVALID_SOCKET == _impl->Socket)
-		{
-			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | socket() call failed. WSAGetLastError = [%d]", WSAGetLastError());			
-			return false;
-		}
 
 		RemoteBthAddr.addressFamily = AF_BTH;
 		RemoteBthAddr.port = 1;
@@ -877,9 +934,9 @@ namespace SPP
 		return true;
 	}
 
-	bool BlueToothConnection::IsConnected()
+	bool BlueToothConnection::IsBroken() const 
 	{
-		return (_impl->Socket != INVALID_SOCKET);
+		return (_impl->Socket == INVALID_SOCKET);
 	}
 
 	int32_t BlueToothConnection::Receive(void* buf, uint16_t InBufferSize)
@@ -906,7 +963,7 @@ namespace SPP
 
 				if (RecievedLength == 0)
 				{
-					CloseLocal();
+					CloseDown();
 				}
 				else if (RecievedLength < 0)
 				{
@@ -920,7 +977,7 @@ namespace SPP
 					else
 					{
 						SPP_LOG(LOG_BT, LOG_INFO, "recieved error... %d", errno);
-						CloseLocal();
+						CloseDown();
 					}
 				}
 				else
@@ -941,9 +998,9 @@ namespace SPP
 			0))
 		{
 			//
-		}		
+		}
 	}
 #endif
 }
-	
+
 

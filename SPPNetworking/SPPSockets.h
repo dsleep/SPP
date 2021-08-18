@@ -216,13 +216,12 @@ namespace SPP
 		BlueToothConnection();
 		~BlueToothConnection();
 
+		bool Listen(uint16_t InPort);
 		bool Connect(char* ConnectionString);
 		void SendData(const char* Data, int Size);
-		void CloseLocal();
-
-		//Interface_Communication
-		bool IsConnected();
-
+		void CloseDown();
+					
+		virtual bool IsBroken() const override; 
 		virtual void Send(const void* buf, uint16_t BufferSize) override;
 		virtual int32_t Receive(void* buf, uint16_t InBufferSize) override;
 	};

@@ -7,7 +7,7 @@
 #include "SPPLogging.h"
 #include "SPPString.h"
 #include "SPPNetworkMessenger.h"
-#include "json/json.h"
+#include "SPPJsonUtils.h"
 
 namespace SPP
 {
@@ -51,21 +51,41 @@ namespace SPP
 		StorageInterface >> Value.MessageLength;
 		return StorageInterface;
 	}
-		
+
 	static const char *NetStateStrings[] =
 	{ 
-		"PENDING",
-		"SAYING_HI",
-		"RECV_WELCOME",
-		"AUTHENTICATE",
+		"UNKNOWN",
+		"S_WAITING",
+		"S_SENDING_PUBLIC_KEY",
+
+		"C_SAYING_HI",
+		"C_SENDING_SHARED_KEY",
+
+		"AUTHENTICATE_PASSWORD",
 		"CONNECTED",
 		"DISCONNECTED"
 	};
 
-	NetworkConnection::NetworkConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : _peerLink(InPeer)
+	NetworkConnection::NetworkConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool bIsServer) : _peerLink(InPeer), _bIsServer(bIsServer)
 	{
+		static_assert(ARRAY_SIZE(NetStateStrings) == (uint8_t)EConnectionState::STATE_COUNT);
+
 		_localGUID = std::generate_hex(16);
 		_lastKeepAlive = std::chrono::steady_clock::now();
+
+#ifdef SPP_NETCONN_CRYPTO
+		_rsaCipherLocal.GenerateKeyPair(1024);
+
+		if (!_bIsServer)
+		{
+			_aesCipherShared.GenerateKey();
+		}
+#endif
+
+		if (_bIsServer)
+		{
+			_networkState = EConnectionState::S_WAITING;
+		}
 
 		_PingTimer.Initialize(
 			[&]()
@@ -79,34 +99,38 @@ namespace SPP
 
 	void NetworkConnection::CloseDown(const char *Reason)
 	{
-		SPP_LOG(LOG_NETCON, LOG_WARNING, "NetworkConnection::CloseDown REASON: %s", Reason);
-		// send close
-		_NetworkState = EConnectionState::DISCONNECTED;
-		_outGoingStream.Seek(0);
-		_outGoingStream.GetArray().resize(0);
+		if (_networkState != EConnectionState::DISCONNECTED)
+		{
+			_SendGenericMessage(std::string_format("Disconnect: %s", Reason).c_str());
+			_ImmediatelySendOutGoing();
+			_SetState(EConnectionState::DISCONNECTED);
+
+			SPP_LOG(LOG_NETCON, LOG_WARNING, "NetworkConnection::CloseDown REASON: %s", Reason);
+		}
 	}
 
 	bool NetworkConnection::IsValid() const
 	{
-		return _NetworkState != EConnectionState::DISCONNECTED;
+		return _networkState != EConnectionState::DISCONNECTED;
 	}
 
 	bool NetworkConnection::IsConnected() const
 	{
-		return _NetworkState == EConnectionState::CONNECTED;
+		return _networkState == EConnectionState::CONNECTED;
 	}
 	
 	void NetworkConnection::_SendState()
 	{
 		_PingTimer.Reset();
 
-		switch (_NetworkState)
+		switch (_networkState)
 		{
-		case EConnectionState::SAYING_HI:
-			_SendGenericMessage("Hello");
-			break;
-		case EConnectionState::RECV_WELCOME:
-			_SendGenericMessage("Welcome");
+		case EConnectionState::S_WAITING:
+		case EConnectionState::S_SENDING_PUBLIC_KEY:
+		case EConnectionState::C_SAYING_HI:
+		case EConnectionState::C_SENDING_SHARED_KEY:
+		case EConnectionState::AUTHENTICATE_PASSWORD:
+			_SendGenericMessage("STATEFUL");
 			break;
 		case EConnectionState::CONNECTED:
 			_SendGenericMessage("Ping");
@@ -118,7 +142,7 @@ namespace SPP
 	}
 
 	//
-	void NetworkConnection::_SendJSONConstrolString(const std::string &InValue)
+	void NetworkConnection::_SendJSONConstrolMessage(const std::vector<uint8_t>& Data, bool Encrypted)
 	{
 		// it is a control message
 		ControlMessageHeader Header;
@@ -128,7 +152,8 @@ namespace SPP
 
 		// get current offset
 		int64_t CurrentPos = MessageData.Tell();
-		MessageData << InValue;
+		MessageData << (uint8_t)Encrypted;
+		MessageData << Data;
 
 		//TODO MAKE SURE UNDER 65k?
 
@@ -151,102 +176,267 @@ namespace SPP
 		Json::Value JsonMessage;
 
 		JsonMessage["Message"] = Message;
+		JsonMessage["State"] = (uint8_t)_networkState;
 		JsonMessage["GUID"] = _localGUID;
 
+#ifdef SPP_NETCONN_CRYPTO
+		if (_networkState < EConnectionState::AUTHENTICATE_PASSWORD)
+		{
+			JsonMessage["RSA"] = _rsaCipherLocal.GetPublicKey();
+
+			if (!_bIsServer && _rsaCipherRemote.CanEncrypt())
+			{
+				JsonMessage["AES"] = _rsaCipherRemote.EncryptString(_aesCipherShared.GetKey());
+			}
+		}
+		else if (_networkState == EConnectionState::AUTHENTICATE_PASSWORD)
+		{
+			if (!_bIsServer)
+			{
+				JsonMessage["PASSWORD"] = _serverPassword;
+			}
+		}
+				
+#endif
+
+		bool bIsEncrypted = false;
 		Json::StreamWriterBuilder wbuilder;
 		std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
 
-		_SendJSONConstrolString(StrMessage);
+		std::vector<uint8_t> oData;
+
+#ifdef SPP_NETCONN_CRYPTO		
+		if (_networkState == EConnectionState::AUTHENTICATE_PASSWORD ||
+			_networkState == EConnectionState::CONNECTED)
+		{
+			bIsEncrypted = true;
+			EncryptData(StrMessage.data(), StrMessage.size(), oData);
+		}		
+		else
+		{
+			oData.insert(oData.begin(), StrMessage.begin(), StrMessage.end());
+		}
+#else
+		oData.insert(oData.begin(), StrMessage.begin(), StrMessage.end());
+#endif
+
+		_SendJSONConstrolMessage(oData, bIsEncrypted);
 	}
+
+	void NetworkConnection::CLIENT_ProcessControlMessages(Json::Value &jsonMessage)
+	{
+		Json::Value Message = jsonMessage.get("Message", Json::Value::nullSingleton());
+		Json::Value RemoteState = jsonMessage.get("State", Json::Value::nullSingleton());
+		Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
+		Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
+		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
+
+		if (RemoteState.isNull() || Message.isNull())
+		{
+			return;
+		}
+
+		EConnectionState msgState = (EConnectionState)RemoteState.asUInt();
+		std::string MessageString = Message.asCString();
+				
+		if (StartsWith(MessageString, "Disconnect"))
+		{
+			CloseDown(MessageString.c_str());
+			return;
+		}
+
+		// using our state we should know the exact flow
+		switch (_networkState)
+		{
+		case EConnectionState::C_SAYING_HI:
+			if (!RSAValue.isNull())
+			{
+				std::string RSAString = RSAValue.asCString();
+				_rsaCipherRemote.SetPublicKey(RSAString);
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received Public RSA Key: %s", RSAString.c_str());
+				_SetState(EConnectionState::C_SENDING_SHARED_KEY);
+			}
+			break;
+		case EConnectionState::C_SENDING_SHARED_KEY:
+			if (msgState == EConnectionState::AUTHENTICATE_PASSWORD)
+			{
+				_SetState(EConnectionState::AUTHENTICATE_PASSWORD);
+			}
+			break;
+		case EConnectionState::AUTHENTICATE_PASSWORD:
+			if (msgState == EConnectionState::CONNECTED)
+			{
+				_SetState(EConnectionState::CONNECTED);
+			}
+			break;
+		case EConnectionState::CONNECTED:
+			if (MessageString == "Ping")
+			{
+				_SendGenericMessage("Pong");
+			}
+			else if (MessageString == "Pong")
+			{
+				_lastKeepAlive = std::chrono::steady_clock::now();
+			}
+			break;
+		}
+	}
+
+	void NetworkConnection::SERVER_ProcessControlMessages(Json::Value& jsonMessage)
+	{		
+		Json::Value Message = jsonMessage.get("Message", Json::Value::nullSingleton());
+		Json::Value RemoteState = jsonMessage.get("State", Json::Value::nullSingleton());
+		Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
+		Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
+		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
+		Json::Value PasswordValue = jsonMessage.get("PASSWORD", Json::Value::nullSingleton());
+		
+		if (RemoteState.isNull() || Message.isNull())
+		{
+			return;
+		}
+
+		EConnectionState msgState = (EConnectionState)RemoteState.asUInt();
+		std::string MessageString = Message.asCString();
+
+		if (MessageString == "Disconnect")
+		{
+			CloseDown("Disconnect Message Received");
+			return;
+		}
+
+		// using our state we should know the exact flow
+		switch (_networkState)
+		{
+		case EConnectionState::S_WAITING:
+			if (!RSAValue.isNull())
+			{
+				std::string RSAString = RSAValue.asCString();
+				_rsaCipherRemote.SetPublicKey(RSAString);
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received Public RSA Key: %s", RSAString.c_str());
+				_SetState(EConnectionState::S_SENDING_PUBLIC_KEY);
+			}
+			break;
+		case EConnectionState::S_SENDING_PUBLIC_KEY:
+			if (!AESValue.isNull())
+			{
+				std::string AESString = AESValue.asCString();
+				AESString = _rsaCipherLocal.DecryptString(AESString);
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received AES Key: %s", AESString.c_str());
+				_aesCipherShared.SetKey(AESString);
+				_SetState(EConnectionState::AUTHENTICATE_PASSWORD);
+			}			
+			break;
+		case EConnectionState::AUTHENTICATE_PASSWORD:
+			if (!PasswordValue.isNull())
+			{
+				std::string PasswordString = PasswordValue.asCString();
+
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Checking Password %s to %s", PasswordString.c_str(), _serverPassword.c_str());
+
+				if (PasswordValue == _serverPassword)
+				{		
+					SPP_LOG(LOG_NETCON, LOG_WARNING, " - PASSWORD VALID");
+					_SetState(EConnectionState::CONNECTED);
+				}
+				else
+				{
+					CloseDown("Invalid Password");
+				}
+			}
+			break;
+		case EConnectionState::CONNECTED:
+			if (MessageString == "Ping")
+			{
+				_SendGenericMessage("Pong");
+			}
+			else if (MessageString == "Pong")
+			{
+				_lastKeepAlive = std::chrono::steady_clock::now();
+			}
+			break;
+		}
+	}
+
+#ifdef SPP_NETCONN_CRYPTO
+	void NetworkConnection::EncryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData)
+	{
+		_aesCipherShared.EncryptData(InData, DataLength, oData);
+	}
+	void NetworkConnection::DecryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData)
+	{
+		_aesCipherShared.DecryptData(InData, DataLength, oData);
+	}
+#endif
 
 	/// <summary>
 	/// 
 	/// </summary>
 	/// <param name="ControlMsg"></param>
-	void NetworkConnection::ProcessControlMessages(const std::string& ControlMsg)
+	void NetworkConnection::ProcessControlMessages(const std::vector<uint8_t>& ControlMsg, bool Encrypted)
 	{
-		SPP_LOG(LOG_NETCON, LOG_VERBOSE, "ProcessControlMessages: %s", ControlMsg.c_str());
+		Json::Value jsonMessage;
 
-		Json::Value root;
-		Json::CharReaderBuilder Builder;
-		Json::CharReader* reader = Builder.newCharReader();
-		std::string Errors;
-
-		bool parsingSuccessful = reader->parse(ControlMsg.c_str(), ControlMsg.c_str() + ControlMsg.length(), &root, &Errors);
-		delete reader;
-		if (!parsingSuccessful)
+		if (Encrypted)
 		{
-			return;
-		}
-
-		Json::Value Message = root.get("Message", Json::Value::nullSingleton());
-		Json::Value RemoteGUIDValue = root.get("GUID", Json::Value::nullSingleton());
-
-		if (Message.isNull() == false)
-		{
-			std::string CheckMessage = Message.asCString();
-
-			if (CheckMessage == "Hello")
+			std::vector<uint8_t> oData;
+			DecryptData(ControlMsg.data(), ControlMsg.size(), oData);
+			if (MemoryToJson(oData.data(), oData.size(), jsonMessage) == false)
 			{
-				_SendGenericMessage("Welcome");
-				_SetState(EConnectionState::CONNECTED);
-			}
-			else if (CheckMessage == "Welcome")
-			{
-				_SetState(EConnectionState::CONNECTED);
-			}
-			else if (CheckMessage == "Ping")
-			{
-				if (IsServer() && _NetworkState != EConnectionState::CONNECTED)
-				{
-					_SendGenericMessage("Disconnect");
-				}
-				else if (_NetworkState == EConnectionState::CONNECTED)
-				{
-					_SendGenericMessage("Pong");
-				}
-			}
-			else if (CheckMessage == "Pong")
-			{
-				_lastKeepAlive = std::chrono::steady_clock::now();
-			}
-			else if (CheckMessage == "Disconnect")
-			{
-				CloseDown("Disconnect Message Received");
+				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");
+				return;
 			}
 		}
+		else
+		{
+			if (MemoryToJson(ControlMsg.data(), ControlMsg.size(), jsonMessage) == false)
+			{
+				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");
+				return;
+			}
+		}
+
+		if (_bIsServer)SERVER_ProcessControlMessages(jsonMessage);
+		else CLIENT_ProcessControlMessages(jsonMessage);
 	}
 
 
 	void NetworkConnection::Connect()
 	{
 		_bIsServer = false;
-		_SetState(EConnectionState::SAYING_HI);
+		_SetState(EConnectionState::C_SAYING_HI);
 	}
 
 	void NetworkConnection::_SetState(EConnectionState InState)
 	{
 		SE_ASSERT((uint8_t)InState < ARRAY_SIZE(NetStateStrings));
-		SPP_LOG(LOG_NETCON, LOG_WARNING, "GUID: %s SetState: %s", _localGUID.c_str(), NetStateStrings[(uint8_t)InState]);
-
-		_NetworkState = InState;
+		
+		if (_networkState != InState)
+		{
+			SPP_LOG(LOG_NETCON, LOG_INFO, "GUID: %s SetState: %s from %s", 
+				_localGUID.c_str(),
+				NetStateStrings[(uint8_t)InState], 
+				NetStateStrings[(uint8_t)_networkState]);
+			_networkState = InState;
+		}
+		
 		_SendState();
 	}
 
 	// connection state
 	void NetworkConnection::Tick()
 	{
-		if (_NetworkState == EConnectionState::DISCONNECTED)
+		if (_networkState == EConnectionState::DISCONNECTED)
 		{
 			return;
 		}
 
 		auto CurrentTime = std::chrono::steady_clock::now();
-
-		_PingTimer.Poll();
-
-		if (_NetworkState < EConnectionState::CONNECTED)
+			
+		if (_networkState < EConnectionState::CONNECTED)
 		{
+			_SendState();
+
 			// DC'd
 			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 15)
 			{
@@ -256,6 +446,8 @@ namespace SPP
 		}
 		else
 		{
+			_PingTimer.Poll();
+
 			// DC'd
 			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 10)
 			{
@@ -371,7 +563,7 @@ namespace SPP
 
 			SPP_LOG(LOG_NETCON, LOG_INFO, "**STATUS REPORT:**");// , _remoteAddr.ToString().c_str());
 			SPP_LOG(LOG_NETCON, LOG_INFO, " - State %s Total Packets Recv: %llu Total Packets Recv: %llu", 
-				NetStateStrings[(uint8_t)_NetworkState], 
+				NetStateStrings[(uint8_t)_networkState],
 				_stats.TotalPKtsRcv,
 				_stats.TotalPktsSnd);
 			SPP_LOG(LOG_NETCON, LOG_INFO, " - outgoing %4.2f KB/s incoming %4.2f KB/s",
@@ -408,7 +600,7 @@ namespace SPP
 	/// <param name="DataLength"></param>
 	void NetworkConnection::_AppendToOutoing(const void *Data, uint16_t DataLength)
 	{
-		if (_NetworkState == EConnectionState::DISCONNECTED)
+		if (_networkState == EConnectionState::DISCONNECTED)
 		{
 			return;
 		}
@@ -467,7 +659,7 @@ namespace SPP
 		_stats.CurrentIncomingAmount += DataLength;
 
 		// transcoder recv goes other way from netconnection down to last transcoder
-		if (_NetworkState == EConnectionState::DISCONNECTED)
+		if (_networkState == EConnectionState::DISCONNECTED)
 		{
 			return;
 		}
@@ -512,12 +704,14 @@ namespace SPP
 
 				if (Header.IsControl)
 				{
-					std::string ControlMsg;
+					uint8_t encrypted = 0;
+					std::vector<uint8_t> ControlMsg;					
+					DataView >> encrypted;
 					DataView >> ControlMsg;
-					ProcessControlMessages(ControlMsg);
+					ProcessControlMessages(ControlMsg, encrypted);
 				}
 				// if we are not connected do not process any lower!!!
-				else if (_NetworkState == EConnectionState::CONNECTED)
+				else if (_networkState == EConnectionState::CONNECTED)
 				{
 					//SPP_LOG(LOG_NETCON, LOG_INFO, "Recv Non Control Size: %d", DataView.Size());
 					// use a view to make things a little more clear	

@@ -60,6 +60,10 @@
 		{
 			"Path": "glew",
 			"Version": 1
-		}		
+		},
+		{
+			"Path": "cryptopp",
+			"Version": 1
+		}	
 	]
 }

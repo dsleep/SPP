@@ -299,7 +299,7 @@ protected:
 	std::vector<uint8_t> recvBuffer;
 
 public:
-	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer) 
+	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer, false) 
 	{ 
 		app = std::make_unique< SimpleGlutApp>(this);
 
