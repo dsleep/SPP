@@ -403,7 +403,6 @@ namespace SPP
 
 	void NetworkConnection::Connect()
 	{
-		_bIsServer = false;
 		_SetState(EConnectionState::C_SAYING_HI);
 	}
 
