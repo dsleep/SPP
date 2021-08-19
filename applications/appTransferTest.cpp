@@ -43,7 +43,7 @@ protected:
 	SimplePolledRepeatingTimer< std::chrono::milliseconds > DataSendTimer;
 
 public:
-	DataTransferConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer)
+	DataTransferConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer, false)
 	{
 		SendBuffer.resize(10 * 1024 * 1024);
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
