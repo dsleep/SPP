@@ -47,7 +47,7 @@ public class AndroidBTTest extends Activity implements View.OnClickListener {
 	
     private VelocityTracker mVelocityTracker = null;
 
-
+	private TextView tv = null;
 
 
 
@@ -64,7 +64,7 @@ public class AndroidBTTest extends Activity implements View.OnClickListener {
 		LinearLayout layout = new LinearLayout(this);
 		layout.setOrientation(1);
 		/* Create a TextView and set its text to "Hello world" */
-		TextView tv = new TextView(this);
+		tv = new TextView(this);
 		tv.setText("BT TEST!!");
 
 		doConnect = new Button(this);
@@ -166,6 +166,8 @@ public class AndroidBTTest extends Activity implements View.OnClickListener {
 			}
 			return;
 		}
+
+		tv.setText("CONNECTED");
 
 		connectedThread = new BluetoothClient(socketConnection, null);
 		connectedThread.start();
