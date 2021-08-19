@@ -15,6 +15,18 @@ set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonito
 if(OS_WINDOWS)
 
 ##########
+add_executable( bluetoothTest "")
+add_dependencies( bluetoothTest SPPNetworking)			
+target_sources( bluetoothTest 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/bluetoothTest.cpp" )		
+target_link_libraries( bluetoothTest SPPNetworking )
+set_target_properties( bluetoothTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET bluetoothTest PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET bluetoothTest PROPERTY VS_DPI_AWARE "PerMonitor")
+
+
+##########
 add_executable( networkTest "")
 add_dependencies( networkTest SPPNetworking)			
 target_sources( networkTest 
