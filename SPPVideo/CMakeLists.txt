@@ -43,6 +43,8 @@ target_link_libraries( SPPVideo
 
 install(TARGETS SPPVideo DESTINATION "${SPP_ROOT}/INSTALL")
 
+if(USE_CUDA)
+
 ############################################################
 #CUDA
 ############################################################
@@ -88,6 +90,7 @@ target_link_libraries( SPPVideo_CUDA
 
 install(TARGETS SPPVideo_CUDA DESTINATION "${SPP_ROOT}/INSTALL")
 
+endif()
 
 
 
