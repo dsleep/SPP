@@ -28,6 +28,8 @@
 
 #include "ws2def.h"
 #include <ws2tcpip.h>
+#include "combaseapi.h"
+
 using socklen_t = int32_t;
 using sock_opt = char;
 #pragma comment(lib, "Ws2_32.lib")
@@ -779,16 +781,36 @@ namespace SPP
 
 	//BLUETOOTH
 #if _WIN32
+		
+	struct WIN32MAKEGUID
+	{
+		GUID _guid = { 0 };
 
-	GUID g_guidServiceClass{ 0xb62c4e8d, 0x62cc, 0x404b, 0xbb, 0xbf, 0xbf, 0x3e, 0x3b, 0xbb, 0x13, 0x74 };
+		WIN32MAKEGUID(const WCHAR*InGUID)
+		{
+			HRESULT hr = CLSIDFromString(InGUID, (LPCLSID)&_guid);
+			if (hr != S_OK) 
+			{
+				// do something?
+			}
+		}
+	};
+	//SPP BT GUID 263beec5-a7fe-443a-a9ee-9bdfc5fc17a3
+	WIN32MAKEGUID GBT_GUID(L"{263beec5-a7fe-443a-a9ee-9bdfc5fc17a3}");
 
-	struct BlueToothConnection::PlatImpl
+	struct BlueToothSocket::PlatImpl
 	{
 		SOCKET Socket = INVALID_SOCKET;
 		std::unique_ptr<CSADDR_INFO> advertiseInfo;
+
+		PlatImpl() { }
+		PlatImpl(SOCKET InSocket) : Socket(InSocket)
+		{
+
+		}
 	};
 
-	BlueToothConnection::BlueToothConnection() : _impl(new PlatImpl())
+	BlueToothSocket::BlueToothSocket() : _impl(new PlatImpl())
 	{
 		// Open a bluetooth socket using RFCOMM protocol
 		//
@@ -799,12 +821,17 @@ namespace SPP
 		}
 	}
 
-	BlueToothConnection::~BlueToothConnection()
+	BlueToothSocket::BlueToothSocket(std::unique_ptr<PlatImpl>&& InImpl) : _impl(std::move(InImpl))
+	{
+
+	}
+
+	BlueToothSocket::~BlueToothSocket()
 	{
 		CloseDown();
 	}
 
-	void BlueToothConnection::CloseDown()
+	void BlueToothSocket::CloseDown()
 	{
 		if (_impl->Socket != INVALID_SOCKET)
 		{
@@ -813,8 +840,10 @@ namespace SPP
 		}
 	}
 
-	bool BlueToothConnection::Listen(uint16_t InPort)
+	bool BlueToothSocket::Listen()
 	{
+		SPP_LOG(LOG_BT, LOG_INFO, "BlueToothSocket::Listen");
+
 		SOCKADDR_BTH    SockAddrBthLocal = { 0 };
 
 		//
@@ -835,6 +864,18 @@ namespace SPP
 		{
 			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | bind() call failed w/socket = [0x%I64X]. WSAGetLastError=[%d]", (ULONG64)_impl->Socket, WSAGetLastError());
 			return false;
+		}		
+
+		int iAddrLen = sizeof(SOCKADDR_BTH);
+		if (getsockname(_impl->Socket, (struct sockaddr*)&SockAddrBthLocal, &iAddrLen) == SOCKET_ERROR)
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | getsockname() call failed w/socket = [0x%X]. WSAGetLastError=[%d]", _impl->Socket, WSAGetLastError());
+			return false;
+		}
+		else
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "getsockname() is pretty fine!");
+			SPP_LOG(LOG_BT, LOG_INFO, "Local address: 0x%x", SockAddrBthLocal.btAddr);
 		}
 
 		//
@@ -853,7 +894,7 @@ namespace SPP
 		WSAQUERYSET wsaQuerySet = { 0 };
 		ZeroMemory(&wsaQuerySet, sizeof(WSAQUERYSET));
 		wsaQuerySet.dwSize = sizeof(WSAQUERYSET);
-		wsaQuerySet.lpServiceClassId = (LPGUID)&g_guidServiceClass;
+		wsaQuerySet.lpServiceClassId = &GBT_GUID._guid;
 		// should be something like "Sample Bluetooth Server"
 		wsaQuerySet.lpszServiceInstanceName = L"BT SERVER";
 		wsaQuerySet.lpszComment = L"SPP BT Service";
@@ -866,17 +907,51 @@ namespace SPP
 			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | WSASetService() call failed. WSAGetLastError=[%d]", WSAGetLastError());
 			return false;
 		}
+		else
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "BlueToothSocket::Listen WSASetService SUCCEEDED");
+		}
 
 		if (SOCKET_ERROR == listen(_impl->Socket, 1))
 		{
 			SPP_LOG(LOG_BT, LOG_INFO, "=CRITICAL= | listen() call failed w/socket = [0x%I64X]. WSAGetLastError=[%d]", (ULONG64)_impl->Socket, WSAGetLastError());
 			return false;
 		}
+		else
+		{
+			SPP_LOG(LOG_BT, LOG_INFO, "BlueToothSocket::Listen SUCCEEDED");
+		}
 
 		return true;
 	}
 
-	bool BlueToothConnection::Connect(char* ConnectionString)
+	std::shared_ptr< BlueToothSocket > BlueToothSocket::Accept()
+	{
+		FD_SET fds;
+		FD_ZERO(&fds);
+		FD_SET(_impl->Socket, &fds);
+
+		// Setup timeval variable
+		struct timeval timeout;
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 50;
+
+		select((int)(_impl->Socket + 1), &fds, NULL, NULL, &timeout);
+
+		if (FD_ISSET(_impl->Socket, &fds))
+		{
+			auto NewConnection = accept(_impl->Socket, NULL, NULL);
+			if (INVALID_SOCKET != NewConnection)
+			{
+				std::shared_ptr< BlueToothSocket > NewSocket = std::make_shared< BlueToothSocket >(std::make_unique<PlatImpl>(NewConnection));
+				return NewSocket;
+			}
+		}
+
+		return nullptr;
+	}
+
+	bool BlueToothSocket::Connect(char* ConnectionString)
 	{
 		SOCKADDR_BTH RemoteBthAddr = { 0 };
 
@@ -934,12 +1009,12 @@ namespace SPP
 		return true;
 	}
 
-	bool BlueToothConnection::IsBroken() const 
+	bool BlueToothSocket::IsBroken() const
 	{
 		return (_impl->Socket == INVALID_SOCKET);
 	}
 
-	int32_t BlueToothConnection::Receive(void* buf, uint16_t InBufferSize)
+	int32_t BlueToothSocket::Receive(void* buf, uint16_t InBufferSize)
 	{
 		if (_impl->Socket != INVALID_SOCKET)
 		{
@@ -990,7 +1065,7 @@ namespace SPP
 		return 0;
 	}
 
-	void BlueToothConnection::Send(const void* buf, uint16_t BufferSize)
+	void BlueToothSocket::Send(const void* buf, uint16_t BufferSize)
 	{
 		if (SOCKET_ERROR == send(_impl->Socket,
 			(const char*)buf,
@@ -1000,6 +1075,8 @@ namespace SPP
 			//
 		}
 	}
+
+	
 #endif
 }
 

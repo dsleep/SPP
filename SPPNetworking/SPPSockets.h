@@ -206,20 +206,22 @@ namespace SPP
 	};
 
 #if _WIN32
-	class SPP_NETWORKING_API BlueToothConnection : public Interface_PeerConnection
+	class SPP_NETWORKING_API BlueToothSocket : public Interface_PeerConnection
 	{
 	protected:
 		struct PlatImpl;
 		std::unique_ptr<PlatImpl> _impl;
 
 	public:
-		BlueToothConnection();
-		~BlueToothConnection();
+		BlueToothSocket();
+		BlueToothSocket(std::unique_ptr<PlatImpl>&& InImpl);		
+		~BlueToothSocket();
 
-		bool Listen(uint16_t InPort);
+		bool Listen();
 		bool Connect(char* ConnectionString);
 		void SendData(const char* Data, int Size);
 		void CloseDown();
+		std::shared_ptr< BlueToothSocket > Accept();
 					
 		virtual bool IsBroken() const override; 
 		virtual void Send(const void* buf, uint16_t BufferSize) override;
