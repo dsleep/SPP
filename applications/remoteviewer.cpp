@@ -43,6 +43,81 @@ struct RemoteClient
 
 class VideoConnection;
 
+static std::vector<uint8_t> startMessage = { 0, 1, 2, 3 };
+static std::vector<uint8_t> endMessage = { 3, 2, 1, 0 };
+
+class SimpleJSONPeerReader
+{
+protected:
+	std::vector<uint8_t> streamData;
+	std::vector<uint8_t> recvBuffer;
+	std::shared_ptr< Interface_PeerConnection > _peerLink;
+
+public:
+	SimpleJSONPeerReader(std::shared_ptr< Interface_PeerConnection > InPeer) : _peerLink(InPeer)
+	{
+	}
+
+	bool IsValid()
+	{
+		if (_peerLink)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	void Tick()
+	{
+		if (_peerLink)
+		{
+			if (_peerLink->IsBroken())
+			{
+				SPP_LOG(LOG_APP, LOG_INFO, "PEER LINK BROKEN");
+				_peerLink.reset();
+				return;
+			}
+		}
+		else
+		{
+			return;
+		}
+
+		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
+		auto DataRecv = _peerLink->Receive(recvBuffer.data(), recvBuffer.size());
+		if (DataRecv > 0)
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, "GOT BT DATA: %d", DataRecv);
+
+			streamData.insert(streamData.end(), recvBuffer.begin(), recvBuffer.begin() + DataRecv);
+
+			auto FindStart = std::search(streamData.begin(), streamData.end(), startMessage.begin(), startMessage.end());
+
+			if (FindStart != streamData.end())
+			{
+				auto FindEnd = std::search(FindStart, streamData.end(), endMessage.begin(), endMessage.end());
+
+				if (FindEnd != streamData.end())
+				{
+					std::string messageString(FindStart + startMessage.size(), FindEnd);
+					MessageReceived(messageString);
+					streamData.clear();
+				}
+			}
+
+			if (streamData.size() > 500)
+			{
+				streamData.clear();
+			}
+		}
+	}
+
+	void MessageReceived(const std::string& InMessage)
+	{
+		SPP_LOG(LOG_APP, LOG_INFO, "MessageReceived: %s", InMessage.c_str());
+	}
+};
+
 class SimpleGlutApp
 {
 private:
@@ -516,6 +591,11 @@ int main(int argc, char* argv[])
 	
 	std::shared_ptr< VideoConnection > videoConnection;
 
+	//BLUTETOOTH STUFFS
+	std::shared_ptr< SimpleJSONPeerReader > JSONParserConnection;
+	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
+	listenSocket->Listen();
+
 	using namespace std::chrono_literals;
 
 	std::vector<uint8_t> BufferRead;
@@ -569,11 +649,35 @@ int main(int argc, char* argv[])
 		coordinator->Update();
 		auto CurrentTime = std::chrono::steady_clock::now();
 
+		//BLUETOOTH SYSTEM
+		if (JSONParserConnection)
+		{
+			if (JSONParserConnection->IsValid())
+			{
+				JSONParserConnection->Tick();
+			}
+			else
+			{
+				JSONParserConnection.reset();
+			}
+		}
+		else
+		{
+			auto newBTConnection = listenSocket->Accept();
+			if (newBTConnection)
+			{
+				JSONParserConnection = std::make_shared< SimpleJSONPeerReader >(newBTConnection);
+				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
+			}
+		}
+		//
+
 		//write status
 		{
 			Json::Value JsonMessage;
 			JsonMessage["COORD"] = coordinator->IsConnected();
 			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
+			JsonMessage["BLUETOOTH"] = (!!JSONParserConnection);
 
 			if (!videoConnection)
 			{

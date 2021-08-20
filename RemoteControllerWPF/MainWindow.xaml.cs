@@ -47,6 +47,7 @@ namespace RACApplication
         private bool WorkerGood = false;
         private bool CoordGood = false;
         private bool StunGood = false;
+        private bool BTGood = false;
         private int ConnStatus = 0;
 
 #if DEBUG
@@ -98,6 +99,7 @@ namespace RACApplication
             public bool COORD { get; set; }
             public bool RESOLVEDSDP { get; set; }
             public int CONNSTATUS { get; set; }
+            public bool BLUETOOTH { get; set; }
 
             public List<Host> HOSTS { get; set; }
         };
@@ -128,7 +130,13 @@ namespace RACApplication
                 {
                     StunGood = false;
                     IMG_Stun.Source = BadState;
-                }                
+                }
+
+                if (BTGood != false)
+                {
+                    BTGood = false;
+                    IMG_BT_Connection.Source = BadState;
+                }
             }
             else
             {
@@ -151,6 +159,12 @@ namespace RACApplication
                     {
                         StunGood = appStatus.RESOLVEDSDP;
                         IMG_Stun.Source = StunGood ? GoodState : BadState;
+                    }
+
+                    if (BTGood != appStatus.BLUETOOTH)
+                    {
+                        BTGood = appStatus.BLUETOOTH;
+                        IMG_BT_Connection.Source = BTGood ? GoodState : BadState;
                     }
 
                     if (ConnStatus != appStatus.CONNSTATUS)
