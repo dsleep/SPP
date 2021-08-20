@@ -35,6 +35,7 @@
 
 #VO Directories
 .vs/
+.workspace/
 
 #3rd party Directories
 3rdParty/
