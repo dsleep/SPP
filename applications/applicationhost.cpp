@@ -59,6 +59,13 @@ HWND find_main_window(uint32_t process_id)
 	return data.window_handle;
 }
 
+struct IPCMessage
+{
+	uint8_t otherThing;
+	int32_t X;
+	int32_t Y;
+};
+
 /// <summary>
 /// 
 /// </summary>
@@ -66,6 +73,10 @@ class VideoConnection : public NetworkConnection
 {
 protected:
 	std::unique_ptr< VideoEncodingInterface> VideoEncoder;
+	std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
+	std::unique_ptr< SimpleIPCMessageQueue<IPCMessage> > _msgQueue;
+	
+
 	std::chrono::high_resolution_clock::time_point LastImageCap;
 
 	uint32_t ProcessID = 0;
@@ -84,7 +95,13 @@ public:
 
 		if (!InAppPath.empty())
 		{
-			ProcessID = CreateChildProcess(InAppPath.c_str(), AppCommandline.c_str());
+			auto MemShareID = std::generate_hex(3);
+			std::string WithMemShare = AppCommandline + std::string_format(" -MEMSHARE=%s", MemShareID.c_str());
+
+			//IPC TO SHARE WITH SOFA
+			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), 1 * 1024 * 1024, false);
+			_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMessage> >(*_mappedSofaMem);
+			ProcessID = CreateChildProcess(InAppPath.c_str(), WithMemShare.c_str());
 		}
 	}
 
@@ -108,16 +125,36 @@ public:
 		SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
 
 		MemoryView DataView(Data, DataLength);
-		UINT uMsg;
-		WPARAM wParam;
-		LPARAM lParam;
-		DataView >> uMsg;
-		DataView >> wParam;
-		DataView >> lParam;
 
-		if (CurrentLinkedApp)
+		uint8_t MessageType = 0;
+
+		DataView >> MessageType;
+
+		if (MessageType == 1)
 		{
-			PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+			UINT uMsg;
+			WPARAM wParam;
+			LPARAM lParam;
+			DataView >> uMsg;
+			DataView >> wParam;
+			DataView >> lParam;
+
+			if (CurrentLinkedApp)
+			{
+				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+			}
+		}
+		//BT message
+		else if(MessageType == 2)
+		{
+			std::string JsonMessage;
+			DataView >> JsonMessage;
+
+			SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived JSON %s", JsonMessage.c_str());
+
+			//TODO
+			//TURN INTO IPC message
+			//_msgQueue->PushMessage({ 2,3,4 });
 		}
 	}
 

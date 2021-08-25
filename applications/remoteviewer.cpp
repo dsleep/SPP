@@ -52,9 +52,10 @@ protected:
 	std::vector<uint8_t> streamData;
 	std::vector<uint8_t> recvBuffer;
 	std::shared_ptr< Interface_PeerConnection > _peerLink;
-
+	std::function<void(const std::string &)> _handler;
 public:
-	SimpleJSONPeerReader(std::shared_ptr< Interface_PeerConnection > InPeer) : _peerLink(InPeer)
+	SimpleJSONPeerReader(std::shared_ptr< Interface_PeerConnection > InPeer,
+		std::function<void(const std::string&)> InMsgHandler) : _peerLink(InPeer), _handler(InMsgHandler)
 	{
 	}
 
@@ -101,10 +102,11 @@ public:
 				{
 					std::string messageString(FindStart + startMessage.size(), FindEnd);
 					MessageReceived(messageString);
-					streamData.clear();
+					streamData.erase(streamData.begin(), FindEnd + endMessage.size());
 				}
 			}
 
+			// just in case it gets stupid big
 			if (streamData.size() > 500)
 			{
 				streamData.clear();
@@ -115,6 +117,10 @@ public:
 	void MessageReceived(const std::string& InMessage)
 	{
 		SPP_LOG(LOG_APP, LOG_INFO, "MessageReceived: %s", InMessage.c_str());
+		if (_handler)
+		{
+			_handler(InMessage);
+		}
 	}
 };
 
@@ -463,10 +469,11 @@ public:
 LRESULT SimpleGlutApp::LocalWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static PAINTSTRUCT ps;
-
+		
 	if (uMsg >= WM_KEYDOWN && uMsg <= WM_KEYUP)
 	{
 		BinaryBlobSerializer thisMessage;
+		thisMessage << (uint8_t) 1;
 		thisMessage << uMsg;
 		thisMessage << wParam;
 		thisMessage << lParam;
@@ -488,6 +495,7 @@ LRESULT SimpleGlutApp::LocalWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			lParam = (lParam & ~LPARAM(0xFFFFFFFF)) | (uint16_t)RemappedPosition[0] | LPARAM((uint16_t)(RemappedPosition[1])) << 16;
 
 			BinaryBlobSerializer thisMessage;
+			thisMessage << (uint8_t)1;
 			thisMessage << uMsg;
 			thisMessage << wParam;
 			thisMessage << lParam;
@@ -666,7 +674,17 @@ int main(int argc, char* argv[])
 			auto newBTConnection = listenSocket->Accept();
 			if (newBTConnection)
 			{
-				JSONParserConnection = std::make_shared< SimpleJSONPeerReader >(newBTConnection);
+				JSONParserConnection = std::make_shared< SimpleJSONPeerReader >(newBTConnection,
+					[&](const std::string &InMessage)
+					{
+						if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
+						{
+							BinaryBlobSerializer thisMessage;
+							thisMessage << (uint8_t)2;
+							thisMessage << InMessage;
+							videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+						}
+					});
 				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
 			}
 		}

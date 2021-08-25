@@ -26,7 +26,7 @@ namespace SPP
 		HANDLE hFileMutex = nullptr;
 	};
 
-	IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl())
+	IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl()), _memorySize(MemorySize)
 	{
 		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: (%s:%d) %d", MappedName, bIsNew, MemorySize);
 
@@ -37,7 +37,7 @@ namespace SPP
 				NULL,                    // default security
 				PAGE_READWRITE,          // read/write access
 				0,                       // maximum object size (high-order DWORD)
-				MemorySize,                // maximum object size (low-order DWORD)
+				(DWORD)MemorySize,                // maximum object size (low-order DWORD)
 				MappedName);                 // name of mapping object
 		}
 		else
@@ -84,6 +84,29 @@ namespace SPP
 	bool IPCMappedMemory::IsValid() const
 	{
 		return (_impl && _impl->dataLink != nullptr);
+	}
+
+
+	size_t IPCMappedMemory::Size() const
+	{
+		return _memorySize;
+	}
+
+	uint8_t* IPCMappedMemory::Lock()
+	{
+		SE_ASSERT(_impl->hFileMutex);
+		
+		auto dwWaitResult = WaitForSingleObject(
+			_impl->hFileMutex,    // handle to mutex
+			INFINITE);  // no time-out interval
+		
+		return _impl->dataLink;
+	}
+
+	void IPCMappedMemory::Release()
+	{
+		SE_ASSERT(_impl->hFileMutex);		
+		ReleaseMutex(_impl->hFileMutex);
 	}
 
 
