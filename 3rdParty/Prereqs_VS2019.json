@@ -64,6 +64,11 @@
 		{
 			"Path": "cryptopp",
 			"Version": 1
-		}	
+		},
+		{
+			"Path": "rttr",
+			"Version": 1,
+			"BinCopy": [ "bin/*.dll" ]
+		}
 	]
 }
