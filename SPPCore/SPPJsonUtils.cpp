@@ -23,6 +23,7 @@ namespace SPP
 
 		if (parsingSuccessful == false)
 		{
+			SPP_LOG(LOG_JSON, LOG_WARNING, "JSON ERROR: %s", Errors.c_str())
 			return false;
 		}
 

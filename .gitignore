@@ -33,14 +33,22 @@
 *.out
 *.app
 
-#VO Directories
+#VS Directories
+.vs/
+
+#CMAKE
+CMAKEBUILD/
+
+#VS Directories
 .vs/
 .workspace/
+.visualgdb/
 
 #3rd party Directories
 3rdParty/
 !3rdParty/*.json
+
+#Binaries
 Binaries/
 !Binaries/*.txt
-CMAKEBUILD/
-.visualgdb/
+
