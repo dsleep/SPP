@@ -62,8 +62,8 @@ HWND find_main_window(uint32_t process_id)
 struct IPCMotionState
 {
 	int32_t buttonState[2];
-	float orientation[3];
-	float motion[3];
+	float motionXY[2];
+	float orientationQuaternion[4];
 };
 
 /// <summary>
@@ -168,39 +168,40 @@ public:
 						newMessage.buttonState[0] = std::atoi(SplitData[0].c_str());
 						newMessage.buttonState[1] = std::atoi(SplitData[1].c_str());
 
-						newMessage.orientation[0] = std::atof(SplitData[2].c_str());
-						newMessage.orientation[1] = std::atof(SplitData[3].c_str());
-						newMessage.orientation[2] = std::atof(SplitData[4].c_str());
+						newMessage.motionXY[0] = std::atof(SplitData[2].c_str());
+						newMessage.motionXY[1] = std::atof(SplitData[3].c_str());
 
-						newMessage.motion[0] = std::atof(SplitData[5].c_str());
-						newMessage.motion[1] = std::atof(SplitData[6].c_str());
-						newMessage.motion[2] = std::atof(SplitData[7].c_str());
+						newMessage.orientationQuaternion[0] = std::atof(SplitData[4].c_str());
+						newMessage.orientationQuaternion[1] = std::atof(SplitData[5].c_str());
+						newMessage.orientationQuaternion[2] = std::atof(SplitData[6].c_str());
+						newMessage.orientationQuaternion[3] = std::atof(SplitData[7].c_str());
 
 						_msgQueue->PushMessage(newMessage);
 					}
 
 					/* SOFA TIPS EXAMPLE CODE:
-					//parsed from -MEMSHARE= commandline argument
+					
 					struct IPCMotionState
 					{
 						int32_t buttonState[2];
-						float orientation[3];
-						float motion[3];
+						float motionXY[2];
+						float orientationQuaternion[4];
 					};
 
+					//parsed from -MEMSHARE= commandline argument
 					std::string MemShareID;
 					std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
 					std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
 					_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
-					_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
+					_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(uint32_t));
 
 					// get all BT messages, and it will auto clear them
 					auto Messages = _msgQueue->GetMessages();
 					for (auto& curMessage : Messages)
 					{
 						//curMessage.buttonState[0] 
-						//curMessage.motion[0]
-						//curMessage.orientation
+						//curMessage.motionXY[0]
+						//curMessage.orientationQuaternion[0]
 					}
 
 					// send buzz back
