@@ -179,12 +179,35 @@ public:
 						_msgQueue->PushMessage(newMessage);
 					}
 
+					/* SOFA TIPS EXAMPLE CODE:
+					//parsed from -MEMSHARE= commandline argument
+					struct IPCMotionState
+					{
+						int32_t buttonState[2];
+						float orientation[3];
+						float motion[3];
+					};
 
-					//auto Messages = _msgQueue->GetMessages();
-					//for (auto& curMessage : Messages)
-					//{
+					std::string MemShareID;
+					std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
+					std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
+					_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
+					_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
 
-					//}
+					// get all BT messages, and it will auto clear them
+					auto Messages = _msgQueue->GetMessages();
+					for (auto& curMessage : Messages)
+					{
+						//curMessage.buttonState[0] 
+						//curMessage.motion[0]
+						//curMessage.orientation
+					}
+
+					// send buzz back
+					static uint32_t buzzCounter = 1;
+					_mappedSofaMem->WriteMemory(&buzzCounter, sizeof(buzzCounter));
+					buzzCounter++;
+					*/
 				}
 			}
 		}
