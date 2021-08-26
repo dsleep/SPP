@@ -37,9 +37,10 @@ namespace SPP
 	{
 	private:
 		IPCMappedMemory& memLink;
+		size_t _queueOffset = 0;
 
 	public:
-		SimpleIPCMessageQueue(IPCMappedMemory &InMem) : memLink(InMem)
+		SimpleIPCMessageQueue(IPCMappedMemory &InMem, size_t InOffset = 0) : memLink(InMem), _queueOffset(InOffset)
 		{
 			static_assert(std::is_trivial<T>::value && std::is_standard_layout<T>::value);
 		}
@@ -47,13 +48,13 @@ namespace SPP
 		// Push a new Message
 		void PushMessage(const T &InMessage)
 		{
-			auto DataPtr = memLink.Lock();
+			auto DataPtr = memLink.Lock() + _queueOffset;
 
 			uint32_t ElementCount = *(uint32_t*)DataPtr;
 			auto WritePtr = DataPtr + sizeof(uint32_t);
 			uint32_t DataOffset = ElementCount * sizeof(T);
 			
-			if ((DataOffset + sizeof(uint32_t) + sizeof(T)) <= memLink.Size())
+			if ((DataOffset + sizeof(uint32_t) + sizeof(T) + _queueOffset) <= memLink.Size())
 			{
 				memcpy(WritePtr + DataOffset, &InMessage, sizeof(T));
 				*(uint32_t*)DataPtr++; //add a message count
@@ -67,7 +68,7 @@ namespace SPP
 		{
 			std::vector<T> oMessages;
 
-			auto DataPtr = memLink.Lock();
+			auto DataPtr = memLink.Lock() + _queueOffset;
 
 			uint32_t ElementCount = *(uint32_t*)DataPtr;
 			auto WritePtr = DataPtr + sizeof(uint32_t);

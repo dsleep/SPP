@@ -59,11 +59,11 @@ HWND find_main_window(uint32_t process_id)
 	return data.window_handle;
 }
 
-struct IPCMessage
+struct IPCMotionState
 {
-	uint8_t otherThing;
-	int32_t X;
-	int32_t Y;
+	int32_t buttonState[2];
+	float orientation[3];
+	float motion[3];
 };
 
 /// <summary>
@@ -74,9 +74,8 @@ class VideoConnection : public NetworkConnection
 protected:
 	std::unique_ptr< VideoEncodingInterface> VideoEncoder;
 	std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
-	std::unique_ptr< SimpleIPCMessageQueue<IPCMessage> > _msgQueue;
+	std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
 	
-
 	std::chrono::high_resolution_clock::time_point LastImageCap;
 
 	uint32_t ProcessID = 0;
@@ -87,6 +86,8 @@ protected:
 
 	std::string AppPath;
 	std::string AppCommandline;
+
+	uint32_t _currentBuzzCnt = 0;
 
 public:
 	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer, true)
@@ -99,8 +100,8 @@ public:
 			std::string WithMemShare = AppCommandline + std::string_format(" -MEMSHARE=%s", MemShareID.c_str());
 
 			//IPC TO SHARE WITH SOFA
-			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), 1 * 1024 * 1024, false);
-			_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMessage> >(*_mappedSofaMem);
+			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
+			_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
 			ProcessID = CreateChildProcess(InAppPath.c_str(), WithMemShare.c_str());
 		}
 	}
@@ -152,9 +153,53 @@ public:
 
 			SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived JSON %s", JsonMessage.c_str());
 
-			//TODO
-			//TURN INTO IPC message
-			//_msgQueue->PushMessage({ 2,3,4 });
+			Json::Value jsonMessageParsed;
+			if (StringToJson(JsonMessage, jsonMessageParsed))
+			{
+				Json::Value dataValue = jsonMessageParsed.get("data", Json::Value::nullSingleton());
+				if (!dataValue.isNull())
+				{
+					std::string DataSet = dataValue.asCString();
+					auto SplitData = std::str_split(DataSet, ',');
+
+					if (SplitData.size() >= 8)
+					{
+						IPCMotionState newMessage;
+						newMessage.buttonState[0] = std::atoi(SplitData[0].c_str());
+						newMessage.buttonState[1] = std::atoi(SplitData[1].c_str());
+
+						newMessage.orientation[0] = std::atof(SplitData[2].c_str());
+						newMessage.orientation[1] = std::atof(SplitData[3].c_str());
+						newMessage.orientation[2] = std::atof(SplitData[4].c_str());
+
+						newMessage.motion[0] = std::atof(SplitData[5].c_str());
+						newMessage.motion[1] = std::atof(SplitData[6].c_str());
+						newMessage.motion[2] = std::atof(SplitData[7].c_str());
+
+						_msgQueue->PushMessage(newMessage);
+					}
+
+
+					//auto Messages = _msgQueue->GetMessages();
+					//for (auto& curMessage : Messages)
+					//{
+
+					//}
+				}
+			}
+		}
+	}
+
+	void CheckFeedbackFromSofa()
+	{
+		auto lastBuzz = _currentBuzzCnt;
+		_mappedSofaMem->ReadMemory(&_currentBuzzCnt, sizeof(_currentBuzzCnt));
+		if (lastBuzz != _currentBuzzCnt)
+		{
+			// buzz is 2
+			BinaryBlobSerializer thisFrame;
+			thisFrame << (uint8_t)2;
+			SendMessage(thisFrame.GetData(), thisFrame.Size(), EMessageMask::IS_RELIABLE);
 		}
 	}
 
@@ -190,6 +235,7 @@ public:
 			VideoEncoder = CreateVideoEncoder([CreatedWidth = Width,CreatedHeight= Height,this](const void* InData, int32_t InDataSize)
 				{					
 					BinaryBlobSerializer thisFrame;
+					thisFrame << (uint8_t)1;
 					thisFrame << (uint16_t)CreatedWidth;
 					thisFrame << (uint16_t)CreatedHeight;
 					thisFrame.Write(InData, InDataSize);
