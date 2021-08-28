@@ -97,7 +97,7 @@ public:
 		if (!InAppPath.empty())
 		{
 			auto MemShareID = std::generate_hex(3);
-			std::string WithMemShare = AppCommandline + std::string_format(" -MEMSHARE=%s", MemShareID.c_str());
+			std::string WithMemShare = AppCommandline +std::string_format(" --MEMSHARE=%s", MemShareID.c_str());
 
 			//IPC TO SHARE WITH SOFA
 			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
