@@ -9,6 +9,9 @@
 		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-base.css" />
 		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-dark-theme.css" />
 		
+		
+		<link rel="stylesheet" href="jstree/themes/default/style.min.css" />
+		<script src="jstree/jstree.min.js"></script>
 	<style>
 	
 	
@@ -50,7 +53,7 @@ var config = {
 					  {						
 						type: 'component',
 						isClosable: false,
-						componentName: 'sourcesComp',
+						componentName: 'elementSection',
 						title:'Primitives'
 					  }
 					  ]
@@ -58,8 +61,14 @@ var config = {
 					{
 					  type: 'component',
 					  isClosable: false,
-					  componentName: 'testComponent',
+					  componentName: 'ObjTree',
 					  title:'Object Tree'
+					},
+					{
+					  type: 'component',
+					  isClosable: false,
+					  componentName: 'ObjProperties',
+					  title:'Object Properties'
 					}]
 				},{
 					type: 'column',
@@ -95,6 +104,12 @@ myLayout.registerComponent( 'testComponent', function( container, componentState
 	 container.getElement().html( '<div id="testContainer" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
 });
 
+myLayout.registerComponent( 'ObjProperties', function( container, componentState ){	
+	 container.getElement().html( '<div id="idObjProperties" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+});
+
+
+
 myLayout.registerComponent( 'gameViewComp', function( container, componentState ){	
 	container.getElement().html( '<div id="gameView" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
 	
@@ -110,16 +125,16 @@ myLayout.registerComponent( 'gameViewComp', function( container, componentState 
 		console.log("topPos:" + topPos);
 		console.log("bottomPos:" + bottomPos);
 		
-		window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
+		//window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
 	});
 });
 
-myLayout.registerComponent( 'sourcesComp', function( container, componentState ){	
-	 container.getElement().html( '<div id="layers" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+myLayout.registerComponent( 'elementSection', function( container, componentState ){	
+	 container.getElement().html( '<div id="primTypes" style="width: 100%; height:100%"> </div>' );
 });
 
-myLayout.registerComponent( 'coordsComp', function( container, componentState ){	
-	 container.getElement().html( '<div id="gameview" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+myLayout.registerComponent( 'ObjTree', function( container, componentState ){	
+	 container.getElement().html( '<div id="IdObjectTree" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
 });
 
 myLayout.registerComponent( 'playbackComponent', function( container, componentState ){
@@ -133,8 +148,8 @@ myLayout.on( 'initialised', function(){
 	
 	
 
-	//$('#CesiumWEB').load("./cesiumWebExample.html");	
-	//$('#sourcesID').load("./source.html");	
+	$('#primTypes').load("./primTypes.html");	
+	$('#IdObjectTree').load("./objectTree.html");	
 	//$('#playbackID').load("./playback.html");	
 	//$('#coordsID').load("./coordinates.html");	
 	
