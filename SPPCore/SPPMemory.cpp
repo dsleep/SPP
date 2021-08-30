@@ -48,33 +48,36 @@ namespace SPP
 				MappedName);               // name of mapping object
 		}
 
-		if (_impl->hMapFile)
+		SE_ASSERT(_impl->hMapFile);
+		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has Link");
+
+		_impl->dataLink = (uint8_t*)MapViewOfFile(_impl->hMapFile,   // handle to map object
+			FILE_MAP_ALL_ACCESS, // read/write permission
+			0,
+			0,
+			MemorySize);
+
+
+		std::string MutexName = std::string(MappedName) + "_M";
+
+		if (bIsNew)
 		{
-			SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has Link");
+			memset(_impl->dataLink, 0, MemorySize);
 
-			_impl->dataLink = (uint8_t*)MapViewOfFile(_impl->hMapFile,   // handle to map object
-				FILE_MAP_ALL_ACCESS, // read/write permission
-				0,
-				0,
-				MemorySize);
-
-			if (bIsNew)
-			{
-				memset(_impl->dataLink, 0, MemorySize);
-			}
-
-			std::string MutexName = std::string(MappedName) + "_M";
-
+			_impl->hFileMutex = CreateMutexA(
+				NULL,
+				false,					// initially not owned
+				MutexName.c_str());
+		}
+		else
+		{
 			_impl->hFileMutex = OpenMutexA(
 				MUTEX_ALL_ACCESS,
-				false,             // initially not owned
-				MutexName.c_str());             // unnamed mutex
-
-			if (_impl->hFileMutex)
-			{
-				SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has mutex");
-			}
+				false,					// initially not owned
+				MutexName.c_str());
 		}
+
+		SE_ASSERT(_impl->hFileMutex);
 	}
 	IPCMappedMemory::~IPCMappedMemory()
 	{
