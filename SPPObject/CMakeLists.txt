@@ -14,6 +14,7 @@ target_compile_definitions(SPPObject
 		
 target_compile_definitions(SPPObject
 	PUBLIC
+		RTTR_DLL
 		UNICODE 
 		_UNICODE
 		NOMINMAX)		
@@ -39,7 +40,7 @@ target_include_directories(SPPObject
 		"${THIRD_PARTY}/rttr/include" )
 
 target_link_directories(SPPObject 
-	PRIVATE
+	PUBLIC
 		"${THIRD_PARTY}/rttr/lib" )
 		
 target_link_libraries( SPPObject 
@@ -47,7 +48,7 @@ target_link_libraries( SPPObject
 		SPPCore )
 		
 target_link_libraries(SPPObject 
-	PRIVATE
+	PUBLIC
 		debug rttr_core_d optimized rttr_core )		
 
 install(TARGETS SPPObject DESTINATION "${SPP_ROOT}/INSTALL")

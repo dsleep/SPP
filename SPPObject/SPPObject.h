@@ -51,6 +51,9 @@ namespace SPP
 
 		size_t Hash() const;
 
+
+		bool InDomain(const MetaPath &DomainToCheck) const;
+
 		const NumberedString &operator[](uint32_t index) const;
 
 		bool operator< (const MetaPath& cmpTo) const;
@@ -83,10 +86,14 @@ namespace SPP
 
 	public:				
 		virtual ~SPPObject();
+		const MetaPath &GetPath() const
+		{
+			return _path;
+		}
 	};
 	
 	//SPP_OBJECT_API SPPObject* AllocateObject(const SPPObject_META &MetaType, const MetaPath& InPath);
-	//SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath);
+	SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath);
 
 	//template<typename ObjectType>
 	//ObjectType* TAllocateObject(const MetaPath& InPath)

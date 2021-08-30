@@ -126,7 +126,7 @@ if(OS_WINDOWS)
 	endif()
 endif()
 
-list(APPEND SPPProjects "applications" )
+list(APPEND SPPProjects "applications" "tests" )
 	
 if(OS_WINDOWS)
 	list(APPEND SPPProjects "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")

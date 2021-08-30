@@ -8,6 +8,7 @@
 #include <functional>
 #include <mutex>
 
+
 namespace SPP
 {
 	static SPPObject* GFirstObject = nullptr;
@@ -102,6 +103,24 @@ namespace SPP
 		}
 	}
 
+	bool MetaPath::InDomain(const MetaPath& DomainToCheck) const
+	{
+		if (Levels() < DomainToCheck.Levels())
+		{
+			return false;
+		}
+
+		for (int32_t Iter = 0; Iter < DomainToCheck._path.size(); Iter++)
+		{
+			if (_path[Iter] != DomainToCheck._path[Iter])
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	size_t MetaPath::Hash() const
 	{
 		if(_path.empty())return 0;
@@ -121,26 +140,84 @@ namespace SPP
 	struct TextureFactors
 	{
 	public:
-		int32_t MipSomething;
-		float Scalar;
+		int32_t MipSomething = 0;
+		float Scalar = 1.0f;
+	};
+
+	class OWorld : public SPPObject
+	{
+	private:
+
+	public:
+	};
+
+	class OElement : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		class OEntity* _parent = nullptr;
+
+		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
+
+	public:
+		virtual ~OElement() { }
+	};
+
+	class OEntity : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		std::vector<OElement*> _elements;
+
+		OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
+
+	public:
+		virtual ~OEntity() { }
 	};
 
 	class OTexture : public SPPObject
 	{
 		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		uint16_t _width;
-		uint16_t _height;
+		uint16_t _width = 0;
+		uint16_t _height = 0;
 		TextureFactors _factors;
-
-	public:
 
 		OTexture(const MetaPath& InPath) : SPPObject(InPath) { }
 
+	public:
 
-		RTTR_REGISTRATION_FRIEND
+		virtual ~OTexture()
+		{
+
+		}
 	};	
+
+	SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath)
+	{
+		using namespace rttr;
+		// option 1
+		type class_type = type::get_by_name(ObjectType);
+
+		if (class_type.is_derived_from( type::get<SPPObject>() ))
+		{
+			variant obj = class_type.create({ InPath });
+			SE_ASSERT(obj.get_type().is_pointer());
+
+			if (obj.get_type().is_pointer())
+			{
+				return obj.get_value<SPPObject*>();
+			}
+		}
+
+		return nullptr;
+	}
 }
 
 using namespace SPP;
@@ -153,11 +230,33 @@ RTTR_REGISTRATION
 	;
 
 	rttr::registration::class_<OTexture>("OTexture")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
 		.property("_width", &OTexture::_width)
 		.property("_width", &OTexture::_height)
 		.property("_factors", &OTexture::_factors)
 	;
+
+
+	rttr::registration::class_<OElement>("OElement")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_parent", &OElement::_parent)
+		;
+
+	rttr::registration::class_<OEntity>("OEntity")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_elements", &OEntity::_elements)
+		;
 }
+
 
 template<typename Ser>
 bool SerializePoDTypes(const rttr::type& t, rttr::variant& var, Ser& InSer)
@@ -324,6 +423,8 @@ void SerializeObject( rttr::instance& InObjectInstance, Ser &InSer)
 	rttr::instance obj = InObjectInstance.get_type().get_raw_type().is_wrapper() ?
 		InObjectInstance.get_wrapped_instance() : InObjectInstance;
 
+	//InObjectInstance.get_type()
+
 	auto prop_list = obj.get_derived_type().get_properties();
 	for (auto prop : prop_list)
 	{
@@ -341,5 +442,4 @@ void SerializeObject( rttr::instance& InObjectInstance, Ser &InSer)
 			std::cerr << "cannot serialize property: " << name << std::endl;
 		}
 	}
-
 }
