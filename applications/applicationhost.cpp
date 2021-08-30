@@ -100,7 +100,7 @@ public:
 			std::string WithMemShare = AppCommandline +std::string_format(" --MEMSHARE=%s", MemShareID.c_str());
 
 			//IPC TO SHARE WITH SOFA
-			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
+			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, true);
 			_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
 			ProcessID = CreateChildProcess(InAppPath.c_str(), WithMemShare.c_str());
 		}
