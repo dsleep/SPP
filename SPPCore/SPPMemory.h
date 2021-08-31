@@ -57,7 +57,7 @@ namespace SPP
 			if ((DataOffset + sizeof(uint32_t) + sizeof(T) + _queueOffset) <= memLink.Size())
 			{
 				memcpy(WritePtr + DataOffset, &InMessage, sizeof(T));
-				*(uint32_t*)DataPtr++; //add a message count
+				*(uint32_t*)DataPtr = ElementCount + 1; //add a message count
 			}
 
 			memLink.Release();
