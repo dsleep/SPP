@@ -26,7 +26,7 @@ namespace SPP
 		HANDLE hFileMutex = nullptr;
 	};
 
-	IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl())
+	IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl()), _memorySize(MemorySize)
 	{
 		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: (%s:%d) %d", MappedName, bIsNew, MemorySize);
 
@@ -37,7 +37,7 @@ namespace SPP
 				NULL,                    // default security
 				PAGE_READWRITE,          // read/write access
 				0,                       // maximum object size (high-order DWORD)
-				MemorySize,                // maximum object size (low-order DWORD)
+				(DWORD)MemorySize,                // maximum object size (low-order DWORD)
 				MappedName);                 // name of mapping object
 		}
 		else
@@ -48,44 +48,36 @@ namespace SPP
 				MappedName);               // name of mapping object
 		}
 
-		if (_impl->hMapFile)
+		SE_ASSERT(_impl->hMapFile);
+		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has Link");
+
+		_impl->dataLink = (uint8_t*)MapViewOfFile(_impl->hMapFile,   // handle to map object
+			FILE_MAP_ALL_ACCESS, // read/write permission
+			0,
+			0,
+			MemorySize);
+
+
+		std::string MutexName = std::string(MappedName) + "_M";
+
+		if (bIsNew)
 		{
-			SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has Link");
+			memset(_impl->dataLink, 0, MemorySize);
 
-			_impl->dataLink = (uint8_t*)MapViewOfFile(_impl->hMapFile,   // handle to map object
-				FILE_MAP_ALL_ACCESS, // read/write permission
-				0,
-				0,
-				MemorySize);
-
-
-			std::string MutexName = std::string(MappedName) + "_M";
-
-			if (bIsNew)
-			{
-				memset(_impl->dataLink, 0, MemorySize);
-
-				_impl->hFileMutex = CreateMutexA(
-					nullptr,
-					false,             // initially not owned
-					MutexName.c_str());             // unnamed mutex
-			}
-			else
-			{
-				_impl->hFileMutex = OpenMutexA(
-					MUTEX_ALL_ACCESS,
-					false,             // initially not owned
-					MutexName.c_str());             // unnamed mutex
-			}
-
-
-			
-
-			if (_impl->hFileMutex)
-			{
-				SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has mutex");
-			}
+			_impl->hFileMutex = CreateMutexA(
+				NULL,
+				false,					// initially not owned
+				MutexName.c_str());
 		}
+		else
+		{
+			_impl->hFileMutex = OpenMutexA(
+				MUTEX_ALL_ACCESS,
+				false,					// initially not owned
+				MutexName.c_str());
+		}
+
+		SE_ASSERT(_impl->hFileMutex);
 	}
 	IPCMappedMemory::~IPCMappedMemory()
 	{
@@ -95,6 +87,29 @@ namespace SPP
 	bool IPCMappedMemory::IsValid() const
 	{
 		return (_impl && _impl->dataLink != nullptr);
+	}
+
+
+	size_t IPCMappedMemory::Size() const
+	{
+		return _memorySize;
+	}
+
+	uint8_t* IPCMappedMemory::Lock()
+	{
+		SE_ASSERT(_impl->hFileMutex);
+		
+		auto dwWaitResult = WaitForSingleObject(
+			_impl->hFileMutex,    // handle to mutex
+			INFINITE);  // no time-out interval
+		
+		return _impl->dataLink;
+	}
+
+	void IPCMappedMemory::Release()
+	{
+		SE_ASSERT(_impl->hFileMutex);		
+		ReleaseMutex(_impl->hFileMutex);
 	}
 
 

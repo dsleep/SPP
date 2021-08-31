@@ -50,6 +50,17 @@ set_property(TARGET encryptionTest PROPERTY VS_DPI_AWARE "PerMonitor")
 
 
 ##########
+add_executable( IPCMemTest "")
+add_dependencies( IPCMemTest SPPCore )			
+target_sources( IPCMemTest 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/IPCMemTest.cpp" )		
+target_link_libraries( IPCMemTest SPPCore )
+set_target_properties( IPCMemTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET IPCMemTest PROPERTY FOLDER "TESTS")
+set_property(TARGET IPCMemTest PROPERTY VS_DPI_AWARE "PerMonitor")
+
+##########
 add_executable( appTransferTest "")
 add_dependencies( appTransferTest SPPCrypto SPPNetworking )			
 target_sources( appTransferTest 
