@@ -9,7 +9,9 @@
 		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-base.css" />
 		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-dark-theme.css" />
 		
-		
+		<script src='jqPropertyGrid/jqPropertyGrid.js'></script>
+		<link rel='stylesheet' href='jqPropertyGrid/jqPropertyGrid.css' />
+
 		<link rel="stylesheet" href="jstree/themes/default/style.min.css" />
 		<script src="jstree/jstree.min.js"></script>
 	<style>
@@ -125,7 +127,8 @@ myLayout.registerComponent( 'gameViewComp', function( container, componentState 
 		console.log("topPos:" + topPos);
 		console.log("bottomPos:" + bottomPos);
 		
-		//window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
+		if(window.CallNativeWithJSON != null)
+		window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
 	});
 });
 
@@ -145,13 +148,11 @@ myLayout.registerComponent( 'playbackComponent', function( container, componentS
 
 myLayout.on( 'initialised', function(){
     initialState = myLayout.toConfig();  
-	
-	
 
 	$('#primTypes').load("./primTypes.html");	
 	$('#IdObjectTree').load("./objectTree.html");	
-	//$('#playbackID').load("./playback.html");	
-	//$('#coordsID').load("./coordinates.html");	
+	$('#idObjProperties').load("./objectProperties.html");
+	
 	
 	//load up the cesium logic
 	//var newScript = document.createElement('script');
