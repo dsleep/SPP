@@ -15,12 +15,43 @@
 		<link rel="stylesheet" href="jstree/themes/default/style.min.css" />
 		<script src="jstree/jstree.min.js"></script>
 	<style>
-	
+	.icon-bar {
+  width: 100%; /* Full-width */
+  background-color: #555; /* Dark-grey background */
+  overflow: auto; /* Overflow due to float */
+}
+
+.icon-bar a {
+  float: left; /* Float links side by side */
+  text-align: center; /* Center-align text */
+  width: 40px; /* Equal width (5 icons with 20% width each = 100%) */
+  padding: 5px 0; /* Some top and bottom padding */
+  transition: all 0.3s ease; /* Add transition for hover effects */
+  color: white; /* White text color */
+  font-size: 26px; /* Increased font size */
+}
+
+.icon-bar a:hover {
+  background-color: #000; /* Add a hover color */
+}
+
+.active {
+  background-color: #242424; /* Add an active/current color */
+}
 	
     </style>
 
     </head>
     <body>
+	
+	<div>
+	
+	<div class="icon-bar">
+  <a href="#"><i class="fa fa-save"></i></a>
+  <a href="#"><i class="fa fa-folder-open"></i></a>
+</div>
+
+	</div>
 	
 	
 <script>
@@ -40,7 +71,7 @@ var config = {
     },
 	dimensions: {
         minItemWidth: 200,
-        minItemHeight: 150
+        minItemHeight: 50
     },
 	content: [{
 			type: 'row',
@@ -50,21 +81,20 @@ var config = {
 				
 				content:[
 					{
-					  type: 'stack',
-					  content:[
-					  {						
+					  				
 						type: 'component',
 						isClosable: false,
 						componentName: 'elementSection',
-						title:'Primitives'
-					  }
-					  ]
+						title:'Primitives',
+						height: 10
+					  
 					},
 					{
 					  type: 'component',
 					  isClosable: false,
 					  componentName: 'ObjTree',
-					  title:'Object Tree'
+					  title:'Object Tree',
+					  height: 30
 					},
 					{
 					  type: 'component',
@@ -75,24 +105,10 @@ var config = {
 				},{
 					type: 'column',
 					content:[{
-						height: 85,
 						type: 'component',
 						componentName: 'gameViewComp',
 						isClosable: false,
 						title:'View'
-					},{
-						type: 'row',
-						
-						content:[
-							
-							{
-							type: 'component',
-							isClosable: false,
-							componentName: 'testComponent',
-							title:'Controls'
-							}
-							
-							]
 					}]
 				}]
     }]
@@ -128,7 +144,9 @@ myLayout.registerComponent( 'gameViewComp', function( container, componentState 
 		console.log("bottomPos:" + bottomPos);
 		
 		if(window.CallNativeWithJSON != null)
-		window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
+		}
 	});
 });
 
@@ -154,10 +172,10 @@ myLayout.on( 'initialised', function(){
 	$('#idObjProperties').load("./objectProperties.html");
 	
 	
-	//load up the cesium logic
+	//load script example
 	//var newScript = document.createElement('script');
 	//newScript.type = 'text/javascript';
-	//newScript.src = "./js/CesiumLogic.js";
+	//newScript.src = "./somescript.js";
 	//document.getElementsByTagName('head')[0].appendChild(newScript);
 });
 
