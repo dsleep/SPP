@@ -81,7 +81,7 @@ public:
 
 		_mainScene = GGI()->CreateRenderScene();
 		auto& cam = _mainScene->GetCamera();
-		cam.GetCameraPosition()[1] = 100;
+		//cam.GetCameraPosition()[1] = 100;
 
 		SPP::MakeResidentAllGPUResources();
 

@@ -73,27 +73,35 @@ float opIntersection(float d1, float d2) { return max(d1, d2); }
 
 float opSmoothUnion(float d1, float d2, float k) {
     float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);
-    return mix(d2, d1, h) - k * h * (1.0 - h);
+    return lerp(d2, d1, h) - k * h * (1.0 - h);
 }
 
 float opSmoothSubtraction(float d1, float d2, float k) {
     float h = clamp(0.5 - 0.5 * (d2 + d1) / k, 0.0, 1.0);
-    return mix(d2, -d1, h) + k * h * (1.0 - h);
+    return lerp(d2, -d1, h) + k * h * (1.0 - h);
 }
 
 float opSmoothIntersection(float d1, float d2, float k) 
 {
     float h = clamp(0.5 - 0.5 * (d2 - d1) / k, 0.0, 1.0);
-    return mix(d2, d1, h) + k * h * (1.0 - h);
+    return lerp(d2, d1, h) + k * h * (1.0 - h);
+}
+
+float map( in float3 pos )
+{
+    float d = 1e10;
+	
+	d = opUnion( d, sdSphere( pos - float3(0,-20,100), 25 ) );
+	d = opSmoothUnion( d, sdBox( pos - float3(0,20,100), float3(10, 25, 10) ), 10 );
+	
+	return d;
 }
 
 // Raymarch along given ray
 // ro: ray origin
 // rd: ray direction
-float4 raymarch(float3 ro, float3 rd) 
+float raymarch(float3 ro, float3 rd) 
 {
-    float4 ret = fixed4(0, 0, 0, 0);
-
     const int maxstep = 64;
     float t = 0; // current distance traveled along ray
     for (int i = 0; i < maxstep; ++i) 
@@ -104,9 +112,6 @@ float4 raymarch(float3 ro, float3 rd)
         // If the sample <= 0, we have hit something (see map()).
         if (d < 0.001)
         {
-            // Simply return a gray color if we have hit an object
-            // We will deal with lighting later.
-            ret = float4(0.5, 0.5, 0.5, 1);
             break;
         }
 
@@ -116,8 +121,58 @@ float4 raymarch(float3 ro, float3 rd)
         t += d;
     }
 
-    return ret;
+    return t;
 }
+
+float3 calcNormal(float3 pos)
+{
+    const float ep = 0.0001;
+    float2 e = float2(1.0, -1.0) * 0.5773;
+    return normalize(e.xyy * map(pos + e.xyy * ep) +
+        e.yyx * map(pos + e.yyx * ep) +
+        e.yxy * map(pos + e.yxy * ep) +
+        e.xxx * map(pos + e.xxx * ep));
+}
+
+/*
+[noinline]
+float3 calcNormal( float3 pos ) // for function f(p)
+{
+    const float h = 0.0001;      // replace by an appropriate value
+    float3 n = float3(0,0,0);
+    for( int i=0; i<4; i++ )
+    {
+        float3 e = 0.5773*(2.0*float3((((i+3)>>1)&1),((i>>1)&1),(i&1))-1.0);
+        n += e*map(pos+e*h).x;
+    }
+    return normalize(n);
+}
+*/
+
+float4 renderSDF( float3 ro, float3 rd ) 
+{ 
+	float hitDistance = raymarch(ro, rd);
+
+    if (hitDistance < 1000)
+    {
+        float3 pos = ro + hitDistance * rd;
+        float4 outColor = float4(1.00, 0.9, 0.80, 1);
+
+        float3 objNormal = calcNormal(pos);
+        float3  lig = normalize(float3(1.0, 0.8, -0.2));
+        float dif = clamp(dot(objNormal, lig), 0.0, 1.0);
+        float amb = 0.5;// +0.5 * objNormal.y;w
+
+        return float4(0.25, 0.25, 0.25,1) * amb +  
+            outColor * dif;
+
+    }
+
+	return float4(rd * 0.5 + 0.5,1);
+}
+
+
+
 
 /*
 //TRANSFORM
