@@ -179,6 +179,7 @@ public:
 						_msgQueue->PushMessage(newMessage);
 					}
 
+					CheckFeedbackFromSofa();
 					/* SOFA TIPS EXAMPLE CODE:
 					
 					struct IPCMotionState
