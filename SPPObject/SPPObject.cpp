@@ -121,6 +121,24 @@ namespace SPP
 		return true;
 	}
 
+	std::string MetaPath::ToString() const
+	{
+		if (_path.empty())return std::string("NOPATH");
+
+		std::string Result;
+
+		for (int32_t Iter = 0; Iter < _path.size(); Iter++)
+		{
+			if (Iter > 0)
+			{
+				Result += ".";
+			}
+			Result += _path[Iter].GetValue();
+		}
+
+		return Result;
+	}
+
 	size_t MetaPath::Hash() const
 	{
 		if(_path.empty())return 0;
@@ -144,40 +162,7 @@ namespace SPP
 		float Scalar = 1.0f;
 	};
 
-	class OWorld : public SPPObject
-	{
-	private:
-
-	public:
-	};
-
-	class OElement : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		class OEntity* _parent = nullptr;
-
-		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
-
-	public:
-		virtual ~OElement() { }
-	};
-
-	class OEntity : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		std::vector<OElement*> _elements;
-
-		OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
-
-	public:
-		virtual ~OEntity() { }
-	};
+	
 
 	class OTexture : public SPPObject
 	{
@@ -239,22 +224,6 @@ RTTR_REGISTRATION
 		.property("_factors", &OTexture::_factors)
 	;
 
-
-	rttr::registration::class_<OElement>("OElement")
-		.constructor<const MetaPath&>()
-		(
-			rttr::policy::ctor::as_raw_ptr
-		)
-		.property("_parent", &OElement::_parent)
-		;
-
-	rttr::registration::class_<OEntity>("OEntity")
-		.constructor<const MetaPath&>()
-		(
-			rttr::policy::ctor::as_raw_ptr
-		)
-		.property("_elements", &OEntity::_elements)
-		;
 }
 
 

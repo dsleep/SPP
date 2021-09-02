@@ -1029,6 +1029,12 @@ namespace SPP
 
 		std::vector< DebugVertex > _lines;
 
+
+		std::shared_ptr< GPUShader > _fullscreenVS;
+		std::shared_ptr< GPUShader > _fullscreenPS;
+
+		std::shared_ptr< D3D12PipelineState > _fullscreenPSO;
+		std::shared_ptr< GPUInputLayout > _fullscreenLayout;
 	public:
 		D3D12RenderScene()
 		{
@@ -1038,6 +1044,7 @@ namespace SPP
 			_debugPS = DX12_CreateShader(EShaderType::Pixel);
 			_debugPS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
 
+		
 			_debugLayout = DX12_CreateInputLayout();
 			_debugLayout->InitializeLayout({
 					{ "POSITION",  InputLayoutElementType::Float3, offsetof(DebugVertex,position) },
@@ -1059,6 +1066,87 @@ namespace SPP
 			_debugResource = std::make_shared< ArrayResource >();
 			_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
 			_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
+
+
+			//
+			_fullscreenVS = DX12_CreateShader(EShaderType::Vertex);
+			_fullscreenVS->CompileShaderFromFile("shaders/fullscreenShader.hlsl", "main_vs");
+
+			_fullscreenPS = DX12_CreateShader(EShaderType::Pixel);
+			_fullscreenPS->CompileShaderFromFile("shaders/fullscreenShader.hlsl", "main_ps");
+
+			_fullscreenLayout = DX12_CreateInputLayout();
+			_fullscreenLayout->InitializeLayout({
+					{ "POSITION",  InputLayoutElementType::Float2, offsetof(FullscreenVertex,position) }
+				});
+
+			_fullscreenPSO = GetD3D12PipelineState(EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Disabled,
+				_fullscreenLayout,
+				_fullscreenVS,
+				_fullscreenPS,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr);
+
+		}
+
+		void DrawFullScreen()
+		{
+			auto pd3dDevice = GGraphicsDevice->GetDevice();
+			auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+			auto cmdList = GGraphicsDevice->GetCommandList();
+			auto currentFrame = GGraphicsDevice->GetFrameCount();
+
+			ID3D12RootSignature* rootSig = nullptr;
+
+			if (_fullscreenVS)
+			{
+				rootSig = _fullscreenVS->GetAs<D3D12Shader>().GetRootSignature();
+			}
+
+			cmdList->SetGraphicsRootSignature(rootSig);
+
+			//table 0, shared all constant, scene stuff 
+			{
+				cmdList->SetGraphicsRootConstantBufferView(0, GetGPUAddrOfViewConstants());
+
+				CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+				CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+				cmdList->RSSetViewports(1, &m_viewport);
+				cmdList->RSSetScissorRects(1, &m_scissorRect);
+			}
+
+			//table 1, VS only constants
+			{
+				auto pd3dDevice = GGraphicsDevice->GetDevice();
+
+				_declspec(align(256u))
+					struct GPUDrawConstants
+				{
+					//altered viewposition translated
+					Matrix4x4 LocalToWorldScaleRotation;
+					Vector3d Translation;
+				};
+
+				Matrix4x4 matId = Matrix4x4::Identity();
+				Vector3d dummyVec(0, 0, 0);
+
+				// write local to world
+				auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
+				WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
+				WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
+
+				cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
+			}
+
+			cmdList->SetPipelineState(_fullscreenPSO->GetState());
+			cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+			cmdList->DrawInstanced(4, 1, 0, 0);
 		}
 
 		void DrawDebug()
@@ -1279,6 +1367,8 @@ namespace SPP
 			{
 				renderItem->Draw();
 			}
+
+			DrawFullScreen();
 		};
 	};
 		
@@ -1485,6 +1575,9 @@ namespace SPP
 			case EDrawingTopology::TriangleList:
 				cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				break;
+			case EDrawingTopology::TriangleStrip:
+				cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+				break;
 			case EDrawingTopology::PatchList_4ControlPoints:
 				cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
 				break;
@@ -1493,7 +1586,6 @@ namespace SPP
 				SE_ASSERT(false);
 				break;
 			}
-
 
 			//cmdList->SetComputeRootUnorderedAccessView
 

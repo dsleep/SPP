@@ -64,9 +64,9 @@ public:
 		_mainDXWindow = (HWND)AppWindow;
 
 #ifdef _DEBUG
-		LoadLibraryA("SPPOpenGLd.dll");
+		LoadLibraryA("SPPDX12d.dll");
 #else
-		LoadLibraryA("SPPOpenGL.dll");
+		LoadLibraryA("SPPDX12.dll");
 #endif
 
 

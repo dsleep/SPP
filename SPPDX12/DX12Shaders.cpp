@@ -9,8 +9,6 @@
 
 #pragma comment( lib, "dxcompiler.lib" )
 
-#define REL_SHADER_PATH "shaders/OpenGL"
-
 namespace SPP
 {
 	LogEntry LOG_D3D12Shader("D3D12Shader");
@@ -105,7 +103,7 @@ namespace SPP
 	{
 		SPP_LOG(LOG_D3D12Shader, LOG_INFO, "CompileShaderFromFile: %s(%s) type %s", *FileName, EntryPoint, ReturnDXType(_type));
 
-		AssetPath shaderRoot = REL_SHADER_PATH;
+		AssetPath shaderRoot("shaders");
 
 		ComPtr<IDxcUtils> pLibrary;
 		DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(pLibrary.GetAddressOf()));

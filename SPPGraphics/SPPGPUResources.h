@@ -37,6 +37,7 @@ namespace SPP
         PointList = 0,
         LineList,
         TriangleList,
+        TriangleStrip,
         PatchList_4ControlPoints,
 
         NumValues

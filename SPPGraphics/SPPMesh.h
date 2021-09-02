@@ -303,6 +303,11 @@ namespace SPP
 		InMeshVertex = InVertex;
 	}
 
+	struct FullscreenVertex
+	{
+		Vector2 position;
+	};
+
 	struct DebugVertex
 	{
 		Vector3 position;

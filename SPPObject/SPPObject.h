@@ -51,6 +51,8 @@ namespace SPP
 
 		size_t Hash() const;
 
+		std::string ToString() const;
+
 
 		bool InDomain(const MetaPath &DomainToCheck) const;
 

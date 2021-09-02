@@ -386,13 +386,30 @@ public:
 			{
 				if (curObject->GetPath().InDomain(_domain))
 				{
-					_intObjects.insert(curObject);
+					auto [iter, inserted] = _intObjects.insert(curObject);
+					if (inserted == false)
+					{						
+						return;
+					}
+					else
+					{
+						SPP_LOG(LOG_APP, LOG_INFO, "Added inteneral %s", curObject->GetPath().ToString().c_str());
+					}
 				}
 				else
 				{
 					_extObjects.insert(curObject);
+					return;
 				}
 			}
+			else
+			{
+				return;
+			}
+		}
+		else if (curType.is_pointer())
+		{
+			return;
 		}
 
 		auto prop_list = curType.get_properties();
@@ -405,18 +422,81 @@ public:
 			if (!prop_value)
 				continue; // cannot serialize, because we cannot retrieve the value
 
+			SPP_LOG(LOG_APP, LOG_INFO, " - prop %s", prop.get_name().data());
+
 			PopulateObjectLinks(var);
 		}
 	}
 };
+
+class OWorld : public SPPObject
+{
+private:
+
+public:
+};
+
+class OElement : public SPPObject
+{
+	RTTR_ENABLE(SPPObject);
+	RTTR_REGISTRATION_FRIEND
+
+protected:
+	OElement(const MetaPath& InPath) : SPPObject(InPath) { }
+
+public:
+
+	class OEntity* _parent = nullptr;
+
+
+	virtual ~OElement() { }
+};
+
+class OEntity : public SPPObject
+{
+	RTTR_ENABLE(SPPObject);
+	RTTR_REGISTRATION_FRIEND
+
+protected:
+	std::vector<OElement*> _elements;
+
+	OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
+
+public:
+	virtual ~OEntity() { }
+};
+
+RTTR_REGISTRATION
+{
+
+
+	rttr::registration::class_<OElement>("OElement")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_parent", &OElement::_parent)
+		;
+
+	rttr::registration::class_<OEntity>("OEntity")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_elements", &OEntity::_elements)
+		;
+}
+
 
 
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 
-	auto CurrentObject = AllocateObject("OElement", "Asset.Textures.GrassDraw");
-	auto CurrentEntity = AllocateObject("OEntity", "Asset.Textures.Grasses");
+	auto CurrentObject = (OElement*) AllocateObject("OElement", "Asset.Textures.Grass.Draw");
+	auto CurrentEntity = (OEntity*) AllocateObject("OEntity", "Asset.Textures.Grass");
+
+	CurrentObject->_parent = CurrentEntity;
 
 	std::vector<SPPObject*> objects;
 	objects.push_back(CurrentObject);
