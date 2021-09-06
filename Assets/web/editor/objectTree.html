@@ -5,29 +5,35 @@
   <title>jsTree test</title>
   <!-- 2 load the theme CSS file -->
   <link rel="stylesheet" href="jstree/themes/default/style.min.css" />
+  
+  <script src="jQuery/jquery-3.5.1.js"></script>
+  <script src="jstree/jstree.min.js"></script>
 </head>
 <body>
   <!-- 3 setup a container element -->
-  <div id="jstree" style="background-color: lightgray;">
-    <!-- in this example the tree is populated from inline HTML -->
-    <ul>
-      <li>Root node 1
-        <ul>
-          <li id="child_node_1">Child node 1</li>
-          <li>Child node 2</li>
-        </ul>
-      </li>
-      <li>Root node 2</li>
-    </ul>
+  <div id="jstreeID" style="background-color: lightgray;">
   </div>
-  <button>demo button</button>
 
-  <!-- 4 include the jQuery library -->
-  <script src="jQuery/jquery-3.5.1.js"></script>
-  <!-- 5 include the minified jstree source -->
-  <script src="jstree/jstree.min.js"></script>
   <script>
-    $('#jstree').jstree();
+    		console.log("jstree");
+
+	$('#jstreeID').jstree({ 'core' : {
+    'data' : [
+       'Simple root node',
+       {
+         'text' : 'Root node 2',
+         'state' : {
+           'opened' : true,
+           'selected' : true
+         },
+         'children' : [
+           { 'text' : 'Child 1' },
+           'Child 2'
+         ]
+      }
+    ]
+} });
+
   </script>
 </body>
 </html>
