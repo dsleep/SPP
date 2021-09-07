@@ -36,6 +36,13 @@ namespace SPP
 		return MemoryToJson(InString.data(), InString.length(), outValue);
 	}
 
+	bool JsonToString(const Json::Value& outValue, std::string& outString)
+	{
+		Json::StreamWriterBuilder wbuilder;
+		outString = Json::writeString(wbuilder, outValue);
+		return true;
+	}
+
 	bool FileToJson(const char* FileName, Json::Value& outValue)
 	{
 		std::string FileString;

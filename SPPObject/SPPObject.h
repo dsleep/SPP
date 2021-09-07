@@ -15,6 +15,8 @@
 #include <map>
 #include <unordered_map>
 
+#include "json/json.h"
+
 #include <rttr/registration>
 #include <rttr/registration_friend>
 

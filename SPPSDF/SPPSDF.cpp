@@ -7,12 +7,23 @@ namespace SPP
 	{
 		return 1;
 	}
+
+	void OSDFSphere::SetRadius(float InRadius)
+	{
+		_radius = InRadius;
+	}
 }
 
 using namespace SPP;
 
 RTTR_REGISTRATION
 {
+	rttr::registration::class_<Vector3>("Vector3")
+		.property("x", &Vector3::GetX, &Vector3::SetX)
+		.property("y", &Vector3::GetY, &Vector3::SetY)
+		.property("z", &Vector3::GetZ, &Vector3::SetZ)
+		;
+
 	rttr::registration::enumeration<EShapeOp>("EShapeOp")
 				  (
 					  rttr::value("Add",		EShapeOp::Add),
@@ -44,6 +55,22 @@ RTTR_REGISTRATION
 			rttr::policy::ctor::as_raw_ptr
 		)
 		.property("_shapeOp", &OShape::_shapeOp)
+		;
+
+	rttr::registration::class_<OSDFSphere>("OSDFSphere")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		.property("_radius", &OSDFSphere::_radius)
+		;
+
+	rttr::registration::class_<OSDFBox>("OSDFBox")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		.property("_extents", &OSDFBox::_extents)
 		;
 
 	rttr::registration::class_<OShapeGroup>("OShapeGroup")

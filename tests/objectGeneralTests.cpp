@@ -6,6 +6,7 @@
 #include "SPPLogging.h"
 #include "SPPObject.h"
 #include "SPPSDF.h"
+#include "SPPJsonUtils.h"
 
 using namespace SPP;
 
@@ -438,8 +439,9 @@ public:
 };
 
 
-void GetPropertiesAsJSON(const rttr::instance& inValue)
+void GetObjectPropertiesAsJSON(Json::Value &rootValue, const rttr::instance & inValue)
 {
+	
 	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ?
 		inValue.get_wrapped_instance() : inValue;
 	auto curType = obj.get_type();
@@ -453,15 +455,39 @@ void GetPropertiesAsJSON(const rttr::instance& inValue)
 		if (!prop_value)
 			continue; // cannot serialize, because we cannot retrieve the value
 
-
 		const auto name = prop.get_name().to_string();
 		SPP_LOG(LOG_APP, LOG_INFO, " - prop %s", name.data());
 
 		const auto propType = prop_value.get_type();
 
-		if (propType.is_arithmetic())
+		if (propType.is_class())
 		{
+			SE_ASSERT(propType.is_wrapper() == false);
 
+			Json::Value nestedInfo;
+			GetObjectPropertiesAsJSON(nestedInfo, prop_value);
+
+			Json::Value propInfo;
+			propInfo["type"] = propType.get_name().data();
+			propInfo["value"] = nestedInfo;
+
+			rootValue[name.c_str()] = propInfo;
+		}
+		else if (propType.is_arithmetic() || propType.is_enumeration())
+		{
+			Json::Value propInfo;
+
+			bool bok = false;
+			auto stringValue = prop_value.to_string(&bok);
+
+			SE_ASSERT(bok);
+
+			SPP_LOG(LOG_APP, LOG_INFO, "   - %s", stringValue.c_str());
+
+			propInfo["type"] = propType.get_name().data();
+			propInfo["value"] = stringValue;
+
+			rootValue[name.c_str()] = propInfo;
 		}
 	}
 }
@@ -472,22 +498,29 @@ void GetPropertiesAsJSON(const rttr::instance& inValue)
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
+	GetSDFVersion();
+	auto CurrentObject = (OSDFBox*) AllocateObject("OSDFBox", "Asset.Textures.Grass.Draw");
+	auto CurrentEntity = (OShapeGroup*) AllocateObject("OShapeGroup", "Asset.Textures.Grass");
 
-	auto CurrentObject = (OElement*) AllocateObject("OElement", "Asset.Textures.Grass.Draw");
-	auto CurrentEntity = (OEntity*) AllocateObject("OEntity", "Asset.Textures.Grass");
+	
 
-	CurrentObject->_parent = CurrentEntity;
+	//CurrentObject->_parent = CurrentEntity;
 
-	std::vector<SPPObject*> objects;
-	objects.push_back(CurrentObject);
+	//std::vector<SPPObject*> objects;
+	//objects.push_back(CurrentObject);
 
-	ByteArraySerializer< ObjectSerializer> objData;
+	//ByteArraySerializer< ObjectSerializer> objData;
 
+	Json::Value rootValue;
+	GetObjectPropertiesAsJSON(rootValue, CurrentObject);
 
-	rttr::variant asVariant(CurrentObject);
-	objData.PopulateObjectLinks(asVariant);
+	std::string StrMessage;
+	JsonToString(rootValue, StrMessage);
 
-	objData.WriteVariant(asVariant);
+	//rttr::variant asVariant(CurrentObject);
+	//objData.PopulateObjectLinks(asVariant);
+
+	//objData.WriteVariant(asVariant);
 
 	//objData << objects;
 	//CurrentObject

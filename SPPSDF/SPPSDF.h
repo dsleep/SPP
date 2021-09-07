@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPObject.h"
+#include "SPPMath.h"
 
 #if _WIN32 && !defined(SPP_SDF_STATIC)
 
@@ -67,7 +68,7 @@ namespace SPP
 
 	protected:
 		OShape(const MetaPath& InPath) : OElement(InPath) { }
-		EShapeOp _shapeOp;
+		EShapeOp _shapeOp = EShapeOp::Add;
 
 	public:
 		virtual ~OShape() { }
@@ -85,6 +86,33 @@ namespace SPP
 
 	public:
 		virtual ~OShapeGroup() { }
+	};
+
+	class SPP_SDF_API OSDFSphere : public OShape
+	{
+		RTTR_ENABLE(OShape);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OSDFSphere(const MetaPath& InPath) : OShape(InPath) { }
+		float _radius = 1.0f;
+
+	public:
+		void SetRadius(float InRadius);
+		virtual ~OSDFSphere() { }
+	};
+
+	class SPP_SDF_API OSDFBox : public OShape
+	{
+		RTTR_ENABLE(OShape);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OSDFBox(const MetaPath& InPath) : OShape(InPath) { }
+		Vector3 _extents = { 1, 1, 1 };
+
+	public:
+		virtual ~OSDFBox() { }
 	};
 
 	SPP_SDF_API uint32_t GetSDFVersion();

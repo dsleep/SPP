@@ -36,7 +36,75 @@ namespace SPP
     using Matrix4x4d = Eigen::Matrix< double, 4, 4, Eigen::RowMajor >;
 
 	using Vector2 = Eigen::Matrix< float, 1, 2, Eigen::RowMajor >;
-	using Vector3 = Eigen::Matrix< float, 1, 3, Eigen::RowMajor >;
+	using _AsEigenVector3 = Eigen::Matrix< float, 1, 3, Eigen::RowMajor >;
+
+    class Vector3 : public _AsEigenVector3
+    {
+    public:
+        Vector3() : _AsEigenVector3() {}
+        typedef _AsEigenVector3 Base;
+        typedef float Scalar;
+
+        // This constructor allows you to construct MyVectorType from Eigen expressions
+        template<typename OtherDerived>
+        Vector3(const Eigen::MatrixBase<OtherDerived>& other)
+            : Base(other)
+        { }
+        // This method allows you to assign Eigen expressions to MyVectorType
+        template<typename OtherDerived>
+        Vector3& operator= (const Eigen::MatrixBase <OtherDerived>& other)
+        {
+            this->Base::operator=(other);
+            return *this;
+        }
+
+        //Vector3(Vector3&& other) 
+        //    : Base(std::move(other))
+        //{
+        //    Base::_check_template_params();
+        //}         
+        //Vector3& operator=(Vector3&& other)
+        //{
+        //    other.swap(*this);
+        //    return *this;
+        //}
+
+        Vector3(const Scalar& x, const Scalar& y, const Scalar& z)
+        {
+            Base::_check_template_params();
+            EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Matrix, 3)
+            m_storage.data()[0] = x;
+            m_storage.data()[1] = y;
+            m_storage.data()[2] = z;
+        }
+
+        void SetX(float InValue)
+        {
+            (*this)(0) = InValue;
+        }
+        void SetY(float InValue)
+        {
+            (*this)(1) = InValue;
+        }
+        void SetZ(float InValue)
+        {
+            (*this)(2) = InValue;
+        }
+
+        float GetX() const
+        {
+            return (*this)(0);
+        }
+        float GetY() const
+        {
+            return (*this)(1);
+        }
+        float GetZ() const
+        {
+            return (*this)(2);
+        }
+    };
+
 	using Vector4 = Eigen::Matrix< float, 1, 4, Eigen::RowMajor >;
 
     using Vector2i = Eigen::Matrix< int32_t, 1, 2, Eigen::RowMajor >;
