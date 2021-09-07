@@ -4,14 +4,27 @@
 
 #pragma once
 
-#include "SPPEngine.h"
-#include "SPPMath.h"
+#include "SPPCore.h"
 #include "SPPSerialization.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 #include <Eigen/Geometry> 
+
+#if _WIN32 && !defined(SPP_MATH_STATIC)
+
+	#ifdef SPP_MATH_EXPORT
+		#define SPP_MATH_API __declspec(dllexport)
+	#else
+		#define SPP_MATH_API __declspec(dllimport)
+	#endif
+
+#else
+
+	#define SPP_MATH_API 
+
+#endif
 
 namespace SPP
 {
@@ -34,7 +47,6 @@ namespace SPP
     using Vector3ui = Eigen::Matrix< uint32_t, 1, 3, Eigen::RowMajor >;
     using Vector4ui = Eigen::Matrix< uint32_t, 1, 4, Eigen::RowMajor >;
 
-
 	using Vector2d = Eigen::Matrix< double, 1, 2, Eigen::RowMajor >;
 	using Vector3d = Eigen::Matrix< double, 1, 3, Eigen::RowMajor >;
 	using Vector4d = Eigen::Matrix< double, 1, 4, Eigen::RowMajor >;
@@ -43,6 +55,7 @@ namespace SPP
     using AxisAngle = Eigen::AngleAxis< float >;
 
     using Color3 = Eigen::Matrix< uint8_t, 1, 3, Eigen::RowMajor >;
+    using Color4 = Eigen::Matrix< uint8_t, 1, 4, Eigen::RowMajor >;
 
     using Plane = Eigen::Hyperplane< float, 3 >;
     using Planed = Eigen::Hyperplane< double, 3 >;
@@ -463,6 +476,8 @@ namespace SPP
         }
         return Storage;
     }
+		
+    SPP_MATH_API uint32_t GetMathVersion();
 }
 
 namespace std

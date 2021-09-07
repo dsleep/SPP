@@ -36,6 +36,7 @@ namespace SPP
 		Vector3 tangent;
 		Vector3 bitangent;
 		Vector2 texcoord;
+		Color4 color;
 	};
 
 	struct AdjTri
@@ -357,7 +358,14 @@ namespace SPP
 			textureArray[Idx] = InTexture;
 		}
 	};
-		
+	
+	//ugly update eventuallly
+	enum class MeshTypes
+	{
+		Simple,
+		Meshlets
+	};
+
 	struct SPP_GRAPHICS_API MeshElement
 	{
 		EDrawingTopology topology = EDrawingTopology::TriangleList;
@@ -368,6 +376,21 @@ namespace SPP
 		//
 		std::shared_ptr< GPUBuffer > VertexResource;
 		std::shared_ptr< GPUBuffer > IndexResource;
+				
+		std::shared_ptr< MeshMaterial > material;
+
+		virtual MeshTypes GetType() const
+		{
+			return MeshTypes::Simple;
+		}
+		virtual ~MeshElement()
+		{
+
+		}
+	};	
+
+	struct SPP_GRAPHICS_API MeshletedElement : public MeshElement
+	{
 		// meshlet related
 		std::vector<struct MeshNode> MeshletNodes;
 		std::vector<struct Subset> MeshletSubsets;
@@ -377,8 +400,16 @@ namespace SPP
 		std::shared_ptr< GPUBuffer > PrimitiveIndexResource;
 		std::shared_ptr< GPUBuffer > CullDataResource;
 
-		std::shared_ptr< MeshMaterial > material;
-	};	
+		virtual MeshTypes GetType() const
+		{
+			return MeshTypes::Meshlets;
+		}
+
+		virtual ~MeshletedElement()
+		{
+
+		}
+	};
 
 	class SPP_GRAPHICS_API Mesh 
 	{

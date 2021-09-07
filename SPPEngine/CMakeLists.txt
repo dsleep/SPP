@@ -5,7 +5,7 @@ add_library(SPPEngine SHARED "")
 
 set_target_properties(SPPEngine PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPEngine SPPCore SPPObject )
+add_dependencies( SPPEngine SPPCore SPPObject SPPMath )
 
 
 # will need define to not create empty dll export
@@ -30,9 +30,6 @@ target_sources(SPPEngine
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPythonInterface.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPythonInterface.h"
 		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.cpp"
-
 		"${CMAKE_CURRENT_LIST_DIR}/Win32/Win32Application.cpp"		)
 
 target_include_directories(SPPEngine 
@@ -53,6 +50,7 @@ target_link_libraries( SPPEngine
 	PUBLIC
 		SPPCore 
 		SPPObject
+		SPPMath
 		)
 
 install(TARGETS SPPEngine DESTINATION "${SPP_ROOT}/INSTALL")

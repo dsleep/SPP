@@ -3,11 +3,11 @@ project(SPPTests_API VERSION 1.0.0 LANGUAGES CXX)
 
 ##########
 add_executable( objectGeneralTests "")
-add_dependencies( objectGeneralTests SPPObject)			
+add_dependencies( objectGeneralTests SPPSDF)			
 target_sources( objectGeneralTests 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/objectGeneralTests.cpp" )		
-target_link_libraries( objectGeneralTests SPPObject )
+target_link_libraries( objectGeneralTests SPPSDF )
 set_target_properties( objectGeneralTests PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET objectGeneralTests PROPERTY FOLDER "TESTS")
 set_property(TARGET objectGeneralTests PROPERTY VS_DPI_AWARE "PerMonitor")

@@ -1124,7 +1124,7 @@ namespace SPP
 		for (Blender::Object* ob = (Blender::Object*)objects.first; ob; ob = (Blender::Object*)ob->id.next)
 		{
 			++cnt;
-
+						
 			SPP_LOG(LOG_BLENDER, LOG_INFO, "OBJECT %d", ob->type);
 
 			if (!ob->data)	continue;
@@ -1171,6 +1171,7 @@ namespace SPP
 			SPP_LOG(LOG_BLENDER, LOG_INFO, " - verts : %d", me->totvert);
 			SPP_LOG(LOG_BLENDER, LOG_INFO, " - faces : %d", me->totface);
 			SPP_LOG(LOG_BLENDER, LOG_INFO, " - polys : %d", me->totpoly);
+			SPP_LOG(LOG_BLENDER, LOG_INFO, " - colors : %d", me->totcol);
 
 			const Blender::ModifierData* mdf = (const Blender::ModifierData*)ob->modifiers.first;
 			const Blender::bArmature* currentMeshArmature = nullptr;
@@ -1263,6 +1264,9 @@ namespace SPP
 				{
 					const Blender::MPoly& poly = me->mpoly[i];					
 					const int numLoops = poly.totloop;
+					
+					//MLoopUV* mloopuv;
+					//MLoopCol* mloopcol;
 
 					{
 						// Is triangle or quad:

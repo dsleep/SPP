@@ -91,6 +91,7 @@ list(APPEND
 			"SPPCore" 
 			"SPPDatabase" 
 			"SPPNetworking" 
+			"SPPMath"
 			 )
 
 if(USE_CRYPTOCPP)
@@ -106,6 +107,7 @@ if(OS_WINDOWS)
 	list(APPEND SPPProjects
 			"SPPEngine" 
 			"SPPObject" 
+			"SPPSDF" 
 			"SPPCapture" 
 			"SPPVideo" )
 	

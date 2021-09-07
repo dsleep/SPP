@@ -24,17 +24,17 @@ namespace SPP
 {
 	LogEntry LOG_ASSIMP("ASSIMP");
 	
-	const unsigned int GeneicStaticImportFlags =
+	const unsigned int GeneicStaticImportFlags = 
 		//aiProcess_CalcTangentSpace |
-		//aiProcess_Triangulate |
-		aiProcess_SortByPType |
+		aiProcess_Triangulate;// |
+		//aiProcess_SortByPType |
 		//aiProcess_GenNormals |
 		//aiProcess_GenUVCoords |
 		//aiProcess_OptimizeMeshes |
 		//aiProcess_OptimizeGraph |
-		aiProcess_Debone |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_ValidateDataStructure;
+		//aiProcess_Debone |
+		//aiProcess_JoinIdenticalVertices |
+		//a/iProcess_ValidateDataStructure;
 
 	struct LogStream : public Assimp::LogStream
 	{
@@ -82,6 +82,15 @@ namespace SPP
 
 						meshBounds += vertex.position;
 
+						if (mesh->HasVertexColors(0))
+						{
+							vertex.color = {
+								(uint8_t)std::clamp<float>(mesh->mColors[0]->r * 255.0f, 0.0f, 255.0f),
+								(uint8_t)std::clamp<float>(mesh->mColors[0]->g * 255.0f, 0.0f, 255.0f),
+								(uint8_t)std::clamp<float>(mesh->mColors[0]->b * 255.0f, 0.0f, 255.0f),
+								(uint8_t)std::clamp<float>(mesh->mColors[0]->a * 255.0f, 0.0f, 255.0f)
+							};
+						}
 						if (mesh->HasNormals())
 						{
 							vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };

@@ -5,6 +5,7 @@
 #include "SPPCore.h"
 #include "SPPLogging.h"
 #include "SPPObject.h"
+#include "SPPSDF.h"
 
 using namespace SPP;
 
@@ -436,56 +437,35 @@ private:
 public:
 };
 
-class OElement : public SPPObject
+
+void GetPropertiesAsJSON(const rttr::instance& inValue)
 {
-	RTTR_ENABLE(SPPObject);
-	RTTR_REGISTRATION_FRIEND
+	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ?
+		inValue.get_wrapped_instance() : inValue;
+	auto curType = obj.get_type();
 
-protected:
-	OElement(const MetaPath& InPath) : SPPObject(InPath) { }
+	SPP_LOG(LOG_APP, LOG_INFO, "GetPropertiesAsJSON %s", curType.get_name().data());
 
-public:
-
-	class OEntity* _parent = nullptr;
-
-
-	virtual ~OElement() { }
-};
-
-class OEntity : public SPPObject
-{
-	RTTR_ENABLE(SPPObject);
-	RTTR_REGISTRATION_FRIEND
-
-protected:
-	std::vector<OElement*> _elements;
-
-	OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
-
-public:
-	virtual ~OEntity() { }
-};
-
-RTTR_REGISTRATION
-{
+	auto prop_list = curType.get_properties();
+	for (auto prop : prop_list)
+	{
+		rttr::variant prop_value = prop.get_value(obj);
+		if (!prop_value)
+			continue; // cannot serialize, because we cannot retrieve the value
 
 
-	rttr::registration::class_<OElement>("OElement")
-		.constructor<const MetaPath&>()
-		(
-			rttr::policy::ctor::as_raw_ptr
-		)
-		.property("_parent", &OElement::_parent)
-		;
+		const auto name = prop.get_name().to_string();
+		SPP_LOG(LOG_APP, LOG_INFO, " - prop %s", name.data());
 
-	rttr::registration::class_<OEntity>("OEntity")
-		.constructor<const MetaPath&>()
-		(
-			rttr::policy::ctor::as_raw_ptr
-		)
-		.property("_elements", &OEntity::_elements)
-		;
+		const auto propType = prop_value.get_type();
+
+		if (propType.is_arithmetic())
+		{
+
+		}
+	}
 }
+
 
 
 

@@ -2,10 +2,12 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
-#include "SPPEngine.h"
 #include "SPPMath.h"
 
 namespace SPP
 {
-	
+	uint32_t GetMathVersion()
+	{
+		return 0;
+	}
 }

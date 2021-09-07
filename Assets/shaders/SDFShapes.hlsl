@@ -91,8 +91,9 @@ float map( in float3 pos )
 {
     float d = 1e10;
 	
-	d = opUnion( d, sdSphere( pos - float3(0,-20,100), 25 ) );
-	d = opSmoothUnion( d, sdBox( pos - float3(0,20,100), float3(10, 25, 10) ), 10 );
+	d = opUnion( d, sdSphere( pos - float3(0,-40,100), 25 ) );
+	d = opUnion( d, sdSphere( pos - float3(0,40,100), 25 ) );
+	d = opSmoothUnion( d, sdBox( pos - float3(0,0,100), float3(10, 25, 10) ), 10 );
 	
 	return d;
 }

@@ -58,6 +58,11 @@ private:
 	std::list <  std::shared_ptr<SPPObject> > cachedObjs;
 
 	std::shared_ptr< SPP::MeshMaterial > meshMat;
+
+	std::shared_ptr< Mesh > _moveGizmo;
+	std::shared_ptr< Mesh > _rotateGizmo;
+	std::shared_ptr< Mesh > _scaleGizmo;
+
 public:
 	void Initialize(void *AppWindow)
 	{
@@ -82,6 +87,19 @@ public:
 		_mainScene = GGI()->CreateRenderScene();
 		auto& cam = _mainScene->GetCamera();
 		//cam.GetCameraPosition()[1] = 100;
+
+		_moveGizmo = std::make_shared< Mesh >();
+		_rotateGizmo = std::make_shared< Mesh >();
+		_scaleGizmo = std::make_shared< Mesh >();
+		
+		_moveGizmo->LoadMesh("BlenderFiles/MoveGizmo.ply");
+		_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
+		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.blend");
+
+		auto meshVertexLayout = GGI()->CreateInputLayout();
+		meshVertexLayout->InitializeLayout({
+				{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },		
+				{ "COLOR",  SPP::InputLayoutElementType::UInt8_4, offsetof(SPP::MeshVertex,color) } });
 
 		SPP::MakeResidentAllGPUResources();
 

@@ -250,7 +250,6 @@ namespace SPP
     {
         Float3,
         Float2,
-        UInt8_3,
         UInt8_4,
     };
 
@@ -397,6 +396,9 @@ namespace SPP
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
 
         virtual std::shared_ptr< class RenderScene > CreateRenderScene() = 0;
+
+        virtual bool RegisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement) { return true; };
+        virtual bool UnregisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement) { return true; };
     };
 
     // global graphics interface

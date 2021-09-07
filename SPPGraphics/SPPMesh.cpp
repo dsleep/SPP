@@ -41,53 +41,53 @@ namespace SPP
 
 		if (false)//FoundCachedBlob)
 		{
-			BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
+			//BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
 
-			uint32_t MeshCount = 0;
-			blobAsset >> MeshCount;
+			//uint32_t MeshCount = 0;
+			//blobAsset >> MeshCount;
 
-			for (uint32_t Iter = 0; Iter < MeshCount; Iter++)
-			{
-				AABB meshBounds;
-				blobAsset >> meshBounds;
+			//for (uint32_t Iter = 0; Iter < MeshCount; Iter++)
+			//{
+			//	AABB meshBounds;
+			//	blobAsset >> meshBounds;
 
-				std::vector<Subset>  meshletSubsets;
-				blobAsset >> meshletSubsets;
+			//	std::vector<Subset>  meshletSubsets;
+			//	blobAsset >> meshletSubsets;
 
-				auto newMeshElement = std::make_shared<MeshElement>();
-				std::swap(newMeshElement->MeshletSubsets, meshletSubsets);
-				newMeshElement->Bounds = meshBounds;
+			//	auto newMeshElement = std::make_shared<MeshElement>();
+			//	std::swap(newMeshElement->MeshletSubsets, meshletSubsets);
+			//	newMeshElement->Bounds = meshBounds;
 
-				{
-					auto meshShaderResource = std::make_shared< ArrayResource >();
-					blobAsset >> *meshShaderResource;
-					newMeshElement->MeshletResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
-				}
-				{
-					auto meshShaderResource = std::make_shared< ArrayResource >();
-					blobAsset >> *meshShaderResource;
-					newMeshElement->UniqueVertexIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
-				}
-				{
-					auto meshShaderResource = std::make_shared< ArrayResource >();
-					blobAsset >> *meshShaderResource;
-					newMeshElement->PrimitiveIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
-				}
+			//	{
+			//		auto meshShaderResource = std::make_shared< ArrayResource >();
+			//		blobAsset >> *meshShaderResource;
+			//		newMeshElement->MeshletResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
+			//	}
+			//	{
+			//		auto meshShaderResource = std::make_shared< ArrayResource >();
+			//		blobAsset >> *meshShaderResource;
+			//		newMeshElement->UniqueVertexIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
+			//	}
+			//	{
+			//		auto meshShaderResource = std::make_shared< ArrayResource >();
+			//		blobAsset >> *meshShaderResource;
+			//		newMeshElement->PrimitiveIndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Generic, meshShaderResource);
+			//	}
 
 
-				auto verticesResource = std::make_shared< ArrayResource >();
-				auto indicesResource = std::make_shared< ArrayResource >();
+			//	auto verticesResource = std::make_shared< ArrayResource >();
+			//	auto indicesResource = std::make_shared< ArrayResource >();
 
-				blobAsset >> *verticesResource;
-				blobAsset >> *indicesResource;
+			//	blobAsset >> *verticesResource;
+			//	blobAsset >> *indicesResource;
 
-				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
-				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, indicesResource);
+			//	newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
+			//	newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, indicesResource);
 
-				_elements.push_back(newMeshElement);
+			//	_elements.push_back(newMeshElement);
 
-				//RegisterMeshElement(newMeshElement);
-			}
+			//	//RegisterMeshElement(newMeshElement);
+			//}
 		}
 		else
 		{
@@ -95,12 +95,23 @@ namespace SPP
 			BinaryBlobSerializer outCachedAsset;
 
 			LoadedMeshes loadedMeshes;
-#if 1
+#if 0
 			LoadBlenderFile(FileName, loadedMeshes);			
 #else
 			LoadUsingAssImp(FileName, loadedMeshes);
 #endif
 
+			for (auto& curLayer : loadedMeshes.Layers)
+			{
+				auto newMeshElement = std::make_shared<MeshElement>();
+				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
+				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
+				_elements.push_back(newMeshElement);
+				GGI()->RegisterMeshElement(newMeshElement);
+			}
+
+
+#if 0
 			for(auto &curLayer : loadedMeshes.Layers)
 			{
 				uint32_t MeshletMaxVerts = 64;
@@ -151,6 +162,7 @@ namespace SPP
 				_elements.push_back(newMeshElement);
 				//RegisterMeshElement(newMeshElement);
 			}
+#endif
 
 //			Assimp::Importer importer;
 //			const aiScene* scene = importer.ReadFile(*FileName, GeneicStaticImportFlags);

@@ -183,6 +183,9 @@ namespace SPP
 		case InputLayoutElementType::Float2:
 			return DXGI_FORMAT_R32G32_FLOAT;
 			break;
+		case InputLayoutElementType::UInt8_4:
+			return DXGI_FORMAT_R8G8B8A8_UINT;
+			break;
 		}
 		return DXGI_FORMAT_UNKNOWN;
 	}
@@ -318,44 +321,79 @@ namespace SPP
 
 			for (auto& resourceIdx : _pendingIndices)
 			{
-				std::shared_ptr<MeshElement> CurMeshElement = _elements[resourceIdx];
+				std::shared_ptr<MeshElement> MeshRef = _elements[resourceIdx];
+				auto CurType = MeshRef->GetType();
 
-				SE_ASSERT(CurMeshElement->MeshIndex == resourceIdx);
-
-				auto Meshinfos = MeshInfosArray->GetSpan< MeshInfo>();
-				Meshinfos[resourceIdx].IndexBytes = 4;
-				Meshinfos[resourceIdx].MeshletCount = CurMeshElement->MeshletSubsets.front().Count;
-				MeshInfoResource->UpdateDirtyRegion(resourceIdx, 1);
-
-				D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-				srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-				srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-				srvDesc.Buffer.FirstElement = 0;
-				srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
+				if (CurType == MeshTypes::Simple)
 				{
-					auto currentTableElement = _verticesDescriptorTable[resourceIdx];
-					srvDesc.Buffer.StructureByteStride = CurMeshElement->VertexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
-					srvDesc.Buffer.NumElements = CurMeshElement->VertexResource->GetElementCount();
-					pd3dDevice->CreateShaderResourceView(CurMeshElement->VertexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					auto CurMeshElement = (MeshElement*) MeshRef.get();
+					SE_ASSERT(CurMeshElement->MeshIndex == resourceIdx);
+
+					auto Meshinfos = MeshInfosArray->GetSpan< MeshInfo>();
+					Meshinfos[resourceIdx].IndexBytes = 0;
+					Meshinfos[resourceIdx].MeshletCount = 0;
+					MeshInfoResource->UpdateDirtyRegion(resourceIdx, 1);
+
+					D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+					srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+					srvDesc.Buffer.FirstElement = 0;
+					srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+					{
+						auto currentTableElement = _verticesDescriptorTable[resourceIdx];
+						srvDesc.Buffer.StructureByteStride = CurMeshElement->VertexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+						srvDesc.Buffer.NumElements = CurMeshElement->VertexResource->GetElementCount();
+						pd3dDevice->CreateShaderResourceView(CurMeshElement->VertexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					}
+					{
+						auto currentTableElement = _primitiveIndicesDescriptorTable[resourceIdx];
+						srvDesc.Buffer.StructureByteStride = CurMeshElement->IndexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+						srvDesc.Buffer.NumElements = CurMeshElement->IndexResource->GetElementCount();
+						pd3dDevice->CreateShaderResourceView(CurMeshElement->IndexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					}
 				}
+				else
 				{
-					auto currentTableElement = _meshletsDescriptorTable[resourceIdx];
-					srvDesc.Buffer.StructureByteStride = CurMeshElement->MeshletResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
-					srvDesc.Buffer.NumElements = CurMeshElement->MeshletResource->GetElementCount();
-					pd3dDevice->CreateShaderResourceView(CurMeshElement->MeshletResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
-				}
-				{
-					auto currentTableElement = _uniqueIndicesDescriptorTable[resourceIdx];					
-					srvDesc.Buffer.StructureByteStride = CurMeshElement->UniqueVertexIndexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
-					srvDesc.Buffer.NumElements = CurMeshElement->UniqueVertexIndexResource->GetElementCount();
-					pd3dDevice->CreateShaderResourceView(CurMeshElement->UniqueVertexIndexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
-				}
-				{
-					auto currentTableElement = _primitiveIndicesDescriptorTable[resourceIdx];					
-					srvDesc.Buffer.StructureByteStride = CurMeshElement->PrimitiveIndexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
-					srvDesc.Buffer.NumElements = CurMeshElement->PrimitiveIndexResource->GetElementCount();
-					pd3dDevice->CreateShaderResourceView(CurMeshElement->PrimitiveIndexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					auto CurMeshElement = (MeshletedElement*)MeshRef.get();
+					
+					SE_ASSERT(CurMeshElement->MeshIndex == resourceIdx);
+
+					auto Meshinfos = MeshInfosArray->GetSpan< MeshInfo>();
+					Meshinfos[resourceIdx].IndexBytes = 4;
+					Meshinfos[resourceIdx].MeshletCount = CurMeshElement->MeshletSubsets.front().Count;
+					MeshInfoResource->UpdateDirtyRegion(resourceIdx, 1);
+
+					D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+					srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+					srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+					srvDesc.Buffer.FirstElement = 0;
+					srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+					{
+						auto currentTableElement = _verticesDescriptorTable[resourceIdx];
+						srvDesc.Buffer.StructureByteStride = CurMeshElement->VertexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+						srvDesc.Buffer.NumElements = CurMeshElement->VertexResource->GetElementCount();
+						pd3dDevice->CreateShaderResourceView(CurMeshElement->VertexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					}
+					{
+						auto currentTableElement = _meshletsDescriptorTable[resourceIdx];
+						srvDesc.Buffer.StructureByteStride = CurMeshElement->MeshletResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+						srvDesc.Buffer.NumElements = CurMeshElement->MeshletResource->GetElementCount();
+						pd3dDevice->CreateShaderResourceView(CurMeshElement->MeshletResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					}
+					{
+						auto currentTableElement = _uniqueIndicesDescriptorTable[resourceIdx];
+						srvDesc.Buffer.StructureByteStride = CurMeshElement->UniqueVertexIndexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+						srvDesc.Buffer.NumElements = CurMeshElement->UniqueVertexIndexResource->GetElementCount();
+						pd3dDevice->CreateShaderResourceView(CurMeshElement->UniqueVertexIndexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					}
+					{
+						auto currentTableElement = _primitiveIndicesDescriptorTable[resourceIdx];
+						srvDesc.Buffer.StructureByteStride = CurMeshElement->PrimitiveIndexResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+						srvDesc.Buffer.NumElements = CurMeshElement->PrimitiveIndexResource->GetElementCount();
+						pd3dDevice->CreateShaderResourceView(CurMeshElement->PrimitiveIndexResource->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+					}
 				}
 			}
 			_pendingIndices.clear();			

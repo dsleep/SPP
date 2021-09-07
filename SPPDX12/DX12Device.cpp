@@ -49,6 +49,8 @@ namespace SPP
 	LogEntry LOG_D3D12Device("D3D12Device");
 
 	extern bool ReadyMeshElement(std::shared_ptr<MeshElement> InMeshElement);
+	extern bool RegisterMeshElement(std::shared_ptr<MeshElement> InMeshElement);
+	extern bool UnregisterMeshElement(std::shared_ptr<MeshElement> InMeshElement);
 
 	// lazy externs
 	extern std::shared_ptr< GPUShader > DX12_CreateShader(EShaderType InType);
@@ -1437,16 +1439,23 @@ namespace SPP
 		auto localToWorld = GenerateLocalToWorldMatrix();
 		for (auto _meshData : _meshElements)
 		{
-			if (_meshData->MeshletNodes.size())
-			{
-				NodeTraversal(localToWorld, 0, _meshData->MeshletNodes, HACKS_CameraPos.cast<float>(), 0, [&](uint32_t IdxIter)
-					{
-						auto& renderNode = _meshData->MeshletNodes[IdxIter];
-						auto meshletCount = std::get<1>(renderNode.MeshletRange) - std::get<0>(renderNode.MeshletRange);
+			auto CurType = _meshData->GetType();
 
-						auto transformedAABB = renderNode.Bounds.Transform(localToWorld);
-						DrawAABB(transformedAABB, lines);
-					});
+			if (CurType == MeshTypes::Meshlets)
+			{
+				auto CurMeshElement = (MeshletedElement*)_meshData.get();
+
+				if (CurMeshElement->MeshletNodes.size())
+				{
+					NodeTraversal(localToWorld, 0, CurMeshElement->MeshletNodes, HACKS_CameraPos.cast<float>(), 0, [&](uint32_t IdxIter)
+						{
+							auto& renderNode = CurMeshElement->MeshletNodes[IdxIter];
+							auto meshletCount = std::get<1>(renderNode.MeshletRange) - std::get<0>(renderNode.MeshletRange);
+
+							auto transformedAABB = renderNode.Bounds.Transform(localToWorld);
+							DrawAABB(transformedAABB, lines);
+						});
+				}
 			}
 		}
 	}
@@ -1605,15 +1614,19 @@ namespace SPP
 			}
 			else if (_meshData->material->meshShader)
 			{
-				if (_meshData->MeshIndex >= 0)
-				{					
+				auto CurType = _meshData->GetType();
+
+				if (CurType == MeshTypes::Meshlets && _meshData->MeshIndex >= 0)
+				{
+					auto CurMeshElement = (MeshletedElement*)_meshData.get();
+
 					ReadyMeshElement(_meshData);
 
 					cmdList->SetGraphicsRoot32BitConstant(6, _meshData->MeshIndex, 0);
 					cmdList->SetGraphicsRoot32BitConstant(6, 4, 1);
 
 #if 1
-					auto& StartingNode = _meshData->MeshletNodes.front();
+					auto& StartingNode = CurMeshElement->MeshletNodes.front();
 
 					float DistanceToCamera = (HACKS_CameraPos.cast<float>() - StartingNode.Bounds.Center()).norm();
 
@@ -1621,9 +1634,9 @@ namespace SPP
 
 					auto localToWorld = GenerateLocalToWorldMatrix();
 
-					NodeTraversal(localToWorld, 0, _meshData->MeshletNodes, HACKS_CameraPos.cast<float>(), 0, [&](uint32_t IdxIter)
+					NodeTraversal(localToWorld, 0, CurMeshElement->MeshletNodes, HACKS_CameraPos.cast<float>(), 0, [&](uint32_t IdxIter)
 						{
-							auto& renderNode = _meshData->MeshletNodes[IdxIter];
+							auto& renderNode = CurMeshElement->MeshletNodes[IdxIter];
 							auto meshletCount = std::get<1>(renderNode.MeshletRange) - std::get<0>(renderNode.MeshletRange);
 							cmdList->SetGraphicsRoot32BitConstant(6, std::get<0>(renderNode.MeshletRange), 2);
 							cmdList->SetGraphicsRoot32BitConstant(6, meshletCount, 3);
@@ -1725,6 +1738,15 @@ namespace SPP
 		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
 		{
 			return std::make_shared< D3D12RenderScene >();
+		}
+
+		virtual bool RegisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement)
+		{
+			return SPP::RegisterMeshElement(InMeshElement);
+		}
+		virtual bool UnregisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement)
+		{
+			return SPP::UnregisterMeshElement(InMeshElement);
 		}
 	};
 
