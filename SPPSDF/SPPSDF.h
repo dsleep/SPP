@@ -54,7 +54,30 @@ namespace SPP
 		OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
 
 	public:
+		std::vector<OElement*>& GetElements()
+		{
+			return _elements;
+		}
+
 		virtual ~OEntity() { }
+	};
+
+	class SPP_SDF_API OWorld : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		std::vector<OEntity*> _entities;
+
+		OWorld(const MetaPath& InPath) : SPPObject(InPath) { }
+
+	public:
+		std::vector<OEntity*> &GetEntities()
+		{
+			return _entities;
+		}
+		virtual ~OWorld() { }
 	};
 
 	enum class EShapeOp

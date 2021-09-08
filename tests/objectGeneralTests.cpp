@@ -431,12 +431,6 @@ public:
 	}
 };
 
-class OWorld : public SPPObject
-{
-private:
-
-public:
-};
 
 struct SubTypeInfo
 {
@@ -525,16 +519,52 @@ void GetObjectPropertiesAsJSON(Json::Value &rootValue, SubTypeInfo& subTypes, co
 	}
 }
 
+void GenerateObjectList(OWorld *InWorld, Json::Value &rootValue)
+{
+	auto entities = InWorld->GetEntities();
 
+	for (auto entity : entities)
+	{
+		SE_ASSERT(entity);
+
+		if (entity)
+		{
+			auto pathName = entity->GetPath();
+
+			Json::Value localValue;
+			localValue["FULL"] = pathName.ToString();
+			localValue["LOCAL"] = pathName.TopLevelName();
+
+			Json::Value elementValues;
+			auto elements = entity->GetElements();
+			for (auto element : elements)
+			{
+				auto elePath = element->GetPath();
+				elementValues.append(elePath.TopLevelName());
+			}
+			localValue["CHILDREN"] = elementValues;
+
+			rootValue.append(localValue);
+		}
+	}
+}
 
 
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 	GetSDFVersion();
-	auto CurrentObject = (OSDFBox*) AllocateObject("OSDFBox", "Asset.Textures.Grass.Draw");
-	auto CurrentEntity = (OShapeGroup*) AllocateObject("OShapeGroup", "Asset.Textures.Grass");
+
+
+
+	auto CurrentWorld = AllocateObject<OWorld>("World");
+
+	auto CurrentObject = AllocateObject<OSDFBox>("World.ShapeGroup_0.Box_0");
+	auto CurrentEntity = AllocateObject<OShapeGroup>("World.ShapeGroup_0");
 	
+	CurrentEntity->GetElements().push_back(CurrentObject);
+	CurrentWorld->GetEntities().push_back(CurrentEntity);
+
 	Json::Value rootValue;
 	
 	SubTypeInfo infos;
@@ -545,6 +575,12 @@ int main(int argc, char* argv[])
 
 	std::string SubMessage;
 	JsonToString(infos.subTypes, SubMessage);
+
+
+	Json::Value worldEntities;
+	GenerateObjectList(CurrentWorld, worldEntities);
+	std::string worldString;
+	JsonToString(worldEntities, worldString);
 
 	//rttr::variant asVariant(CurrentObject);
 	//objData.PopulateObjectLinks(asVariant);

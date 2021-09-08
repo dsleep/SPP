@@ -139,6 +139,13 @@ namespace SPP
 		return Result;
 	}
 
+	std::string MetaPath::TopLevelName() const
+	{
+		if (_path.empty())return std::string("NOPATH");
+
+		return _path.back().GetValue();
+	}
+
 	size_t MetaPath::Hash() const
 	{
 		if(_path.empty())return 0;
@@ -184,15 +191,13 @@ namespace SPP
 		}
 	};	
 
-	SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath)
+	SPPObject* AllocateObject(const rttr::type& InType, const MetaPath& InPath)
 	{
 		using namespace rttr;
-		// option 1
-		type class_type = type::get_by_name(ObjectType);
-
-		if (class_type.is_derived_from( type::get<SPPObject>() ))
+		
+		if (InType.is_derived_from(type::get<SPPObject>()))
 		{
-			variant obj = class_type.create({ InPath });
+			variant obj = InType.create({ InPath });
 			SE_ASSERT(obj.get_type().is_pointer());
 
 			if (obj.get_type().is_pointer())
@@ -201,7 +206,16 @@ namespace SPP
 			}
 		}
 
+
 		return nullptr;
+	}
+
+	SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath)
+	{
+		using namespace rttr;
+		// option 1
+		type class_type = type::get_by_name(ObjectType);
+		return AllocateObject(class_type, InPath);
 	}
 }
 

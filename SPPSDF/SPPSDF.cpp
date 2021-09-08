@@ -51,6 +51,14 @@ RTTR_REGISTRATION
 		.property("_elements", &OEntity::_elements)
 		;
 
+	rttr::registration::class_<OWorld>("OWorld")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		.property("_entities", &OWorld::_entities)
+		;
+
 
 	rttr::registration::class_<OShape>("OShape")
 		.constructor<const MetaPath&>()

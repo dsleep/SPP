@@ -37,7 +37,7 @@ namespace SPP
 	{
 		SPP_LOG(LOG_MESH, LOG_INFO, "Loading Mesh: %s", *FileName);
 
-		auto FoundCachedBlob = GetCachedAsset(FileName);
+		//auto FoundCachedBlob = GetCachedAsset(FileName);
 
 		if (false)//FoundCachedBlob)
 		{

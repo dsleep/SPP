@@ -54,7 +54,7 @@ namespace SPP
 		size_t Hash() const;
 
 		std::string ToString() const;
-
+		std::string TopLevelName() const;
 
 		bool InDomain(const MetaPath &DomainToCheck) const;
 
@@ -96,8 +96,15 @@ namespace SPP
 		}
 	};
 	
-	//SPP_OBJECT_API SPPObject* AllocateObject(const SPPObject_META &MetaType, const MetaPath& InPath);
+	SPP_OBJECT_API SPPObject* AllocateObject(const rttr::type &InType, const MetaPath& InPath);
 	SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath);
+
+	template<typename ObjType>
+	ObjType* AllocateObject(const MetaPath& InPath)
+	{
+		auto curType = rttr::type::get<ObjType>();
+		return (ObjType*)AllocateObject(curType, InPath);
+	}
 
 	//template<typename ObjectType>
 	//ObjectType* TAllocateObject(const MetaPath& InPath)

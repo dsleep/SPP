@@ -64,7 +64,7 @@
   <!-- 3 setup a container element -->
   <div id="sceneTree" class="objTree" >
   
-  
+  <!--
 	<div>
 		<div class="collapsible simpleInline" >-</div><div class="textSelect simpleInline">Open Collapsible</div>	
 		<div class="childInset">		
@@ -82,10 +82,56 @@
 		</div> 	
 		</div>
 	
-	
+	-->
 
   <script>
   
+  
+	function generateObjTable(divID, entityInfo) {
+		
+		entityInfo.forEach(function(curEntity) {			
+			
+			var divToggle = document.createElement('div');	
+			divToggle.setAttribute("class", "collapsible simpleInline");
+			divToggle.innerHTML = "-";
+			var divName = document.createElement('div');
+			divName.setAttribute("class", "textSelect simpleInline");
+			divName.innerHTML = curEntity.LOCAL;
+			
+			$(divID).append(divToggle);
+			$(divID).append(divName);
+			
+			var divElements = document.createElement('div');			
+			divElements.setAttribute("class", "childInset");
+			
+			curEntity.CHILDREN.forEach(function(childEle) {
+				let eleName = document.createElement('div');
+				eleName.setAttribute("class", "textSelect");
+				eleName.innerHTML = childEle;
+				divElements.appendChild(eleName);
+			});
+			
+			
+			$("#sceneTree").append(divElements);
+			
+		});
+	}
+	
+	var entityInfo =  String.raw`[
+		{
+			"CHILDREN" : 
+			[
+				"box_0"
+			],
+			"FULL" : "world.shapegroup_0",
+			"LOCAL" : "shapegroup_0"
+		}
+	]`;
+	
+	const entityData = JSON.parse(entityInfo);
+
+	generateObjTable("#sceneTree", entityData);
+	
 	$(".textSelect").each( function(i, coll) {
 	  coll.addEventListener("click", function() {
 	  
