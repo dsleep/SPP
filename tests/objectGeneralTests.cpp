@@ -438,14 +438,16 @@ private:
 public:
 };
 
-
-void GetObjectPropertiesAsJSON(Json::Value &rootValue, const rttr::instance & inValue)
+struct SubTypeInfo
 {
-	
-	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ?
-		inValue.get_wrapped_instance() : inValue;
-	auto curType = obj.get_type();
+	Json::Value subTypes;
+	std::set< rttr::type > typeSet;
+};
 
+void GetObjectPropertiesAsJSON(Json::Value &rootValue, SubTypeInfo& subTypes, const rttr::instance & inValue)
+{
+	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ? inValue.get_wrapped_instance() : inValue;
+	auto curType = obj.get_type();
 	SPP_LOG(LOG_APP, LOG_INFO, "GetPropertiesAsJSON %s", curType.get_name().data());
 
 	auto prop_list = curType.get_properties();
@@ -460,21 +462,51 @@ void GetObjectPropertiesAsJSON(Json::Value &rootValue, const rttr::instance & in
 
 		const auto propType = prop_value.get_type();
 
+		//
 		if (propType.is_class())
 		{
+			// does this confirm its inline struct and part of class?!
 			SE_ASSERT(propType.is_wrapper() == false);
 
 			Json::Value nestedInfo;
-			GetObjectPropertiesAsJSON(nestedInfo, prop_value);
+			GetObjectPropertiesAsJSON(nestedInfo, subTypes, prop_value);
+						
+			if (subTypes.typeSet.count(propType) == 0)
+			{
+				Json::Value subType;				
+				subType["type"] = "struct";			
+				subTypes.subTypes[propType.get_name().data()] = subType;
+				subTypes.typeSet.insert(propType);
+			}
 
 			Json::Value propInfo;
+			propInfo["name"] = name.c_str();
 			propInfo["type"] = propType.get_name().data();
 			propInfo["value"] = nestedInfo;
 
-			rootValue[name.c_str()] = propInfo;
+			rootValue.append(propInfo);
 		}
 		else if (propType.is_arithmetic() || propType.is_enumeration())
-		{
+		{			
+			if (propType.is_enumeration() && subTypes.typeSet.count(propType) == 0)
+			{
+				rttr::enumeration enumType = propType.get_enumeration();
+				auto EnumValues = enumType.get_names();
+				Json::Value subType;
+				Json::Value enumValues;
+
+				for (auto& enumV : EnumValues)
+				{
+					enumValues.append(enumV.data());
+				}
+
+				subType["type"] = "enum";
+				subType["values"] = enumValues;
+
+				subTypes.subTypes[enumType.get_name().data()] = subType;
+				subTypes.typeSet.insert(propType);
+			}
+
 			Json::Value propInfo;
 
 			bool bok = false;
@@ -484,10 +516,11 @@ void GetObjectPropertiesAsJSON(Json::Value &rootValue, const rttr::instance & in
 
 			SPP_LOG(LOG_APP, LOG_INFO, "   - %s", stringValue.c_str());
 
+			propInfo["name"] = name.c_str();
 			propInfo["type"] = propType.get_name().data();
 			propInfo["value"] = stringValue;
 
-			rootValue[name.c_str()] = propInfo;
+			rootValue.append(propInfo);
 		}
 	}
 }
@@ -501,21 +534,17 @@ int main(int argc, char* argv[])
 	GetSDFVersion();
 	auto CurrentObject = (OSDFBox*) AllocateObject("OSDFBox", "Asset.Textures.Grass.Draw");
 	auto CurrentEntity = (OShapeGroup*) AllocateObject("OShapeGroup", "Asset.Textures.Grass");
-
 	
-
-	//CurrentObject->_parent = CurrentEntity;
-
-	//std::vector<SPPObject*> objects;
-	//objects.push_back(CurrentObject);
-
-	//ByteArraySerializer< ObjectSerializer> objData;
-
 	Json::Value rootValue;
-	GetObjectPropertiesAsJSON(rootValue, CurrentObject);
+	
+	SubTypeInfo infos;
+	GetObjectPropertiesAsJSON(rootValue, infos, CurrentObject);
 
 	std::string StrMessage;
 	JsonToString(rootValue, StrMessage);
+
+	std::string SubMessage;
+	JsonToString(infos.subTypes, SubMessage);
 
 	//rttr::variant asVariant(CurrentObject);
 	//objData.PopulateObjectLinks(asVariant);

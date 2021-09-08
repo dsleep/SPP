@@ -32,6 +32,10 @@ namespace SPP
 	protected:
 		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
 
+		Vector3 _translation = { 0,0,0 };
+		Vector3 _rotation = { 0, 0, 0 };
+		float _scale = 1.0f;
+
 	public:
 
 		class OEntity* _parent = nullptr;

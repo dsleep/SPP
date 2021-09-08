@@ -38,6 +38,9 @@ RTTR_REGISTRATION
 			rttr::policy::ctor::as_raw_ptr
 		)
 		.property("_parent", &OElement::_parent)
+		.property("_translation", &OElement::_translation)
+		.property("_rotation", &OElement::_rotation)
+		.property("_scale", &OElement::_scale)
 		;
 
 	rttr::registration::class_<OEntity>("OEntity")
