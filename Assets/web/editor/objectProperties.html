@@ -4,89 +4,262 @@
         <title>SPP</title>
         <meta charset="utf-8">
 		
+		<link rel="stylesheet" href="./fontawesome/css/all.css">       
         <script type="text/javascript" src="./jQuery/jquery-3.5.1.js"></script>		
-		
-		
-		<script src='jqPropertyGrid/jqPropertyGrid.js'></script>
-		<link rel='stylesheet' href='jqPropertyGrid/jqPropertyGrid.css' />
-		
+				
 	<style>
 	
+	.styled-table {
+		background: #222222;
+		border-collapse: collapse;		
+		font-size: 0.9em;
+		font-family: sans-serif;
+		min-width: 300px;	
+		color: #ffffff;		
+	}
 	
+	.styled-table thead tr {
+		background-color: #009879;
+		color: #ffffff;
+		text-align: left;
+	}
+
+	.styled-table tbody tr {
+		border-bottom: 1px solid #dddddd;
+	}
+
+	.styled-table tbody tr:nth-of-type(even) {
+		background-color: #111111;
+	}
+
+
+
     </style>
 
     </head>
     <body>
+		
+	<div id='objProp'></div>
 	
-	<div id='propGrid' style="background-color: lightgray;"></div>
-	
+	<!-- <input type="color" id="head" name="head"  value="#e66465"> -->
 	<script>
 	
-	// This is our target object
-	var theObj = {
-	  font: 'Consolas',
-	  fontSize: 14,
-	  fontColor: '#a3ac03',
-	  jQuery: true,
-	  modernizr: false,
-	  framework: 'angular',
-	  iHaveNoMeta: 'Never mind...',
-	  iAmReadOnly: 'I am a label which is not editable'
+	var NativeTypesPoD = {
+		"float" : "Number",
+		"double" : "Number",
+		"int8_t" : "Number",
+		"uint8_t" : "Number",
+		"int16_t" : "Number",
+		"uint16_t" : "Number",
+		"int32_t" : "Number",
+		"uint32_t" : "Number",
+		"int64_t" : "Number",
+		"uint64_t" : "Number",
+		"bool" : "Bool"
 	};
-
-	// This is the metadata object that describes the target object properties (optional)
-	var theMeta = {
-		// Since string is the default no nees to specify type
-		font: { group: 'Editor', name: 'Font', description: 'The font editor to use'},
-		// The "options" would be passed to jQueryUI as its options
-		fontSize: { group: 'Editor', name: 'Font size', type: 'number', options: { min: 0, max: 20, step: 2 }},
-		// The "options" would be passed to Spectrum as its options
-		fontColor: { group: 'Editor', name: 'Font color', type: 'color', options: { preferredFormat: 'hex' }},
-		// since typeof jQuery is boolean no need to specify type, also since "jQuery" is also the display text no need to specify name
-		jQuery: { group: 'Plugins', description: 'Whether or not to include jQuery on the page' },
-		// We can specify type boolean if we want...
-		modernizr: {group: 'Plugins', type: 'boolean', description: 'Whether or not to include modernizr on the page'},
-		framework: {name: 'Framework', group: 'Plugins', type: 'options', options: ['None', {text:'AngularJS', value: 'angular'}, {text:'Backbone.js', value: 'backbone'}], description: 'Whether to include any additional framework'},
-		iAmReadOnly: { name: 'I am read only', type: 'label', description: 'Label types use a label tag for read-only properties', showHelp: false }
-
-	};
-
-	// Callback function. Called when any entry in the grid is changedCallback
-	function propertyChangedCallback(grid, name, value) {
-		// handle callback
-		console.log(name + ' ' + value);
+	
+	function NativeStructToInput(memberElement, subTypes, tableCol) {
+	
+		var tbl = document.createElement('table');		
+		var tbdy = document.createElement('tbody');
+	
+		memberElement.value.forEach(function(memberData) {					
+			NativeTypeToInput(memberData, subTypes, tbdy);	
+		});
+		
+		tbl.appendChild(tbdy);
+		tableCol.appendChild(tbl);
 	}
-	// This is the customTypes object that describes additionnal types, and their renderers (optional)
-	var theCustomTypes = {
-		ref: { // name of custom type
-			html: function(elemId, name, value, meta) { // custom renderer for type (required)
-				var onclick = '';
-				valueHTML = value + ' <i class="fa fa-external-link" onclick="selectRef(\'' + value + '\')"></i>';
-				return valueHTML;
-			},
-			valueFn: false // value-return function (optional). If unset, default will be "function() { return $('#' + elemId).val(); }", set to false to disable it
-			// You can also put a makeValueFn function (taking elemId, name, value, meta parameters) to create value-return function on the fly (it will override valuefn setting), returning non-function will disable getting value for this property
+	
+	function NativeEnumToInput(memberElement, subTypeEnum, tableCol) {
+		
+		var eumSelect = document.createElement("SELECT");
+		eumSelect.setAttribute("id", memberElement.name + "EVALUE");
+		
+		subTypeEnum.values.forEach(function(curValue) {	
+			var curOpt = document.createElement("option");
+			curOpt.setAttribute("value", curValue);
+			var txtNode = document.createTextNode(curValue);
+			curOpt.appendChild(txtNode);
+
+			eumSelect.appendChild(curOpt);
+		});
+				
+		tableCol.appendChild(eumSelect);
+	}
+	
+	function NativeTypeToInput(memberElement, subTypes, tableBody) {
+		let memberyTypeName = memberElement.type;
+		console.log("memberyTypeName: " + memberyTypeName);
+		
+		if( memberyTypeName in NativeTypesPoD )
+		{
+			console.log(" POD");
+			
+			var tr = document.createElement('tr');
+			var tdN = document.createElement('td');
+			var tdV = document.createElement('td');
+			
+			tdN.appendChild(document.createTextNode(memberElement.name));
+	
+			var x = document.createElement("INPUT");
+			x.setAttribute("type", "text");
+			x.setAttribute("value", memberElement.value);
+			
+			tdV.appendChild(x);
+			
+			tr.appendChild(tdN);
+			tr.appendChild(tdV);
+			
+			tableBody.appendChild(tr);
 		}
-	};
-
-	// Options object
-	var options = {
-		meta: theMeta,
-		customTypes: theCustomTypes,
-		// default help "icon" is text in brackets, can also provide FontAwesome HTML for an icon (see examples)
-		helpHtml: '[?]', 
-		callback: propertyChangedCallback,
-		// Allow collapsing property group. default to false.
-		isCollapsible: true,
-		// Sort properties, accept boolean or a sort function. default to false.
-		sort: true,
-	};
-
-	// Create the grid
-	$('#propGrid').jqPropertyGrid(theObj, options);
-
-	// In order to get back the modified values:
-	var theNewObj = $('#propGrid').jqPropertyGrid('get');
+		else if( memberyTypeName in subTypeObj )
+		{
+			let curSubType = subTypeObj[memberyTypeName];		
+							
+			var tr = document.createElement('tr');
+			var tdN = document.createElement('td');
+			var tdV = document.createElement('td');
+			
+			tdN.appendChild(document.createTextNode(memberElement.name));
+				
+			console.log(" SUB");
+			if( curSubType.type == "enum" )
+			{
+				console.log("ENUM");				
+				NativeEnumToInput(memberElement, curSubType, tdV);
+			}
+			else
+			{
+				console.log(" SUB");
+				NativeStructToInput(memberElement, subTypes, tdV);				
+			}
+			
+			tr.appendChild(tdN);
+			tr.appendChild(tdV);
+				
+			tableBody.appendChild(tr);
+		}
+	}
+	
+	function generateObjTable(divID, TableData, subTypes) {
+	
+		var tbl = document.createElement('table');		
+		var tbdy = document.createElement('tbody');
+		
+		tbl.setAttribute("class", "styled-table");
+	
+		TableData.forEach(function(memberData) {					
+			NativeTypeToInput(memberData, subTypes, tbdy);	
+		});
+		
+		tbl.appendChild(tbdy);
+		
+		$("#objProp").append(tbl);
+	}
+		
+	var subTypeInfo =  String.raw`{
+		"Vector3" : { 
+			"type" : "struct"	
+		},
+		"EShapeOp" : {
+				"type" : "enum",
+				"values" : 
+				[
+					"Add",
+					"Subtract",
+					"Intersect",
+					"SmoothAdd"
+				]
+		}		
+	}`;
+	
+	const subTypeObj = JSON.parse(subTypeInfo);
+	
+	var objectDataInfo = String.raw`[
+		{
+			"name" : "_translation",
+			"type" : "Vector3",
+			"value" : 
+			[
+				{
+					"name" : "x",
+					"type" : "float",
+					"value" : "0"
+				},
+				{
+					"name" : "y",
+					"type" : "float",
+					"value" : "0"
+				},
+				{
+					"name" : "z",
+					"type" : "float",
+					"value" : "0"
+				}
+			]
+		},
+		{
+			"name" : "_rotation",
+			"type" : "Vector3",
+			"value" : 
+			[
+				{
+					"name" : "x",
+					"type" : "float",
+					"value" : "0"
+				},
+				{
+					"name" : "y",
+					"type" : "float",
+					"value" : "0"
+				},
+				{
+					"name" : "z",
+					"type" : "float",
+					"value" : "0"
+				}
+			]
+		},
+		{
+			"name" : "_scale",
+			"type" : "float",
+			"value" : "1"
+		},
+		{
+			"name" : "_shapeOp",
+			"type" : "EShapeOp",
+			"value" : "Add"
+		},
+		{
+			"name" : "_extents",
+			"type" : "Vector3",
+			"value" : 
+			[
+				{
+					"name" : "x",
+					"type" : "float",
+					"value" : "1"
+				},
+				{
+					"name" : "y",
+					"type" : "float",
+					"value" : "1"
+				},
+				{
+					"name" : "z",
+					"type" : "float",
+					"value" : "1"
+				}
+			]
+		}
+	]`;
+	
+	
+	const objectData = JSON.parse(objectDataInfo);
+	
+	generateObjTable("objProp",objectData,subTypeObj);
+	
 
 	</script>
 
