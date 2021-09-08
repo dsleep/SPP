@@ -9,14 +9,24 @@
 				
 	<style>
 	
+	input[type=text] {
+	  width: 100%;
+	  padding: 1px 1px;
+	  margin: 3px;
+	  box-sizing: border-box;
+	}
+
 	.styled-table {
 		background: #222222;
 		border-collapse: collapse;		
 		font-size: 0.9em;
 		font-family: sans-serif;
-		min-width: 300px;	
-		color: #ffffff;		
+		min-width: 100px;	
+		color: #ffffff;	
+		width: 100%;
 	}
+	
+	.alnright { text-align: right; }
 	
 	.styled-table thead tr {
 		background-color: #009879;
@@ -27,9 +37,13 @@
 	.styled-table tbody tr {
 		border-bottom: 1px solid #dddddd;
 	}
+	
+	.styled-table tbody td:first-of-type {
+		border-right: 1px solid #dddddd;
+	}
 
 	.styled-table tbody tr:nth-of-type(even) {
-		background-color: #111111;
+		background-color: #444444;
 	}
 
 
@@ -63,6 +77,9 @@
 		var tbl = document.createElement('table');		
 		var tbdy = document.createElement('tbody');
 	
+	
+		tbl.setAttribute("class", "styled-table");
+		
 		memberElement.value.forEach(function(memberData) {					
 			NativeTypeToInput(memberData, subTypes, tbdy);	
 		});
@@ -99,7 +116,8 @@
 			var tr = document.createElement('tr');
 			var tdN = document.createElement('td');
 			var tdV = document.createElement('td');
-			
+						
+			tdN.setAttribute("class", "alnright");
 			tdN.appendChild(document.createTextNode(memberElement.name));
 	
 			var x = document.createElement("INPUT");
@@ -121,6 +139,7 @@
 			var tdN = document.createElement('td');
 			var tdV = document.createElement('td');
 			
+			tdN.setAttribute("class", "alnright");
 			tdN.appendChild(document.createTextNode(memberElement.name));
 				
 			console.log(" SUB");

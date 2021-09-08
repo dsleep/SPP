@@ -2,37 +2,115 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>jsTree test</title>
-  <!-- 2 load the theme CSS file -->
-  <link rel="stylesheet" href="jstree/themes/default/style.min.css" />
+  <title>Object Tree</title>
   
   <script src="jQuery/jquery-3.5.1.js"></script>
-  <script src="jstree/jstree.min.js"></script>
+  
+  <style>
+  
+	.simpleInline {		
+		display: inline-block;
+		vertical-align: top; 
+		border-style: none none solid none;
+	}
+	
+	.childInset {
+		 padding: 0px 0px 0px 20px;
+		 border-style: none none none dotted;
+	}
+  
+    /* Style the button that is used to open and close the collapsible content */
+	.collapsible {
+		background-color: #eee;
+		color: #444;
+		cursor: pointer;
+		padding: 0px 5px 10px 5px;
+		width: 10px;
+		height: 10px;
+		text-align: center;
+	}
+	
+	/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+	/*.content:hover, .collapsible:hover {
+	  background-color: #ccc;
+	}*/
+
+	.active {
+	  background-color: grey;
+	}
+
+	/* Style the collapsible content. Note: hidden by default */
+	.content {
+	  padding: 1px;
+	  display: inline-block;
+	  overflow: hidden;
+	  } 
+
+
+	.objTree {
+		background: #222222;
+		border-collapse: collapse;		
+		font-size: 0.9em;
+		font-family: sans-serif;
+		min-width: 100px;	
+		color: #ffffff;	
+		width: 100%;
+	}
+	
+
+    </style>
 </head>
 <body>
   <!-- 3 setup a container element -->
-  <div id="jstreeID" style="background-color: lightgray;">
-  </div>
+  <div id="sceneTree" class="objTree" >
+  
+  
+	<div>
+		<div class="collapsible simpleInline" >-</div><div class="textSelect simpleInline">Open Collapsible</div>	
+		<div class="childInset">		
+			
+			<div class="collapsible simpleInline" >-</div><div class="textSelect simpleInline">child</div>	
+			<div class="childInset">
+				
+				<div class="textSelect simpleInline">Shape 2</div>	
+			
+			</div>
+			
+			
+		</div>
+			
+		</div> 	
+		</div>
+	
+	
 
   <script>
-    		console.log("jstree");
+  
+	$(".textSelect").each( function(i, coll) {
+	  coll.addEventListener("click", function() {
+	  
+			
+			$(".textSelect").each( function(i, clearAll) {
+				clearAll.classList.remove("active");	
+			} );
+	  
+			this.classList.toggle("active");		
+	  });
+	});
 
-	$('#jstreeID').jstree({ 'core' : {
-    'data' : [
-       'Simple root node',
-       {
-         'text' : 'Root node 2',
-         'state' : {
-           'opened' : true,
-           'selected' : true
-         },
-         'children' : [
-           { 'text' : 'Child 1' },
-           'Child 2'
-         ]
-      }
-    ]
-} });
+	$(".collapsible").each( function(i, coll) {
+	  coll.addEventListener("click", function() {
+		//this.classList.toggle("active");
+		var content = this.nextElementSibling.nextElementSibling;
+		if (content.style.display === "none") {
+		  content.style.display = "block";
+		  this.innerHTML = "-";
+		} else {
+		  content.style.display = "none";
+		  this.innerHTML = "+";
+		}
+	  });
+	});
 
   </script>
 </body>
