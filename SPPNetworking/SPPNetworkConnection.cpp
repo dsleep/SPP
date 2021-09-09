@@ -448,7 +448,7 @@ namespace SPP
 			_PingTimer.Poll();
 
 			// DC'd
-			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 10)
+			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 5)
 			{
 				CloseDown("time out during active connection");
 				return;
