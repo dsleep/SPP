@@ -702,12 +702,42 @@ namespace SPP
 				psoDesc.SampleDesc = DefaultSampleDesc();
 				psoDesc.SampleMask = UINT_MAX;
 
-				if (InHS)
+				//NoCull = 0,
+				//BackFaceCull,
+				//BackFaceCullNoZClip,
+				//FrontFaceCull,
+
+				switch (InRasterizerState)
 				{
-					psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+				case ERasterizerState::NoCull:
 					psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+					break;
+				case ERasterizerState::BackFaceCull:
+					psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+					break;
+				case ERasterizerState::FrontFaceCull:
+					psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+					break;
+				default:
+					SE_ASSERT(false);
+					break;
 				}
 
+				switch (InDepthState)
+				{
+				case EDepthState::Disabled:
+					psoDesc.DepthStencilState.DepthEnable = 0;
+					break;
+				case EDepthState::Enabled:
+					psoDesc.DepthStencilState.DepthEnable = 1;
+					break;
+				default:
+					SE_ASSERT(false);
+					break;
+				}
+
+				//psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+					
 				auto psoStream = CD3DX12_PIPELINE_STATE_STREAM2(psoDesc);
 
 				D3D12_PIPELINE_STATE_STREAM_DESC streamDesc;
@@ -1067,7 +1097,7 @@ namespace SPP
 
 			_debugResource = std::make_shared< ArrayResource >();
 			_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
-			//_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
+			_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
 
 
 			//
@@ -1365,12 +1395,12 @@ namespace SPP
 
 			//DrawDebug();
 
+			DrawFullScreen();
+
 			for (auto renderItem : _renderables)
 			{
 				renderItem->Draw();
-			}
-
-			//DrawFullScreen();
+			}		
 		};
 	};
 		

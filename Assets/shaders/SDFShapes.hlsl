@@ -166,10 +166,13 @@ float4 renderSDF( float3 ro, float3 rd )
 
         return float4(0.25, 0.25, 0.25,1) * amb +  
             outColor * dif;
-
     }
+	else
+	{
+		hitDistance = 1000;
+	}
 
-	return float4(rd * 0.5 + 0.5,1);
+	return float4(rd * 0.5 + 0.5,hitDistance);
 }
 
 

@@ -32,6 +32,11 @@ PixelShaderInput main_vs(uint vI : SV_VERTEXID)
 
 [RootSignature(MESH_SIG)]
 float4 main_ps(PixelShaderInput pin):SV_TARGET
-{
-    return renderSDF(pin.rO, pin.rD);
+{	
+    float4 outRender = renderSDF(pin.rO, pin.rD);
+	//float4 localWorldPos = float4( (pin.rO + pin.rD * outRender.a) - ViewConstants.ViewPosition, 1.0f);	
+	//float4 devicePos = mul(localWorldPos, ViewConstants.ViewProjectionMatrix);
+	//depth = 1.0;//devicePos.z / devicePos.w * 2.2;
+	
+	return float4(outRender.xyz, 1.0f);
 }

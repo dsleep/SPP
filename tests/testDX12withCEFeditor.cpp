@@ -45,7 +45,7 @@ using namespace SPP;
 class EditorEngine
 {
 private:
-	std::shared_ptr< GraphicsDevice > _graphicsDevice;
+	std::shared_ptr<GraphicsDevice> _graphicsDevice;
 	std::shared_ptr<RenderScene> _mainScene;
 	std::list< std::shared_ptr<SPP::RenderableMesh> > MeshesToDraw;
 	HWND _mainDXWindow = nullptr;
@@ -60,6 +60,8 @@ private:
 	std::shared_ptr< Mesh > _moveGizmo;
 	std::shared_ptr< Mesh > _rotateGizmo;
 	std::shared_ptr< Mesh > _scaleGizmo;
+
+	
 
 public:
 	void Initialize(void *AppWindow)
@@ -94,6 +96,7 @@ public:
 		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
 
 		_gizmoMat = std::make_shared< MeshMaterial >();
+		_gizmoMat->rasterizerState = ERasterizerState::NoCull;
 		_gizmoMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
 		_gizmoMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
 
@@ -112,13 +115,16 @@ public:
 			curMesh->material = _gizmoMat;
 		}
 
-		auto newMeshToDraw = GGI()->CreateRenderableMesh();		
-		newMeshToDraw->SetMeshData(meshElements);
-		newMeshToDraw->AddToScene(_mainScene.get());
-		
+		auto newMeshToDraw = GGI()->CreateRenderableMesh();
+
 		auto& pos = newMeshToDraw->GetPosition();
 		pos[2] = 100.0;
 		auto& scale = newMeshToDraw->GetScale();
+		scale = Vector3(10, 10, 10);
+
+		newMeshToDraw->SetMeshData(meshElements);
+		newMeshToDraw->AddToScene(_mainScene.get());
+		
 
 		MeshesToDraw.push_back(newMeshToDraw);
 
