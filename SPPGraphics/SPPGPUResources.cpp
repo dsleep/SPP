@@ -60,12 +60,10 @@ namespace SPP
 		GetGPUResourceList().Remove(this);
 	}
 
-	void BegineResourceCopy() { }
-	void EndResourceCopy() { }
-
 	void MakeResidentAllGPUResources()
 	{
-		BegineResourceCopy();
+		SE_ASSERT(GGI());
+		GGI()->BeginResourceCopies();
 
 		GetGPUResourceList().Iterate([](GPUResource *InEle)
 			{
@@ -74,7 +72,7 @@ namespace SPP
 				InEle->UploadToGpu();
 			});
 
-		EndResourceCopy();
+		GGI()->EndResourceCopies();
 	}
 
 	

@@ -23,6 +23,8 @@ namespace SPP
 				nullptr,
 				IID_PPV_ARGS(&_buffer));
 
+			DXSetName(_buffer.Get(), L"D3D12Buffer");
+
 			_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
 		}
 		else
@@ -122,7 +124,10 @@ namespace SPP
 	}
 
 
-	D3D12IndexBuffer::D3D12IndexBuffer(std::shared_ptr< ArrayResource > InCpuData) : D3D12Buffer(InCpuData) {}
+	D3D12IndexBuffer::D3D12IndexBuffer(std::shared_ptr< ArrayResource > InCpuData) : D3D12Buffer(InCpuData) 
+	{
+		_type = GPUBufferType::Index;
+	}
 	D3D12IndexBuffer::~D3D12IndexBuffer() {}
 
 	void D3D12IndexBuffer::UploadToGpu()
@@ -149,7 +154,10 @@ namespace SPP
 		_view.Format = DXGI_FORMAT_R32_UINT;
 	}
 
-	D3D12VertexBuffer::D3D12VertexBuffer(std::shared_ptr< ArrayResource > InCpuData) : D3D12Buffer(InCpuData) {}
+	D3D12VertexBuffer::D3D12VertexBuffer(std::shared_ptr< ArrayResource > InCpuData) : D3D12Buffer(InCpuData) 
+	{
+		_type = GPUBufferType::Vertex;
+	}
 
 	D3D12VertexBuffer::~D3D12VertexBuffer() {}
 
@@ -183,8 +191,8 @@ namespace SPP
 		case InputLayoutElementType::Float2:
 			return DXGI_FORMAT_R32G32_FLOAT;
 			break;
-		case InputLayoutElementType::UInt8_4:
-			return DXGI_FORMAT_R8G8B8A8_UINT;
+		case InputLayoutElementType::UInt:
+			return DXGI_FORMAT_R32_UINT;
 			break;
 		}
 		return DXGI_FORMAT_UNKNOWN;

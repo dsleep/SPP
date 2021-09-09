@@ -54,10 +54,8 @@ private:
 
 
 	std::chrono::high_resolution_clock::time_point _lastTime;
-
-	std::list <  std::shared_ptr<SPPObject> > cachedObjs;
-
-	std::shared_ptr< SPP::MeshMaterial > meshMat;
+	//std::list< std::shared_ptr<SPPObject> > cachedObjs;
+	std::shared_ptr< SPP::MeshMaterial > _gizmoMat;
 
 	std::shared_ptr< Mesh > _moveGizmo;
 	std::shared_ptr< Mesh > _rotateGizmo;
@@ -73,7 +71,6 @@ public:
 #else
 		LoadLibraryA("SPPDX12.dll");
 #endif
-
 
 		RECT rect;
 		GetClientRect(_mainDXWindow, &rect);
@@ -94,12 +91,36 @@ public:
 		
 		_moveGizmo->LoadMesh("BlenderFiles/MoveGizmo.ply");
 		_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
-		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.blend");
+		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
 
-		auto meshVertexLayout = GGI()->CreateInputLayout();
-		meshVertexLayout->InitializeLayout({
-				{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },		
-				{ "COLOR",  SPP::InputLayoutElementType::UInt8_4, offsetof(SPP::MeshVertex,color) } });
+		_gizmoMat = std::make_shared< MeshMaterial >();
+		_gizmoMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
+		_gizmoMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
+
+		_gizmoMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
+		_gizmoMat->pixelShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_ps");
+
+		_gizmoMat->layout = GGI()->CreateInputLayout();
+		_gizmoMat->layout->InitializeLayout({
+				{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },
+				{ "COLOR",  SPP::InputLayoutElementType::UInt, offsetof(SPP::MeshVertex,color) } });
+
+		auto& meshElements = _moveGizmo->GetMeshElements();
+
+		for (auto& curMesh : meshElements)
+		{
+			curMesh->material = _gizmoMat;
+		}
+
+		auto newMeshToDraw = GGI()->CreateRenderableMesh();		
+		newMeshToDraw->SetMeshData(meshElements);
+		newMeshToDraw->AddToScene(_mainScene.get());
+		
+		auto& pos = newMeshToDraw->GetPosition();
+		pos[2] = 100.0;
+		auto& scale = newMeshToDraw->GetScale();
+
+		MeshesToDraw.push_back(newMeshToDraw);
 
 		SPP::MakeResidentAllGPUResources();
 

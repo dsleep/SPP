@@ -205,7 +205,6 @@ namespace SPP
     {
     protected:
         GPUBufferType _type = GPUBufferType::Generic;
-        size_t _size = 0;
         std::shared_ptr< ArrayResource > _cpuLink;
 
     public:
@@ -250,7 +249,7 @@ namespace SPP
     {
         Float3,
         Float2,
-        UInt8_4,
+        UInt,
     };
 
     struct InputLayoutElement
@@ -396,6 +395,10 @@ namespace SPP
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
 
         virtual std::shared_ptr< class RenderScene > CreateRenderScene() = 0;
+        virtual std::shared_ptr< class RenderableMesh> CreateRenderableMesh() = 0;
+
+        virtual void BeginResourceCopies() { }
+        virtual void EndResourceCopies() { }
 
         virtual bool RegisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement) { return true; };
         virtual bool UnregisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement) { return true; };

@@ -316,6 +316,10 @@ namespace SPP
 		{
 			return OpenGL_CreateRenderScene();
 		}
+		virtual std::shared_ptr<RenderableMesh> CreateRenderableMesh() override
+		{
+			return nullptr;
+		}
 	};
 
 	static OpenGLGraphicInterface staticDGI;

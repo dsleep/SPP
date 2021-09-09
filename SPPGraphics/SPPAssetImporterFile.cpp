@@ -85,10 +85,10 @@ namespace SPP
 						if (mesh->HasVertexColors(0))
 						{
 							vertex.color = {
-								(uint8_t)std::clamp<float>(mesh->mColors[0]->r * 255.0f, 0.0f, 255.0f),
-								(uint8_t)std::clamp<float>(mesh->mColors[0]->g * 255.0f, 0.0f, 255.0f),
-								(uint8_t)std::clamp<float>(mesh->mColors[0]->b * 255.0f, 0.0f, 255.0f),
-								(uint8_t)std::clamp<float>(mesh->mColors[0]->a * 255.0f, 0.0f, 255.0f)
+								(uint8_t)std::clamp<float>(mesh->mColors[0][i].r * 255.0f, 0.0f, 255.0f),
+								(uint8_t)std::clamp<float>(mesh->mColors[0][i].g * 255.0f, 0.0f, 255.0f),
+								(uint8_t)std::clamp<float>(mesh->mColors[0][i].b * 255.0f, 0.0f, 255.0f),
+								(uint8_t)std::clamp<float>(mesh->mColors[0][i].a * 255.0f, 0.0f, 255.0f)
 							};
 						}
 						if (mesh->HasNormals())

@@ -107,7 +107,7 @@ namespace SPP
 				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
 				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
 				_elements.push_back(newMeshElement);
-				GGI()->RegisterMeshElement(newMeshElement);
+				//GGI()->RegisterMeshElement(newMeshElement);
 			}
 
 

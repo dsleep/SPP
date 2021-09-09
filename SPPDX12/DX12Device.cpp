@@ -794,7 +794,7 @@ namespace SPP
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
 
-	std::shared_ptr<RenderableMesh> CreateRenderableMesh(bool bIsStatic)
+	std::shared_ptr<RenderableMesh> DX12_CreateRenderableMesh(bool bIsStatic)
 	{
 		return std::make_shared< D3D12RenderableMesh >(bIsStatic);
 	}
@@ -1067,7 +1067,7 @@ namespace SPP
 
 			_debugResource = std::make_shared< ArrayResource >();
 			_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
-			_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
+			//_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
 
 
 			//
@@ -1370,7 +1370,7 @@ namespace SPP
 				renderItem->Draw();
 			}
 
-			DrawFullScreen();
+			//DrawFullScreen();
 		};
 	};
 		
@@ -1678,13 +1678,13 @@ namespace SPP
 		}
 	}
 
-	void BegineResourceCopy()
+	void DX12_BegineResourceCopy()
 	{
 		SE_ASSERT(GGraphicsDevice);
 		GGraphicsDevice->BeginResourceCopy();
 	}
 
-	void EndResourceCopy()
+	void DX12_EndResourceCopy()
 	{
 		SE_ASSERT(GGraphicsDevice);
 		GGraphicsDevice->EndResourceCopy();
@@ -1738,6 +1738,19 @@ namespace SPP
 		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
 		{
 			return std::make_shared< D3D12RenderScene >();
+		}
+		virtual std::shared_ptr<RenderableMesh> CreateRenderableMesh() override
+		{
+			return DX12_CreateRenderableMesh(false);
+		}
+
+		virtual void BeginResourceCopies() override
+		{
+			DX12_BegineResourceCopy();
+		}
+		virtual void EndResourceCopies() override
+		{
+			DX12_EndResourceCopy();
 		}
 
 		virtual bool RegisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement)
