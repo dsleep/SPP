@@ -612,32 +612,32 @@ namespace SPP
 
 		case WM_LBUTTONDOWN:
 			if (pApp->mouseDown)
-				pApp->mouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Left);
+				pApp->mouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Left);
 			return 0;
 
 		case WM_LBUTTONUP:
 			if (pApp->mouseUp)
-				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Left);
+				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Left);
 			return 0;
 
 		case WM_RBUTTONDOWN:
 			if (pApp->mouseDown)
-				pApp->mouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Right);
+				pApp->mouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Right);
 			return 0;
 
 		case WM_RBUTTONUP:
 			if (pApp->mouseUp)
-				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Right);
+				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Right);
 			return 0;
 
 		case WM_MBUTTONDOWN:
 			if (pApp->mouseDown)
-				pApp->mouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Middle);
+				pApp->mouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Middle);
 			return 0;
 
 		case WM_MBUTTONUP:
 			if (pApp->mouseUp)
-				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), EMouseButton::Middle);
+				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Middle);
 			return 0;
 
 			//case WM_MOUSEMOVE:

@@ -133,6 +133,8 @@ namespace SPP
         }   
 
         mainGameWindow->SetMouseMove(InInputEvents.mouseMove);
+        mainGameWindow->SetMouseDown(InInputEvents.mouseDown);
+        mainGameWindow->SetMouseUp(InInputEvents.mouseUp);
         
         std::unique_ptr<JavascriptInterface>  localInterface;
 

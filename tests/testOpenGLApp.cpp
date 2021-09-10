@@ -99,11 +99,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				//SPP_QL("ku: %d", KeyValue);
 				keys[KeyValue] = false;
 			},
-			[](int32_t mouseX, int32_t mouseY, SPP::EMouseButton mouseButton)
+			[](int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 			{
 				//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
 			},
-			[](int32_t mouseX, int32_t mouseY, SPP::EMouseButton mouseButton)
+			[](int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 			{
 				//SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
 			},

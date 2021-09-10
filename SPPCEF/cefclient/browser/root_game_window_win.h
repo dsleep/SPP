@@ -56,6 +56,14 @@ namespace client
 		{
 			_mouseMove = InMouseMove;
 		}
+		void SetMouseDown(std::function<void(int32_t, int32_t,uint8_t)> InFunc)
+		{
+			_mouseDown = InFunc;
+		}
+		void SetMouseUp(std::function<void(int32_t, int32_t, uint8_t)> InFunc)
+		{
+			_mouseUp = InFunc;
+		}
 
 	private:
 		void CreateBrowserWindow(const std::string& startup_url);
@@ -137,6 +145,8 @@ namespace client
 		RECT _gameWidowRect;
 
 		std::function<void(int32_t, int32_t)> _mouseMove;
+		std::function<void(int32_t, int32_t, uint8_t)> _mouseDown;
+		std::function<void(int32_t, int32_t, uint8_t)> _mouseUp;
 
 		bool window_destroyed_;
 		bool browser_destroyed_;

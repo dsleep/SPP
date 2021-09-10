@@ -32,8 +32,8 @@ namespace SPP
 	{
 		std::function<void(uint8_t)> keyDown;
 		std::function<void(uint8_t)> keyUp;
-		std::function<void(int32_t, int32_t, EMouseButton)> mouseDown;
-		std::function<void(int32_t, int32_t, EMouseButton)> mouseUp;
+		std::function<void(int32_t, int32_t, uint8_t)> mouseDown;
+		std::function<void(int32_t, int32_t, uint8_t)> mouseUp;
 		std::function<void(int32_t, int32_t)> mouseMove;
 	};
 

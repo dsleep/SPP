@@ -225,14 +225,14 @@ public:
 		_keys[KeyValue] = false;
 	}
 
-	void MouseDown(int32_t mouseX, int32_t mouseY, SPP::EMouseButton mouseButton)
+	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
-		//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
+		SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
 	}
 		
-	void MouseUp(int32_t mouseX, int32_t mouseY, SPP::EMouseButton mouseButton)
+	void MouseUp(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
-		//SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
+		SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
 	}
 		
 	void MouseMove(int32_t mouseX, int32_t mouseY)

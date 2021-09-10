@@ -365,6 +365,26 @@ namespace client {
 
 		switch (message)
 		{
+		case WM_LBUTTONDOWN:
+		{
+			POINTS points = MAKEPOINTS(lParam);
+			if (self->_mouseDown)
+			{
+				self->_mouseDown(points.x, points.y,0);
+			}
+		}
+		break;
+
+		case WM_LBUTTONUP:
+		{
+			POINTS points = MAKEPOINTS(lParam);
+			if (self->_mouseUp)
+			{
+				self->_mouseUp(points.x, points.y, 0);
+			}
+		}
+		break;
+
 		case WM_RBUTTONDOWN:
 			SetCapture(hWnd);
 			GetCursorPos(&originalCursorPt);
