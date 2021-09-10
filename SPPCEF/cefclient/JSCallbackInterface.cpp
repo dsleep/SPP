@@ -20,9 +20,9 @@
 
 namespace SPP
 {
-	JavascriptInterface::JavascriptInterface(const std::map < std::string, NativeFunction >& InMap)
+	JavascriptInterface::JavascriptInterface(std::function<void(const std::string&, Json::Value&) >& InRecvFunc)
 	{
-		_nativeFuncMap = InMap;
+		_fallbackFunc = InRecvFunc;
 	}
 
 	void JavascriptInterface::NativeFromJS_JSON_Callback(const std::string &InJSON)
@@ -46,6 +46,10 @@ namespace SPP
 				if (foundFunction != _nativeFuncMap.end())
 				{
 					foundFunction->second(jsarg);
+				}
+				else if (_fallbackFunc)
+				{
+					_fallbackFunc(functionName, jsarg);
 				}
 				else
 				{

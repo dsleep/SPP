@@ -36,7 +36,7 @@ namespace SPP
         const std::string& StartupURL,
         const GameBrowserCallbacks& InCallbacks,
         const InputEvents& InInputEvents,
-        std::map < std::string, std::function<void(Json::Value) > >* NativeFunctionMap)
+        std::function<void(const std::string &,Json::Value&) >* JSFunctionReceiver)
     {
         // Enable High-DPI support on Windows 7 or newer.
         CefEnableHighDPISupport();
@@ -137,9 +137,9 @@ namespace SPP
         std::unique_ptr<JavascriptInterface>  localInterface;
 
         // interface map
-        if (NativeFunctionMap)
+        if (JSFunctionReceiver)
         {
-            localInterface = std::make_unique< JavascriptInterface >(*NativeFunctionMap);
+            localInterface = std::make_unique< JavascriptInterface >(*JSFunctionReceiver);
         }
         else
         {

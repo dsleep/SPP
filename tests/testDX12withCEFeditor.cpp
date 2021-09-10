@@ -34,6 +34,7 @@
 #include "ThreadPool.h"
 
 #include "SPPCEFUI.h"
+#include "SPPSDF.h"
 
 #include <condition_variable>
 
@@ -52,6 +53,8 @@ private:
 	Vector2 _mouseDelta = Vector2(0, 0);
 	uint8_t _keys[255] = { 0 };
 
+	OWorld* _world = nullptr;
+
 
 	std::chrono::high_resolution_clock::time_point _lastTime;
 	//std::list< std::shared_ptr<SPPObject> > cachedObjs;
@@ -60,10 +63,37 @@ private:
 	std::shared_ptr< Mesh > _moveGizmo;
 	std::shared_ptr< Mesh > _rotateGizmo;
 	std::shared_ptr< Mesh > _scaleGizmo;
-
+	bool _htmlReady = false;
 	
 
 public:
+	std::map < std::string, std::function<void(Json::Value) > > fromJSFunctionMap;
+
+
+	void HTMLReady()
+	{
+		_htmlReady = true;
+	}
+	void SelectionChanged( std::string InElementName)
+	{
+
+	}
+
+	void PropertyChanged(Json::Value InValue)
+	{
+
+	}
+
+	void AddShape(Json::Value InValue)
+	{
+
+	}
+
+	void AddShapeGroup(Json::Value InValue)
+	{
+
+	}
+
 	void Initialize(void *AppWindow)
 	{
 		_mainDXWindow = (HWND)AppWindow;
@@ -74,6 +104,10 @@ public:
 		LoadLibraryA("SPPDX12.dll");
 #endif
 
+		
+		GetSDFVersion();
+		_world = AllocateObject<OWorld>("World");
+		
 		RECT rect;
 		GetClientRect(_mainDXWindow, &rect);
 
@@ -214,6 +248,67 @@ public:
 	}
 };
 
+RTTR_REGISTRATION
+{
+	rttr::registration::class_<EditorEngine>("EditorEngine")
+		.method("SelectionChanged", &EditorEngine::SelectionChanged)
+		.method("PropertyChanged", &EditorEngine::PropertyChanged)
+		.method("AddShape", &EditorEngine::AddShape)
+		.method("AddShapeGroup", &EditorEngine::AddShapeGroup)
+		.method("HTMLReady", &EditorEngine::HTMLReady)	
+	;
+}
+
+EditorEngine* GEd = nullptr;
+void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
+{
+	auto EditorType = rttr::type::get<EditorEngine>();
+
+	rttr::method foundMethod = EditorType.get_method(InFunc);
+	if (foundMethod)
+	{
+		auto paramInfos = foundMethod.get_parameter_infos();
+
+		uint32_t jsonParamCount = InValue.isNull() ? 0 : InValue.size();
+
+		if (paramInfos.size() == jsonParamCount)
+		{
+			if (!jsonParamCount)
+			{
+				foundMethod.invoke(*GEd);
+			}
+			else
+			{
+				std::list<rttr::variant> argRefs;
+				std::vector<rttr::argument> args;
+
+				int32_t Iter = 0;
+				for(auto &curParam : paramInfos)			
+				{
+					auto curParamType = curParam.get_type();
+					auto jsonParamValue = InValue[Iter];
+					if (curParamType.is_arithmetic() && jsonParamValue.isNumeric())
+					{
+
+					}
+					else if (curParamType == rttr::type::get<std::string>() &&
+						jsonParamValue.isString())
+					{
+						argRefs.push_back(std::string(jsonParamValue.asCString()));
+						args.push_back(argRefs.back());
+					}
+					Iter++;
+				}
+
+				if(args.size() == paramInfos.size())
+				{
+					foundMethod.invoke_variadic(*GEd, args);
+				}
+			}
+		}
+	}
+}
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -238,10 +333,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// setup global asset path
 	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
 
+
 	{
 		auto gameEditor = std::make_unique< EditorEngine >();
+		GEd = gameEditor.get();
+		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;
 
-		std::thread runCEF([hInstance, editor = gameEditor.get()]()
+		std::thread runCEF([hInstance, editor = gameEditor.get(), &jsFuncRecv]()
 		{
 			SPP::RunBrowser(hInstance,
 				"http://spp/assets/web/editor/index.html",
@@ -257,8 +355,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 					std::bind(&EditorEngine::MouseDown, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
 					std::bind(&EditorEngine::MouseUp, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
 					std::bind(&EditorEngine::MouseMove, editor, std::placeholders::_1, std::placeholders::_2)
+				},
+				&jsFuncRecv);
 				});
-		});
 
 
 		runCEF.join();

@@ -32,6 +32,6 @@ namespace SPP
 	SPP_CEFUI_API int RunBrowser(void* hInstance, const std::string& StartupURL, 
 		const GameBrowserCallbacks& InCallbacks = { nullptr, nullptr, nullptr, nullptr },
 		const InputEvents& InInputEvents = { 0 },
-		std::map < std::string, std::function<void(Json::Value) > > *NativeFunctionMap = nullptr);
+		std::function<void(const std::string&, Json::Value&) >* JSFunctionReceiver = nullptr);
 }
 

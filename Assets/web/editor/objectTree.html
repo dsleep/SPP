@@ -140,7 +140,13 @@
 				clearAll.classList.remove("active");	
 			} );
 	  
-			this.classList.toggle("active");		
+			this.classList.toggle("active");	
+
+			if(window.CallNativeWithJSON != null)
+			{
+				window.CallNativeWithJSON(JSON.stringify({ func: "SelectionChanged", args: [ "ThisOject" ] }));
+			}
+		
 	  });
 	});
 

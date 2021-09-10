@@ -13,10 +13,11 @@ namespace SPP
 
 	private:
 		std::map < std::string, NativeFunction > _nativeFuncMap;
+		std::function<void(const std::string&, Json::Value&) > _fallbackFunc;
 
 	public:
 		JavascriptInterface() = default;
-		JavascriptInterface(const std::map < std::string, NativeFunction > &InMap);
+		JavascriptInterface(std::function<void(const std::string&, Json::Value&) > &InRecvFunc);
 
 		void Add_JSToNativeFunctionHandler(const std::string &InName, NativeFunction InFunction);
 		void Remove_JSToNativeFunctionHandler(const std::string &InName);

@@ -182,6 +182,11 @@ myLayout.on( 'initialised', function(){
 	//newScript.type = 'text/javascript';
 	//newScript.src = "./somescript.js";
 	//document.getElementsByTagName('head')[0].appendChild(newScript);
+	
+	if(window.CallNativeWithJSON != null)
+	{
+		window.CallNativeWithJSON(JSON.stringify({ func: "HTMLReady" }));
+	}
 });
 
 myLayout.init();
