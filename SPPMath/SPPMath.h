@@ -377,14 +377,65 @@ namespace SPP
 
     struct Spherei
     {
-        Vector3i center;
-        int32_t extent;
+        Vector3i center = { 0,0,0 };
+        int32_t extent = 1;
     };
+
+    struct Sphere;
+
+    template<typename MeshVertexType>
+    Sphere MinimumBoundingSphere(MeshVertexType* points, uint32_t count);
 
     struct Sphere
     {
-        Vector3 center;
-        float extent;
+        bool bValid = false;
+        Vector3 center = { 0,0,0 };
+        float extent = 1.0f;
+
+        Sphere()
+        {
+
+        }
+        Sphere(const Vector3& InCenter, float InExtent) : center(InCenter), extent(InExtent), bValid(true) {}
+
+        operator bool() const
+        {
+            return bValid;
+        }
+
+        void operator+=(const Sphere& Other)
+        {
+            if (Other.bValid == false)
+            {
+                return;
+            }
+            else if (!bValid)
+            {
+                *this = Other;
+                bValid = true;
+                return;
+            }
+
+            Vector3 CenterDir = Other.center - center;
+            auto dirSizeSq = CenterDir.squaredNorm();
+            if (dirSizeSq < 0.01)
+            {
+                extent = std::max(extent, Other.extent);
+            }
+            else
+            {
+                //furthest point on each...
+                Vector3 points[4];
+                CenterDir.normalize();
+                points[0] = Other.center + CenterDir * extent;
+                points[1] = Other.center + CenterDir * Other.extent;
+
+                points[2] = center - CenterDir * extent;
+                points[3] = center - CenterDir * Other.extent;
+
+                *this = MinimumBoundingSphere(points, 4);
+            }
+        }
     };
 
     struct Sphered
@@ -423,6 +474,92 @@ namespace SPP
     T powerOf2(const T& InValue)
     {
         return (T)ceil(log(InValue) / log(2));
+    }
+
+    template<typename MeshVertexType>
+    AABB GetBoundingBox(MeshVertexType* points, uint32_t count)
+    {
+        AABB oBounds;
+        for (uint32_t i = 1; i < count; ++i)
+        {
+            oBounds += GetPosition(*(points + i));
+        }
+        return oBounds;
+    }
+
+   
+
+    inline Vector3& GetPosition(Vector3& InVertex)
+    {
+        return InVertex;
+    }
+
+    template<typename MeshVertexType>
+    Sphere MinimumBoundingSphere(MeshVertexType* points, uint32_t count)
+    {
+        assert(points != nullptr && count != 0);
+
+        // Find the min & max points indices along each axis.
+        uint32_t minAxis[3] = { 0, 0, 0 };
+        uint32_t maxAxis[3] = { 0, 0, 0 };
+
+        for (uint32_t i = 1; i < count; ++i)
+        {
+            float* point = (float*)&GetPosition(*(points + i));
+
+            for (uint32_t j = 0; j < 3; ++j)
+            {
+                float* min = (float*)(&GetPosition(points[minAxis[j]]));
+                float* max = (float*)(&GetPosition(points[maxAxis[j]]));
+
+                minAxis[j] = point[j] < min[j] ? i : minAxis[j];
+                maxAxis[j] = point[j] > max[j] ? i : maxAxis[j];
+            }
+        }
+
+        // Find axis with maximum span.
+        float distSqMax = 0.0f;
+        uint32_t axis = 0;
+
+        for (uint32_t i = 0; i < 3u; ++i)
+        {
+            Vector3& min = GetPosition(points[minAxis[i]]);
+            Vector3& max = GetPosition(points[maxAxis[i]]);
+
+            auto distSq = (max - min).squaredNorm();
+            if (distSq > distSqMax)
+            {
+                distSqMax = distSq;
+                axis = i;
+            }
+        }
+
+        // Calculate an initial starting center point & radius.
+        auto p1 = GetPosition(points[minAxis[axis]]);
+        auto p2 = GetPosition(points[maxAxis[axis]]);
+
+        Vector3 center = (p1 + p2) * 0.5f;
+        auto radius = (p2 - p1).norm() * 0.5f;
+        auto radiusSq = radius * radius;
+
+        // Add all our points to bounding sphere expanding radius & recalculating center point as necessary.
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            auto point = GetPosition(points[i]);
+            float distSq = (point - center).squaredNorm();
+
+            if (distSq > radiusSq)
+            {
+                float dist = std::sqrtf(distSq);
+                float k = (radius / dist) * 0.5f + 0.5f;
+
+                center = center * k + point * (1.0f - k);
+                radius = (radius + dist) * 0.5f;
+            }
+        }
+
+        // Populate a sphere
+        return Sphere( center, radius );
     }
 
     template<typename T, typename D>

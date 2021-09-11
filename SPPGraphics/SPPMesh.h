@@ -178,6 +178,7 @@ namespace SPP
 			std::shared_ptr< ArrayResource > VertexResource;
 			std::shared_ptr< ArrayResource > IndexResource;
 			int32_t MaterialID = 0;
+			Sphere bounds;
 		};
 
 		std::vector< MeshLayer > Layers;
@@ -279,7 +280,6 @@ namespace SPP
 
 	
 
-
 	inline const Vector3& GetPosition(const MeshVertex& InVertex)
 	{
 		return InVertex.position;
@@ -290,10 +290,6 @@ namespace SPP
 		return InVertex.position;
 	}
 
-	inline Vector3& GetPosition(Vector3& InVertex)
-	{
-		return InVertex;
-	}
 
 	inline void SetPosition(MeshVertex& InMeshVertex, const Vector3& InVertex)
 	{
@@ -370,7 +366,7 @@ namespace SPP
 	{
 		EDrawingTopology topology = EDrawingTopology::TriangleList;
 
-		AABB Bounds;
+		Sphere Bounds;
 
 		int32_t MeshIndex = -1;
 		//
@@ -415,7 +411,7 @@ namespace SPP
 	{
 	protected:
 		std::vector< std::shared_ptr<MeshElement> > _elements;
-		AABB _bounds;
+		Sphere _bounds;
 
 	public:
 		bool LoadMesh(const AssetPath& FileName);

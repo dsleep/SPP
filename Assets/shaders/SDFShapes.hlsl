@@ -1,4 +1,19 @@
 
+struct DrawParams
+{
+    uint ShapeCount;
+};
+
+struct ShapeInfo
+{
+    uint        ShapeID;
+    float4x4    LocalToWorldScaleRotation;
+    double3     ShapeTranslation;
+};
+
+ConstantBuffer<DrawParams>          DrawParams                : register(b3);
+StructuredBuffer<ShapeInfo>         Shapes                    : register(t0, space0);
+
 float dot2(in float2 v) { return dot(v, v); }
 float dot2(in float3 v) { return dot(v, v); }
 float ndot(in float2 a, in float2 b) { return a.x * b.x - a.y * b.y; }
@@ -90,10 +105,14 @@ float opSmoothIntersection(float d1, float d2, float k)
 float map( in float3 pos )
 {
     float d = 1e10;
-	
-	d = opUnion( d, sdSphere( pos - float3(0,-40,100), 25 ) );
-	d = opUnion( d, sdSphere( pos - float3(0,40,100), 25 ) );
-	d = opSmoothUnion( d, sdBox( pos - float3(0,0,100), float3(10, 25, 10) ), 10 );
+        
+    for (uint i = 0; i < DrawParams.ShapeCount; ++i)
+    {
+        if (Shapes[i].ShapeID == 0)
+        {
+            d = opUnion(d, sdSphere(pos - float3(0, 10 * i, 100), 25));
+        }
+    }
 	
 	return d;
 }

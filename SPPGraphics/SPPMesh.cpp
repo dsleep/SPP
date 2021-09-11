@@ -100,13 +100,16 @@ namespace SPP
 #else
 			LoadUsingAssImp(FileName, loadedMeshes);
 #endif
+			_bounds = Sphere();
 
 			for (auto& curLayer : loadedMeshes.Layers)
 			{
 				auto newMeshElement = std::make_shared<MeshElement>();
 				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
 				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
+				newMeshElement->Bounds = curLayer.bounds;
 				_elements.push_back(newMeshElement);
+				_bounds += newMeshElement->Bounds;
 				//GGI()->RegisterMeshElement(newMeshElement);
 			}
 

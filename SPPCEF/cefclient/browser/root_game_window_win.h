@@ -52,7 +52,7 @@ namespace client
 			return _gameWindow;
 		}
 
-		void SetMouseMove(std::function<void(int32_t, int32_t)> InMouseMove)
+		void SetMouseMove(std::function<void(int32_t, int32_t, uint8_t)> InMouseMove)
 		{
 			_mouseMove = InMouseMove;
 		}
@@ -144,7 +144,7 @@ namespace client
 		HWND _gameWindow;
 		RECT _gameWidowRect;
 
-		std::function<void(int32_t, int32_t)> _mouseMove;
+		std::function<void(int32_t, int32_t, uint8_t)> _mouseMove;
 		std::function<void(int32_t, int32_t, uint8_t)> _mouseDown;
 		std::function<void(int32_t, int32_t, uint8_t)> _mouseUp;
 

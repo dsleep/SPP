@@ -62,6 +62,7 @@ namespace SPP
 
 	static DescriptorTableConfig _tableRegions[] =
 	{
+		{ HDT_ShapeInfos, 1 },
 		{ HDT_MeshInfos, 1 },
 		{ HDT_MeshletVertices, MAX_MESH_ELEMENTS },
 		{ HDT_MeshletResource, MAX_MESH_ELEMENTS },
@@ -1129,6 +1130,7 @@ namespace SPP
 		void DrawFullScreen()
 		{
 			auto pd3dDevice = GGraphicsDevice->GetDevice();
+			auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
 			auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
 			auto cmdList = GGraphicsDevice->GetCommandList();
 			auto currentFrame = GGraphicsDevice->GetFrameCount();
@@ -1177,6 +1179,44 @@ namespace SPP
 
 			cmdList->SetPipelineState(_fullscreenPSO->GetState());
 			cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+			//3 shapes for now
+
+			uint32_t DrawShapeCount = 3;
+			auto ShapeSetBlock = perDrawDescriptorHeap.GetDescriptorSlots(DrawShapeCount);
+
+			struct ShapeInfo
+			{
+				uint32_t    ShapeID;
+				float	    LocalToWorldScaleRotation[16];
+				double		ShapeTranslation[3];
+			};
+
+			std::shared_ptr< ArrayResource > ShapeInfoResource = std::make_shared< ArrayResource >();
+			auto pShapes = ShapeInfoResource->InitializeFromType<ShapeInfo>(1500);	
+			memset(pShapes, 0, ShapeInfoResource->GetTotalSize());
+			pShapes[0].ShapeID = 0;
+			pShapes[0].ShapeTranslation[0] = 10;
+			pShapes[1].ShapeID = 1;
+			pShapes[1].ShapeTranslation[0] = 20;
+			pShapes[2].ShapeID = 0;
+			pShapes[2].ShapeTranslation[0] = 30;
+			auto ShapeInfoBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, ShapeInfoResource);
+
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			srvDesc.Buffer.FirstElement = 0;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			auto currentTableElement = ShapeSetBlock[0];
+			srvDesc.Buffer.StructureByteStride = ShapeInfoResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+			srvDesc.Buffer.NumElements = ShapeInfoResource->GetElementCount();
+			pd3dDevice->CreateShaderResourceView(ShapeInfoBuffer->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+				
+		
+			cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
+
+			cmdList->SetGraphicsRoot32BitConstant(6, DrawShapeCount, 0);
 
 			cmdList->DrawInstanced(4, 1, 0, 0);
 		}
@@ -1395,7 +1435,7 @@ namespace SPP
 
 			//DrawDebug();
 
-			DrawFullScreen();
+			//DrawFullScreen();
 
 			for (auto renderItem : _renderables)
 			{

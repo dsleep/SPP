@@ -107,7 +107,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			{
 				//SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
 			},
-			[&mouseDelta](int32_t mouseX, int32_t mouseY)
+			[&mouseDelta](int32_t mouseX, int32_t mouseY, uint8_t mouseState)
 			{
 				//SPP_QL("mm: %d %d", mouseX, mouseY);
 				mouseDelta -= SPP::Vector2(mouseX, mouseY);

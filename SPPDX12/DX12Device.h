@@ -64,7 +64,8 @@ namespace SPP
 {
 	enum HEAP_DESCRIPTOR_TABLES
 	{
-		HDT_MeshInfos = 0,
+		HDT_ShapeInfos = 0,
+		HDT_MeshInfos,
 		HDT_MeshletVertices,
 		HDT_MeshletResource,
 		HDT_UniqueVertexIndices,

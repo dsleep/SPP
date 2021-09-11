@@ -408,8 +408,16 @@ namespace client {
 
 				if (self->_mouseMove)
 				{
-					self->_mouseMove(currentCursorPt.x - originalCursorPt.x, currentCursorPt.y - originalCursorPt.y);
+					self->_mouseMove(currentCursorPt.x - originalCursorPt.x, currentCursorPt.y - originalCursorPt.y,1);
 				}			
+			}
+			else
+			{
+				if (self->_mouseMove)
+				{
+					POINTS points = MAKEPOINTS(lParam);
+					self->_mouseMove(points.x, points.y, 0);
+				}
 			}
 		}
 		break;

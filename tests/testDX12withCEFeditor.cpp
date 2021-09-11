@@ -55,7 +55,7 @@ private:
 
 	OWorld* _world = nullptr;
 
-
+	Vector2i _mousePosition = { -1, -1 };
 	std::chrono::high_resolution_clock::time_point _lastTime;
 	//std::list< std::shared_ptr<SPPObject> > cachedObjs;
 	std::shared_ptr< SPP::MeshMaterial > _gizmoMat;
@@ -125,7 +125,7 @@ public:
 		_rotateGizmo = std::make_shared< Mesh >();
 		_scaleGizmo = std::make_shared< Mesh >();
 		
-		_moveGizmo->LoadMesh("BlenderFiles/MoveGizmo.ply");
+		_moveGizmo->LoadMesh("BlenderFiles/MoveGizmo.fbx");
 		_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
 		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
 
@@ -152,9 +152,9 @@ public:
 		auto newMeshToDraw = GGI()->CreateRenderableMesh();
 
 		auto& pos = newMeshToDraw->GetPosition();
-		pos[2] = 100.0;
+		pos[2] = 200.0;
 		auto& scale = newMeshToDraw->GetScale();
-		scale = Vector3(10, 10, 10);
+		scale = Vector3(1, 1, 1);
 
 		newMeshToDraw->SetMeshData(meshElements);
 		newMeshToDraw->AddToScene(_mainScene.get());
@@ -167,6 +167,37 @@ public:
 		_lastTime = std::chrono::high_resolution_clock::now();
 	}
 
+	struct Sphere
+	{
+		Vector3 c;
+		float r;
+	};
+
+	// Intersects ray r = p + td, |d| = 1, with sphere s and, if intersecting, 
+	// returns t value of intersection and intersection point q 
+	int IntersectRaySphere(Vector3 p, Vector3 d, Sphere s, float& t, Vector3& q)
+	{
+		Vector3 m = p - s.c;
+		float b = m.dot(d);
+		float c = m.dot(m) - s.r * s.r;
+
+		// Exit if r’s origin outside s (c > 0) and r pointing away from s (b > 0) 
+		if (c > 0.0f && b > 0.0f) return 0;
+		float discr = b * b - c;
+
+		// A negative discriminant corresponds to ray missing sphere 
+		if (discr < 0.0f) return 0;
+
+		// Ray now found to intersect sphere, compute smallest t value of intersection
+		t = -b - std::sqrtf(discr);
+
+		// If t is negative, ray started inside sphere so clamp t to zero 
+		if (t < 0.0f) t = 0.0f;
+		q = p + t * d;
+
+		return 1;
+	}
+
 	void Update()
 	{
 		RECT rect;
@@ -176,6 +207,22 @@ public:
 		int32_t WindowSizeY = rect.bottom - rect.top;
 
 		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
+
+		auto& cam = _mainScene->GetCamera();
+
+		Vector4 MousePosNear = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 10.0f, 1.0f);
+		Vector4 MousePosFar = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 100.0f, 1.0f);
+
+		Vector4 MouseLocalNear = MousePosNear * cam.GetInvViewProjMatrix();
+		MouseLocalNear /= MouseLocalNear[3];
+		Vector4 MouseLocalFar = MousePosFar * cam.GetInvViewProjMatrix();
+		MouseLocalFar /= MouseLocalFar[3];
+
+		Vector3 MouseStart = Vector3(MouseLocalNear[0], MouseLocalNear[1], MouseLocalNear[2]);
+		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
+		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
+
+		SPP_QL("MouseRay %f %f %f", MouseRay[0], MouseRay[1], MouseRay[2]);
 
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
@@ -195,8 +242,6 @@ public:
 			_graphicsDevice->ResizeBuffers(Width, Height);
 		}
 
-		auto& cam = _mainScene->GetCamera();
-
 		//W
 		if (_keys[0x57])
 			cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Forward);
@@ -214,16 +259,27 @@ public:
 	}
 
 	void KeyDown(uint8_t KeyValue)
-	{
-		//SPP_QL("kd: %d", KeyValue);
+	{		
+		SPP_QL("kd: 0x%X", KeyValue);
 		_keys[KeyValue] = true;
+	}
+
+	void Deselect()
+	{
+
 	}
 
 	void KeyUp(uint8_t KeyValue)
 	{
-		//SPP_QL("ku: %d", KeyValue);
+		SPP_QL("ku: 0x%X", KeyValue);
 		_keys[KeyValue] = false;
+
+		if (KeyValue == VK_ESCAPE)
+		{
+			Deselect();
+		}
 	}
+	
 
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
@@ -235,11 +291,19 @@ public:
 		SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
 	}
 		
-	void MouseMove(int32_t mouseX, int32_t mouseY)
+	void MouseMove(int32_t mouseX, int32_t mouseY, uint8_t MouseState)
 	{
 		//SPP_QL("mm: %d %d", mouseX, mouseY);
-		auto& cam = _mainScene->GetCamera();
-		cam.TurnCamera(Vector2(-mouseX, -mouseY));
+		if (MouseState == 0)
+		{
+			_mousePosition[0] = mouseX;
+			_mousePosition[1] = mouseY;
+		}
+		else if (MouseState == 1)
+		{
+			auto& cam = _mainScene->GetCamera();
+			cam.TurnCamera(Vector2(-mouseX, -mouseY));
+		}
 	}
 
 	void OnResize(int32_t InWidth, int32_t InHeight)
@@ -354,7 +418,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 					std::bind(&EditorEngine::KeyUp, editor, std::placeholders::_1),
 					std::bind(&EditorEngine::MouseDown, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
 					std::bind(&EditorEngine::MouseUp, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-					std::bind(&EditorEngine::MouseMove, editor, std::placeholders::_1, std::placeholders::_2)
+					std::bind(&EditorEngine::MouseMove, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)
 				},
 				&jsFuncRecv);
 				});
