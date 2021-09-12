@@ -6,6 +6,7 @@
 
 #include "SPPEngine.h"
 #include "SPPMath.h"
+#include "SPPPrimitiveShapes.h"
 #include <iostream>
 
 namespace SPP

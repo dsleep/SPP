@@ -16,7 +16,11 @@ target_compile_definitions(SPPMath
 target_sources(SPPMath
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.cpp" )
+		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.cpp" 
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.cpp"		
+		)
 
 target_include_directories(SPPMath 
 	PUBLIC  	

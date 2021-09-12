@@ -6,7 +6,7 @@
 
 namespace SPP
 {
-	uint32_t GetMathVersion()
+  	uint32_t GetMathVersion()
 	{
 		return 0;
 	}

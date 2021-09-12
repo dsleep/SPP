@@ -167,36 +167,7 @@ public:
 		_lastTime = std::chrono::high_resolution_clock::now();
 	}
 
-	struct Sphere
-	{
-		Vector3 c;
-		float r;
-	};
-
-	// Intersects ray r = p + td, |d| = 1, with sphere s and, if intersecting, 
-	// returns t value of intersection and intersection point q 
-	int IntersectRaySphere(Vector3 p, Vector3 d, Sphere s, float& t, Vector3& q)
-	{
-		Vector3 m = p - s.c;
-		float b = m.dot(d);
-		float c = m.dot(m) - s.r * s.r;
-
-		// Exit if r’s origin outside s (c > 0) and r pointing away from s (b > 0) 
-		if (c > 0.0f && b > 0.0f) return 0;
-		float discr = b * b - c;
-
-		// A negative discriminant corresponds to ray missing sphere 
-		if (discr < 0.0f) return 0;
-
-		// Ray now found to intersect sphere, compute smallest t value of intersection
-		t = -b - std::sqrtf(discr);
-
-		// If t is negative, ray started inside sphere so clamp t to zero 
-		if (t < 0.0f) t = 0.0f;
-		q = p + t * d;
-
-		return 1;
-	}
+	
 
 	void Update()
 	{
