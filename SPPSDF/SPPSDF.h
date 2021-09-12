@@ -52,8 +52,6 @@ namespace SPP
 	protected:
 		OShapeGroup(const MetaPath& InPath) : OElement(InPath) { }
 
-		std::vector< class OShape* > _shapes;
-
 	public:
 		virtual ~OShapeGroup() { }
 	};

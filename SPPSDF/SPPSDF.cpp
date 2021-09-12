@@ -55,6 +55,5 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_shapes", &OShapeGroup::_shapes)
 		;
 }
