@@ -53,7 +53,7 @@ private:
 	Vector2 _mouseDelta = Vector2(0, 0);
 	uint8_t _keys[255] = { 0 };
 
-	OWorld* _world = nullptr;
+	OScene* _world = nullptr;
 
 	Vector2i _mousePosition = { -1, -1 };
 	std::chrono::high_resolution_clock::time_point _lastTime;
@@ -106,7 +106,7 @@ public:
 
 		
 		GetSDFVersion();
-		_world = AllocateObject<OWorld>("World");
+		_world = AllocateObject<OScene>("World");
 		
 		RECT rect;
 		GetClientRect(_mainDXWindow, &rect);

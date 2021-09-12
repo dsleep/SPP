@@ -21,7 +21,6 @@
 
 #endif
 
-
 namespace SPP
 {
 	class SPP_SCENE_API OElement : public SPPObject
@@ -32,52 +31,32 @@ namespace SPP
 	protected:
 		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
 
+		class OElement* _parent = nullptr;
+		std::vector<OElement*> _children;
+
 		Vector3 _translation = { 0,0,0 };
 		Vector3 _rotation = { 0, 0, 0 };
 		float _scale = 1.0f;
 
 	public:
-
-		class OEntity* _parent = nullptr;
+		std::vector<OElement*>& GetChildElements()
+		{
+			return _children;
+		}
 
 		virtual ~OElement() { }
 	};
 
-	class SPP_SCENE_API OEntity : public SPPObject
+	class SPP_SCENE_API OScene : public OElement
 	{
-		RTTR_ENABLE(SPPObject);
+		RTTR_ENABLE(OElement);
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		std::vector<OElement*> _elements;
-
-		OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
+		OScene(const MetaPath& InPath) : OElement(InPath) { }
 
 	public:
-		std::vector<OElement*>& GetElements()
-		{
-			return _elements;
-		}
-
-		virtual ~OEntity() { }
-	};
-
-	class SPP_SCENE_API OWorld : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		std::vector<OEntity*> _entities;
-
-		OWorld(const MetaPath& InPath) : SPPObject(InPath) { }
-
-	public:
-		std::vector<OEntity*>& GetEntities()
-		{
-			return _entities;
-		}
-		virtual ~OWorld() { }
+		virtual ~OScene() { }
 	};
 
 	SPP_SCENE_API uint32_t GetSceneVersion();

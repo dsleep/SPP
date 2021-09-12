@@ -44,13 +44,13 @@ namespace SPP
 		virtual ~OShape() { }
 	};
 
-	class SPP_SDF_API OShapeGroup : public OEntity
+	class SPP_SDF_API OShapeGroup : public OElement
 	{
-		RTTR_ENABLE(OEntity);
+		RTTR_ENABLE(OElement);
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OShapeGroup(const MetaPath& InPath) : OEntity(InPath) { }
+		OShapeGroup(const MetaPath& InPath) : OElement(InPath) { }
 
 		std::vector< class OShape* > _shapes;
 

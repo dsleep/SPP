@@ -16,16 +16,11 @@ target_compile_definitions(SPPEngine
 target_sources(SPPEngine
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPApplication.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPEngine.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPEngine.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPAssetCache.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPAssetCache.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPythonInterface.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPythonInterface.h"

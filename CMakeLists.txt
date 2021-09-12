@@ -47,6 +47,11 @@ set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
 set(USE_CRYPTOCPP ON CACHE BOOL "Include lib Cryptopp")
 set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
 set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
+set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
+
+if(USE_OBJECTS)
+	add_definitions(-DUSE_OBJECTS=1)
+endif()
 
 #General C++ Compiling
 set(CMAKE_CXX_STANDARD 17)
@@ -106,11 +111,16 @@ endif()
 if(OS_WINDOWS)
 	list(APPEND SPPProjects
 			"SPPEngine" 
-			"SPPObject" 
-			"SPPScene"
-			"SPPSDF" 
+			
 			"SPPCapture" 
 			"SPPVideo" )
+			
+	if(USE_OBJECTS)
+		list(APPEND SPPProjects								
+				"SPPObject" 
+				"SPPScene"
+				"SPPSDF")
+	endif()
 	
 	if(USE_CEF)
 		list(APPEND SPPProjects "SPPCEF")

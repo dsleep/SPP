@@ -519,9 +519,9 @@ void GetObjectPropertiesAsJSON(Json::Value &rootValue, SubTypeInfo& subTypes, co
 	}
 }
 
-void GenerateObjectList(OWorld *InWorld, Json::Value &rootValue)
+void GenerateObjectList(OScene*InWorld, Json::Value &rootValue)
 {
-	auto entities = InWorld->GetEntities();
+	auto entities = InWorld->GetChildElements();
 
 	for (auto entity : entities)
 	{
@@ -536,7 +536,7 @@ void GenerateObjectList(OWorld *InWorld, Json::Value &rootValue)
 			localValue["LOCAL"] = pathName.TopLevelName();
 
 			Json::Value elementValues;
-			auto elements = entity->GetElements();
+			auto elements = entity->GetChildElements();
 			for (auto element : elements)
 			{
 				auto elePath = element->GetPath();
@@ -557,13 +557,13 @@ int main(int argc, char* argv[])
 
 
 
-	auto CurrentWorld = AllocateObject<OWorld>("World");
+	auto EntityScene = AllocateObject<OScene>("Scene");
 
 	auto CurrentObject = AllocateObject<OSDFBox>("World.ShapeGroup_0.Box_0");
 	auto CurrentEntity = AllocateObject<OShapeGroup>("World.ShapeGroup_0");
 	
-	CurrentEntity->GetElements().push_back(CurrentObject);
-	CurrentWorld->GetEntities().push_back(CurrentEntity);
+	CurrentEntity->GetChildElements().push_back(CurrentObject);
+	EntityScene->GetChildElements().push_back(CurrentEntity);
 
 	Json::Value rootValue;
 	
@@ -578,7 +578,7 @@ int main(int argc, char* argv[])
 
 
 	Json::Value worldEntities;
-	GenerateObjectList(CurrentWorld, worldEntities);
+	GenerateObjectList(EntityScene, worldEntities);
 	std::string worldString;
 	JsonToString(worldEntities, worldString);
 

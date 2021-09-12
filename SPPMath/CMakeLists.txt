@@ -19,7 +19,13 @@ target_sources(SPPMath
 		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.cpp" 
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.cpp"	
+				
+		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.h"
+				
+		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.h"
 		)
 
 target_include_directories(SPPMath 
