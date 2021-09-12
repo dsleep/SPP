@@ -405,7 +405,7 @@ namespace SPP
     {
         // Intersects ray r = p + td, |d| = 1, with sphere s and, if intersecting, 
         // returns t value of intersection and intersection point q 
-        SPP_MATH_API bool IntersectRaySphere(const Ray &InRay, const Sphere &InSphere, Vector3& intersectionPoint, float *timeToHit);
+        SPP_MATH_API bool Intersect_RaySphere(const Ray &InRay, const Sphere &InSphere, Vector3& intersectionPoint, float *timeToHit);
 
         SPP_MATH_API bool Intersect_RayTriangle(const Ray& InRay, const Vector3& v0, const Vector3& v1, const Vector3& v2, float& t, float& u, float& v, float kEpsilon = 1e-8);
 

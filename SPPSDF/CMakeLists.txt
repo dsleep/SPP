@@ -5,7 +5,7 @@ add_library(SPPSDF SHARED "")
 
 set_target_properties(SPPSDF PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPSDF SPPMath SPPObject )
+add_dependencies( SPPSDF SPPMath SPPObject SPPScene )
 
 # will need define to not create empty dll export
 target_compile_definitions(SPPSDF
@@ -25,7 +25,8 @@ target_sources(SPPSDF
 target_link_libraries( SPPSDF 
 	PUBLIC
 		SPPObject
-		SPPMath )
+		SPPMath
+		SPPScene )
 		
 install(TARGETS SPPSDF DESTINATION "${SPP_ROOT}/INSTALL")
 

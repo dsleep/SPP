@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include "SPPObject.h"
-#include "SPPMath.h"
+#include "SPPScene.h"
 
 #if _WIN32 && !defined(SPP_SDF_STATIC)
 
@@ -24,62 +23,6 @@
 
 namespace SPP
 {	
-	class SPP_SDF_API OElement : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
-
-		Vector3 _translation = { 0,0,0 };
-		Vector3 _rotation = { 0, 0, 0 };
-		float _scale = 1.0f;
-
-	public:
-
-		class OEntity* _parent = nullptr;
-
-		virtual ~OElement() { }
-	};
-
-	class SPP_SDF_API OEntity : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		std::vector<OElement*> _elements;
-
-		OEntity(const MetaPath& InPath) : SPPObject(InPath) { }
-
-	public:
-		std::vector<OElement*>& GetElements()
-		{
-			return _elements;
-		}
-
-		virtual ~OEntity() { }
-	};
-
-	class SPP_SDF_API OWorld : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		std::vector<OEntity*> _entities;
-
-		OWorld(const MetaPath& InPath) : SPPObject(InPath) { }
-
-	public:
-		std::vector<OEntity*> &GetEntities()
-		{
-			return _entities;
-		}
-		virtual ~OWorld() { }
-	};
-
 	enum class EShapeOp
 	{
 		Add,

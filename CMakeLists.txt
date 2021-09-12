@@ -107,6 +107,7 @@ if(OS_WINDOWS)
 	list(APPEND SPPProjects
 			"SPPEngine" 
 			"SPPObject" 
+			"SPPScene"
 			"SPPSDF" 
 			"SPPCapture" 
 			"SPPVideo" )

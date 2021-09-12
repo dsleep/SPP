@@ -146,7 +146,7 @@ public:
 
 		for (auto& curMesh : meshElements)
 		{
-			curMesh->material = _gizmoMat;
+			curMesh->material = _gizmoMat; 
 		}
 
 		auto newMeshToDraw = GGI()->CreateRenderableMesh();
