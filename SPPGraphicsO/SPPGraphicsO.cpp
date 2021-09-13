@@ -52,6 +52,33 @@ namespace SPP
 		if (!InScene) return;
 	}
 
+	bool OMeshElement::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
+	{
+		//if (_bounds)
+		{
+			if (_meshObj &&
+				_meshObj->GetMesh() &&
+				!_meshObj->GetMesh()->GetMeshElements().empty())
+			{
+				auto meshElements = _meshObj->GetMesh()->GetMeshElements();
+
+				for (auto& curMesh : meshElements)
+				{
+					auto curBounds = curMesh->Bounds.Transform(_translation.cast<float>(), _scale);
+
+					if (curBounds)
+					{
+						if (Intersection::Intersect_RaySphere(InRay, curBounds, oInfo.location))
+						{
+							oInfo.hitName = curMesh->Name;
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
 }
 
 using namespace SPP;

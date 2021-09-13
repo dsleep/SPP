@@ -181,11 +181,13 @@ namespace SPP
   
     struct Ray
     {
-    private:
-        Vector3 _direction;
+    private:        
         Vector3d _origin;
+        Vector3 _direction;
+
     public:
         Ray() { }
+        Ray(const Vector3d &InOrigin, const Vector3 &Indirection) : _origin(InOrigin), _direction(Indirection){ }
 
         const Vector3d& GetOrigin() const
         {
@@ -259,6 +261,19 @@ namespace SPP
 
                 *this = MinimumBoundingSphere(points, 4);
             }
+        }
+
+        //Sphere Transform(const Matrix4x4& transformation) const
+        //{
+        //    Vector4 cntPt(_center[0], _center[1], _center[2], 1);
+        //    Vector4 transformedCnt = cntPt * transformation;
+        //    
+        //    transformation.
+        //}
+
+        Sphere Transform(const Vector3& Translate, float Scale) const
+        {            
+            return Sphere(_center + Translate, _radius * Scale);
         }
     };
 
@@ -415,7 +430,7 @@ namespace SPP
     {
         // Intersects ray r = p + td, |d| = 1, with sphere s and, if intersecting, 
         // returns t value of intersection and intersection point q 
-        SPP_MATH_API bool Intersect_RaySphere(const Ray &InRay, const Sphere &InSphere, Vector3& intersectionPoint, float *timeToHit);
+        SPP_MATH_API bool Intersect_RaySphere(const Ray &InRay, const Sphere &InSphere, Vector3& intersectionPoint, float *timeToHit=nullptr);
 
         SPP_MATH_API bool Intersect_RayTriangle(const Ray& InRay, const Vector3& v0, const Vector3& v1, const Vector3& v2, float& t, float& u, float& v, float kEpsilon = 1e-8);
 

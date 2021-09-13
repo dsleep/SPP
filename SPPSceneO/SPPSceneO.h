@@ -24,6 +24,13 @@
 
 namespace SPP
 {
+	struct IntersectionInfo
+	{
+		Vector3 location;
+		Vector3 normal;
+		std::string hitName;
+	};
+
 	class SPP_SCENE_API OElement : public SPPObject, public IOctreeElement
 	{
 		RTTR_ENABLE(SPPObject);
@@ -70,6 +77,8 @@ namespace SPP
 		virtual void AddChild(OElement* InChild);
 		virtual void RemoveChild(OElement* InChild);
 		virtual void RemoveFromParent();
+
+		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo &oInfo) const;
 
 		//
 		virtual Spherei GetBounds() const

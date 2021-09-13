@@ -218,7 +218,13 @@ public:
 		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
 
-		SPP_QL("MouseRay %f %f %f", MouseRay[0], MouseRay[1], MouseRay[2]);
+		IntersectionInfo info;
+		if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
+		{
+			SPP_QL("Hit: %s", info.hitName.c_str());
+		}
+
+		//
 
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();

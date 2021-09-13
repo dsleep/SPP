@@ -94,6 +94,8 @@ namespace SPP
 		{
 			_meshObj = InMesh;
 		}
+		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const override;
+
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene(class OScene* InScene) override;
 

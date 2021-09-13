@@ -33,6 +33,15 @@ namespace SPP
 		}
 	}
 
+	bool OElement::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
+	{
+		if (_bounds)
+		{
+			return Intersection::Intersect_RaySphere(InRay, _bounds, oInfo.location);
+		}
+		return false;
+	}
+
 	OScene::OScene(const MetaPath& InPath) : OElement(InPath) 
 	{ 
 		_octree = std::make_unique<LooseOctree>();
