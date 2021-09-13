@@ -10,6 +10,55 @@ namespace SPP
 	{
 		return 1;
 	}
+
+	void OElement::AddChild(OElement* InChild)
+	{
+		InChild->RemoveFromParent();
+		_children.insert(InChild);
+		InChild->_parent = this;
+	}
+
+	void OElement::RemoveChild(OElement* InChild)
+	{
+		SE_ASSERT(InChild->_parent == this);
+		_children.erase(InChild);
+		InChild->_parent = nullptr;
+	}
+
+	void OElement::RemoveFromParent()
+	{
+		if (_parent)
+		{
+			_parent->RemoveChild(this);
+		}
+	}
+
+	OScene::OScene(const MetaPath& InPath) : OElement(InPath) 
+	{ 
+		_octree = std::make_unique<LooseOctree>();
+		_octree->Initialize(Vector3d(0, 0, 0), 100000, 1);
+	}
+
+	void OScene::AddChild(OElement* InChild)
+	{
+		OElement::AddChild(InChild);
+		if (InChild->Bounds())
+		{
+			_octree->AddElement(InChild);
+		}
+		InChild->AddedToScene(this);
+	}
+	void OScene::RemoveChild(OElement* InChild)
+	{
+		OElement::RemoveChild(InChild);
+		_octree->AddElement(InChild);
+
+		if (InChild->IsInOctree())
+		{
+			_octree->RemoveElement(InChild);
+		}
+		InChild->RemovedFromScene(this);
+	}
 }
 
 using namespace SPP;

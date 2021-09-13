@@ -178,6 +178,7 @@ namespace SPP
 			std::shared_ptr< ArrayResource > VertexResource;
 			std::shared_ptr< ArrayResource > IndexResource;
 			int32_t MaterialID = 0;
+			std::string Name;
 			Sphere bounds;
 		};
 
@@ -364,6 +365,7 @@ namespace SPP
 
 	struct SPP_GRAPHICS_API MeshElement
 	{
+		std::string Name;
 		EDrawingTopology topology = EDrawingTopology::TriangleList;
 
 		Sphere Bounds;

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 project(SPPApplications_API VERSION 1.0.0 LANGUAGES CXX)
 
+message( STATUS "Adding Application: SPPSDFSimpleEditor" )
+add_subdirectory("SPPSDFSimpleEditor")
+
 ##########
 add_executable( simpleconnectioncoordinator "")
 add_dependencies( simpleconnectioncoordinator SPPNetworking )			

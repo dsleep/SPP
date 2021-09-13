@@ -33,21 +33,43 @@ namespace SPP
 		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
 
 		class OElement* _parent = nullptr;
-		std::vector<OElement*> _children;
+		std::set<OElement*> _children;
 
 		Sphere _bounds;
-		Vector3 _translation = { 0,0,0 };
+		Vector3d _translation = { 0,0,0 };
 		Vector3 _rotation = { 0, 0, 0 };
 		float _scale = 1.0f;
 		OctreeLinkPtr _octreeLink = nullptr;
 
 	public:
-		std::vector<OElement*>& GetChildElements()
+		virtual Sphere& Bounds()
 		{
-			return _children;
+			return _bounds;
+		}
+
+		Vector3d& GetPosition()
+		{
+			return _translation;
+		}
+
+		float& GetScale()
+		{
+			return _scale;
+		}
+
+		virtual bool IsInOctree() const
+		{
+			return _octreeLink != nullptr;
 		}
 
 		virtual ~OElement() { }
+
+		virtual void AddedToScene(class OScene* InScene) {}
+		virtual void RemovedFromScene(class OScene* InScene) {};
+
+		virtual void AddChild(OElement* InChild);
+		virtual void RemoveChild(OElement* InChild);
+		virtual void RemoveFromParent();
 
 		//
 		virtual Spherei GetBounds() const
@@ -71,9 +93,14 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OScene(const MetaPath& InPath) : OElement(InPath) { }
+		OScene(const MetaPath& InPath);
+
+		std::unique_ptr<LooseOctree> _octree;
 
 	public:
+		virtual void AddChild(OElement* InChild) override;
+		virtual void RemoveChild(OElement* InChild) override;
+
 		virtual ~OScene() { }
 	};
 

@@ -8,23 +8,41 @@
 #include "SPPGraphics.h"
 #include "SPPMesh.h"
 
-#if _WIN32 && !defined(SPP_GRAPHICSSCENE_STATIC)
+#if _WIN32 && !defined(SPP_GRAPHICSO_STATIC)
 
 	#ifdef SPP_GRAPHICSO_EXPORT
-		#define SPP_GRAPHICSSCENE_API __declspec(dllexport)
+		#define SPP_GRAPHICSO_API __declspec(dllexport)
 	#else
-		#define SPP_GRAPHICSSCENE_API __declspec(dllimport)
+		#define SPP_GRAPHICSO_API __declspec(dllimport)
 	#endif
 
 	#else
 
-		#define SPP_GRAPHICSSCENE_API 
+		#define SPP_GRAPHICSO_API 
 
 #endif
 
 namespace SPP
 {
-	class SPP_SCENE_API OMesh : public SPPObject
+	class SPP_GRAPHICSO_API ORenderableScene : public OScene
+	{
+		RTTR_ENABLE(OScene);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		ORenderableScene(const MetaPath& InPath);
+		std::shared_ptr<RenderScene> _renderScene;
+
+	public:
+		RenderScene* GetRenderScene()
+		{
+			return _renderScene.get();
+		}
+
+		virtual ~ORenderableScene() { }
+	};
+
+	class SPP_GRAPHICSO_API OMesh : public SPPObject
 	{
 		RTTR_ENABLE(SPPObject);
 		RTTR_REGISTRATION_FRIEND
@@ -34,22 +52,54 @@ namespace SPP
 		std::shared_ptr<Mesh> _mesh;
 
 	public:
+		void SetMesh(std::shared_ptr<Mesh> InMesh)
+		{
+			_mesh = InMesh;
+		}
+		std::shared_ptr<Mesh> GetMesh()
+		{
+			return _mesh;
+		}
 		virtual ~OMesh() { }
 	};
 
-	class SPP_SCENE_API OMeshElement : public OElement
+	class SPP_GRAPHICSO_API ORenderableElement : public OElement
 	{
 		RTTR_ENABLE(OElement);
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OMeshElement(const MetaPath& InPath) : OElement(InPath) { }
-		OMesh* _meshObject = nullptr;
+		ORenderableElement(const MetaPath& InPath) : OElement(InPath) { }
 
 	public:
+		virtual void AddedToScene(class OScene* InScene) override;
+		virtual void RemovedFromScene(class OScene* InScene) override;
+
+		virtual ~ORenderableElement() { }
+	};
+
+	class SPP_GRAPHICSO_API OMeshElement : public ORenderableElement
+	{
+		RTTR_ENABLE(ORenderableElement);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OMeshElement(const MetaPath& InPath) : ORenderableElement(InPath) { }
+		OMesh* _meshObj = nullptr;
+
+		std::shared_ptr<RenderableMesh> _renderableMesh;
+
+	public:
+		void SetMesh(OMesh* InMesh)
+		{
+			_meshObj = InMesh;
+		}
+		virtual void AddedToScene(class OScene* InScene) override;
+		virtual void RemovedFromScene(class OScene* InScene) override;
+
 		virtual ~OMeshElement() { }
 	};
 
-	SPP_GRAPHICSSCENE_API uint32_t GetGraphicsSceneVersion();
+	SPP_GRAPHICSO_API uint32_t GetGraphicsSceneVersion();
 }
 

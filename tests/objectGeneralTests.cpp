@@ -521,32 +521,33 @@ void GetObjectPropertiesAsJSON(Json::Value &rootValue, SubTypeInfo& subTypes, co
 
 void GenerateObjectList(OScene*InWorld, Json::Value &rootValue)
 {
-	auto entities = InWorld->GetChildElements();
+	//TODOFIXME
+	//auto entities = InWorld->GetChildElements();
 
-	for (auto entity : entities)
-	{
-		SE_ASSERT(entity);
+	//for (auto entity : entities)
+	//{
+	//	SE_ASSERT(entity);
 
-		if (entity)
-		{
-			auto pathName = entity->GetPath();
+	//	if (entity)
+	//	{
+	//		auto pathName = entity->GetPath();
 
-			Json::Value localValue;
-			localValue["FULL"] = pathName.ToString();
-			localValue["LOCAL"] = pathName.TopLevelName();
+	//		Json::Value localValue;
+	//		localValue["FULL"] = pathName.ToString();
+	//		localValue["LOCAL"] = pathName.TopLevelName();
 
-			Json::Value elementValues;
-			auto elements = entity->GetChildElements();
-			for (auto element : elements)
-			{
-				auto elePath = element->GetPath();
-				elementValues.append(elePath.TopLevelName());
-			}
-			localValue["CHILDREN"] = elementValues;
+	//		Json::Value elementValues;
+	//		auto elements = entity->GetChildElements();
+	//		for (auto element : elements)
+	//		{
+	//			auto elePath = element->GetPath();
+	//			elementValues.append(elePath.TopLevelName());
+	//		}
+	//		localValue["CHILDREN"] = elementValues;
 
-			rootValue.append(localValue);
-		}
-	}
+	//		rootValue.append(localValue);
+	//	}
+	//}
 }
 
 
@@ -562,8 +563,8 @@ int main(int argc, char* argv[])
 	auto CurrentObject = AllocateObject<OSDFBox>("World.ShapeGroup_0.Box_0");
 	auto CurrentEntity = AllocateObject<OShapeGroup>("World.ShapeGroup_0");
 	
-	CurrentEntity->GetChildElements().push_back(CurrentObject);
-	EntityScene->GetChildElements().push_back(CurrentEntity);
+	CurrentEntity->AddChild(CurrentObject);
+	EntityScene->AddChild(CurrentEntity);
 
 	Json::Value rootValue;
 	

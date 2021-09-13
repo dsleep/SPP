@@ -79,6 +79,7 @@ namespace SPP
 			auto& layer = oMeshes.Layers.emplace_back(LoadedMeshes::MeshLayer{ std::make_shared<ArrayResource >(),std::make_shared <ArrayResource >() });
 
 			layer.MaterialID = mesh->mMaterialIndex;
+			layer.Name = mesh->mName.C_Str();
 
 			{
 				auto pvertices = layer.VertexResource->InitializeFromType< MeshVertex>(mesh->mNumVertices);
