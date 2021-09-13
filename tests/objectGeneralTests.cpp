@@ -5,7 +5,7 @@
 #include "SPPCore.h"
 #include "SPPLogging.h"
 #include "SPPObject.h"
-#include "SPPSDF.h"
+#include "SPPSDFO.h"
 #include "SPPJsonUtils.h"
 
 using namespace SPP;

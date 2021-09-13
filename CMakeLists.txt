@@ -110,16 +110,15 @@ endif()
 			
 if(OS_WINDOWS)
 	list(APPEND SPPProjects
-			"SPPEngine" 
-			
+			"SPPEngine" 			
 			"SPPCapture" 
 			"SPPVideo" )
 			
 	if(USE_OBJECTS)
 		list(APPEND SPPProjects								
 				"SPPObject" 
-				"SPPScene"
-				"SPPSDF")
+				"SPPSceneO"				
+				"SPPSDFO")
 	endif()
 	
 	if(USE_CEF)
@@ -128,6 +127,10 @@ if(OS_WINDOWS)
 
 	if(USE_GRAPHICS)
 		list(APPEND SPPProjects "SPPGraphics")
+		
+		if(USE_OBJECTS)
+			list(APPEND SPPProjects "SPPGraphicsO")
+		endif()
 		
 		if(USE_DX12)
 			list(APPEND SPPProjects "SPPDX12")	

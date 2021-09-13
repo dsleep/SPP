@@ -3,11 +3,11 @@ project(SPPTests_API VERSION 1.0.0 LANGUAGES CXX)
 
 ##########
 add_executable( objectGeneralTests "")
-add_dependencies( objectGeneralTests SPPSDF)			
+add_dependencies( objectGeneralTests SPPSDFO)			
 target_sources( objectGeneralTests 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/objectGeneralTests.cpp" )		
-target_link_libraries( objectGeneralTests SPPSDF )
+target_link_libraries( objectGeneralTests SPPSDFO )
 set_target_properties( objectGeneralTests PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET objectGeneralTests PROPERTY FOLDER "TESTS")
 set_property(TARGET objectGeneralTests PROPERTY VS_DPI_AWARE "PerMonitor")
@@ -107,14 +107,14 @@ if(USE_GRAPHICS AND USE_DX12)
 	# basic dx 12 app with CEF
 	####################
 	add_executable( testDX12withCEFeditor WIN32 "")
-	add_dependencies( testDX12withCEFeditor SPPSDF SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess )			
+	add_dependencies( testDX12withCEFeditor SPPSDFO SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess )			
 	target_sources( testDX12withCEFeditor 
 		PRIVATE 
 			"${CMAKE_CURRENT_LIST_DIR}/testDX12withCEFeditor.cpp"		
 			"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
 	target_link_libraries( testDX12withCEFeditor 
 		PRIVATE
-			SPPSDF
+			SPPSDFO
 			SPPGraphics
 			SPPCEFUserInterface )
 	set_target_properties( testDX12withCEFeditor PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
