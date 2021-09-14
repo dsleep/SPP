@@ -436,5 +436,42 @@ namespace SPP
 		}
 	};
 
-	SPP_GRAPHICS_API std::shared_ptr<RenderableMesh> CreateRenderableMesh(bool bIsStatic = false);
+	enum class EShapeOp
+	{
+		Add = 0,
+		Subtract,
+		Intersect,
+		SmoothAdd
+	};
+
+	enum class EShapeType
+	{
+		Unknown = 0,
+		Sphere,
+		Box
+	};
+
+	struct SPP_GRAPHICS_API SDFShape
+	{
+		EShapeType shapeType = EShapeType::Unknown;
+		EShapeOp shapeOp = EShapeOp::Add;
+		float shapeBlend = 0;
+
+		Vector3 translation = { 0,0,0 };
+		Vector3 eulerRotation = { 0,0,0 };
+		float scale = 1;
+		Vector4 params = { 0,0,0,0 };
+	};
+
+	class SPP_GRAPHICS_API RenderableSignedDistanceField : public Renderable
+	{
+	protected:
+		std::vector< std::shared_ptr<SDFShape> > _shapes;
+
+	public:
+		std::vector< std::shared_ptr<SDFShape> >& GetShapes()
+		{
+			return _shapes;
+		}
+	};
 }

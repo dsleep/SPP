@@ -320,6 +320,10 @@ namespace SPP
 		{
 			return nullptr;
 		}
+		virtual std::shared_ptr< class RenderableSignedDistanceField > CreateRenderableSDF() override
+		{
+			return nullptr;
+		}
 	};
 
 	static OpenGLGraphicInterface staticDGI;

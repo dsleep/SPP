@@ -1809,9 +1809,15 @@ namespace SPP
 		{
 			return std::make_shared< D3D12RenderScene >();
 		}
+
 		virtual std::shared_ptr<RenderableMesh> CreateRenderableMesh() override
 		{
 			return DX12_CreateRenderableMesh(false);
+		}
+
+		virtual std::shared_ptr< class RenderableSignedDistanceField > CreateRenderableSDF() override
+		{
+			return nullptr;
 		}
 
 		virtual void BeginResourceCopies() override

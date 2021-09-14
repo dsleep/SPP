@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPSceneO.h"
+#include "SPPMesh.h"
 
 #if _WIN32 && !defined(SPP_SDF_STATIC)
 
@@ -22,23 +23,17 @@
 
 
 namespace SPP
-{	
-	enum class EShapeOp
-	{
-		Add,
-		Subtract,
-		Intersect,
-		SmoothAdd
-	};
-
+{		
 	class SPP_SDF_API OShape : public OElement
 	{
 		RTTR_ENABLE(OElement);
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OShape(const MetaPath& InPath) : OElement(InPath) { }
+		EShapeType _shapeType = EShapeType::Unknown;
 		EShapeOp _shapeOp = EShapeOp::Add;
+
+		OShape(const MetaPath& InPath) : OElement(InPath) { }
 
 	public:
 		virtual ~OShape() { }
@@ -62,7 +57,10 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OSDFSphere(const MetaPath& InPath) : OShape(InPath) { }
+		OSDFSphere(const MetaPath& InPath) : OShape(InPath) 
+		{
+			_shapeType = EShapeType::Sphere;
+		}
 		float _radius = 1.0f;
 
 	public:
@@ -76,7 +74,10 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OSDFBox(const MetaPath& InPath) : OShape(InPath) { }
+		OSDFBox(const MetaPath& InPath) : OShape(InPath) 
+		{
+			_shapeType = EShapeType::Box;
+		}
 		Vector3 _extents = { 1, 1, 1 };
 
 	public:

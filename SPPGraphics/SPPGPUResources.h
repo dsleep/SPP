@@ -395,7 +395,8 @@ namespace SPP
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
 
         virtual std::shared_ptr< class RenderScene > CreateRenderScene() = 0;
-        virtual std::shared_ptr< class RenderableMesh> CreateRenderableMesh() = 0;
+        virtual std::shared_ptr< class RenderableMesh > CreateRenderableMesh() = 0;
+        virtual std::shared_ptr< class RenderableSignedDistanceField > CreateRenderableSDF() = 0;
 
         virtual void BeginResourceCopies() { }
         virtual void EndResourceCopies() { }

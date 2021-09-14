@@ -5,7 +5,7 @@ add_library(SPPSDFO SHARED "")
 
 set_target_properties(SPPSDFO PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPSDFO SPPMath SPPObject SPPSceneO )
+add_dependencies( SPPSDFO SPPCore SPPObject SPPMath SPPSceneO SPPGraphics SPPGraphicsO )
 
 # will need define to not create empty dll export
 target_compile_definitions(SPPSDFO
@@ -24,9 +24,12 @@ target_sources(SPPSDFO
 				
 target_link_libraries( SPPSDFO 
 	PUBLIC
-		SPPObject
-		SPPMath
-		SPPSceneO )
+		SPPCore 
+		SPPObject 
+		SPPMath 
+		SPPSceneO 
+		SPPGraphics 
+		SPPGraphicsO )
 		
 install(TARGETS SPPSDFO DESTINATION "${SPP_ROOT}/INSTALL")
 

@@ -169,11 +169,17 @@ public:
 		/////////////SCENE SETUP
 
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
+		
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);
 		_gizmo->GetPosition()[2] = 200.0;
-
 		_renderableScene->AddChild(_gizmo);
+
+		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
+		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
+		startingGroup->AddChild(startingSphere);
+
+		_renderableScene->AddChild(startingGroup);
 
 		//auto newMeshToDraw = GGI()->CreateRenderableMesh();
 
