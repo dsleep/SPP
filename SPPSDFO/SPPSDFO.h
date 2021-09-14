@@ -83,6 +83,7 @@ namespace SPP
 		{
 			SDFShape oShape;
 			oShape.shapeType = _shapeType;
+			oShape.translation = _translation.cast<float>();
 			oShape.params[0] = _radius;
 			return oShape;
 		}

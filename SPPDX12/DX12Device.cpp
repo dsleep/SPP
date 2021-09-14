@@ -1101,7 +1101,7 @@ namespace SPP
 	{
 		auto sphRad = InSphere.GetRadius();
 		Vector3 RadiusVec = { sphRad, sphRad, sphRad };
-		DrawAABB(AABB(InSphere.GetCenter() - RadiusVec * 1.414f, InSphere.GetCenter() + RadiusVec * 1.414f), lines);		
+		DrawAABB(AABB(InSphere.GetCenter() - RadiusVec, InSphere.GetCenter() + RadiusVec), lines);		
 	}
 
 	class D3D12RenderScene : public RenderScene
@@ -1823,10 +1823,11 @@ namespace SPP
 		}
 	}
 
-
 	void D3D12SDF::AddToScene(class RenderScene* InScene)
 	{
 		RenderableSignedDistanceField::AddToScene(InScene);
+
+		static_assert((sizeof(SDFShape) * 8) % 128 == 0);
 
 		if (!_shapes.empty())
 		{
@@ -1890,12 +1891,11 @@ namespace SPP
 			};
 
 			Matrix4x4 matId = Matrix4x4::Identity();
-			Vector3d dummyVec(0, 0, 0);
 
 			// write local to world
 			auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
 			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
-			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
+			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), _position);
 
 			cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
 		}

@@ -178,9 +178,27 @@ public:
 
 		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
 		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
-		startingSphere->SetRadius(50);
+		auto startingSphere2 = AllocateObject<OSDFSphere>("mainShape.sphere2");
+		auto startingSphere3 = AllocateObject<OSDFSphere>("mainShape.sphere3");
+		//auto startingSphere = AllocateObject<OSDFSphere>("mainShape.box");
+
+
 		startingGroup->GetPosition()[2] = 200.0;
+
+		startingSphere->SetRadius(50);
+
+		startingSphere2->SetRadius(25);
+		startingSphere2->GetPosition()[1] = 50.0;
+		startingSphere2->GetPosition()[0] = 50.0;
+
+
+		startingSphere3->SetRadius(25);
+		startingSphere3->GetPosition()[1] = 50.0;
+		startingSphere3->GetPosition()[0] = -50.0;
+
 		startingGroup->AddChild(startingSphere);
+		startingGroup->AddChild(startingSphere2);
+		startingGroup->AddChild(startingSphere3);
 
 		_renderableScene->AddChild(startingGroup);
 

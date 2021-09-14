@@ -7,14 +7,13 @@ struct DrawParams
 struct SDFShape
 {
     uint    shapeType;
+    float3  translation;    
+    
     uint    shapeOp;
-    float   shapeBlend;
-
-    float3  translation;
-    float3  eulerRotation;
+    float3  eulerRotation;    
+    
+    float4  shapeBlendAndScale;
     float4  params;
-
-    float   scale;
 };
 
 ConstantBuffer<DrawParams>          DrawParams                : register(b3);
@@ -114,10 +113,10 @@ float map( in float3 pos )
         
     for (uint i = 0; i < DrawParams.ShapeCount; ++i)
     {
-        //if (Shapes[i].shapeType == 1)
+        if (Shapes[i].shapeType == 1)
         {
-            d = opUnion(d, sdSphere(pos - float3(0, 0, 200), 25));
-            //d = opUnion(d, sdSphere(pos - float3(Shapes[i].translation), Shapes[i].params.x));
+            //d = opUnion(d, sdSphere(pos - float3(0, 0, 200), 50));
+            d = opUnion(d, sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x));
         }
     }
 	

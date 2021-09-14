@@ -454,13 +454,13 @@ namespace SPP
 	struct SPP_GRAPHICS_API SDFShape
 	{
 		EShapeType shapeType = EShapeType::Unknown;
-		EShapeOp shapeOp = EShapeOp::Add;
-		float shapeBlend = 0;
-
 		Vector3 translation = { 0,0,0 };
+
+		EShapeOp shapeOp = EShapeOp::Add;
 		Vector3 eulerRotation = { 0,0,0 };
+
+		Vector4 shapeBlendAndScale = { 0,0,0,0 };		
 		Vector4 params = { 0,0,0,0 };
-		float scale = 1;		
 	};
 
 	class SPP_GRAPHICS_API RenderableSignedDistanceField : public Renderable
