@@ -173,6 +173,8 @@ public:
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);
 		_gizmo->GetPosition()[2] = 200.0;
+		_gizmo->GetPosition()[1] = 50.0;
+		_gizmo->GetPosition()[0] = 50.0;
 		_gizmo->GetScale() = 0.3;
 		_renderableScene->AddChild(_gizmo);
 

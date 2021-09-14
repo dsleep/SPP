@@ -116,7 +116,14 @@ float map( in float3 pos )
         if (Shapes[i].shapeType == 1)
         {
             //d = opUnion(d, sdSphere(pos - float3(0, 0, 200), 50));
-            d = opUnion(d, sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x));
+            if (i == 0)
+            {
+                d = opUnion(d, sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x));
+            }
+            else
+            {
+                d = opSmoothUnion(d, sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x), 10);
+            }
         }
     }
 	
