@@ -4,15 +4,21 @@ struct DrawParams
     uint ShapeCount;
 };
 
-struct ShapeInfo
+struct SDFShape
 {
-    uint        ShapeID;
-    float4x4    LocalToWorldScaleRotation;
-    double3     ShapeTranslation;
+    uint    shapeType;
+    uint    shapeOp;
+    float   shapeBlend;
+
+    float3  translation;
+    float3  eulerRotation;
+    float4  params;
+
+    float   scale;
 };
 
 ConstantBuffer<DrawParams>          DrawParams                : register(b3);
-StructuredBuffer<ShapeInfo>         Shapes                    : register(t0, space0);
+StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
 float dot2(in float2 v) { return dot(v, v); }
 float dot2(in float3 v) { return dot(v, v); }
@@ -108,9 +114,10 @@ float map( in float3 pos )
         
     for (uint i = 0; i < DrawParams.ShapeCount; ++i)
     {
-        if (Shapes[i].ShapeID == 0)
+        //if (Shapes[i].shapeType == 1)
         {
-            d = opUnion(d, sdSphere(pos - float3(0, 10 * i, 100), 25));
+            d = opUnion(d, sdSphere(pos - float3(0, 0, 200), 25));
+            //d = opUnion(d, sdSphere(pos - float3(Shapes[i].translation), Shapes[i].params.x));
         }
     }
 	
@@ -188,7 +195,7 @@ float4 renderSDF( float3 ro, float3 rd )
     }
 	else
 	{
-		hitDistance = 1000;
+		hitDistance = 10000;
 	}
 
 	return float4(rd * 0.5 + 0.5,hitDistance);

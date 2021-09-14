@@ -36,6 +36,13 @@ namespace SPP
 		OShape(const MetaPath& InPath) : OElement(InPath) { }
 
 	public:
+		virtual SDFShape GenerateShape() const
+		{
+			SDFShape oShape;
+			oShape.shapeType = _shapeType;
+			return oShape;
+		}
+
 		virtual ~OShape() { }
 	};
 
@@ -46,8 +53,16 @@ namespace SPP
 
 	protected:
 		OShapeGroup(const MetaPath& InPath) : OElement(InPath) { }
+		std::shared_ptr<RenderableSignedDistanceField> _renderableSDF;
+		std::vector<SDFShape> _shapeCache;
+
+		void _GenerateShapes();
 
 	public:
+		
+		virtual void AddedToScene(class OScene* InScene) override;
+		virtual void RemovedFromScene(class OScene* InScene) override;
+
 		virtual ~OShapeGroup() { }
 	};
 
@@ -63,7 +78,14 @@ namespace SPP
 		}
 		float _radius = 1.0f;
 
-	public:
+	public:		
+		virtual SDFShape GenerateShape() const
+		{
+			SDFShape oShape;
+			oShape.shapeType = _shapeType;
+			oShape.params[0] = _radius;
+			return oShape;
+		}
 		void SetRadius(float InRadius);
 		virtual ~OSDFSphere() { }
 	};
@@ -79,7 +101,6 @@ namespace SPP
 			_shapeType = EShapeType::Box;
 		}
 		Vector3 _extents = { 1, 1, 1 };
-
 	public:
 		virtual ~OSDFBox() { }
 	};

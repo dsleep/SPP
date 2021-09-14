@@ -177,21 +177,11 @@ public:
 
 		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
 		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
+		startingSphere->SetRadius(50);
+		startingGroup->GetPosition()[2] = 200.0;
 		startingGroup->AddChild(startingSphere);
 
 		_renderableScene->AddChild(startingGroup);
-
-		//auto newMeshToDraw = GGI()->CreateRenderableMesh();
-
-		//auto& pos = newMeshToDraw->GetPosition();
-		//pos[2] = 200.0;
-		//auto& scale = newMeshToDraw->GetScale();
-		//scale = Vector3(1, 1, 1);
-
-		//newMeshToDraw->SetMeshData(meshElements);
-		//newMeshToDraw->AddToScene(_renderScene.get());		
-
-		//MeshesToDraw.push_back(newMeshToDraw);
 
 		SPP::MakeResidentAllGPUResources();
 
@@ -224,11 +214,11 @@ public:
 		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
 
-		IntersectionInfo info;
-		if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
-		{
-			SPP_QL("Hit: %s", info.hitName.c_str());
-		}
+		//IntersectionInfo info;
+		//if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
+		//{
+		//	SPP_QL("Hit: %s", info.hitName.c_str());
+		//}
 
 		//
 

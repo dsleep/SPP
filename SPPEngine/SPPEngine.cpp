@@ -24,6 +24,11 @@ namespace SPP
 		return stdfs::path(_finalPath).extension().generic_string();
 	}
 
+	std::string AssetPath::GetName() const
+	{
+		return stdfs::path(_finalPath).filename().generic_string();
+	}
+
 	std::string AssetPath::GetRelativePath() const
 	{
 		return _relPath;

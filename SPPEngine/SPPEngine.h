@@ -38,6 +38,7 @@ namespace SPP
 		AssetPath(const char* InRelPath);
 		const char* operator *() const;
 		std::string GetExtension() const;
+		std::string GetName() const;
 		std::string GetRelativePath() const;
 	};
 }

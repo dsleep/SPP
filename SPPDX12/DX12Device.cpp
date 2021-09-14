@@ -661,6 +661,7 @@ namespace SPP
 			EBlendState InBlendState,
 			ERasterizerState InRasterizerState,
 			EDepthState InDepthState,
+			EDrawingTopology InTopology,
 			std::shared_ptr < GPUInputLayout > InLayout,
 			std::shared_ptr< GPUShader> InVS,
 			std::shared_ptr< GPUShader> InPS,
@@ -695,7 +696,31 @@ namespace SPP
 				psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 				psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 				psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-				psoDesc.PrimitiveTopologyType = InHS ? D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH : D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+				if (InHS)
+				{
+					psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+				}
+				else
+				{
+					switch (InTopology)
+					{
+					case EDrawingTopology::PointList:
+						psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+						break;
+					case EDrawingTopology::LineList:
+						psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+						break;
+					case EDrawingTopology::TriangleList:
+					case EDrawingTopology::TriangleStrip:
+						psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+						break;
+					default:
+						// must have useful topology
+						SE_ASSERT(false);
+						break;
+					}
+				}
 
 				psoDesc.NumRenderTargets = 1;
 				psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -830,11 +855,31 @@ namespace SPP
 		return std::make_shared< D3D12RenderableMesh >(bIsStatic);
 	}
 
+	class D3D12SDF : public RenderableSignedDistanceField
+	{
+	protected:		
+		std::shared_ptr< GPUBuffer > _shapeBuffer;
+		std::shared_ptr< ArrayResource > _shapeResource;
+		bool _bIsStatic = false;
+
+	public:
+		D3D12SDF() = default;
+		virtual void AddToScene(class RenderScene* InScene) override;
+		virtual void Draw() override;
+		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
+	};
+
+	std::shared_ptr<D3D12SDF> DX12_CreateSDF()
+	{
+		return std::make_shared< D3D12SDF >();
+	}
+
 	struct D3D12PipelineStateKey
 	{
 		EBlendState blendState = EBlendState::Disabled;
 		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
 		EDepthState depthState = EDepthState::Enabled;
+		EDrawingTopology topology = EDrawingTopology::TriangleList;
 
 		uintptr_t inputLayout = 0;
 
@@ -860,6 +905,11 @@ namespace SPP
 			{
 				return depthState < compareKey.depthState;
 			}
+			if (topology != compareKey.topology)
+			{
+				return topology < compareKey.topology;
+			}
+
 			if (inputLayout != compareKey.inputLayout)
 			{
 				return inputLayout < compareKey.inputLayout;
@@ -903,6 +953,7 @@ namespace SPP
 	std::shared_ptr < D3D12PipelineState >  GetD3D12PipelineState(EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
+		EDrawingTopology InTopology,
 		std::shared_ptr < GPUInputLayout > InLayout,
 		std::shared_ptr< GPUShader> InVS,
 		std::shared_ptr< GPUShader> InPS,
@@ -912,7 +963,7 @@ namespace SPP
 		std::shared_ptr< GPUShader> InDS,
 		std::shared_ptr< GPUShader> InCS)
 	{
-		D3D12PipelineStateKey key{ InBlendState, InRasterizerState, InDepthState,
+		D3D12PipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology,
 			(uintptr_t)InLayout.get(),
 			(uintptr_t)InVS.get(),
 			(uintptr_t)InPS.get(),
@@ -927,7 +978,7 @@ namespace SPP
 		if (findKey == PiplineStateMap.end())
 		{
 			auto newPipelineState = std::make_shared< D3D12PipelineState >();
-			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
+			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PiplineStateMap[key] = newPipelineState;
 			return newPipelineState;
 		}
@@ -958,6 +1009,7 @@ namespace SPP
 				_state = GetD3D12PipelineState(EBlendState::Disabled,
 					ERasterizerState::NoCull,
 					EDepthState::Disabled,
+					EDrawingTopology::TriangleList,
 					nullptr,
 					nullptr,
 					nullptr,
@@ -1045,6 +1097,13 @@ namespace SPP
 		}
 	}
 
+	void DrawSphere(const Sphere& InSphere, std::vector< DebugVertex >& lines)
+	{
+		auto sphRad = InSphere.GetRadius();
+		Vector3 RadiusVec = { sphRad, sphRad, sphRad };
+		DrawAABB(AABB(InSphere.GetCenter() - RadiusVec * 1.414f, InSphere.GetCenter() + RadiusVec * 1.414f), lines);		
+	}
+
 	class D3D12RenderScene : public RenderScene
 	{
 	protected:
@@ -1086,7 +1145,8 @@ namespace SPP
 
 			_debugPSO = GetD3D12PipelineState(EBlendState::Disabled, 
 				ERasterizerState::NoCull, 
-				EDepthState::Disabled, 
+				EDepthState::Enabled, 
+				EDrawingTopology::LineList,
 				_debugLayout, 
 				_debugVS, 
 				_debugPS, 
@@ -1115,7 +1175,8 @@ namespace SPP
 
 			_fullscreenPSO = GetD3D12PipelineState(EBlendState::Disabled,
 				ERasterizerState::NoCull,
-				EDepthState::Disabled,
+				EDepthState::Enabled,
+				EDrawingTopology::TriangleList,
 				_fullscreenLayout,
 				_fullscreenVS,
 				_fullscreenPS,
@@ -1125,6 +1186,19 @@ namespace SPP
 				nullptr,
 				nullptr);
 
+		}
+
+		std::shared_ptr< GPUShader > GetSDFVS()
+		{
+			return _fullscreenVS;
+		}
+		std::shared_ptr< GPUShader > GetSDFPS()
+		{
+			return _fullscreenPS;
+		}
+		std::shared_ptr< D3D12PipelineState > GetSDFPSO()
+		{
+			return _fullscreenPSO;
 		}
 
 		void DrawFullScreen()
@@ -1428,13 +1502,13 @@ namespace SPP
 				});
 			*/
 
-			//for (auto renderItem : _renderables)
-			//{
-			//	renderItem->DrawDebug(_lines);
-			//}
-
-			//DrawDebug();
-
+#if 1
+			for (auto renderItem : _renderables)
+			{
+				renderItem->DrawDebug(_lines);
+			}
+			DrawDebug();
+#endif
 			//DrawFullScreen();
 
 			for (auto renderItem : _renderables)
@@ -1453,6 +1527,7 @@ namespace SPP
 			_meshData->material->blendState,
 			_meshData->material->rasterizerState,
 			_meshData->material->depthState,
+			_meshData->topology,
 			_meshData->material->layout,
 			_meshData->material->vertexShader,
 			_meshData->material->pixelShader,
@@ -1748,6 +1823,107 @@ namespace SPP
 		}
 	}
 
+
+	void D3D12SDF::AddToScene(class RenderScene* InScene)
+	{
+		RenderableSignedDistanceField::AddToScene(InScene);
+
+		if (!_shapes.empty())
+		{
+			_shapeResource = std::make_shared< ArrayResource >();
+			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
+			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
+			_shapeBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, _shapeResource);
+		}
+	}
+
+	void D3D12SDF::DrawDebug(std::vector< DebugVertex >& lines)
+	{
+		for (auto& curShape : _shapes)
+		{
+			auto CurPos = GetPosition();
+			DrawSphere(Sphere(curShape.translation + CurPos.cast<float>(), curShape.params[0]), lines);
+		}
+	}
+
+	void D3D12SDF::Draw()
+	{
+		auto pd3dDevice = GGraphicsDevice->GetDevice();
+		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto cmdList = GGraphicsDevice->GetCommandList();
+		auto currentFrame = GGraphicsDevice->GetFrameCount();
+
+		ID3D12RootSignature* rootSig = nullptr;
+
+		auto SDFVS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
+		auto SDFPS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
+		auto SDFPSO = _parentScene->GetAs<D3D12RenderScene>().GetSDFPSO();
+
+		if (SDFVS)
+		{
+			rootSig = SDFVS->GetAs<D3D12Shader>().GetRootSignature();
+		}
+
+		cmdList->SetGraphicsRootSignature(rootSig);
+
+		//table 0, shared all constant, scene stuff 
+		{
+			cmdList->SetGraphicsRootConstantBufferView(0, _parentScene->GetAs<D3D12RenderScene>().GetGPUAddrOfViewConstants());
+
+			CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+			CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+			cmdList->RSSetViewports(1, &m_viewport);
+			cmdList->RSSetScissorRects(1, &m_scissorRect);
+		}
+
+		//table 1, VS only constants
+		{
+			auto pd3dDevice = GGraphicsDevice->GetDevice();
+
+			_declspec(align(256u))
+			struct GPUDrawConstants
+			{
+				//altered viewposition translated
+				Matrix4x4 LocalToWorldScaleRotation;
+				Vector3d Translation;
+			};
+
+			Matrix4x4 matId = Matrix4x4::Identity();
+			Vector3d dummyVec(0, 0, 0);
+
+			// write local to world
+			auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
+			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
+			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
+
+			cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
+		}
+
+		cmdList->SetPipelineState(SDFPSO->GetState());
+		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		//3 shapes for now
+		auto ShapeSetBlock = perDrawDescriptorHeap.GetDescriptorSlots(1);
+
+		SE_ASSERT(_shapeResource->GetElementCount() == _shapes.size());
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		auto currentTableElement = ShapeSetBlock[0];
+		srvDesc.Buffer.StructureByteStride = _shapeResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+		srvDesc.Buffer.NumElements = _shapeResource->GetElementCount();
+		pd3dDevice->CreateShaderResourceView(_shapeBuffer->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+
+		cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
+		cmdList->SetGraphicsRoot32BitConstant(6, _shapeResource->GetElementCount(), 0);
+		cmdList->DrawInstanced(4, 1, 0, 0);
+	}
+
+
 	void DX12_BegineResourceCopy()
 	{
 		SE_ASSERT(GGraphicsDevice);
@@ -1815,9 +1991,9 @@ namespace SPP
 			return DX12_CreateRenderableMesh(false);
 		}
 
-		virtual std::shared_ptr< class RenderableSignedDistanceField > CreateRenderableSDF() override
+		virtual std::shared_ptr<RenderableSignedDistanceField> CreateRenderableSDF() override
 		{
-			return nullptr;
+			return DX12_CreateSDF();
 		}
 
 		virtual void BeginResourceCopies() override

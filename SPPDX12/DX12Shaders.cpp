@@ -113,10 +113,13 @@ namespace SPP
 		pLibrary->CreateDefaultIncludeHandler(&pincludeHandler);
 
 		std::string sourceString = read_to_string(*FileName);
+		std::wstring sourceName = std::utf8_to_wstring(FileName.GetName());
 		std::wstring EntryPointW = std::utf8_to_wstring(EntryPoint);
 		std::wstring IncludePathW = std::utf8_to_wstring(*shaderRoot);
-
+		
 		std::vector<const wchar_t*> arguments;
+
+		arguments.push_back(sourceName.c_str());
 
 		//-E for the entry point (eg. PSMain)
 		arguments.push_back(L"-E");
@@ -159,7 +162,6 @@ namespace SPP
 		catch (std::exception& e)
 		{
 			SPP_LOG(LOG_D3D12Shader, LOG_INFO, " - execption %s", e.what());
-
 		}
 		
 
@@ -180,6 +182,16 @@ namespace SPP
 		}
 				
 		pCompileResult->GetResult(&_shader);
+
+
+		auto bufPtr = _shader->GetBufferPointer();
+		auto bufSize = _shader->GetBufferSize();
+
+
+		ComPtr<ID3DBlob> pPDBName;
+		D3DGetBlobPart(bufPtr, bufSize, D3D_BLOB_DEBUG_NAME, 0, pPDBName.GetAddressOf());
+
+		auto pDebugNameData = reinterpret_cast<void*>(pPDBName->GetBufferPointer());
 
 		SPP_LOG(LOG_D3D12Shader, LOG_INFO, " - SUCCESS SIZE %d", _shader->GetBufferSize());
 

@@ -436,7 +436,7 @@ namespace SPP
 		}
 	};
 
-	enum class EShapeOp
+	enum class EShapeOp : uint32_t
 	{
 		Add = 0,
 		Subtract,
@@ -444,7 +444,7 @@ namespace SPP
 		SmoothAdd
 	};
 
-	enum class EShapeType
+	enum class EShapeType : uint32_t
 	{
 		Unknown = 0,
 		Sphere,
@@ -459,17 +459,17 @@ namespace SPP
 
 		Vector3 translation = { 0,0,0 };
 		Vector3 eulerRotation = { 0,0,0 };
-		float scale = 1;
 		Vector4 params = { 0,0,0,0 };
+		float scale = 1;		
 	};
 
 	class SPP_GRAPHICS_API RenderableSignedDistanceField : public Renderable
 	{
 	protected:
-		std::vector< std::shared_ptr<SDFShape> > _shapes;
+		std::vector< SDFShape > _shapes;
 
 	public:
-		std::vector< std::shared_ptr<SDFShape> >& GetShapes()
+		std::vector< SDFShape >& GetShapes()
 		{
 			return _shapes;
 		}
