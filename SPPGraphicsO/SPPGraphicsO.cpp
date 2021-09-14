@@ -41,7 +41,7 @@ namespace SPP
 			auto& pos = _renderableMesh->GetPosition();
 			pos = _translation;
 			auto& scale = _renderableMesh->GetScale();
-			scale = Vector3(1, 1, 1);
+			scale = Vector3(_scale, _scale, _scale);
 
 			_renderableMesh->SetMeshData(_meshObj->GetMesh()->GetMeshElements());
 			_renderableMesh->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());

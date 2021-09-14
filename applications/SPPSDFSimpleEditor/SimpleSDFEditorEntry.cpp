@@ -173,6 +173,7 @@ public:
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);
 		_gizmo->GetPosition()[2] = 200.0;
+		_gizmo->GetScale() = 0.3;
 		_renderableScene->AddChild(_gizmo);
 
 		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");

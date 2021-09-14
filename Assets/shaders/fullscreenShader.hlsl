@@ -34,7 +34,7 @@ PixelShaderInput main_vs(uint vI : SV_VERTEXID)
 float4 main_ps(PixelShaderInput pin, out float depth : SV_Depth):SV_TARGET
 {	
     float4 outRender = renderSDF(pin.rO, pin.rD);
-	float4 localWorldPos = float4(pin.rD * outRender.w, 1.0f);
+	float4 localWorldPos = float4(pin.rO + pin.rD * outRender.w - float3(ViewConstants.ViewPosition), 1.0f);
 	float4 devicePos = mul(localWorldPos, ViewConstants.ViewProjectionMatrix);
 	depth = (devicePos.z / devicePos.w) ;
 	

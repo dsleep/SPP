@@ -183,15 +183,15 @@ float4 renderSDF( float3 ro, float3 rd )
     if (hitDistance < 1000)
     {
         float3 pos = ro + hitDistance * rd;
-        float4 outColor = float4(1.00, 0.9, 0.80, 1);
+        float3 outColor = float3(1.00, 0.9, 0.80);
 
         float3 objNormal = calcNormal(pos);
         float3  lig = normalize(float3(1.0, 0.8, -0.2));
         float dif = clamp(dot(objNormal, lig), 0.0, 1.0);
         float amb = 0.5;// +0.5 * objNormal.y;w
 
-        return float4(0.25, 0.25, 0.25,1) * amb +  
-            outColor * dif;
+        return float4( float3(0.25, 0.25, 0.25) * amb +  
+            outColor * dif, hitDistance);
     }
 	else
 	{
