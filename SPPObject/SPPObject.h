@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPGUID.h"
 #include "SPPNumberedString.h"
 #include "SPPSerialization.h"
 #include <vector>
@@ -79,6 +80,7 @@ namespace SPP
 
 	protected:
 		MetaPath _path;
+		GUID _guid;
 		SPPObject(const MetaPath& InPath);
 
 		SPPObject* nextObj = nullptr;

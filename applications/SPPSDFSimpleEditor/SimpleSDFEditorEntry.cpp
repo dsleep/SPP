@@ -146,6 +146,7 @@ public:
 		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
 
 		_gizmoMat = std::make_shared< MeshMaterial >();
+		//_gizmoMat->depthState = EDepthState::Disabled;
 		_gizmoMat->rasterizerState = ERasterizerState::NoCull;
 		_gizmoMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
 		_gizmoMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
@@ -170,13 +171,7 @@ public:
 
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
 		
-		_gizmo = AllocateObject<OMeshElement>("meshE");
-		_gizmo->SetMesh(_moveGizmo);
-		_gizmo->GetPosition()[2] = 200.0;
-		_gizmo->GetPosition()[1] = 50.0;
-		_gizmo->GetPosition()[0] = 50.0;
-		_gizmo->GetScale() = 0.3;
-		_renderableScene->AddChild(_gizmo);
+		
 
 		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
 		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
@@ -203,6 +198,15 @@ public:
 		startingGroup->AddChild(startingSphere3);
 
 		_renderableScene->AddChild(startingGroup);
+
+		///
+		_gizmo = AllocateObject<OMeshElement>("meshE");
+		_gizmo->SetMesh(_moveGizmo);
+		_gizmo->GetPosition()[2] = 200.0;
+		_gizmo->GetPosition()[1] = 50.0;
+		_gizmo->GetPosition()[0] = 50.0;
+		_gizmo->GetScale() = 0.3;
+		_renderableScene->AddChild(_gizmo);
 
 		SPP::MakeResidentAllGPUResources();
 

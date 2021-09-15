@@ -27,6 +27,9 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.h"
 		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPGUID.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPGUID.h"		
+		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSerialization.cpp"	
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSerialization.h"		
 		

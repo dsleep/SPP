@@ -79,14 +79,19 @@ namespace SPP
 		return true;
 	}
 
+	static std::unordered_map<GUID, SPPObject*> GGUIDTable;
+
 	SPPObject::SPPObject(const MetaPath& InPath) : _path(InPath)
 	{
+		_guid = GUID::Create();		
 		Link();
+		GGUIDTable[_guid] = this;
 	}
 
 	SPPObject::~SPPObject()
 	{
 		Unlink();
+		GGUIDTable.erase(_guid);
 	}
 
 
