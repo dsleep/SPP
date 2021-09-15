@@ -159,7 +159,7 @@ float raymarch(float3 ro, float3 rd)
 
 float3 calcNormal(float3 pos)
 {
-    const float ep = 0.0001;
+    const float ep = 0.001;
     float2 e = float2(1.0, -1.0) * 0.5773;
     return normalize(e.xyy * map(pos + e.xyy * ep) +
         e.yyx * map(pos + e.yyx * ep) +
