@@ -95,6 +95,16 @@ namespace SPP
 	}
 
 
+	SPP_OBJECT_API SPPObject* GetObjectByGUID(const GUID& InGuid)
+	{
+		auto foundObject = GGUIDTable.find(InGuid);
+		if (foundObject != GGUIDTable.end())
+		{
+			return foundObject->second;
+		}
+		return nullptr;
+	}
+
 	MetaPath::MetaPath(const char* InPath)
 	{
 		auto splitPath = std::str_split(InPath, '.');

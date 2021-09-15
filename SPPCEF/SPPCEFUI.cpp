@@ -32,6 +32,56 @@ using namespace client;
 
 namespace SPP
 {
+    struct CEFMessage::CEFMessageImpl
+    {
+        CefRefPtr<CefProcessMessage> msg;
+        CefRefPtr<CefListValue> args;
+
+        CEFMessageImpl(const char* MessageName)
+        {
+            msg = CefProcessMessage::Create(MessageName);
+            args = msg->GetArgumentList();
+        }
+    };
+
+    CEFMessage::CEFMessage(const char* MessageName) : _impl(new CEFMessageImpl(MessageName))
+    {
+    }
+
+    CEFMessage::~CEFMessage()
+    {
+    }
+
+    bool CEFMessage::SetBool(size_t index, bool value)
+    {
+        return _impl->args->SetBool(index, value);
+    }
+    bool CEFMessage::SetInt(size_t index, int value)
+    {
+        return _impl->args->SetInt(index, value);
+    }
+    bool CEFMessage::SetDouble(size_t index, double value)
+    {
+        return _impl->args->SetDouble(index, value);
+    }
+    bool CEFMessage::SetString(size_t index, const std::string& value)
+    {
+        return _impl->args->SetString(index, value);
+    }
+
+    bool CEFMessage::Send()
+    {
+        if (client::MainContextImpl::Get() &&
+            client::MainContextImpl::Get()->GetRootWindowManager() &&
+            client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser() &&
+            client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser()->GetMainFrame())
+        {
+            client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, _impl->msg);
+            return true;
+        }
+        return false;
+    }
+
     int RunBrowser(void* hInstance, 
         const std::string& StartupURL,
         const GameBrowserCallbacks& InCallbacks,

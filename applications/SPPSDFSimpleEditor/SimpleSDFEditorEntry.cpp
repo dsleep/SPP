@@ -39,12 +39,53 @@
 #include "SPPSceneO.h"
 #include "SPPGraphicsO.h"
 
+#include "SPPJsonUtils.h"
+
+#include "cefclient/JSCallbackInterface.h"
 #include <condition_variable>
 
 #define MAX_LOADSTRING 100
 
 using namespace std::chrono_literals;
 using namespace SPP;
+
+void GenerateObjectList(OScene* InWorld, Json::Value& rootValue)
+{
+	auto entities = InWorld->GetChildren();
+
+	for (auto entity : entities)
+	{
+		SE_ASSERT(entity);
+
+		if (entity)
+		{
+			auto pathName = entity->GetPath();
+
+			Json::Value localValue;
+			localValue["NAME"] = pathName.ToString();
+			localValue["GUID"] = entity->GetGUID().ToString();
+
+			Json::Value elementValues;
+			auto elements = entity->GetChildren();
+			for (auto element : elements)
+			{
+				auto elePath = element->GetPath();
+
+				Json::Value curElement;
+				curElement["NAME"] = elePath.ToString();
+				curElement["GUID"] = element->GetGUID().ToString();
+
+				elementValues.append(curElement);
+			}
+			if (!elements.empty())
+			{
+				localValue["CHILDREN"] = elementValues;
+			}
+
+			rootValue.append(localValue);
+		}
+	}
+}
 
 class EditorEngine
 {
@@ -54,8 +95,6 @@ private:
 	HWND _mainDXWindow = nullptr;
 	Vector2 _mouseDelta = Vector2(0, 0);
 	uint8_t _keys[255] = { 0 };
-
-	OScene* _world = nullptr;
 
 	Vector2i _mousePosition = { -1, -1 };
 	std::chrono::high_resolution_clock::time_point _lastTime;
@@ -77,10 +116,35 @@ public:
 	void HTMLReady()
 	{
 		_htmlReady = true;
+
+		UpdateObjectTree();
 	}
-	void SelectionChanged( std::string InElementName)
+
+	void UpdateObjectTree()
+	{
+		Json::Value rootValue;
+		GenerateObjectList(_renderableScene, rootValue);
+
+		std::string StrMessage;
+		JsonToString(rootValue, StrMessage);
+
+		JavascriptInterface::CallJS("UpdateObjectTree", StrMessage);
+	}
+
+	void SelectionChanged(SPPObject* SelectedObject)
 	{
 
+	}
+
+	void SelectionChanged(std::string InElementName)
+	{
+		SPP::GUID selGUID(InElementName.c_str());
+
+		auto CurObject = GetObjectByGUID(selGUID);
+		if (CurObject)
+		{
+			SPP_QL("SelectionChanged: %s", CurObject->GetPath().ToString().c_str());
+		}
 	}
 
 	void PropertyChanged(Json::Value InValue)
@@ -88,14 +152,18 @@ public:
 
 	}
 
-	void AddShape(Json::Value InValue)
+	void AddShape(std::string InShapeType)
 	{
 
+
+		UpdateObjectTree();
 	}
 
-	void AddShapeGroup(Json::Value InValue)
+	void AddShapeGroup(std::string InGroupType)
 	{
 
+
+		UpdateObjectTree();
 	}
 
 	void Initialize(void *AppWindow)
@@ -107,10 +175,8 @@ public:
 #else
 		LoadLibraryA("SPPDX12.dll");
 #endif
-
-		
+				
 		GetSDFVersion();
-		_world = AllocateObject<OScene>("World");
 		
 		RECT rect;
 		GetClientRect(_mainDXWindow, &rect);
@@ -124,8 +190,6 @@ public:
 		//_renderScene = GGI()->CreateRenderScene();
 		//auto& cam = _renderScene->GetCamera();
 		//cam.GetCameraPosition()[1] = 100;
-
-		
 
 		_moveGizmo = AllocateObject<OMesh>("moveG");
 		_rotateGizmo = AllocateObject<OMesh>("rotateG");

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPString.h"
 
 namespace std
 {
@@ -29,11 +30,15 @@ namespace SPP
 	public:
 		GUID() = default;
 
+		GUID(const char* InString);
+
 		GUID(uint32_t iA,
 		uint32_t iB,
 		uint32_t iC,
 		uint32_t iD) : A(iA), B(iB), C(iC), D(iD) { }
-					
+		
+		uint32_t& operator[](size_t Index);
+
 		bool operator==(const GUID& Other) const
 		{
 			return (A == Other.A &&
@@ -49,6 +54,8 @@ namespace SPP
 			std::hash_combine(h, A,B,C,D);
 			return h;
 		};
+
+		std::string ToString() const;
 
 		static GUID Create();
 	};

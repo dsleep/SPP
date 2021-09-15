@@ -29,6 +29,41 @@ namespace SPP
 		std::function< void() > Shutdown;
 	};
 
+	class SPP_CEFUI_API CEFMessage
+	{
+	private:
+		struct CEFMessageImpl;
+		std::unique_ptr<CEFMessageImpl> _impl;
+
+	public:
+		CEFMessage(const char* MessageName);
+		~CEFMessage();
+
+		bool SetBool(size_t index, bool value);
+		bool SetInt(size_t index, int value);
+		bool SetDouble(size_t index, double value);
+		bool SetString(size_t index, const  std::string& value);
+
+		inline bool SetValue(size_t Idx, const bool& InValue)
+		{
+			return SetBool(Idx, InValue);
+		}
+		inline bool SetValue(size_t Idx, const int& InValue)
+		{
+			return SetInt(Idx, (double)InValue);
+		}
+		inline bool SetValue(size_t Idx, const double& InValue)
+		{
+			return SetDouble(Idx, InValue);
+		}
+		inline bool SetValue(size_t Idx, const std::string& InValue)
+		{
+			return SetString(Idx, InValue);
+		}
+
+		bool Send();
+	};
+
 	SPP_CEFUI_API int RunBrowser(void* hInstance, const std::string& StartupURL, 
 		const GameBrowserCallbacks& InCallbacks = { nullptr, nullptr, nullptr, nullptr },
 		const InputEvents& InInputEvents = { 0 },

@@ -40,7 +40,7 @@ namespace SPP
 		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
 
 		class OElement* _parent = nullptr;
-		std::set<OElement*> _children;
+		std::unordered_set<OElement*> _children;
 
 		Sphere _bounds;
 		Vector3d _translation = { 0,0,0 };
@@ -79,6 +79,11 @@ namespace SPP
 		virtual void RemoveFromParent();
 
 		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo &oInfo) const;
+
+		const std::unordered_set<OElement*> GetChildren() const
+		{
+			return _children;
+		}
 
 		//
 		virtual Spherei GetBounds() const

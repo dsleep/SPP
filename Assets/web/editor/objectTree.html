@@ -87,7 +87,8 @@
   <script>
   
   
-	function generateObjTable(divID, entityInfo) {
+	function UpdateHTMLObjectTree(divID, entityInfo) {
+		$(divID).empty();
 		
 		entityInfo.forEach(function(curEntity) {			
 			
@@ -96,7 +97,9 @@
 			divToggle.innerHTML = "-";
 			var divName = document.createElement('div');
 			divName.setAttribute("class", "textSelect simpleInline");
-			divName.innerHTML = curEntity.LOCAL;
+			divName.eleGUID = curEntity.GUID;
+			divName.innerHTML = curEntity.NAME;
+			
 			
 			$(divID).append(divToggle);
 			$(divID).append(divName);
@@ -104,66 +107,71 @@
 			var divElements = document.createElement('div');			
 			divElements.setAttribute("class", "childInset");
 			
-			curEntity.CHILDREN.forEach(function(childEle) {
-				let eleName = document.createElement('div');
-				eleName.setAttribute("class", "textSelect");
-				eleName.innerHTML = childEle;
-				divElements.appendChild(eleName);
-			});
+			if('CHILDREN' in curEntity)
+			{
+				curEntity.CHILDREN.forEach(function(childEle) {
+					let eleName = document.createElement('div');
+					eleName.setAttribute("class", "textSelect");
+					eleName.eleGUID = childEle.GUID;
+					eleName.innerHTML =  childEle.NAME;
+					divElements.appendChild(eleName);
+				});
+			}
 			
 			
-			$("#sceneTree").append(divElements);
+			$(divID).append(divElements);
 			
 		});
 	}
-	
-	var entityInfo =  String.raw`[
-		{
-			"CHILDREN" : 
-			[
-				"box_0"
-			],
-			"FULL" : "world.shapegroup_0",
-			"LOCAL" : "shapegroup_0"
-		}
-	]`;
-	
-	const entityData = JSON.parse(entityInfo);
-
-	generateObjTable("#sceneTree", entityData);
-	
-	$(".textSelect").each( function(i, coll) {
-	  coll.addEventListener("click", function() {
-	  
-			
-			$(".textSelect").each( function(i, clearAll) {
-				clearAll.classList.remove("active");	
-			} );
-	  
-			this.classList.toggle("active");	
-
-			if(window.CallNativeWithJSON != null)
-			{
-				window.CallNativeWithJSON(JSON.stringify({ func: "SelectionChanged", args: [ "ThisOject" ] }));
-			}
 		
-	  });
-	});
+	function UpdateObjectTree(TreeValue)
+	{
+		const entityData = JSON.parse(TreeValue);
+		
 
-	$(".collapsible").each( function(i, coll) {
-	  coll.addEventListener("click", function() {
-		//this.classList.toggle("active");
-		var content = this.nextElementSibling.nextElementSibling;
-		if (content.style.display === "none") {
-		  content.style.display = "block";
-		  this.innerHTML = "-";
-		} else {
-		  content.style.display = "none";
-		  this.innerHTML = "+";
-		}
-	  });
-	});
+		UpdateHTMLObjectTree("#sceneTree", entityData);
+				
 
+		$(".textSelect").each( function(i, coll) {
+		  coll.addEventListener("click", function() {
+		  
+				
+				$(".textSelect").each( function(i, clearAll) {
+					clearAll.classList.remove("active");	
+				} );
+		  
+				this.classList.toggle("active");	
+
+				if(window.CallNativeWithJSON != null)
+				{
+					window.CallNativeWithJSON(JSON.stringify({ func: "SelectionChanged", args: [ this.eleGUID ] }));
+				}
+			
+		  });
+		});
+
+		$(".collapsible").each( function(i, coll) {
+		  coll.addEventListener("click", function() {
+			//this.classList.toggle("active");
+			var content = this.nextElementSibling.nextElementSibling;
+			if (content.style.display === "none") {
+			  content.style.display = "block";
+			  this.innerHTML = "-";
+			} else {
+			  content.style.display = "none";
+			  this.innerHTML = "+";
+			}
+		  });
+		});
+	}	
+	
+	window.RegisterJSFunction("UpdateObjectTree", UpdateObjectTree);
+
+	if(window.CallNativeWithJSON != null)
+	{
+		window.CallNativeWithJSON(JSON.stringify({ func: "HTMLReady" }));
+	}
+	
   </script>
 </body>
 </html>

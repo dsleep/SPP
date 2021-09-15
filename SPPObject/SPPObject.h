@@ -92,6 +92,10 @@ namespace SPP
 
 	public:				
 		virtual ~SPPObject();
+		const GUID& GetGUID() const
+		{
+			return _guid;
+		}
 		const MetaPath &GetPath() const
 		{
 			return _path;
@@ -107,6 +111,9 @@ namespace SPP
 		auto curType = rttr::type::get<ObjType>();
 		return (ObjType*)AllocateObject(curType, InPath);
 	}
+
+
+	SPP_OBJECT_API SPPObject* GetObjectByGUID(const GUID &InGuid);
 
 	//template<typename ObjectType>
 	//ObjectType* TAllocateObject(const MetaPath& InPath)
