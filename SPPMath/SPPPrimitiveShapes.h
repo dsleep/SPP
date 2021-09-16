@@ -179,7 +179,7 @@ namespace SPP
     Sphere MinimumBoundingSphere(MeshVertexType* points, uint32_t count);
 
   
-    struct Ray
+    struct SPP_MATH_API Ray
     {
     private:        
         Vector3d _origin;
@@ -200,7 +200,7 @@ namespace SPP
         }
     };
 
-    struct Sphere
+    struct SPP_MATH_API Sphere
     {
     protected:
         bool _bValid = false;
@@ -208,10 +208,7 @@ namespace SPP
         float _radius = 1.0f;
 
     public:
-        Sphere()
-        {
-
-        }
+        Sphere() {}
         Sphere(const Vector3& InCenter, float InRadius) : _center(InCenter), _radius(InRadius), _bValid(true) {}
 
         operator bool() const
@@ -263,18 +260,9 @@ namespace SPP
             }
         }
 
-        //Sphere Transform(const Matrix4x4& transformation) const
-        //{
-        //    Vector4 cntPt(_center[0], _center[1], _center[2], 1);
-        //    Vector4 transformedCnt = cntPt * transformation;
-        //    
-        //    transformation.
-        //}
+        Sphere Transform(const Matrix4x4& transformation) const;
 
-        Sphere Transform(const Vector3& Translate, float Scale) const
-        {            
-            return Sphere(_center + Translate, _radius * Scale);
-        }
+        Sphere Transform(const Vector3& Translate, float Scale) const;
     };
 
     struct Sphered

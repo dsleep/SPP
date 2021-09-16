@@ -27,6 +27,8 @@ namespace SPP
 
 		Matrix4x4 _cachedRotationScale;
 
+		bool _bSelected = false;
+
 	public:
 		Renderable()
 		{
@@ -36,6 +38,10 @@ namespace SPP
 		}
 		virtual ~Renderable() {}
 
+		void SetSelected(bool InSelect)
+		{
+			_bSelected = InSelect;
+		}
 
 		Vector3d &GetPosition()
 		{
@@ -62,13 +68,14 @@ namespace SPP
 			Eigen::AngleAxisf rollAngle(_eulerRotationYPR[2] * degToRad, Vector3::UnitZ());
 			Eigen::Quaternion<float> q = rollAngle * yawAngle * pitchAngle;
 
+			Matrix3x3 scaleMatrix = Matrix3x3::Identity();
+			scaleMatrix(0, 0) = _scale[0];
+			scaleMatrix(1, 1) = _scale[1];
+			scaleMatrix(2, 2) = _scale[2];
 			Matrix3x3 rotationMatrix = q.matrix();
 			Matrix4x4 localToWorld = Matrix4x4::Identity();
 
-			localToWorld(0, 0) *= _scale[0];
-			localToWorld(1, 1) *= _scale[1];
-			localToWorld(2, 2) *= _scale[2];
-
+			localToWorld.block<3, 3>(0, 0) = scaleMatrix * rotationMatrix;
 			localToWorld.block<1, 3>(3, 0) = Vector3((float)_position[0], (float)_position[1], (float)_position[2]);
 
 			return localToWorld;

@@ -16,6 +16,11 @@ namespace SPP
 		_renderScene = GGI()->CreateRenderScene();
 	}
 
+	void ORenderableElement::UpdateSelection(bool IsSelected)
+	{
+		_selected = IsSelected;
+	}
+
 	void ORenderableElement::AddedToScene(class OScene* InScene)
 	{
 
@@ -24,6 +29,15 @@ namespace SPP
 	void ORenderableElement::RemovedFromScene(class OScene* InScene)
 	{
 
+	}
+
+
+	void OMeshElement::UpdateSelection(bool IsSelected)
+	{
+		if (_renderableMesh)
+		{
+			_renderableMesh->SetSelected(IsSelected);
+		}
 	}
 
 	void OMeshElement::AddedToScene(class OScene* InScene)
@@ -38,8 +52,9 @@ namespace SPP
 		{
 			_renderableMesh = GGI()->CreateRenderableMesh();
 
+			auto localToWorld = GenerateLocalToWorld(true);			 
 			auto& pos = _renderableMesh->GetPosition();
-			pos = _translation;
+			pos = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTop()->GetPosition();
 			auto& scale = _renderableMesh->GetScale();
 			scale = Vector3(_scale, _scale, _scale);
 
@@ -57,6 +72,7 @@ namespace SPP
 
 	bool OMeshElement::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
 	{
+		auto localToWorld = GenerateLocalToWorld();
 		//if (_bounds)
 		{
 			if (_meshObj &&
@@ -67,7 +83,7 @@ namespace SPP
 
 				for (auto& curMesh : meshElements)
 				{
-					auto curBounds = curMesh->Bounds.Transform(_translation.cast<float>(), _scale);
+					auto curBounds = curMesh->Bounds.Transform(localToWorld);
 
 					if (curBounds)
 					{

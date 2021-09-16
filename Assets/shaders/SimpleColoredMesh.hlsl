@@ -12,6 +12,14 @@ struct PixelShaderInput
 	float3 color			: COLOR0;
 };
 
+struct DrawParams
+{
+	uint Selected;
+};
+
+ConstantBuffer<DrawParams> DrawParams : register(b3);
+
+
 // Vertex shader
 [RootSignature(MESH_SIG)]
 PixelShaderInput main_vs(VertexShaderInput vin)
@@ -36,7 +44,14 @@ PixelShaderInput main_vs(VertexShaderInput vin)
 // Pixel shader
 [RootSignature(MESH_SIG)]
 float4 main_ps(PixelShaderInput pin) : SV_Target
-{	
+{
+	float3 outColor = pin.color;
+
+	if (DrawParams.Selected == 0)
+	{
+		pin.color *= 0.35;
+	}
+
 	// Final fragment color.
 	return float4(pin.color, 1.0);
 }

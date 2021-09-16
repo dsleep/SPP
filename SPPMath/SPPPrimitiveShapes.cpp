@@ -6,6 +6,29 @@
 
 namespace SPP
 {
+    Sphere Sphere::Transform(const Matrix4x4& transformation) const
+    {
+        if (!_bValid)
+        {
+            return Sphere();
+        }
+        Vector4 cntPt(_center[0], _center[1], _center[2], 1);
+        Vector4 transformedCnt = cntPt * transformation;
+        float ScaleX = transformation.block<1, 3>(0, 0).norm();
+        float ScaleY = transformation.block<1, 3>(1, 0).norm();
+        float ScaleZ = transformation.block<1, 3>(2, 0).norm();
+        return Sphere(transformedCnt.block<1, 3>(0, 0), _radius * ScaleX);
+    }
+
+    Sphere Sphere::Transform(const Vector3& Translate, float Scale) const
+    {
+        if (!_bValid)
+        {
+            return Sphere();
+        }
+        return Sphere(_center + Translate, _radius * Scale);
+    }
+
     namespace Intersection
     {
         bool Intersect_RaySphere(const Ray& InRay, const Sphere& InSphere, Vector3& intersectionPoint, float* timeToHit)

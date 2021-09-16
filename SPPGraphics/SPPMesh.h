@@ -426,7 +426,7 @@ namespace SPP
 
 	class SPP_GRAPHICS_API RenderableMesh : public Renderable
 	{
-	protected:
+	protected:		
 		std::vector< std::shared_ptr<MeshElement> > _meshElements;
 
 	public:

@@ -221,7 +221,6 @@ namespace SPP
 			}
 		}
 
-
 		return nullptr;
 	}
 

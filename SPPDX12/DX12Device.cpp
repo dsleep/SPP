@@ -1099,9 +1099,12 @@ namespace SPP
 
 	void DrawSphere(const Sphere& InSphere, std::vector< DebugVertex >& lines)
 	{
-		auto sphRad = InSphere.GetRadius();
-		Vector3 RadiusVec = { sphRad, sphRad, sphRad };
-		DrawAABB(AABB(InSphere.GetCenter() - RadiusVec, InSphere.GetCenter() + RadiusVec), lines);		
+		if (InSphere)
+		{
+			auto sphRad = InSphere.GetRadius();
+			Vector3 RadiusVec = { sphRad, sphRad, sphRad };
+			DrawAABB(AABB(InSphere.GetCenter() - RadiusVec, InSphere.GetCenter() + RadiusVec), lines);
+		}
 	}
 
 	class D3D12RenderScene : public RenderScene
@@ -1201,102 +1204,104 @@ namespace SPP
 			return _fullscreenPSO;
 		}
 
-		void DrawFullScreen()
-		{
-			auto pd3dDevice = GGraphicsDevice->GetDevice();
-			auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-			auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
-			auto cmdList = GGraphicsDevice->GetCommandList();
-			auto currentFrame = GGraphicsDevice->GetFrameCount();
+		//void DrawFullScreen()
+		//{
+		//	auto pd3dDevice = GGraphicsDevice->GetDevice();
+		//	auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		//	auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		//	auto cmdList = GGraphicsDevice->GetCommandList();
+		//	auto currentFrame = GGraphicsDevice->GetFrameCount();
 
-			ID3D12RootSignature* rootSig = nullptr;
+		//	ID3D12RootSignature* rootSig = nullptr;
 
-			if (_fullscreenVS)
-			{
-				rootSig = _fullscreenVS->GetAs<D3D12Shader>().GetRootSignature();
-			}
+		//	if (_fullscreenVS)
+		//	{
+		//		rootSig = _fullscreenVS->GetAs<D3D12Shader>().GetRootSignature();
+		//	}
 
-			cmdList->SetGraphicsRootSignature(rootSig);
+		//	cmdList->SetGraphicsRootSignature(rootSig);
 
-			//table 0, shared all constant, scene stuff 
-			{
-				cmdList->SetGraphicsRootConstantBufferView(0, GetGPUAddrOfViewConstants());
+		//	//table 0, shared all constant, scene stuff 
+		//	{
+		//		cmdList->SetGraphicsRootConstantBufferView(0, GetGPUAddrOfViewConstants());
 
-				CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-				CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-				cmdList->RSSetViewports(1, &m_viewport);
-				cmdList->RSSetScissorRects(1, &m_scissorRect);
-			}
+		//		CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+		//		CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+		//		cmdList->RSSetViewports(1, &m_viewport);
+		//		cmdList->RSSetScissorRects(1, &m_scissorRect);
+		//	}
 
-			//table 1, VS only constants
-			{
-				auto pd3dDevice = GGraphicsDevice->GetDevice();
+		//	//table 1, VS only constants
+		//	{
+		//		auto pd3dDevice = GGraphicsDevice->GetDevice();
 
-				_declspec(align(256u))
-					struct GPUDrawConstants
-				{
-					//altered viewposition translated
-					Matrix4x4 LocalToWorldScaleRotation;
-					Vector3d Translation;
-				};
+		//		_declspec(align(256u))
+		//			struct GPUDrawConstants
+		//		{
+		//			//altered viewposition translated
+		//			Matrix4x4 LocalToWorldScaleRotation;
+		//			Vector3d Translation;
+		//		};
 
-				Matrix4x4 matId = Matrix4x4::Identity();
-				Vector3d dummyVec(0, 0, 0);
+		//		Matrix4x4 matId = Matrix4x4::Identity();
+		//		Vector3d dummyVec(0, 0, 0);
 
-				// write local to world
-				auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
-				WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
-				WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
+		//		// write local to world
+		//		auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
+		//		WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
+		//		WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
 
-				cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
-			}
+		//		cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
+		//	}
 
-			cmdList->SetPipelineState(_fullscreenPSO->GetState());
-			cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		//	cmdList->SetPipelineState(_fullscreenPSO->GetState());
+		//	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-			//3 shapes for now
+		//	//3 shapes for now
 
-			uint32_t DrawShapeCount = 3;
-			auto ShapeSetBlock = perDrawDescriptorHeap.GetDescriptorSlots(DrawShapeCount);
+		//	uint32_t DrawShapeCount = 3;
+		//	auto ShapeSetBlock = perDrawDescriptorHeap.GetDescriptorSlots(DrawShapeCount);
 
-			struct ShapeInfo
-			{
-				uint32_t    ShapeID;
-				float	    LocalToWorldScaleRotation[16];
-				double		ShapeTranslation[3];
-			};
+		//	struct ShapeInfo
+		//	{
+		//		uint32_t    ShapeID;
+		//		float	    LocalToWorldScaleRotation[16];
+		//		double		ShapeTranslation[3];
+		//	};
 
-			std::shared_ptr< ArrayResource > ShapeInfoResource = std::make_shared< ArrayResource >();
-			auto pShapes = ShapeInfoResource->InitializeFromType<ShapeInfo>(1500);	
-			memset(pShapes, 0, ShapeInfoResource->GetTotalSize());
-			pShapes[0].ShapeID = 0;
-			pShapes[0].ShapeTranslation[0] = 10;
-			pShapes[1].ShapeID = 1;
-			pShapes[1].ShapeTranslation[0] = 20;
-			pShapes[2].ShapeID = 0;
-			pShapes[2].ShapeTranslation[0] = 30;
-			auto ShapeInfoBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, ShapeInfoResource);
+		//	std::shared_ptr< ArrayResource > ShapeInfoResource = std::make_shared< ArrayResource >();
+		//	auto pShapes = ShapeInfoResource->InitializeFromType<ShapeInfo>(1500);	
+		//	memset(pShapes, 0, ShapeInfoResource->GetTotalSize());
+		//	pShapes[0].ShapeID = 0;
+		//	pShapes[0].ShapeTranslation[0] = 10;
+		//	pShapes[1].ShapeID = 1;
+		//	pShapes[1].ShapeTranslation[0] = 20;
+		//	pShapes[2].ShapeID = 0;
+		//	pShapes[2].ShapeTranslation[0] = 30;
+		//	auto ShapeInfoBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, ShapeInfoResource);
 
-			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			srvDesc.Buffer.FirstElement = 0;
-			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			auto currentTableElement = ShapeSetBlock[0];
-			srvDesc.Buffer.StructureByteStride = ShapeInfoResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
-			srvDesc.Buffer.NumElements = ShapeInfoResource->GetElementCount();
-			pd3dDevice->CreateShaderResourceView(ShapeInfoBuffer->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
-				
-		
-			cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
+		//	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		//	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+		//	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		//	srvDesc.Buffer.FirstElement = 0;
+		//	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		//	auto currentTableElement = ShapeSetBlock[0];
+		//	srvDesc.Buffer.StructureByteStride = ShapeInfoResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+		//	srvDesc.Buffer.NumElements = ShapeInfoResource->GetElementCount();
+		//	pd3dDevice->CreateShaderResourceView(ShapeInfoBuffer->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+		//		
+		//
+		//	cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
 
-			cmdList->SetGraphicsRoot32BitConstant(6, DrawShapeCount, 0);
+		//	cmdList->SetGraphicsRoot32BitConstant(6, DrawShapeCount, 0);
 
-			cmdList->DrawInstanced(4, 1, 0, 0);
-		}
+		//	cmdList->DrawInstanced(4, 1, 0, 0);
+		//}
 
 		void DrawDebug()
 		{
+			if (_lines.empty()) return;
+
 			auto pd3dDevice = GGraphicsDevice->GetDevice();
 			auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
 			auto cmdList = GGraphicsDevice->GetCommandList();
@@ -1602,6 +1607,11 @@ namespace SPP
 						});
 				}
 			}
+			else
+			{
+				auto sphereBounds = _meshData->Bounds.Transform(localToWorld);
+				DrawSphere(sphereBounds, lines);
+			}
 		}
 	}
 
@@ -1638,7 +1648,6 @@ namespace SPP
 				cmdList->RSSetViewports(1, &m_viewport);
 				cmdList->RSSetScissorRects(1, &m_scissorRect);
 			}
-
 
 			//table 1, VS only constants
 			{
@@ -1741,6 +1750,8 @@ namespace SPP
 				break;
 			}
 
+			cmdList->SetGraphicsRoot32BitConstant(6, _bSelected ? 1 : 0, 0);
+
 			//cmdList->SetComputeRootUnorderedAccessView
 
 			if (_meshData->material->vertexShader)
@@ -1840,11 +1851,11 @@ namespace SPP
 
 	void D3D12SDF::DrawDebug(std::vector< DebugVertex >& lines)
 	{
-		for (auto& curShape : _shapes)
-		{
-			auto CurPos = GetPosition();
-			DrawSphere(Sphere(curShape.translation + CurPos.cast<float>(), curShape.params[0]), lines);
-		}
+		//for (auto& curShape : _shapes)
+		//{
+		//	auto CurPos = GetPosition();
+		//	DrawSphere(Sphere(curShape.translation + CurPos.cast<float>(), curShape.params[0]), lines);
+		//}
 	}
 
 	void D3D12SDF::Draw()

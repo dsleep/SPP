@@ -70,8 +70,10 @@ namespace SPP
 
 	protected:
 		ORenderableElement(const MetaPath& InPath) : OElement(InPath) { }
+		bool _selected = false;
 
 	public:
+		virtual void UpdateSelection(bool IsSelected);
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene(class OScene* InScene) override;
 
@@ -96,6 +98,7 @@ namespace SPP
 		}
 		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const override;
 
+		virtual void UpdateSelection(bool IsSelected);
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene(class OScene* InScene) override;
 

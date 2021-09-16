@@ -51,6 +51,8 @@ namespace SPP
 
 	D3D12PartialResourceMemory D3D12MemoryFramedChunkBuffer::GetWritable(uint32_t DesiredSize, UINT64 FrameIdx)
 	{
+		SE_ASSERT(DesiredSize > 0);
+
 		auto alignedSize = GetAlignedSize(DesiredSize);
 
 		for (auto it = _unboundChunks.begin(); it != _unboundChunks.end(); ++it)

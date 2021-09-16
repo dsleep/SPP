@@ -320,11 +320,16 @@ public:
 		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
 
-		//IntersectionInfo info;
-		//if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
-		//{
-		//	SPP_QL("Hit: %s", info.hitName.c_str());
-		//}
+		IntersectionInfo info;
+		if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
+		{
+			//SPP_QL("Hit: %s", info.hitName.c_str());
+			_gizmo->UpdateSelection(true);
+		}
+		else
+		{
+			_gizmo->UpdateSelection(false);
+		}
 
 		//
 
