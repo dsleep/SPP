@@ -89,6 +89,14 @@ void GenerateObjectList(OScene* InWorld, Json::Value& rootValue)
 
 class EditorEngine
 {
+	enum class EGizmoSelectionAxis
+	{
+		None,
+		X,
+		Y,
+		Z
+	};
+
 private:
 	std::shared_ptr<GraphicsDevice> _graphicsDevice;
 
@@ -109,6 +117,8 @@ private:
 	OElement* _selectedElement = nullptr;
 
 	bool _htmlReady = false;	
+
+	EGizmoSelectionAxis _selectionAxis = EGizmoSelectionAxis::None;
 
 public:
 	std::map < std::string, std::function<void(Json::Value) > > fromJSFunctionMap;
@@ -323,12 +333,28 @@ public:
 		IntersectionInfo info;
 		if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
 		{
+			if (!info.hitName.empty())
+			{
+				if (info.hitName[0] == 'X')
+				{
+					_selectionAxis = EGizmoSelectionAxis::X;
+				}
+				else if (info.hitName[0] == 'Y')
+				{
+					_selectionAxis = EGizmoSelectionAxis::Y;
+				}
+				else if (info.hitName[0] == 'Z')
+				{
+					_selectionAxis = EGizmoSelectionAxis::Z;
+				}
+			}
 			//SPP_QL("Hit: %s", info.hitName.c_str());
 			_gizmo->UpdateSelection(true);
 		}
 		else
 		{
 			_gizmo->UpdateSelection(false);
+			_selectionAxis = EGizmoSelectionAxis::None;
 		}
 
 		//
@@ -388,7 +414,6 @@ public:
 			Deselect();
 		}
 	}
-	
 
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
