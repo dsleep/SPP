@@ -43,6 +43,7 @@
 
 #include "cefclient/JSCallbackInterface.h"
 #include <condition_variable>
+#include "SPPWin32Core.h"
 
 #define MAX_LOADSTRING 100
 
@@ -97,6 +98,13 @@ class EditorEngine
 		Z
 	};
 
+	enum class ESelectionMode
+	{
+		None,
+		Gizmo,
+		Turn
+	};
+
 private:
 	std::shared_ptr<GraphicsDevice> _graphicsDevice;
 
@@ -105,6 +113,7 @@ private:
 	uint8_t _keys[255] = { 0 };
 
 	Vector2i _mousePosition = { -1, -1 };
+	Vector2i _mouseCaptureSpot = { -1, -1 };
 	std::chrono::high_resolution_clock::time_point _lastTime;
 	std::shared_ptr< SPP::MeshMaterial > _gizmoMat;	
 
@@ -119,6 +128,7 @@ private:
 	bool _htmlReady = false;	
 
 	EGizmoSelectionAxis _selectionAxis = EGizmoSelectionAxis::None;
+	ESelectionMode _selectionMode = ESelectionMode::None;
 
 public:
 	std::map < std::string, std::function<void(Json::Value) > > fromJSFunctionMap;
@@ -258,6 +268,8 @@ public:
 			curMesh->material = _gizmoMat; 
 		}
 
+		bool _bGizmoMode = false;
+		bool _bCamMode = false;
 
 		/////////////SCENE SETUP
 
@@ -330,33 +342,35 @@ public:
 		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
 
-		IntersectionInfo info;
-		if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
+		if (_selectionMode == ESelectionMode::None)
 		{
-			if (!info.hitName.empty())
+			IntersectionInfo info;
+			if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
 			{
-				if (info.hitName[0] == 'X')
+				if (!info.hitName.empty())
 				{
-					_selectionAxis = EGizmoSelectionAxis::X;
+					if (info.hitName[0] == 'X')
+					{
+						_selectionAxis = EGizmoSelectionAxis::X;
+					}
+					else if (info.hitName[0] == 'Y')
+					{
+						_selectionAxis = EGizmoSelectionAxis::Y;
+					}
+					else if (info.hitName[0] == 'Z')
+					{
+						_selectionAxis = EGizmoSelectionAxis::Z;
+					}
 				}
-				else if (info.hitName[0] == 'Y')
-				{
-					_selectionAxis = EGizmoSelectionAxis::Y;
-				}
-				else if (info.hitName[0] == 'Z')
-				{
-					_selectionAxis = EGizmoSelectionAxis::Z;
-				}
+				//SPP_QL("Hit: %s", info.hitName.c_str());
+				_gizmo->UpdateSelection(true);
 			}
-			//SPP_QL("Hit: %s", info.hitName.c_str());
-			_gizmo->UpdateSelection(true);
+			else
+			{
+				_gizmo->UpdateSelection(false);
+				_selectionAxis = EGizmoSelectionAxis::None;
+			}
 		}
-		else
-		{
-			_gizmo->UpdateSelection(false);
-			_selectionAxis = EGizmoSelectionAxis::None;
-		}
-
 		//
 
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
@@ -418,25 +432,70 @@ public:
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
 		SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
+
+		if (mouseButton == 0 && _selectionAxis != EGizmoSelectionAxis::None)
+		{
+			CaptureWindow(_mainDXWindow);
+			_selectionMode = ESelectionMode::Gizmo;			
+			_mouseCaptureSpot = Vector2i(mouseX, mouseY);
+		}
+		else if(mouseButton == 1)
+		{
+			CaptureWindow(_mainDXWindow);
+			_selectionMode = ESelectionMode::Turn;
+			_mouseCaptureSpot = Vector2i(mouseX, mouseY);
+		}		
 	}
 		
 	void MouseUp(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
 		SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
+
+		if (_selectionMode != ESelectionMode::None)
+		{
+			_selectionMode = ESelectionMode::None;
+			CaptureWindow(nullptr);
+		}	
 	}
 		
 	void MouseMove(int32_t mouseX, int32_t mouseY, uint8_t MouseState)
 	{
+		Vector2i currentMouse = { mouseX, mouseY };
 		//SPP_QL("mm: %d %d", mouseX, mouseY);
-		if (MouseState == 0)
+		_mousePosition = currentMouse;
+		
+		if(	_selectionMode == ESelectionMode::Turn )
 		{
-			_mousePosition[0] = mouseX;
-			_mousePosition[1] = mouseY;
-		}
-		else if (MouseState == 1)
-		{
+			Vector2i Delta = (currentMouse - _mouseCaptureSpot);
+			_mouseCaptureSpot = _mousePosition;
+			//SetCursorPos(_mouseCaptureSpot[0], _mouseCaptureSpot[1]);
 			auto& cam = _renderableScene->GetRenderScene()->GetCamera();
-			cam.TurnCamera(Vector2(-mouseX, -mouseY));
+			cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
+		}
+		else if (_selectionMode == ESelectionMode::Gizmo)
+		{
+			Vector2i Delta = (currentMouse - _mouseCaptureSpot);
+			_mouseCaptureSpot = _mousePosition;
+
+			switch (_selectionAxis)
+			{
+			case EGizmoSelectionAxis::X:
+				_selectedElement->GetPosition()[0] += (float)Delta[0];
+				break;
+			case EGizmoSelectionAxis::Y:
+				_selectedElement->GetPosition()[1] += -Delta[1];
+				break;
+			case EGizmoSelectionAxis::Z:
+				_selectedElement->GetPosition()[2] += Delta[0];
+				break;
+			}
+
+
+			auto localToWorld = _selectedElement->GenerateLocalToWorld();
+			_gizmo->GetPosition() = localToWorld.block<1, 3>(3, 0).cast<double>();
+
+			_gizmo->UpdateTransform();
+			_selectedElement->UpdateTransform();
 		}
 	}
 

@@ -386,39 +386,49 @@ namespace client {
 		break;
 
 		case WM_RBUTTONDOWN:
-			SetCapture(hWnd);
-			GetCursorPos(&originalCursorPt);
-			ShowCursor(false);
-			break;
+		{
+			POINTS points = MAKEPOINTS(lParam);
+			if (self->_mouseDown)
+			{
+				self->_mouseDown(points.x, points.y, 1);
+			}
+		}
+		break;
+		
 
 		case WM_RBUTTONUP:
-			ReleaseCapture();
-			ShowCursor(true);
-			break;
+		{
+			POINTS points = MAKEPOINTS(lParam);
+			if (self->_mouseUp)
+			{
+				self->_mouseUp(points.x, points.y, 1);
+			}
+		}
+		break;
 
 		case WM_MOUSEMOVE:
 		{
 			//GetCursorPos(&curpoint);
-			if (wParam == MK_RBUTTON)
-			{
-				POINT currentCursorPt = { 0,0 };
-				GetCursorPos(&currentCursorPt);
+			//if (wParam == MK_RBUTTON)
+			//{
+			//	POINT currentCursorPt = { 0,0 };
+			//	GetCursorPos(&currentCursorPt);
 
-				SetCursorPos(originalCursorPt.x, originalCursorPt.y);
+			//	SetCursorPos(originalCursorPt.x, originalCursorPt.y);
 
-				if (self->_mouseMove)
-				{
-					self->_mouseMove(currentCursorPt.x - originalCursorPt.x, currentCursorPt.y - originalCursorPt.y,1);
-				}			
-			}
-			else
-			{
+			//	if (self->_mouseMove)
+			//	{
+			//		self->_mouseMove(currentCursorPt.x - originalCursorPt.x, currentCursorPt.y - originalCursorPt.y,1);
+			//	}			
+			//}
+			//else
+			//{
 				if (self->_mouseMove)
 				{
 					POINTS points = MAKEPOINTS(lParam);
 					self->_mouseMove(points.x, points.y, 0);
 				}
-			}
+			//}
 		}
 		break;
 

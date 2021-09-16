@@ -1507,7 +1507,7 @@ namespace SPP
 				});
 			*/
 
-#if 1
+#if 0
 			for (auto renderItem : _renderables)
 			{
 				renderItem->DrawDebug(_lines);
@@ -1834,6 +1834,19 @@ namespace SPP
 		}
 	}
 
+	void DX12_BegineResourceCopy()
+	{
+		SE_ASSERT(GGraphicsDevice);
+		GGraphicsDevice->BeginResourceCopy();
+	}
+
+	void DX12_EndResourceCopy()
+	{
+		SE_ASSERT(GGraphicsDevice);
+		GGraphicsDevice->EndResourceCopy();
+	}
+
+
 	void D3D12SDF::AddToScene(class RenderScene* InScene)
 	{
 		RenderableSignedDistanceField::AddToScene(InScene);
@@ -1845,7 +1858,13 @@ namespace SPP
 			_shapeResource = std::make_shared< ArrayResource >();
 			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
 			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
-			_shapeBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, _shapeResource);
+
+
+			_shapeBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, _shapeResource);			
+
+			DX12_BegineResourceCopy();
+			_shapeBuffer->UploadToGpu();
+			DX12_EndResourceCopy();
 		}
 	}
 
@@ -1935,18 +1954,7 @@ namespace SPP
 	}
 
 
-	void DX12_BegineResourceCopy()
-	{
-		SE_ASSERT(GGraphicsDevice);
-		GGraphicsDevice->BeginResourceCopy();
-	}
 
-	void DX12_EndResourceCopy()
-	{
-		SE_ASSERT(GGraphicsDevice);
-		GGraphicsDevice->EndResourceCopy();
-	}
-	
 
 	std::shared_ptr< GraphicsDevice > DX12_CreateGraphicsDevice()
 	{

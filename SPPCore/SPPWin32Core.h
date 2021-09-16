@@ -25,6 +25,9 @@ namespace SPP
 	SPP_CORE_API bool IsChildRunning(uint32_t processID);
 	SPP_CORE_API void CloseChild(uint32_t processID);
 
+	SPP_CORE_API void ShowMouse(bool bShowMouse);
+	SPP_CORE_API void CaptureWindow(void *Window);
+
 	SPP_CORE_API void AddDLLSearchPath(const char* InPath);
 }
 

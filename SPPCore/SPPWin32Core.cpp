@@ -151,6 +151,23 @@ namespace SPP
 		return false;
 	}
 
+	void ShowMouse(bool bShowMouse)
+	{
+		ShowCursor(false);
+	}
+
+	void CaptureWindow(void* Window)
+	{
+		if (Window)
+		{
+			SetCapture((HWND)Window);
+		}
+		else
+		{
+			ReleaseCapture();
+		}
+	}	
+
 	void CloseChild(uint32_t processID)
 	{
 		auto foundChild = hostedChildProcesses.find(processID);

@@ -45,6 +45,9 @@ namespace SPP
 	void OShapeGroup::RemovedFromScene(class OScene* InScene)
 	{
 		if (!InScene) return;
+
+		_renderableSDF->RemoveFromScene();
+		_renderableSDF.reset();
 	}
 
 	void OSDFSphere::SetRadius(float InRadius)

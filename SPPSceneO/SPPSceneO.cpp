@@ -25,6 +25,36 @@ namespace SPP
 		InChild->_parent = nullptr;
 	}
 
+	void OElement::UpdateTransform()
+	{
+		OElement* lastFromTop = this;
+		OElement* top = _parent;
+		while (top)
+		{
+			if (top->_parent)
+			{
+				lastFromTop = top;
+				top = top->_parent;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		// top should be scene
+		auto currentTop = top;
+		SE_ASSERT(currentTop);
+
+		auto SceneType = currentTop->get_type();
+		if (SceneType.is_derived_from(rttr::type::get<OScene>()))
+		{
+			OScene* topScene = (OScene*)currentTop;
+			topScene->RemoveChild(lastFromTop);
+			topScene->AddChild (lastFromTop);
+		}
+	}
+
 	OElement* OElement::GetTop() 
 	{
 		if (_parent)
