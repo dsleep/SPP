@@ -50,6 +50,9 @@ namespace SPP
 	void OMeshElement::RemovedFromScene(class OScene* InScene)
 	{
 		if (!InScene) return;
+
+		_renderableMesh->RemoveFromScene();
+		_renderableMesh.reset();
 	}
 
 	bool OMeshElement::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const

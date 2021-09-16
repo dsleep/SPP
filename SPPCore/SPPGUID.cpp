@@ -17,6 +17,7 @@ namespace SPP
 		return GUID(dis(gen), dis(gen), dis(gen), dis(gen));
 	}
 
+	//todo speed up
 	GUID::GUID(const char* InString)
 	{
 		auto stringSize = std::strlen(InString);
@@ -52,13 +53,24 @@ namespace SPP
 		return A;
 	}
 
+	template <typename I>
+	void Create32BitHex(char *dst, I w, size_t hex_len = sizeof(I) << 1)
+	{
+		static_assert(sizeof(I) == 4);
+		static const char* digits = "0123456789ABCDEF";		
+		for (size_t i = 0, j = (hex_len - 1) * 4; i < hex_len; ++i, j -= 4)
+		{
+			dst[i] = digits[(w >> j) & 0x0f];
+		}
+	}
+
 	std::string GUID::ToString() const
 	{
-		std::stringstream stream;
-		stream << std::hex << A;
-		stream << std::hex << B;
-		stream << std::hex << C;
-		stream << std::hex << D;
-		return stream.str();
+		std::string outHex(8 * 4, '0');
+		Create32BitHex(outHex.data(), A);
+		Create32BitHex(outHex.data() + 8, B);
+		Create32BitHex(outHex.data() + 16, C);
+		Create32BitHex(outHex.data() + 24, D);
+		return outHex;
 	}
 }

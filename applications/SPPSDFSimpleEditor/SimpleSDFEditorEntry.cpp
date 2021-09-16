@@ -106,6 +106,7 @@ private:
 
 	ORenderableScene* _renderableScene = nullptr;
 	OMeshElement* _gizmo = nullptr;
+	OElement* _selectedElement = nullptr;
 
 	bool _htmlReady = false;	
 
@@ -131,9 +132,25 @@ public:
 		JavascriptInterface::CallJS("UpdateObjectTree", StrMessage);
 	}
 
-	void SelectionChanged(SPPObject* SelectedObject)
-	{
+	void SelectObject(OElement* SelectedObject)
+	{	
+		if (_selectedElement)
+		{
+			_renderableScene->RemoveChild(_gizmo);
+		}
 
+		if (SelectedObject)
+		{
+			auto localToWorld = SelectedObject->GenerateLocalToWorld(true);
+			_gizmo->GetPosition() = localToWorld.block<1, 3>(3, 0).cast<double>() + SelectedObject->GetTop()->GetPosition();
+			_renderableScene->AddChild(_gizmo);
+		}
+
+		_selectedElement = SelectedObject;
+	}
+	
+	void DeleteSelection()
+	{
 	}
 
 	void SelectionChanged(std::string InElementName)
@@ -144,6 +161,7 @@ public:
 		if (CurObject)
 		{
 			SPP_QL("SelectionChanged: %s", CurObject->GetPath().ToString().c_str());
+			SelectObject((OElement*)CurObject);
 		}
 	}
 
@@ -239,8 +257,8 @@ public:
 
 		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
 		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
-		auto startingSphere2 = AllocateObject<OSDFSphere>("mainShape.sphere2");
-		auto startingSphere3 = AllocateObject<OSDFSphere>("mainShape.sphere3");
+		auto startingSphere2 = AllocateObject<OSDFSphere>("mainShape.sphere_2");
+		auto startingSphere3 = AllocateObject<OSDFSphere>("mainShape.sphere_3");
 		//auto startingSphere = AllocateObject<OSDFSphere>("mainShape.box");
 
 
@@ -251,7 +269,6 @@ public:
 		startingSphere2->SetRadius(25);
 		startingSphere2->GetPosition()[1] = 50.0;
 		startingSphere2->GetPosition()[0] = 50.0;
-
 
 		startingSphere3->SetRadius(25);
 		startingSphere3->GetPosition()[1] = 50.0;
@@ -270,7 +287,7 @@ public:
 		_gizmo->GetPosition()[1] = 50.0;
 		_gizmo->GetPosition()[0] = 50.0;
 		_gizmo->GetScale() = 0.3;
-		_renderableScene->AddChild(_gizmo);
+		//_renderableScene->AddChild(_gizmo);
 
 		SPP::MakeResidentAllGPUResources();
 
@@ -353,7 +370,7 @@ public:
 
 	void Deselect()
 	{
-
+		SelectObject(nullptr);
 	}
 
 	void KeyUp(uint8_t KeyValue)

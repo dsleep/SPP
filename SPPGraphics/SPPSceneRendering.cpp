@@ -17,5 +17,6 @@ namespace SPP
 	{
 		SE_ASSERT(_parentScene);
 		_parentScene->RemoveFromScene(this);
+		_parentScene = nullptr;
 	};
 }

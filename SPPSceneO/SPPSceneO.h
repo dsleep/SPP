@@ -69,6 +69,9 @@ namespace SPP
 			return _octreeLink != nullptr;
 		}
 
+		OElement* GetTop();
+		Matrix4x4 GenerateLocalToWorld(bool bSkipTopTranslation = false) const;
+
 		virtual ~OElement() { }
 
 		virtual void AddedToScene(class OScene* InScene) {}

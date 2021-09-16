@@ -25,6 +25,40 @@ namespace SPP
 		InChild->_parent = nullptr;
 	}
 
+	OElement* OElement::GetTop() 
+	{
+		if (_parent)
+		{
+			return _parent->GetTop();
+		}
+		else
+		{
+			return this;
+		}
+	}
+
+	Matrix4x4 OElement::GenerateLocalToWorld(bool bSkipTopTranslation) const
+	{
+		const float degToRad = 0.0174533f;
+		Eigen::AngleAxisf yawAngle(_rotation[0] * degToRad, Vector3::UnitY());
+		Eigen::AngleAxisf pitchAngle(_rotation[1] * degToRad, Vector3::UnitX());
+		Eigen::AngleAxisf rollAngle(_rotation[2] * degToRad, Vector3::UnitZ());
+		Eigen::Quaternion<float> q = rollAngle * (pitchAngle * yawAngle);
+
+		Matrix4x4 transform = Matrix4x4::Identity();
+		transform.block<3, 3>(0, 0) = q.matrix();
+		transform.block<1, 3>(3, 0) = (bSkipTopTranslation && _parent == nullptr) ?
+			Vector3(0,0,0) :
+			Vector3(_translation[0], _translation[1], _translation[2]);
+
+		if (_parent)
+		{
+			transform = transform * _parent->GenerateLocalToWorld();
+		}
+
+		return transform;
+	}
+
 	void OElement::RemoveFromParent()
 	{
 		if (_parent)
