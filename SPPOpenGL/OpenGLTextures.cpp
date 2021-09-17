@@ -35,9 +35,9 @@ namespace SPP
 		//glGenerateMipmap(GL_TEXTURE_2D);
 	}
 
-	std::shared_ptr< GPUTexture > OpenGL_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
+	GPUReferencer< GPUTexture > OpenGL_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
 	{
-		return std::make_shared<OpenGLTexture>(Width, Height, Format, RawData, InMetaInfo);
+		return Make_GPU<OpenGLTexture>(Width, Height, Format, RawData, InMetaInfo);
 	}
 
 	std::shared_ptr< GPURenderTarget > DX12_CreateRenderTarget()

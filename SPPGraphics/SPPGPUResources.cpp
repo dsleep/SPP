@@ -55,10 +55,12 @@ namespace SPP
 	{
 		GetGPUResourceList().Add(this);
 	}
+
 	GPUResource::~GPUResource()
 	{
 		GetGPUResourceList().Remove(this);
 	}
+
 
 	void MakeResidentAllGPUResources()
 	{

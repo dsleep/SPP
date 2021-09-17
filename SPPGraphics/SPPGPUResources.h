@@ -118,7 +118,169 @@ namespace SPP
         virtual ~DDSImageMeta() {}
     };
 
-    class SPP_GRAPHICS_API GPUResource 
+    class ReferenceCounted
+    {
+        uint32_t _refCnt = 0;
+
+    public:
+       
+        uint32_t incRefCnt()
+        {
+            return ++_refCnt;
+        }
+
+        uint32_t decRefCnt()
+        {
+            return --_refCnt;
+        }
+    };
+
+    template< typename T>
+    class Referencer
+    {
+    protected:
+        T* obj = nullptr;
+
+        virtual void DestroyObject()
+        {
+            delete obj;
+            obj = nullptr;
+        }
+
+        void decRef() 
+        {
+            if (obj && obj->decRefCnt() == 0)
+            {
+                DestroyObject();
+            }
+        }
+
+    public:        
+
+        template<typename K>
+        Referencer(K* obj = nullptr) : obj(obj) 
+        {
+            if (obj)
+            {
+                obj->incRefCnt();
+            }
+        }
+
+        template<typename K>
+        Referencer(Referencer<K>& orig)
+        {
+            obj = orig.RawGet();
+            if (obj)
+            {
+                obj->incRefCnt();
+            }
+        }
+
+        T& operator* () 
+        {
+            SE_ASSERT(obj);
+            return *obj;
+        }
+
+        T* operator-> () 
+        {
+            SE_ASSERT(obj);
+            return obj;
+        }
+
+        T* RawGet()
+        {
+            return obj;
+        }
+        T* get()
+        {
+            return obj;
+        }
+
+        template<typename K>
+        bool operator== (const Referencer<T>& right) const
+        {
+            return obj == right.obj;
+        }
+
+        Referencer<T>& operator= (Referencer<T>& right)
+        {
+            if (this == &right)
+            {
+                return *this;
+            }
+            if (right.obj)
+            {
+                right.obj->incRefCnt();
+            }
+            decRef();
+            obj = right.obj;
+            return *this;
+        }
+
+        template<typename K>
+        Referencer<T>& operator= (Referencer<K>& right)
+        {
+            static_assert(std::is_base_of_v(T, K));
+
+            *this = reinterpret_cast<Referencer<T>>(right);
+        }
+
+      
+
+        operator bool()
+        {
+            return (obj != NULL);
+        }
+
+        virtual ~Referencer()
+        {
+            decRef();
+        }
+    };
+
+    class GPUResource;
+    
+    template<typename T>
+    class GPUReferencer : public Referencer<T>
+    {
+    protected:
+        virtual void DestroyObject() override
+        {
+            Referencer<T>::DestroyObject();
+        }
+
+    public:        
+        GPUReferencer(T* obj = NULL) : Referencer(obj)
+        {
+            static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
+        }
+        GPUReferencer(GPUReferencer<T>& orig) : Referencer(orig) { }
+
+        template<typename K>
+        GPUReferencer(K* obj = nullptr) : Referencer(obj) 
+        {
+            static_assert(std::is_base_of_v<GPUResource, K>, "Only for gpu refs");
+        }
+
+        template<typename K>
+        GPUReferencer(GPUReferencer<K>& orig) : Referencer(orig) { }
+    };
+
+
+    template<typename T>
+    GPUReferencer<T> Make_GPU()
+    {
+        return GPUReferencer<T>(new T());
+    }
+
+    template<typename T, typename ... Args>
+    GPUReferencer<T> Make_GPU(Args&& ... args)
+    {
+        return GPUReferencer<T>(new T(args...));
+    }
+
+    class SPP_GRAPHICS_API GPUResource : public ReferenceCounted
     {
     protected:
         bool _gpuResident = false;
@@ -132,6 +294,7 @@ namespace SPP
         bool IsGPUResident() const { return _gpuResident; }
         virtual void UploadToGpu() = 0;
 
+        //crazy ugly no verification TODO improve....
         template<typename T>
         T& GetAs()
         {
@@ -273,19 +436,14 @@ namespace SPP
         }
 
         virtual void InitializeLayout(const std::vector< InputLayoutElement>& eleList) = 0;
+        virtual ~GPUInputLayout() { }
     };
 
     
 
-    class SPP_GRAPHICS_API PipelineState
+    class SPP_GRAPHICS_API PipelineState : public GPUResource
     {
     public:
-
-        PipelineState()
-        {
-
-        }
-
     };
 
     class SPP_GRAPHICS_API GPURenderTarget : public GPUTexture
@@ -309,17 +467,17 @@ namespace SPP
         virtual void MoveToNextFrame() { };
     };
 
-    class SPP_GRAPHICS_API GPUComputeDispatch
+    class SPP_GRAPHICS_API ComputeDispatch
     {
     protected:        
         std::vector< std::shared_ptr< ArrayResource> > _constants;
-        std::vector< std::shared_ptr<GPUTexture> > _textures;
-        std::shared_ptr< GPUShader > _compute;
+        std::vector< GPUReferencer< GPUTexture > > _textures;
+        GPUReferencer< GPUShader > _compute;
 
     public:
-        GPUComputeDispatch(std::shared_ptr< GPUShader> InCS) : _compute(InCS) { }
+        ComputeDispatch(GPUReferencer< GPUShader> InCS) : _compute(InCS) { }
 
-        void SetTextures(const std::vector< std::shared_ptr<GPUTexture> > &InTextures)
+        void SetTextures(const std::vector< GPUReferencer<GPUTexture> > &InTextures)
         {
             _textures = InTextures;
         }
@@ -331,17 +489,14 @@ namespace SPP
         virtual void Dispatch(const Vector3i& ThreadGroupCounts) = 0;
     };
 
-
-
-   
     class SPP_GRAPHICS_API ShaderObject 
     {
     private:
-        std::shared_ptr<GPUShader> _shader;
+        GPUReferencer<GPUShader> _shader;
 
     public:
         void LoadFromDisk(const AssetPath &FileName, const char* EntryPoint, EShaderType InType);
-        std::shared_ptr<GPUShader> GetGPUShader()
+        GPUReferencer<GPUShader> GetGPUShader()
         {
             return _shader;
         }
@@ -384,16 +539,18 @@ namespace SPP
 
     struct IGraphicsInterface
     {
-        virtual std::shared_ptr< GPUShader > CreateShader(EShaderType InType) = 0;
-        virtual std::shared_ptr< GPUComputeDispatch > CreateComputeDispatch(std::shared_ptr< GPUShader> InCS) = 0;
+        virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) = 0;
 
-        virtual std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
+        virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
 
-        virtual std::shared_ptr< GPUInputLayout > CreateInputLayout() = 0;
-        virtual std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
-        virtual std::shared_ptr< GPURenderTarget > CreateRenderTarget() = 0;
+        virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;
+        virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
+        virtual GPUReferencer< GPURenderTarget > CreateRenderTarget() = 0;
+
+
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
 
+        virtual std::shared_ptr< class ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
         virtual std::shared_ptr< class RenderScene > CreateRenderScene() = 0;
         virtual std::shared_ptr< class RenderableMesh > CreateRenderableMesh() = 0;
         virtual std::shared_ptr< class RenderableSignedDistanceField > CreateRenderableSDF() = 0;

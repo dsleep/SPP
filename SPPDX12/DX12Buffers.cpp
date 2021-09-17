@@ -224,21 +224,21 @@ namespace SPP
 		}
 	}
 
-	std::shared_ptr< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	GPUReferencer< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
 		switch (InType)
 		{
 		case GPUBufferType::Generic:
-			return std::make_unique<D3D12Buffer>(InCpuData);
+			return Make_GPU<D3D12Buffer>(InCpuData);
 			break;
 		case GPUBufferType::Index:
-			return std::make_unique<D3D12IndexBuffer>(InCpuData);
+			return Make_GPU<D3D12IndexBuffer>(InCpuData);
 			break;
 		case GPUBufferType::Vertex:
-			return std::make_unique<D3D12VertexBuffer>(InCpuData);
+			return Make_GPU<D3D12VertexBuffer>(InCpuData);
 			break;
 		case GPUBufferType::Global:
-			return std::make_unique<D3D12GlobalBuffer>(InCpuData);
+			return Make_GPU<D3D12GlobalBuffer>(InCpuData);
 			break;
 		}
 
@@ -274,7 +274,7 @@ namespace SPP
 
 
 		std::shared_ptr< ArrayResource > MeshInfosArray;
-		std::shared_ptr< GPUBuffer > MeshInfoResource;		
+		GPUReferencer< GPUBuffer > MeshInfoResource;
 
 	public:
 		void Initialize()
@@ -475,10 +475,12 @@ namespace SPP
 		return GMeshState->UnregisterMeshElement(InMeshElement);
 	}
 
-	std::shared_ptr< GPUInputLayout > DX12_CreateInputLayout()
+	GPUReferencer< GPUInputLayout > DX12_CreateInputLayout()
 	{
-		return std::make_unique<D3D12InputLayout>();		
-	}
+		auto Test = Make_GPU<D3D12InputLayout>();
+		GPUReferencer< GPUInputLayout > r = Test;
+		return r;
+	};
 
 	class GlobalReservedBuffer
 	{

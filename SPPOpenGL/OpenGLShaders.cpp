@@ -65,8 +65,8 @@ namespace SPP
 		return true;
 	}
 
-	std::shared_ptr< GPUShader > OpenGL_CreateShader(EShaderType InType)
+	GPUReferencer< GPUShader > OpenGL_CreateShader(EShaderType InType)
 	{
-		return std::make_shared < OpenGLShader >(InType);
+		return Make_GPU< OpenGLShader >(InType);
 	}
 }

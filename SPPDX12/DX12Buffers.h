@@ -104,6 +104,9 @@ namespace SPP
 		D3D12_INPUT_ELEMENT_DESC* GetData();
 		virtual void UploadToGpu() override;
 		void InitializeLayout(const std::vector< InputLayoutElement>& eleList);
+		virtual ~D3D12InputLayout() 
+		{
+		}
 	};
 
 	

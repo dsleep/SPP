@@ -23,12 +23,12 @@ namespace SPP
 	LogEntry LOG_OPENGL("OpenGL");
 
 	// lazy externs
-	extern std::shared_ptr< GPUShader > OpenGL_CreateShader(EShaderType InType);
+	extern GPUReferencer< GPUShader > OpenGL_CreateShader(EShaderType InType);
 	//extern std::shared_ptr< GPUComputeDispatch> OpenGL_CreateComputeDispatch(std::shared_ptr< GPUShader> InCS);
-	extern std::shared_ptr< GPUBuffer > OpenGL_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< GPUBuffer > OpenGL_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	//extern std::shared_ptr< GPUInputLayout > OpenGL_CreateInputLayout();
 	//extern std::shared_ptr< GPURenderTarget > OpenGL_CreateRenderTarget();
-	extern std::shared_ptr< GPUTexture > OpenGL_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+	extern GPUReferencer< GPUTexture > OpenGL_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 	//
 	std::shared_ptr< GraphicsDevice > OpenGL_CreateGraphicsDevice()
 	{
@@ -79,7 +79,7 @@ namespace SPP
 	void OpenGLDevice::BeginFrame() {}
 	void OpenGLDevice::EndFrame() {}
 
-	class OpenGLProgramState
+	class OpenGLProgramState : public GPUResource
 	{
 	protected:
 		GLuint _programID = 0;
@@ -96,14 +96,21 @@ namespace SPP
 			_programID = 0;
 		}
 
+		virtual void UploadToGpu() override { }
+
+		virtual const char* GetName() const override
+		{
+			return "OpenGLProgramState";
+		}
+
 		GLuint GetProgramID() const 
 		{
 			return _programID;
 		}
 
 		void Initialize(
-			std::shared_ptr< GPUShader> InVS,
-			std::shared_ptr< GPUShader> InPS)
+			GPUReferencer< GPUShader> InVS,
+			GPUReferencer< GPUShader> InPS)
 		{
 			// Link the program
 			SPP_LOG(LOG_OPENGL, LOG_INFO, "Linking program");
@@ -177,11 +184,11 @@ namespace SPP
 		}
 	};
 
-	static std::map< OpenGLProgramKey, std::shared_ptr< OpenGLProgramState > > PiplineStateMap;
+	static std::map< OpenGLProgramKey, GPUReferencer< OpenGLProgramState > > PiplineStateMap;
 
-	std::shared_ptr < OpenGLProgramState >  GetOpenGLProgramState(
-		std::shared_ptr< GPUShader> InVS,
-		std::shared_ptr< GPUShader> InPS)
+	GPUReferencer < OpenGLProgramState >  GetOpenGLProgramState(
+		GPUReferencer< GPUShader> InVS,
+		GPUReferencer< GPUShader> InPS)
 	{
 		OpenGLProgramKey key{ 	
 			(uintptr_t)InVS.get(),
@@ -191,7 +198,7 @@ namespace SPP
 
 		if (findKey == PiplineStateMap.end())
 		{
-			auto newPipelineState = std::make_shared< OpenGLProgramState >();
+			auto newPipelineState = Make_GPU< OpenGLProgramState >();
 			newPipelineState->Initialize(InVS, InPS);
 			PiplineStateMap[key] = newPipelineState;
 			return newPipelineState;
@@ -209,8 +216,8 @@ namespace SPP
 	class OpenGLScene : public RenderScene
 	{
 	protected:
-		std::shared_ptr< GPUShader > pixelShader;
-		std::shared_ptr< GPUShader > vertexShader;
+		GPUReferencer< GPUShader > pixelShader;
+		GPUReferencer< GPUShader > vertexShader;
 		GLuint vertexbuffer;
 
 	public:
@@ -282,29 +289,29 @@ namespace SPP
 			SET_GGI(this);
 		}
 
-		virtual std::shared_ptr< GPUShader > CreateShader(EShaderType InType) override
+		virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) override
 		{			
 			return OpenGL_CreateShader(InType);
 		}
-		virtual std::shared_ptr< GPUComputeDispatch > CreateComputeDispatch(std::shared_ptr< GPUShader> InCS) override
+		virtual std::shared_ptr< ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
 		{
 			return nullptr;
 		}
-		virtual std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
+		virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
 		{
 			return OpenGL_CreateStaticBuffer(InType, InCpuData);
 		}
-		virtual std::shared_ptr< GPUInputLayout > CreateInputLayout() override
+		virtual GPUReferencer< GPUInputLayout > CreateInputLayout() override
 		{
 			return nullptr;
 		}
-		virtual std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format,
+		virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format,
 			std::shared_ptr< ArrayResource > RawData = nullptr,
 			std::shared_ptr< ImageMeta > InMetaInfo = nullptr) override
 		{
 			return OpenGL_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
 		}
-		virtual std::shared_ptr< GPURenderTarget > CreateRenderTarget() override
+		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget() override
 		{
 			return nullptr;
 		}

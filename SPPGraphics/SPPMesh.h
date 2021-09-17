@@ -330,22 +330,22 @@ namespace SPP
 
 	struct SPP_GRAPHICS_API MeshMaterial
 	{
-		std::vector< std::shared_ptr<GPUTexture> > textureArray;
+		std::vector< GPUReferencer<GPUTexture> > textureArray;
 
-		std::shared_ptr<GPUShader> vertexShader;
-		std::shared_ptr<GPUShader> pixelShader;
-		std::shared_ptr<GPUShader> domainShader;
-		std::shared_ptr<GPUShader> hullShader;
-		std::shared_ptr<GPUShader> meshShader;
-		std::shared_ptr<GPUShader> amplificationShader;
+		GPUReferencer<GPUShader> vertexShader;
+		GPUReferencer<GPUShader> pixelShader;
+		GPUReferencer<GPUShader> domainShader;
+		GPUReferencer<GPUShader> hullShader;
+		GPUReferencer<GPUShader> meshShader;
+		GPUReferencer<GPUShader> amplificationShader;
 
-		std::shared_ptr<GPUInputLayout> layout;
+		GPUReferencer<GPUInputLayout> layout;
 
 		EBlendState blendState = EBlendState::Disabled;
 		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
 		EDepthState depthState = EDepthState::Enabled;
 
-		void SetTextureUnit(uint8_t Idx, std::shared_ptr<GPUTexture> InTexture)
+		void SetTextureUnit(uint8_t Idx, GPUReferencer<GPUTexture> InTexture)
 		{
 			if (Idx >= textureArray.size())
 			{
@@ -372,8 +372,8 @@ namespace SPP
 
 		int32_t MeshIndex = -1;
 		//
-		std::shared_ptr< GPUBuffer > VertexResource;
-		std::shared_ptr< GPUBuffer > IndexResource;
+		GPUReferencer< GPUBuffer > VertexResource;
+		GPUReferencer< GPUBuffer > IndexResource;
 				
 		std::shared_ptr< MeshMaterial > material;
 

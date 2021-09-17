@@ -1267,12 +1267,12 @@ namespace SPP
 
 	}
 
-	std::shared_ptr< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
+    GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
 	{
-		return std::make_shared<D3D12Texture>(Width, Height, Format, RawData, InMetaInfo);
+		return Make_GPU<D3D12Texture>(Width, Height, Format, RawData, InMetaInfo);
 	}
 
-	std::shared_ptr< GPURenderTarget > DX12_CreateRenderTarget()
+    GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget()
 	{
 		return nullptr;
 	}

@@ -206,8 +206,8 @@ namespace SPP
 		return true;
 	}
 
-	std::shared_ptr< GPUShader > DX12_CreateShader(EShaderType InType)
+	GPUReferencer< GPUShader > DX12_CreateShader(EShaderType InType)
 	{
-		return std::make_shared < D3D12Shader >(InType);
+		return GPUReferencer< GPUShader >( new D3D12Shader(InType) );
 	}
 }

@@ -53,12 +53,12 @@ namespace SPP
 	extern bool UnregisterMeshElement(std::shared_ptr<MeshElement> InMeshElement);
 
 	// lazy externs
-	extern std::shared_ptr< GPUShader > DX12_CreateShader(EShaderType InType);
-	extern std::shared_ptr< GPUComputeDispatch> DX_12CreateComputeDispatch(std::shared_ptr< GPUShader> InCS);
-	extern std::shared_ptr< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-	extern std::shared_ptr< GPUInputLayout > DX12_CreateInputLayout();
-	extern std::shared_ptr< GPURenderTarget > DX12_CreateRenderTarget();
-	extern std::shared_ptr< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+	extern GPUReferencer< GPUShader > DX12_CreateShader(EShaderType InType);
+	extern std::shared_ptr< ComputeDispatch> DX_12CreateComputeDispatch(GPUReferencer< GPUShader> InCS);
+	extern GPUReferencer< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< GPUInputLayout > DX12_CreateInputLayout();
+	extern GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget();
+	extern GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
 	static DescriptorTableConfig _tableRegions[] =
 	{
@@ -657,21 +657,28 @@ namespace SPP
 			return _state.Get();
 		}
 
+		virtual void UploadToGpu() override { }
+
+		virtual const char* GetName() const override
+		{
+			return "D3D12PipelineState";
+		}
+
 		void Initialize(
 			EBlendState InBlendState,
 			ERasterizerState InRasterizerState,
 			EDepthState InDepthState,
 			EDrawingTopology InTopology,
-			std::shared_ptr < GPUInputLayout > InLayout,
-			std::shared_ptr< GPUShader> InVS,
-			std::shared_ptr< GPUShader> InPS,
+			GPUReferencer < GPUInputLayout > InLayout,
+			GPUReferencer< GPUShader> InVS,
+			GPUReferencer< GPUShader> InPS,
 
-			std::shared_ptr< GPUShader> InMS = nullptr,
-			std::shared_ptr< GPUShader> InAS = nullptr,
-			std::shared_ptr< GPUShader> InHS = nullptr,
-			std::shared_ptr< GPUShader> InDS = nullptr,
+			GPUReferencer< GPUShader> InMS = nullptr,
+			GPUReferencer< GPUShader> InAS = nullptr,
+			GPUReferencer< GPUShader> InHS = nullptr,
+			GPUReferencer< GPUShader> InDS = nullptr,
 			
-			std::shared_ptr< GPUShader> InCS = nullptr)
+			GPUReferencer< GPUShader> InCS = nullptr)
 		{
 			auto pd3dDevice = GGraphicsDevice->GetDevice();
 
@@ -837,7 +844,7 @@ namespace SPP
 	class D3D12RenderableMesh : public RenderableMesh
 	{
 	protected:
-		std::shared_ptr<D3D12PipelineState> _state;
+		GPUReferencer<D3D12PipelineState> _state;
 		bool _bIsStatic = false;
 
 	public:
@@ -858,7 +865,7 @@ namespace SPP
 	class D3D12SDF : public RenderableSignedDistanceField
 	{
 	protected:		
-		std::shared_ptr< GPUBuffer > _shapeBuffer;
+		GPUReferencer< GPUBuffer > _shapeBuffer;
 		std::shared_ptr< ArrayResource > _shapeResource;
 		bool _bIsStatic = false;
 
@@ -948,20 +955,20 @@ namespace SPP
 		}
 	};
 
-	static std::map< D3D12PipelineStateKey, std::shared_ptr< D3D12PipelineState > > PiplineStateMap;
+	static std::map< D3D12PipelineStateKey, GPUReferencer< D3D12PipelineState > > PiplineStateMap;
 
-	std::shared_ptr < D3D12PipelineState >  GetD3D12PipelineState(EBlendState InBlendState,
+	GPUReferencer < D3D12PipelineState >  GetD3D12PipelineState(EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
-		std::shared_ptr < GPUInputLayout > InLayout,
-		std::shared_ptr< GPUShader> InVS,
-		std::shared_ptr< GPUShader> InPS,
-		std::shared_ptr< GPUShader> InMS,
-		std::shared_ptr< GPUShader> InAS,
-		std::shared_ptr< GPUShader> InHS,
-		std::shared_ptr< GPUShader> InDS,
-		std::shared_ptr< GPUShader> InCS)
+		GPUReferencer< GPUInputLayout > InLayout,
+		GPUReferencer< GPUShader> InVS,
+		GPUReferencer< GPUShader> InPS,
+		GPUReferencer< GPUShader> InMS,
+		GPUReferencer< GPUShader> InAS,
+		GPUReferencer< GPUShader> InHS,
+		GPUReferencer< GPUShader> InDS,
+		GPUReferencer< GPUShader> InCS)
 	{
 		D3D12PipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology,
 			(uintptr_t)InLayout.get(),
@@ -977,7 +984,7 @@ namespace SPP
 
 		if (findKey == PiplineStateMap.end())
 		{
-			auto newPipelineState = std::make_shared< D3D12PipelineState >();
+			auto newPipelineState = Make_GPU< D3D12PipelineState >();
 			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PiplineStateMap[key] = newPipelineState;
 			return newPipelineState;
@@ -986,14 +993,14 @@ namespace SPP
 		return findKey->second;
 	}
 
-	class D3D12ComputeDispatch : public GPUComputeDispatch
+	class D3D12ComputeDispatch : public ComputeDispatch
 	{
 	protected:
-		std::shared_ptr<D3D12PipelineState> _state;
+		GPUReferencer<D3D12PipelineState> _state;
 
 	public:
 
-		D3D12ComputeDispatch(std::shared_ptr< GPUShader> InCS) : GPUComputeDispatch(InCS) { }
+		D3D12ComputeDispatch(GPUReferencer< GPUShader> InCS) : ComputeDispatch(InCS) { }
 		
 		virtual void Dispatch(const Vector3i &ThreadGroupCounts) override
 		{
@@ -1057,7 +1064,7 @@ namespace SPP
 		}
 	};
 
-	std::shared_ptr<GPUComputeDispatch> DX_12CreateComputeDispatch(std::shared_ptr< GPUShader> InCS)
+	std::shared_ptr<ComputeDispatch> DX_12CreateComputeDispatch(GPUReferencer< GPUShader> InCS)
 	{
 		return std::make_shared< D3D12ComputeDispatch >(InCS);
 	}
@@ -1114,22 +1121,22 @@ namespace SPP
 		//std::vector< D3D12RenderableMesh* > _renderMeshes;
 		bool _bMeshInstancesDirty = false;
 
-		std::shared_ptr< GPUShader > _debugVS;
-		std::shared_ptr< GPUShader > _debugPS;
-		std::shared_ptr< D3D12PipelineState > _debugPSO;
-		std::shared_ptr< GPUInputLayout > _debugLayout;
+		GPUReferencer< GPUShader > _debugVS;
+		GPUReferencer< GPUShader > _debugPS;
+		GPUReferencer< D3D12PipelineState > _debugPSO;
+		GPUReferencer< GPUInputLayout > _debugLayout;
 
 		std::shared_ptr < ArrayResource >  _debugResource;
-		std::shared_ptr< GPUBuffer > _debugBuffer;
+		GPUReferencer< GPUBuffer > _debugBuffer;
 
 		std::vector< DebugVertex > _lines;
 
 
-		std::shared_ptr< GPUShader > _fullscreenVS;
-		std::shared_ptr< GPUShader > _fullscreenPS;
+		GPUReferencer< GPUShader > _fullscreenVS;
+		GPUReferencer< GPUShader > _fullscreenPS;
 
-		std::shared_ptr< D3D12PipelineState > _fullscreenPSO;
-		std::shared_ptr< GPUInputLayout > _fullscreenLayout;
+		GPUReferencer< D3D12PipelineState > _fullscreenPSO;
+		GPUReferencer< GPUInputLayout > _fullscreenLayout;
 	public:
 		D3D12RenderScene()
 		{
@@ -1191,15 +1198,15 @@ namespace SPP
 
 		}
 
-		std::shared_ptr< GPUShader > GetSDFVS()
+		GPUReferencer< GPUShader > GetSDFVS()
 		{
 			return _fullscreenVS;
 		}
-		std::shared_ptr< GPUShader > GetSDFPS()
+		GPUReferencer< GPUShader > GetSDFPS()
 		{
 			return _fullscreenPS;
 		}
-		std::shared_ptr< D3D12PipelineState > GetSDFPSO()
+		GPUReferencer< D3D12PipelineState > GetSDFPSO()
 		{
 			return _fullscreenPSO;
 		}
@@ -1953,9 +1960,6 @@ namespace SPP
 		cmdList->DrawInstanced(4, 1, 0, 0);
 	}
 
-
-
-
 	std::shared_ptr< GraphicsDevice > DX12_CreateGraphicsDevice()
 	{
 		return std::make_shared< DX12Device>();
@@ -1969,37 +1973,38 @@ namespace SPP
 			SET_GGI(this);
 		}
 
-		virtual std::shared_ptr< GPUShader > CreateShader(EShaderType InType) override
+		virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) override
 		{			
 			return DX12_CreateShader(InType);
 		}
-		virtual std::shared_ptr< GPUComputeDispatch > CreateComputeDispatch(std::shared_ptr< GPUShader> InCS) override
-		{
-			return DX_12CreateComputeDispatch(InCS);
-		}
-		virtual std::shared_ptr< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
+		
+		virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
 		{
 			return DX12_CreateStaticBuffer(InType, InCpuData);
 		}
-		virtual std::shared_ptr< GPUInputLayout > CreateInputLayout() override
+		virtual GPUReferencer< GPUInputLayout > CreateInputLayout() override
 		{
 			return DX12_CreateInputLayout();
 		}
-		virtual std::shared_ptr< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format,
+		virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format,
 			std::shared_ptr< ArrayResource > RawData = nullptr,
 			std::shared_ptr< ImageMeta > InMetaInfo = nullptr) override
 		{
 			return DX12_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
 		}
-		virtual std::shared_ptr< GPURenderTarget > CreateRenderTarget() override
+		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget() override
 		{
 			return DX12_CreateRenderTarget();
 		}
+
 		virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() override
 		{
 			return DX12_CreateGraphicsDevice();
 		}
-
+		virtual std::shared_ptr< ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
+		{
+			return DX_12CreateComputeDispatch(InCS);
+		}
 		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
 		{
 			return std::make_shared< D3D12RenderScene >();
