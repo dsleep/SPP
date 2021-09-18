@@ -42,14 +42,12 @@ namespace SPP
 			}
 		}
 
-		// top should be scene
-		auto currentTop = top;
-		SE_ASSERT(currentTop);
+		SE_ASSERT(top);
 
-		auto SceneType = currentTop->get_type();
+		auto SceneType = top->get_type();
 		if (SceneType.is_derived_from(rttr::type::get<OScene>()))
 		{
-			OScene* topScene = (OScene*)currentTop;
+			OScene* topScene = (OScene*)top;
 			topScene->RemoveChild(lastFromTop);
 			topScene->AddChild (lastFromTop);
 		}

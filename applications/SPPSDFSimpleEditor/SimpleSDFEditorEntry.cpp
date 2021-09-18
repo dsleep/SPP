@@ -409,7 +409,7 @@ public:
 
 	void KeyDown(uint8_t KeyValue)
 	{		
-		SPP_QL("kd: 0x%X", KeyValue);
+		//SPP_QL("kd: 0x%X", KeyValue);
 		_keys[KeyValue] = true;
 	}
 
@@ -420,7 +420,7 @@ public:
 
 	void KeyUp(uint8_t KeyValue)
 	{
-		SPP_QL("ku: 0x%X", KeyValue);
+		//SPP_QL("ku: 0x%X", KeyValue);
 		_keys[KeyValue] = false;
 
 		if (KeyValue == VK_ESCAPE)
@@ -431,7 +431,7 @@ public:
 
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
-		SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
+		//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
 
 		if (mouseButton == 0 && _selectionAxis != EGizmoSelectionAxis::None)
 		{
@@ -449,7 +449,7 @@ public:
 		
 	void MouseUp(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
-		SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
+		//SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
 
 		if (_selectionMode != ESelectionMode::None)
 		{
