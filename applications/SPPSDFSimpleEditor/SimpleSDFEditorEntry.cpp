@@ -297,7 +297,7 @@ public:
 		}
 	}
 
-	void PropertyChanged(Json::Value InValue)
+	void PropertyChanged(std::string InName, std::string InValue)
 	{
 
 	}

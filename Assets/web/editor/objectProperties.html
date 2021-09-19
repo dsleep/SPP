@@ -72,7 +72,19 @@
 		"bool" : "Bool"
 	};
 	
-	function NativeStructToInput(memberElement, subTypes, tableCol) {
+	function AppendPath(InValue, CurPath)
+	{
+		if(CurPath.length == 0)
+		{
+			return InValue;
+		}
+		else
+		{
+			return CurPath + "." + InValue;
+		}	
+	}
+	
+	function NativeStructToInput(memberElement, subTypes, tableCol, curPath) {
 	
 		var tbl = document.createElement('table');		
 		var tbdy = document.createElement('tbody');
@@ -80,18 +92,19 @@
 		tbl.setAttribute("class", "styled-table");
 		
 		memberElement.value.forEach(function(memberData) {					
-			NativeTypeToInput(memberData, subTypes, tbdy);	
+			NativeTypeToInput(memberData, subTypes, tbdy, AppendPath(memberElement.name, curPath));	
 		});
 		
 		tbl.appendChild(tbdy);
 		tableCol.appendChild(tbl);
 	}
 	
-	function NativeEnumToInput(memberElement, subTypeEnum, tableCol) {
+	function NativeEnumToInput(memberElement, subTypeEnum, tableCol, curPath) {
 		
 		var eumSelect = document.createElement("SELECT");
-		eumSelect.setAttribute("id", memberElement.name + "EVALUE");
-		
+		eumSelect.setAttribute("id", memberElement.name + "EVALUE");		
+		eumSelect.propPath = AppendPath(memberElement.name, curPath);
+			
 		subTypeEnum.values.forEach(function(curValue) {	
 			var curOpt = document.createElement("option");
 			curOpt.setAttribute("value", curValue);
@@ -104,7 +117,7 @@
 		tableCol.appendChild(eumSelect);
 	}
 	
-	function NativeTypeToInput(memberElement, subTypes, tableBody)
+	function NativeTypeToInput(memberElement, subTypes, tableBody, curPath)
 	{
 		let memberyTypeName = memberElement.type;
 		//console.log("memberyTypeName: " + memberyTypeName);
@@ -123,7 +136,15 @@
 			var x = document.createElement("INPUT");
 			x.setAttribute("type", "text");
 			x.setAttribute("value", memberElement.value);
+			x.propPath = AppendPath(memberElement.name, curPath);
 			
+			if(NativeTypesPoD[memberyTypeName] == "Number")
+			{
+				setInputFilter(x, function(value) {
+				  return /^-?\d*\.?\d*$/.test(value); // Allow digits and '.' only, using a RegExp
+				});
+			}
+
 			tdV.appendChild(x);
 			
 			tr.appendChild(tdN);
@@ -146,12 +167,12 @@
 			if( curSubType.type == "enum" )
 			{
 				//console.log("ENUM");				
-				NativeEnumToInput(memberElement, curSubType, tdV);
+				NativeEnumToInput(memberElement, curSubType, tdV, curPath);
 			}
 			else
 			{
 				//console.log(" SUB");
-				NativeStructToInput(memberElement, subTypes, tdV);				
+				NativeStructToInput(memberElement, subTypes, tdV, curPath);				
 			}
 			
 			tr.appendChild(tdN);
@@ -170,7 +191,7 @@
 		tbl.setAttribute("class", "styled-table");
 	
 		TableData.forEach(function(memberData) {					
-			NativeTypeToInput(memberData, subTypes, tbdy);	
+			NativeTypeToInput(memberData, subTypes, tbdy, "");	
 		});
 		
 		tbl.appendChild(tbdy);
@@ -282,15 +303,63 @@
 	generateObjTable("objProp",objectData,subTypeObj);
 	*/
 	
-	function  UpdateObjectProperties(InObjectJSONStr, InObjectTypeInfoStr)
+	// Restricts input for the given textbox to the given inputFilter function.
+	function setInputFilter(textbox, inputFilter) {
+	  ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function(event) {
+		textbox.addEventListener(event, function() {
+		  if (inputFilter(this.value)) {
+			this.oldValue = this.value;
+			this.oldSelectionStart = this.selectionStart;
+			this.oldSelectionEnd = this.selectionEnd;
+		  } else if (this.hasOwnProperty("oldValue")) {
+			this.value = this.oldValue;
+			this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+		  } else {
+			this.value = "";
+		  }
+		});
+	  });
+	}
+
+	$(document).on("keypress", "input", function(e){
+        if(e.which == 13){
+			//unselect
+			$(this).blur();			
+			
+			if("propPath" in this)
+			{
+				console.log("propPath:" + this.propPath);
+				
+				if(window.CallNativeWithJSON != null)
+				{
+					window.CallNativeWithJSON(JSON.stringify({ func: "PropertyChanged", args: [ this.propPath, $(this).val() ] }));
+				}
+			}
+        }
+    });
+	
+	function UpdateObjectProperties(InObjectJSONStr, InObjectTypeInfoStr)
 	{
 		const objectData = JSON.parse(InObjectJSONStr);	
 		const subTypeObj = JSON.parse(InObjectTypeInfoStr);	
 		generateObjTable("#objProp",objectData,subTypeObj);
 	}
 	
-	window.RegisterJSFunction("UpdateObjectProperties", UpdateObjectProperties);
+	function detectBlur() 
+	{
+		console.log("detectBlur");
+	}
 
+	function detectFocus() 
+	{
+		console.log("detectFocus");
+	}
+
+	window.addEventListener ? window.addEventListener('focus', detectFocus, true) : window.attachEvent('onfocusout', detectFocus);  
+    window.addEventListener ? window.addEventListener('blur', detectBlur, true) : window.attachEvent('onblur', detectBlur);
+	
+	window.RegisterJSFunction("UpdateObjectProperties", UpdateObjectProperties);
+	
 	</script>
 
     </body>
