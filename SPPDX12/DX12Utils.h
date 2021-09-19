@@ -58,12 +58,20 @@ namespace SPP
 	};
 
 	template<typename T>
-	void WriteMem(D3D12PartialResourceMemory& memIn, uint32_t Offset, const T& data)
+	inline void WriteMem(D3D12PartialResourceMemory& memIn, uint32_t Offset, const T& data)
 	{
 		auto WriteSize = sizeof(T);
 		SE_ASSERT(Offset + WriteSize <= memIn.size);
 
 		static_assert(std::is_pod_v<T>, "Must be based on object");
+		memcpy(memIn.cpuAddr + Offset, &data, WriteSize);
+	}
+
+	template<>
+	inline void WriteMem(D3D12PartialResourceMemory& memIn, uint32_t Offset, const Vector3d& data)
+	{
+		auto WriteSize = sizeof(double) * 3;
+		SE_ASSERT(Offset + WriteSize <= memIn.size);				
 		memcpy(memIn.cpuAddr + Offset, &data, WriteSize);
 	}
 

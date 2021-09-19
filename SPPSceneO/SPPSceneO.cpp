@@ -149,6 +149,19 @@ RTTR_REGISTRATION
 		.property("z", &Vector3::GetZ, &Vector3::SetZ)
 		;
 
+	rttr::registration::class_<Vector3d>("Vector3d")
+		.property("x", &Vector3d::GetX, &Vector3d::SetX)
+		.property("y", &Vector3d::GetY, &Vector3d::SetY)
+		.property("z", &Vector3d::GetZ, &Vector3d::SetZ)
+		;
+
+	rttr::registration::class_<Vector4d>("Vector4d")
+		.property("x", &Vector4d::GetX, &Vector4d::SetX)
+		.property("y", &Vector4d::GetY, &Vector4d::SetY)
+		.property("z", &Vector4d::GetZ, &Vector4d::SetZ)
+		.property("w", &Vector4d::GetW, &Vector4d::SetW)
+		;
+
 	rttr::registration::class_<OElement>("OElement")
 		.constructor<const MetaPath&>()
 		(

@@ -76,8 +76,7 @@
 	
 		var tbl = document.createElement('table');		
 		var tbdy = document.createElement('tbody');
-	
-	
+		
 		tbl.setAttribute("class", "styled-table");
 		
 		memberElement.value.forEach(function(memberData) {					
@@ -105,9 +104,10 @@
 		tableCol.appendChild(eumSelect);
 	}
 	
-	function NativeTypeToInput(memberElement, subTypes, tableBody) {
+	function NativeTypeToInput(memberElement, subTypes, tableBody)
+	{
 		let memberyTypeName = memberElement.type;
-		console.log("memberyTypeName: " + memberyTypeName);
+		//console.log("memberyTypeName: " + memberyTypeName);
 		
 		if( memberyTypeName in NativeTypesPoD )
 		{
@@ -131,9 +131,9 @@
 			
 			tableBody.appendChild(tr);
 		}
-		else if( memberyTypeName in subTypeObj )
+		else if( memberyTypeName in subTypes )
 		{
-			let curSubType = subTypeObj[memberyTypeName];		
+			let curSubType = subTypes[memberyTypeName];		
 							
 			var tr = document.createElement('tr');
 			var tdN = document.createElement('td');
@@ -142,15 +142,15 @@
 			tdN.setAttribute("class", "alnright");
 			tdN.appendChild(document.createTextNode(memberElement.name));
 				
-			console.log(" SUB");
+			//console.log(" SUB");
 			if( curSubType.type == "enum" )
 			{
-				console.log("ENUM");				
+				//console.log("ENUM");				
 				NativeEnumToInput(memberElement, curSubType, tdV);
 			}
 			else
 			{
-				console.log(" SUB");
+				//console.log(" SUB");
 				NativeStructToInput(memberElement, subTypes, tdV);				
 			}
 			
@@ -162,7 +162,8 @@
 	}
 	
 	function generateObjTable(divID, TableData, subTypes) {
-	
+		$(divID).empty();
+		
 		var tbl = document.createElement('table');		
 		var tbdy = document.createElement('tbody');
 		
@@ -174,8 +175,10 @@
 		
 		tbl.appendChild(tbdy);
 		
-		$("#objProp").append(tbl);
+		$(divID).append(tbl);
 	}
+	
+	/*
 		
 	var subTypeInfo =  String.raw`{
 		"Vector3" : { 
@@ -193,7 +196,7 @@
 		}		
 	}`;
 	
-	const subTypeObj = JSON.parse(subTypeInfo);
+	//const subTypeObj = JSON.parse(subTypeInfo);
 	
 	var objectDataInfo = String.raw`[
 		{
@@ -275,10 +278,18 @@
 	]`;
 	
 	
-	const objectData = JSON.parse(objectDataInfo);
-	
+	const objectData = JSON.parse(objectDataInfo);	
 	generateObjTable("objProp",objectData,subTypeObj);
+	*/
 	
+	function  UpdateObjectProperties(InObjectJSONStr, InObjectTypeInfoStr)
+	{
+		const objectData = JSON.parse(InObjectJSONStr);	
+		const subTypeObj = JSON.parse(InObjectTypeInfoStr);	
+		generateObjTable("#objProp",objectData,subTypeObj);
+	}
+	
+	window.RegisterJSFunction("UpdateObjectProperties", UpdateObjectProperties);
 
 	</script>
 

@@ -64,12 +64,12 @@ using namespace SPP;
 RTTR_REGISTRATION
 {	
 	rttr::registration::enumeration<EShapeOp>("EShapeOp")
-				  (
-					  rttr::value("Add",		EShapeOp::Add),
-					  rttr::value("Subtract",   EShapeOp::Subtract),
-					  rttr::value("Intersect",	EShapeOp::Intersect),
-					  rttr::value("SmoothAdd",	EShapeOp::SmoothAdd)
-				  );
+		(
+			rttr::value("Add",		EShapeOp::Add),
+			rttr::value("Subtract",   EShapeOp::Subtract),
+			rttr::value("Intersect",	EShapeOp::Intersect),
+			rttr::value("SmoothAdd",	EShapeOp::SmoothAdd)
+		);
 
 	rttr::registration::class_<OShape>("OShape")
 		.constructor<const MetaPath&>()

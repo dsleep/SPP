@@ -37,6 +37,19 @@ namespace SPP
 
 	using Vector2 = Eigen::Matrix< float, 1, 2, Eigen::RowMajor >;
 	using _AsEigenVector3 = Eigen::Matrix< float, 1, 3, Eigen::RowMajor >;
+    using Vector4 = Eigen::Matrix< float, 1, 4, Eigen::RowMajor >;
+
+    using Vector2i = Eigen::Matrix< int32_t, 1, 2, Eigen::RowMajor >;
+    using Vector3i = Eigen::Matrix< int32_t, 1, 3, Eigen::RowMajor >;
+    using Vector4i = Eigen::Matrix< int32_t, 1, 4, Eigen::RowMajor >;
+
+    using Vector2ui = Eigen::Matrix< uint32_t, 1, 2, Eigen::RowMajor >;
+    using Vector3ui = Eigen::Matrix< uint32_t, 1, 3, Eigen::RowMajor >;
+    using Vector4ui = Eigen::Matrix< uint32_t, 1, 4, Eigen::RowMajor >;
+
+    using Vector2d = Eigen::Matrix< double, 1, 2, Eigen::RowMajor >;    
+    using _AsEigenVector3d = Eigen::Matrix< double, 1, 3, Eigen::RowMajor >;
+    using _AsEigenVector4d = Eigen::Matrix< double, 1, 4, Eigen::RowMajor >;
 
     class Vector3 : public _AsEigenVector3
     {
@@ -78,46 +91,119 @@ namespace SPP
             m_storage.data()[2] = z;
         }
 
-        void SetX(float InValue)
-        {
-            (*this)(0) = InValue;
-        }
-        void SetY(float InValue)
-        {
-            (*this)(1) = InValue;
-        }
-        void SetZ(float InValue)
-        {
-            (*this)(2) = InValue;
-        }
+        void SetX(float InValue) { (*this)(0) = InValue; }
+        void SetY(float InValue) { (*this)(1) = InValue; }
+        void SetZ(float InValue) { (*this)(2) = InValue; }
 
-        float GetX() const
-        {
-            return (*this)(0);
-        }
-        float GetY() const
-        {
-            return (*this)(1);
-        }
-        float GetZ() const
-        {
-            return (*this)(2);
-        }
+        float GetX() const { return (*this)(0); }
+        float GetY() const { return (*this)(1); }
+        float GetZ() const { return (*this)(2); }
     };
 
-	using Vector4 = Eigen::Matrix< float, 1, 4, Eigen::RowMajor >;
+    class Vector3d : public _AsEigenVector3d
+    {
+    public:
+        Vector3d() : _AsEigenVector3d() {}
+        typedef _AsEigenVector3d Base;
+        typedef double Scalar;
 
-    using Vector2i = Eigen::Matrix< int32_t, 1, 2, Eigen::RowMajor >;
-	using Vector3i = Eigen::Matrix< int32_t, 1, 3, Eigen::RowMajor >;
-    using Vector4i = Eigen::Matrix< int32_t, 1, 4, Eigen::RowMajor >;
-        
-    using Vector2ui = Eigen::Matrix< uint32_t, 1, 2, Eigen::RowMajor >;
-    using Vector3ui = Eigen::Matrix< uint32_t, 1, 3, Eigen::RowMajor >;
-    using Vector4ui = Eigen::Matrix< uint32_t, 1, 4, Eigen::RowMajor >;
+        // This constructor allows you to construct MyVectorType from Eigen expressions
+        template<typename OtherDerived>
+        Vector3d(const Eigen::MatrixBase<OtherDerived>& other)
+            : Base(other)
+        { }
+        // This method allows you to assign Eigen expressions to MyVectorType
+        template<typename OtherDerived>
+        Vector3d& operator= (const Eigen::MatrixBase <OtherDerived>& other)
+        {
+            this->Base::operator=(other);
+            return *this;
+        }
 
-	using Vector2d = Eigen::Matrix< double, 1, 2, Eigen::RowMajor >;
-	using Vector3d = Eigen::Matrix< double, 1, 3, Eigen::RowMajor >;
-	using Vector4d = Eigen::Matrix< double, 1, 4, Eigen::RowMajor >;
+        //Vector4d(Vector4d&& other) 
+        //    : Base(std::move(other))
+        //{
+        //    Base::_check_template_params();
+        //}         
+        //Vector4d& operator=(Vector4d&& other)
+        //{
+        //    other.swap(*this);
+        //    return *this;
+        //}
+
+        Vector3d(const Scalar& x, const Scalar& y, const Scalar& z)
+        {
+            Base::_check_template_params();
+            EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Matrix, 3)
+
+            m_storage.data()[0] = x;
+            m_storage.data()[1] = y;
+            m_storage.data()[2] = z;
+        }
+
+        void SetX(double InValue) { (*this)(0) = InValue; }
+        void SetY(double InValue) { (*this)(1) = InValue; }
+        void SetZ(double InValue) { (*this)(2) = InValue; }
+
+        double GetX() const { return (*this)(0); }
+        double GetY() const { return (*this)(1); }
+        double GetZ() const { return (*this)(2); }
+    };
+
+    class Vector4d : public _AsEigenVector4d
+    {
+    public:
+        Vector4d() : _AsEigenVector4d() {}
+        typedef _AsEigenVector4d Base;
+        typedef double Scalar;
+
+        // This constructor allows you to construct MyVectorType from Eigen expressions
+        template<typename OtherDerived>
+        Vector4d(const Eigen::MatrixBase<OtherDerived>& other)
+            : Base(other)
+        { }
+        // This method allows you to assign Eigen expressions to MyVectorType
+        template<typename OtherDerived>
+        Vector4d& operator= (const Eigen::MatrixBase <OtherDerived>& other)
+        {
+            this->Base::operator=(other);
+            return *this;
+        }
+
+        //Vector4d(Vector4d&& other) 
+        //    : Base(std::move(other))
+        //{
+        //    Base::_check_template_params();
+        //}         
+        //Vector4d& operator=(Vector4d&& other)
+        //{
+        //    other.swap(*this);
+        //    return *this;
+        //}
+
+        Vector4d(const Scalar& x, const Scalar& y, const Scalar& z, const Scalar& w)
+        {
+            Base::_check_template_params();
+            EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Matrix, 4)
+            
+            m_storage.data()[0] = x;
+            m_storage.data()[1] = y;
+            m_storage.data()[2] = z;
+            m_storage.data()[3] = w;
+        }
+
+        void SetX(double InValue) { (*this)(0) = InValue; }
+        void SetY(double InValue) { (*this)(1) = InValue; }
+        void SetZ(double InValue) { (*this)(2) = InValue; }
+        void SetW(double InValue) { (*this)(3) = InValue; }
+
+        double GetX() const { return (*this)(0); }
+        double GetY() const { return (*this)(1); }
+        double GetZ() const { return (*this)(2); }
+        double GetW() const { return (*this)(3); }
+    };
+
+	
 
     using Quarternion = Eigen::Quaternion< float >;
     using AxisAngle = Eigen::AngleAxis< float >;
