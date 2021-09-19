@@ -155,10 +155,9 @@ namespace SPP
             }
         }
 
-    public:        
-
-        template<typename K>
-        Referencer(K* obj = nullptr) : obj(obj) 
+    public:       
+      
+        Referencer(T* obj = nullptr) : obj(obj)
         {
             if (obj)
             {
@@ -166,9 +165,31 @@ namespace SPP
             }
         }
 
-        template<typename K>
-        Referencer(Referencer<K>& orig)
+
+
+        Referencer(Referencer<T>& orig) 
         {
+            obj = orig.RawGet();
+            if (obj)
+            {
+                obj->incRefCnt();
+            }
+        }
+
+        Referencer(const Referencer<T>& orig) 
+        {
+            obj = orig.RawGet();
+            if (obj)
+            {
+                obj->incRefCnt();
+            }
+        }
+
+        template<typename K=T>
+        Referencer(const Referencer<K>& orig)
+        {
+            static_assert(std::is_base_of_v<T, K>, "must be base of");
+
             obj = orig.RawGet();
             if (obj)
             {
@@ -188,7 +209,7 @@ namespace SPP
             return obj;
         }
 
-        T* RawGet()
+        T* RawGet() const
         {
             return obj;
         }
@@ -250,21 +271,31 @@ namespace SPP
             Referencer<T>::DestroyObject();
         }
 
-    public:        
-        GPUReferencer(T* obj = NULL) : Referencer(obj)
+    public:       
+        
+        GPUReferencer(T* obj = nullptr) : Referencer(obj)
         {
             static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
         }
-        GPUReferencer(GPUReferencer<T>& orig) : Referencer(orig) { }
+        
 
-        template<typename K>
-        GPUReferencer(K* obj = nullptr) : Referencer(obj) 
-        {
-            static_assert(std::is_base_of_v<GPUResource, K>, "Only for gpu refs");
+        GPUReferencer(GPUReferencer<T>& orig) : Referencer(orig) { }
+        GPUReferencer(const GPUReferencer<T>& orig) : Referencer(orig) { }
+
+        template<typename K = T>
+        GPUReferencer(const GPUReferencer<K>& orig) : Referencer(orig) 
+        { 
+            static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
         }
 
-        template<typename K>
-        GPUReferencer(GPUReferencer<K>& orig) : Referencer(orig) { }
+        //template<typename K>
+        //GPUReferencer(K* obj = nullptr) : Referencer(obj) 
+        //{
+        //    static_assert(std::is_base_of_v<GPUResource, K>, "Only for gpu refs");
+        //}
+
+        //template<typename K>
+        //GPUReferencer(GPUReferencer<K>& orig) : Referencer(orig) { }
     };
 
 

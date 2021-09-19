@@ -201,7 +201,7 @@ float4 renderSDF( float3 ro, float3 rd )
     }
 	else
 	{
-		hitDistance = 10000;
+        clip(-1);
 	}
 
 	return float4(rd * 0.5 + 0.5,hitDistance);

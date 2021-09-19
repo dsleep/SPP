@@ -24,14 +24,29 @@
 	
 	function addSquare() {	  
 		console.log("addSquare");
+		
+		if(window.CallNativeWithJSON != null)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "AddShape", args: [ "square" ] }));
+		}
 	}
 
 	function addCircle() {	  
 		console.log("addCircle");
+		
+		if(window.CallNativeWithJSON != null)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "AddShape", args: [ "circle" ] }));
+		}
 	}
 	
 	function addGroup()  {	  
 		console.log("addGroup");
+		
+		if(window.CallNativeWithJSON != null)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "AddShapeGroup" }));
+		}
 	}	
 	
 	</script>

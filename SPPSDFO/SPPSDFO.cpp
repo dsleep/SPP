@@ -46,8 +46,11 @@ namespace SPP
 	{
 		if (!InScene) return;
 
-		_renderableSDF->RemoveFromScene();
-		_renderableSDF.reset();
+		if (_renderableSDF)
+		{
+			_renderableSDF->RemoveFromScene();
+			_renderableSDF.reset();
+		}
 	}
 
 	void OSDFSphere::SetRadius(float InRadius)

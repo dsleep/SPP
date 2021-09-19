@@ -103,6 +103,8 @@ namespace SPP
 		ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
 		ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
 
+		std::unique_ptr<class D3D12CommandListWrapper> _commandListWrappers[FrameCount];
+
 		std::unique_ptr<FrameState> _frameStates[FrameCount];
 				
 		ComPtr<ID3D12CommandAllocator> m_commandDirectAllocator[FrameCount];
@@ -172,6 +174,7 @@ namespace SPP
 		ID3D12GraphicsCommandList6* GetUploadCommandList();
 		ID3D12GraphicsCommandList6* GetCommandList();
 		ID3D12CommandQueue* GetCommandQueue();
+		class D3D12CommandListWrapper* GetCommandListWrapper();
 
 		D3D12SimpleDescriptorBlock& GetPresetDescriptorHeap(int32_t Idx)
 		{

@@ -75,6 +75,40 @@ namespace SPP
 
 	class DX12Device* GGraphicsDevice = nullptr;
 
+	class D3D12CommandListWrapper
+	{
+	private:
+		std::list< GPUReferencer< GPUResource > > _activeResources;
+		ID3D12GraphicsCommandList6* _cmdList = nullptr;
+
+	public:
+		D3D12CommandListWrapper(ID3D12GraphicsCommandList6* InCmdList) : _cmdList(InCmdList) {}
+
+		void FrameComplete()
+		{
+			_activeResources.clear();
+		}
+
+		//ideally avoid these
+		void AddManualRef(GPUReferencer< GPUResource > InRef)
+		{
+			_activeResources.push_back(InRef);
+		}
+
+		void SetRootSignatureFromVerexShader(GPUReferencer< GPUShader >& InShader)
+		{
+			auto rootSig = InShader->GetAs<D3D12Shader>().GetRootSignature();
+			_cmdList->SetGraphicsRootSignature(rootSig);
+
+			_activeResources.push_back(InShader);
+		}
+
+		void SetPipelineState(GPUReferencer< class D3D12PipelineState >& InPSO);
+		void SetupSceneConstants(class D3D12RenderScene& InScene);
+	};
+
+
+
 	DX12Device::DX12Device()
 	{
 		GGraphicsDevice = this;
@@ -101,6 +135,10 @@ namespace SPP
 	ID3D12CommandQueue* DX12Device::GetCommandQueue()
 	{
 		return m_commandQueue.Get();
+	}
+	class D3D12CommandListWrapper* DX12Device::GetCommandListWrapper()
+	{
+		return _commandListWrappers[m_frameIndex].get();
 	}
 
 	void DX12Device::GetHardwareAdapter(
@@ -431,6 +469,10 @@ namespace SPP
 		DXSetName(m_commandList.Get(), L"Default Command List");
 		DXSetName(m_uplCommandList.Get(), L"Upload Command List");
 
+		for (UINT n = 0; n < FrameCount; n++)
+		{
+			_commandListWrappers[n] = std::make_unique<D3D12CommandListWrapper>(m_commandList.Get());
+		}
 
 		//// Command lists are created in the recording state, but there is nothing
 		//// to record yet. The main loop expects it to be closed, so close it now.
@@ -639,6 +681,7 @@ namespace SPP
 		}
 
 		GPUDoneWithFrame(m_fenceValues[m_frameIndex]);
+		_commandListWrappers[m_frameIndex]->FrameComplete();
 
 		// Set the fence value for the next frame.
 		m_fenceValues[m_frameIndex] = currentFenceValue + 1;
@@ -840,6 +883,12 @@ namespace SPP
 			}
 		}
 	};
+
+	void D3D12CommandListWrapper::SetPipelineState(GPUReferencer< class D3D12PipelineState >& InPSO)
+	{
+		_cmdList->SetPipelineState(InPSO->GetState());
+		_activeResources.push_back(InPSO);
+	}
 
 	class D3D12RenderableMesh : public RenderableMesh
 	{
@@ -1529,6 +1578,16 @@ namespace SPP
 			}		
 		};
 	};
+
+	void D3D12CommandListWrapper::SetupSceneConstants(class D3D12RenderScene& InScene)
+	{
+		_cmdList->SetGraphicsRootConstantBufferView(0, InScene.GetGPUAddrOfViewConstants());
+
+		CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+		CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+		_cmdList->RSSetViewports(1, &m_viewport);
+		_cmdList->RSSetScissorRects(1, &m_scissorRect);
+	}
 		
 	void D3D12RenderableMesh::AddToScene(class RenderScene* InScene)
 	{
@@ -1884,35 +1943,27 @@ namespace SPP
 		//}
 	}
 
+	
+
 	void D3D12SDF::Draw()
 	{
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
-		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		//TODO Make smarter was dangerous copy
+		auto &perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
 		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
-
-		ID3D12RootSignature* rootSig = nullptr;
+		auto curCLWrapper = GGraphicsDevice->GetCommandListWrapper();
 
 		auto SDFVS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
 		auto SDFPS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
 		auto SDFPSO = _parentScene->GetAs<D3D12RenderScene>().GetSDFPSO();
-
-		if (SDFVS)
-		{
-			rootSig = SDFVS->GetAs<D3D12Shader>().GetRootSignature();
-		}
-
-		cmdList->SetGraphicsRootSignature(rootSig);
+				
+		curCLWrapper->SetRootSignatureFromVerexShader(SDFVS);
 
 		//table 0, shared all constant, scene stuff 
 		{
-			cmdList->SetGraphicsRootConstantBufferView(0, _parentScene->GetAs<D3D12RenderScene>().GetGPUAddrOfViewConstants());
-
-			CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-			CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-			cmdList->RSSetViewports(1, &m_viewport);
-			cmdList->RSSetScissorRects(1, &m_scissorRect);
+			curCLWrapper->SetupSceneConstants(_parentScene->GetAs<D3D12RenderScene>());
 		}
 
 		//table 1, VS only constants
@@ -1937,7 +1988,7 @@ namespace SPP
 			cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
 		}
 
-		cmdList->SetPipelineState(SDFPSO->GetState());
+		curCLWrapper->SetPipelineState(SDFPSO);
 		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		//3 shapes for now
@@ -1954,6 +2005,8 @@ namespace SPP
 		srvDesc.Buffer.StructureByteStride = _shapeResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
 		srvDesc.Buffer.NumElements = _shapeResource->GetElementCount();
 		pd3dDevice->CreateShaderResourceView(_shapeBuffer->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
+
+		curCLWrapper->AddManualRef(_shapeBuffer);
 
 		cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
 		cmdList->SetGraphicsRoot32BitConstant(6, _shapeResource->GetElementCount(), 0);

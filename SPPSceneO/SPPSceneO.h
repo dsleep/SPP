@@ -69,6 +69,10 @@ namespace SPP
 			return _octreeLink != nullptr;
 		}
 
+		OElement* GetParent()
+		{
+			return _parent;
+		}
 		OElement* GetTop();
 		Matrix4x4 GenerateLocalToWorld(bool bSkipTopTranslation = false) const;
 

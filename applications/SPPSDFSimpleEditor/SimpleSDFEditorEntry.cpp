@@ -192,14 +192,38 @@ public:
 
 	void AddShape(std::string InShapeType)
 	{
+		if (_selectedElement)
+		{
+			auto shapeType = rttr::type::get<OShape>();
+			auto grouptype = rttr::type::get<OShapeGroup>();
 
+			OElement* curElement = _selectedElement;
+			while (shapeType.is_base_of(curElement->get_type()))
+			{
+				curElement = curElement->GetParent();
+			}
 
-		UpdateObjectTree();
+			if (curElement->get_type() == grouptype)
+			{
+				auto newShape = AllocateObject<OSDFSphere>("mainShape23");
+
+				newShape->SetRadius(25);
+				curElement->AddChild(newShape);
+				newShape->UpdateTransform();
+
+				SelectObject(newShape);
+
+				UpdateObjectTree();
+			}
+		}
 	}
 
-	void AddShapeGroup(std::string InGroupType)
+	void AddShapeGroup()
 	{
+		auto startingGroup = AllocateObject<OShapeGroup>("mainShape23");
 
+		_renderableScene->AddChild(startingGroup);
+		SelectObject(startingGroup);
 
 		UpdateObjectTree();
 	}
