@@ -56,6 +56,49 @@ struct SubTypeInfo
 	std::set< rttr::type > typeSet;
 };
 
+void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string> &stringStack, const std::string &Value, uint8_t depth)
+{
+	if (stringStack.empty())
+	{
+		return;
+	}
+
+	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ? inValue.get_wrapped_instance() : inValue;
+	auto curType = obj.get_derived_type();
+
+
+	SPP_QL("SetObjectValue % s", curType.get_name().data());
+
+	auto curProp = curType.get_property(stringStack[depth]);
+	
+	rttr::variant prop_value = curProp.get_value(obj);
+	if (!prop_value)
+	{
+		return;
+	}
+
+
+	const auto name = curProp.get_name().to_string();
+
+	SPP_QL(" - prop %s", name.data());
+
+	depth++;
+
+	if (stringStack.size() == depth)
+	{
+		// we there set it
+		if (curProp.set_value(obj, 23.32) == false)
+		{
+			SPP_QL("SetObjectValue failed");
+		}
+	}
+	else
+	{
+		SetObjectValue(prop_value, stringStack, Value, depth);
+		curProp.set_value(obj, prop_value);
+	}
+}
+
 void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, const rttr::instance& inValue)
 {
 	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ? inValue.get_wrapped_instance() : inValue;
@@ -283,6 +326,11 @@ public:
 	
 	void DeleteSelection()
 	{
+		if (_selectedElement)
+		{
+			_selectedElement->RemoveFromParent();
+			_selectedElement = nullptr;
+		}
 	}
 
 	void SelectionChanged(std::string InElementName)
@@ -299,7 +347,12 @@ public:
 
 	void PropertyChanged(std::string InName, std::string InValue)
 	{
-
+		if (_selectedElement)
+		{
+			SPP_QL("PropertyChanged: %s:%s", InName.c_str(), InValue.c_str());
+			auto splitString = std::str_split(InName, '.');
+			SetObjectValue(_selectedElement, splitString, InValue, 0);
+		}
 	}
 
 	void AddShape(std::string InShapeType)
@@ -336,7 +389,7 @@ public:
 
 		_renderableScene->AddChild(startingGroup);
 		SelectObject(startingGroup);
-
+		 
 		UpdateObjectTree();
 	}
 
@@ -563,6 +616,11 @@ public:
 		{
 			Deselect();
 		}
+		else if (KeyValue == VK_DELETE)
+		{
+			DeleteSelection();
+		}
+
 	}
 
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
