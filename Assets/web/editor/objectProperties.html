@@ -338,6 +338,22 @@
         }
     });
 	
+	
+	
+	$(document).on("change", "select", function(e){
+        console.log("select cahnged");
+		
+		if("propPath" in this)
+		{
+			console.log("propPath:" + this.propPath);
+			
+			if(window.CallNativeWithJSON != null)
+			{
+				window.CallNativeWithJSON(JSON.stringify({ func: "PropertyChanged", args: [ this.propPath, $(this).val() ] }));
+			}
+		}
+    });
+	
 	function UpdateObjectProperties(InObjectJSONStr, InObjectTypeInfoStr)
 	{
 		const objectData = JSON.parse(InObjectJSONStr);	
