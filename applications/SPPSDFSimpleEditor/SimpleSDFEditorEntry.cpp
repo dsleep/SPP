@@ -95,7 +95,7 @@ bool SetPropertyValue(rttr::instance& obj, rttr::property& curPoperty, const std
 			char, 
 			float,
 			double,
-
+	
 			int8_t,
 			int16_t,
 			int32_t,
@@ -159,7 +159,7 @@ void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string
 	depth++;
 
 	if (stringStack.size() == depth)
-	{			
+	{
 		if (SetPropertyValue(obj, curProp, Value) == false)
 		{
 			SPP_QL("SetObjectValue failed");
@@ -183,7 +183,7 @@ void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, co
 	//	//curType = obj.get
 	//}
 
-	SPP_QL("GetPropertiesAsJSON % s", curType.get_name().data());
+	//SPP_QL("GetPropertiesAsJSON % s", curType.get_name().data());
 
 	auto prop_list = curType.get_properties();
 	for (auto prop : prop_list)
@@ -193,7 +193,7 @@ void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, co
 			continue; // cannot serialize, because we cannot retrieve the value
 
 		const auto name = prop.get_name().to_string();
-		SPP_QL(" - prop %s", name.data());
+		//SPP_QL(" - prop %s", name.data());
 
 		const auto propType = prop_value.get_type();
 
@@ -252,7 +252,7 @@ void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, co
 
 			SE_ASSERT(bok);
 
-			SPP_QL("   - %s", stringValue.c_str());
+			//SPP_QL("   - %s", stringValue.c_str());
 
 			propInfo["name"] = name.c_str();
 			propInfo["type"] = propType.get_name().data();
@@ -365,6 +365,26 @@ public:
 		JavascriptInterface::CallJS("UpdateObjectTree", StrMessage);
 	}
 
+	void UpdateSelectedProperties()
+	{
+		if (_selectedElement)
+		{
+			Json::Value rootValue;
+			SubTypeInfo infos;
+			GetObjectPropertiesAsJSON(rootValue, infos, _selectedElement);
+			std::string StrMessage;
+			JsonToString(rootValue, StrMessage);
+			std::string SubMessage;
+			JsonToString(infos.subTypes, SubMessage);
+
+			JavascriptInterface::CallJS("UpdateObjectProperties", StrMessage, SubMessage);
+		}
+		else
+		{
+			JavascriptInterface::CallJS("UpdateObjectProperties", "", "");
+		}
+	}
+
 	void SelectObject(OElement* SelectedObject)
 	{	
 		if (_selectedElement)
@@ -377,24 +397,11 @@ public:
 			auto localToWorld = SelectedObject->GenerateLocalToWorld(true);
 			_gizmo->GetPosition() = localToWorld.block<1, 3>(3, 0).cast<double>() + SelectedObject->GetTop()->GetPosition();
 			_renderableScene->AddChild(_gizmo);
-
-			//
-			Json::Value rootValue;
-			SubTypeInfo infos;
-			GetObjectPropertiesAsJSON(rootValue, infos, SelectedObject);
-			std::string StrMessage;
-			JsonToString(rootValue, StrMessage);
-			std::string SubMessage;
-			JsonToString(infos.subTypes, SubMessage);
-
-			JavascriptInterface::CallJS("UpdateObjectProperties", StrMessage, SubMessage);
-		}
-		else
-		{
-			JavascriptInterface::CallJS("UpdateObjectProperties", "", "");
 		}
 
 		_selectedElement = SelectedObject;
+
+		UpdateSelectedProperties();
 	}
 	
 	void DeleteSelection()
@@ -425,6 +432,8 @@ public:
 			SPP_QL("PropertyChanged: %s:%s", InName.c_str(), InValue.c_str());
 			auto splitString = std::str_split(InName, '.');
 			SetObjectValue(_selectedElement, splitString, InValue, 0);
+			
+			_selectedElement->UpdateTransform();
 		}
 	}
 
@@ -443,9 +452,22 @@ public:
 
 			if (curElement->get_type() == grouptype)
 			{
-				auto newShape = AllocateObject<OSDFSphere>("mainShape23");
+				OElement *newShape = nullptr;
 
-				newShape->SetRadius(25);
+				if (InShapeType == "square")
+				{
+					auto newShapeLc = AllocateObject<OSDFBox>("mainShape23");
+					newShapeLc->SetExtents({ 25,25,25 });
+					newShape = newShapeLc;
+				}
+				else
+				{
+					auto newShapeLc = AllocateObject<OSDFSphere>("mainShape23");
+					newShapeLc->SetRadius(25);
+					newShape = newShapeLc;
+				}
+
+				
 				curElement->AddChild(newShape);
 				newShape->UpdateTransform();
 
@@ -763,6 +785,8 @@ public:
 
 			_gizmo->UpdateTransform();
 			_selectedElement->UpdateTransform();
+
+			UpdateSelectedProperties();
 		}
 	}
 

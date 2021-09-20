@@ -121,6 +121,10 @@ namespace SPP
 			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
 			return oShape;
 		}
+		void SetExtents(Vector3 InExtents)
+		{
+			_extents = InExtents;
+		}
 		virtual ~OSDFBox() { }
 	};
 

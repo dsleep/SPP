@@ -93,7 +93,7 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 			)
-		.property("_extents", &OSDFBox::_extents)
+		.property("_extents", &OSDFBox::_extents)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OShapeGroup>("OShapeGroup")

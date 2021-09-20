@@ -110,20 +110,40 @@ float opSmoothIntersection(float d1, float d2, float k)
 float map( in float3 pos )
 {
     float d = 1e10;
-        
-    for (uint i = 0; i < DrawParams.ShapeCount; ++i)
+
+    if (Shapes[0].shapeType == 1)
     {
+        d = sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation)), Shapes[0].params.x);
+    }
+    else if (Shapes[0].shapeType == 2)
+    {
+        d = sdBox(pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation)), Shapes[0].params.xyz);
+    }
+        
+    for (uint i = 1; i < DrawParams.ShapeCount; ++i)
+    {
+        float cD = 0;
+
         if (Shapes[i].shapeType == 1)
         {
-            //d = opUnion(d, sdSphere(pos - float3(0, 0, 200), 50));
-            if (i == 0)
-            {
-                d = opUnion(d, sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x));
-            }
-            else
-            {
-                d = opSmoothUnion(d, sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x), 10);
-            }
+            cD = sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x);
+        } 
+        else if (Shapes[i].shapeType == 2)
+        {
+            cD = sdBox(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.xyz);
+        }
+        
+        if (Shapes[i].shapeOp == 0)
+        {
+            d = opSmoothUnion(d, cD, Shapes[i].shapeBlendAndScale.x);
+        }
+        else if (Shapes[i].shapeOp == 1)
+        {
+            d = opSmoothSubtraction(cD, d, Shapes[i].shapeBlendAndScale.x);
+        }
+        else if (Shapes[i].shapeOp == 2)
+        {
+            d = opSmoothIntersection(cD, d, Shapes[i].shapeBlendAndScale.x);
         }
     }
 	
