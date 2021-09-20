@@ -13,6 +13,7 @@
 #include <memory>
 #include <thread>
 #include <optional>
+#include <sstream>
 
 #include "SPPString.h"
 #include "SPPEngine.h"
@@ -55,6 +56,109 @@ struct SubTypeInfo
 	Json::Value subTypes;
 	std::set< rttr::type > typeSet;
 };
+
+
+template<typename NumericType>
+bool impl_NumericConvert(rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
+{
+	if (InProperty.get_type() == rttr::type::get<NumericType>())
+	{
+		std::stringstream ssConvert(InValue);
+		NumericType realValue = { 0 };
+		ssConvert >> realValue;
+
+		// we there set it
+		if (InProperty.set_value(obj, realValue) == false)
+		{
+			SPP_QL("SetObjectValue failed");
+		}
+
+		return true;
+	}
+	return false;
+}
+
+template<typename ... Types>
+bool NumericConvert(rttr::instance& obj, rttr::property &InProperty, const std::string& InValue)
+{
+	bool any_of = (impl_NumericConvert< Types>(obj, InProperty, InValue) || ...);
+	return any_of;
+}
+
+bool SetPropertyValue(rttr::instance& obj, rttr::property& curPoperty, const std::string& InValue)
+{
+	auto propType = curPoperty.get_type();
+
+	if (propType.is_arithmetic())
+	{		
+		NumericConvert<bool, char, uint8_t>(obj, curPoperty, InValue);
+	}
+	
+	//for (int32_t Iter = 0; Iter < NumericTypeList::ArgCount; Iter++)
+	//{
+	//	NumericTypeList::get<Iter> 
+	//}
+
+
+	if (propType.is_arithmetic())
+	{
+		std::stringstream ssConvert(InValue);
+
+		//if (propType == rttr::type::get<bool>())
+		//	*this << var.to_bool();
+		//else if (propType == rttr::type::get<char>())
+		//	*this << var.to_int8();
+		//else if (propType == rttr::type::get<int8_t>())
+		//	*this << var.to_int8();
+		//else if (propType == rttr::type::get<int16_t>())
+		//	*this << var.to_int16();
+		//else if (propType == rttr::type::get<int32_t>())
+		//	*this << var.to_int32();
+		//else if (propType == rttr::type::get<int64_t>())
+		//	*this << var.to_int64();
+		//else if (propType == rttr::type::get<uint8_t>())
+		//	*this << var.to_uint8();
+		//else if (propType == rttr::type::get<uint16_t>())
+		//	*this << var.to_uint16();
+		//else if (propType == rttr::type::get<uint32_t>())
+		//	*this << var.to_uint32();
+		//else if (propType == rttr::type::get<uint64_t>())
+		//	*this << var.to_uint64();
+		//else if (propType == rttr::type::get<float>())
+		//	*this << var.to_double();
+		//else if (propType == rttr::type::get<double>())
+		//	*this << var.to_double();
+
+		return true;
+	}
+	else if (propType.is_enumeration())
+	{
+		//bool ok = false;
+		//auto result = var.to_string(&ok);
+		//if (ok)
+		//{
+		//	writer.String(var.to_string());
+		//}
+		//else
+		//{
+		//	ok = false;
+		//	auto value = var.to_uint64(&ok);
+		//	if (ok)
+		//		writer.Uint64(value);
+		//	else
+		//		writer.Null();
+		//}
+
+		return true;
+	}
+	else if (propType == rttr::type::get<std::string>())
+	{
+		//*this << var.to_string();
+		return true;
+	}
+
+	return false;
+}
 
 void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string> &stringStack, const std::string &Value, uint8_t depth)
 {
