@@ -32,6 +32,7 @@ namespace SPP
 	protected:
 		EShapeType _shapeType = EShapeType::Unknown;
 		EShapeOp _shapeOp = EShapeOp::Add;
+		float _shapeBlendFactor = 0.0f;
 
 		OShape(const MetaPath& InPath) : OElement(InPath) { }
 
@@ -40,6 +41,9 @@ namespace SPP
 		{
 			SDFShape oShape;
 			oShape.shapeType = _shapeType;
+			oShape.shapeOp = _shapeOp;
+			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
+			oShape.translation = _translation.cast<float>();
 			return oShape;
 		}
 
@@ -83,8 +87,10 @@ namespace SPP
 		{
 			SDFShape oShape;
 			oShape.shapeType = _shapeType;
+			oShape.shapeOp = _shapeOp;
 			oShape.translation = _translation.cast<float>();
 			oShape.params[0] = _radius;
+			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
 			return oShape;
 		}
 		void SetRadius(float InRadius);
@@ -103,6 +109,18 @@ namespace SPP
 		}
 		Vector3 _extents = { 1, 1, 1 };
 	public:
+		virtual SDFShape GenerateShape() const
+		{
+			SDFShape oShape;
+			oShape.shapeType = _shapeType;
+			oShape.shapeOp = _shapeOp;
+			oShape.translation = _translation.cast<float>();
+			oShape.params[0] = _extents[0];
+			oShape.params[1] = _extents[1];
+			oShape.params[2] = _extents[2];
+			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
+			return oShape;
+		}
 		virtual ~OSDFBox() { }
 	};
 

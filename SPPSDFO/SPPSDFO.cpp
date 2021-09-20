@@ -77,6 +77,7 @@ RTTR_REGISTRATION
 			rttr::policy::ctor::as_raw_ptr
 		)
 		.property("_shapeOp", &OShape::_shapeOp)
+		.property("_shapeBlendFactor", &OShape::_shapeBlendFactor)
 		;
 
 	rttr::registration::class_<OSDFSphere>("OSDFSphere")

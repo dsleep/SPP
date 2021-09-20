@@ -168,9 +168,9 @@ RTTR_REGISTRATION
 			rttr::policy::ctor::as_raw_ptr
 		)
 		.property("_parent", &OElement::_parent)
-		.property("_children", &OElement::_children)
+		.property("_children", &OElement::_children)(rttr::policy::prop::as_reference_wrapper)
 		.property("_translation", &OElement::_translation)(rttr::policy::prop::as_reference_wrapper)
-		.property("_rotation", &OElement::_rotation)
+		.property("_rotation", &OElement::_rotation)(rttr::policy::prop::as_reference_wrapper)
 		.property("_scale", &OElement::_scale)
 		;
 
