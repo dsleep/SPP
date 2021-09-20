@@ -95,7 +95,7 @@ void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string
 	else
 	{
 		SetObjectValue(prop_value, stringStack, Value, depth);
-		curProp.set_value(obj, prop_value);
+		//curProp.set_value(obj, prop_value);
 	}
 }
 
@@ -128,7 +128,7 @@ void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, co
 		if (propType.is_class())
 		{
 			// does this confirm its inline struct and part of class?!
-			SE_ASSERT(propType.is_wrapper() == false);
+			//SE_ASSERT(propType.is_wrapper() == false);
 
 			Json::Value nestedInfo;			
 			GetObjectPropertiesAsJSON(nestedInfo, subTypes, prop_value);
