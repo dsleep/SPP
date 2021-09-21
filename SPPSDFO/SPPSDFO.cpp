@@ -68,8 +68,7 @@ RTTR_REGISTRATION
 		(
 			rttr::value("Add",		EShapeOp::Add),
 			rttr::value("Subtract",   EShapeOp::Subtract),
-			rttr::value("Intersect",	EShapeOp::Intersect),
-			rttr::value("SmoothAdd",	EShapeOp::SmoothAdd)
+			rttr::value("Intersect",	EShapeOp::Intersect)
 		);
 
 	rttr::registration::class_<OShape>("OShape")

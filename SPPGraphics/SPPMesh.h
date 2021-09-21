@@ -440,8 +440,7 @@ namespace SPP
 	{
 		Add = 0,
 		Subtract,
-		Intersect,
-		SmoothAdd
+		Intersect
 	};
 
 	enum class EShapeType : uint32_t

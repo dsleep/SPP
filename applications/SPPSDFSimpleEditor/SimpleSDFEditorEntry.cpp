@@ -475,13 +475,13 @@ public:
 
 				if (InShapeType == "square")
 				{
-					auto newShapeLc = AllocateObject<OSDFBox>("mainShape23");
+					auto newShapeLc = AllocateObject<OSDFBox>("box");
 					newShapeLc->SetExtents({ 10,10,10 });
 					newShape = newShapeLc;
 				}
 				else
 				{
-					auto newShapeLc = AllocateObject<OSDFSphere>("mainShape23");
+					auto newShapeLc = AllocateObject<OSDFSphere>("sphere");
 					newShapeLc->SetRadius(10);
 					newShape = newShapeLc;
 				}
@@ -499,7 +499,7 @@ public:
 
 	void AddShapeGroup()
 	{
-		auto startingGroup = AllocateObject<OShapeGroup>("mainShape23");
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
 
 		_renderableScene->AddChild(startingGroup);
 		SelectObject(startingGroup);
@@ -581,8 +581,8 @@ public:
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
 		cam.GetCameraPosition()[2] = -100;
 
-		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
-		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
+		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
 		startingSphere->SetRadius(10);
 		startingGroup->AddChild(startingSphere);
 		_renderableScene->AddChild(startingGroup);
