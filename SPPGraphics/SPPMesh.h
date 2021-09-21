@@ -467,11 +467,16 @@ namespace SPP
 	{
 	protected:
 		std::vector< SDFShape > _shapes;
+		Vector3 _color = { 0,0,0 };
 
 	public:
 		std::vector< SDFShape >& GetShapes()
 		{
 			return _shapes;
+		}
+		Vector3 & GetColor()
+		{
+			return _color;
 		}
 	};
 }

@@ -263,43 +263,6 @@ void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, co
 	}
 }
 
-void GenerateObjectList(OScene* InWorld, Json::Value& rootValue)
-{
-	auto entities = InWorld->GetChildren();
-
-	for (auto entity : entities)
-	{
-		SE_ASSERT(entity);
-
-		if (entity)
-		{
-			auto pathName = entity->GetPath();
-
-			Json::Value localValue;
-			localValue["NAME"] = pathName.ToString();
-			localValue["GUID"] = entity->GetGUID().ToString();
-
-			Json::Value elementValues;
-			auto elements = entity->GetChildren();
-			for (auto element : elements)
-			{
-				auto elePath = element->GetPath();
-
-				Json::Value curElement;
-				curElement["NAME"] = elePath.ToString();
-				curElement["GUID"] = element->GetGUID().ToString();
-
-				elementValues.append(curElement);
-			}
-			if (!elements.empty())
-			{
-				localValue["CHILDREN"] = elementValues;
-			}
-
-			rootValue.append(localValue);
-		}
-	}
-}
 
 class EditorEngine
 {
@@ -353,6 +316,50 @@ public:
 
 		UpdateObjectTree();
 	}
+
+	void GenerateObjectList(OScene* InWorld, Json::Value& rootValue)
+	{
+		auto entities = InWorld->GetChildren();
+
+		for (auto entity : entities)
+		{
+			SE_ASSERT(entity);
+
+			if (entity == _gizmo)
+			{
+				continue;
+			}
+
+			if (entity)
+			{
+				auto pathName = entity->GetPath();
+
+				Json::Value localValue;
+				localValue["NAME"] = pathName.ToString();
+				localValue["GUID"] = entity->GetGUID().ToString();
+
+				Json::Value elementValues;
+				auto elements = entity->GetChildren();
+				for (auto element : elements)
+				{
+					auto elePath = element->GetPath();
+
+					Json::Value curElement;
+					curElement["NAME"] = elePath.ToString();
+					curElement["GUID"] = element->GetGUID().ToString();
+
+					elementValues.append(curElement);
+				}
+				if (!elements.empty())
+				{
+					localValue["CHILDREN"] = elementValues;
+				}
+
+				rootValue.append(localValue);
+			}
+		}
+	}
+
 
 	void UpdateObjectTree()
 	{
@@ -408,8 +415,20 @@ public:
 	{
 		if (_selectedElement)
 		{
-			_selectedElement->RemoveFromParent();
-			_selectedElement = nullptr;
+			auto eleToDelete = _selectedElement;
+			auto theParent = eleToDelete->GetParent();
+
+			SelectObject(nullptr);
+
+			eleToDelete->RemoveFromParent();
+			eleToDelete = nullptr;
+
+			if (theParent != _renderableScene)
+			{
+				theParent->UpdateTransform();
+			}
+
+			UpdateObjectTree();
 		}
 	}
 
@@ -457,13 +476,13 @@ public:
 				if (InShapeType == "square")
 				{
 					auto newShapeLc = AllocateObject<OSDFBox>("mainShape23");
-					newShapeLc->SetExtents({ 25,25,25 });
+					newShapeLc->SetExtents({ 10,10,10 });
 					newShape = newShapeLc;
 				}
 				else
 				{
 					auto newShapeLc = AllocateObject<OSDFSphere>("mainShape23");
-					newShapeLc->SetRadius(25);
+					newShapeLc->SetRadius(10);
 					newShape = newShapeLc;
 				}
 
@@ -558,42 +577,19 @@ public:
 		/////////////SCENE SETUP
 
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
-		
-		
+
+		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
+		cam.GetCameraPosition()[2] = -100;
 
 		auto startingGroup = AllocateObject<OShapeGroup>("mainShape");
 		auto startingSphere = AllocateObject<OSDFSphere>("mainShape.sphere");
-		auto startingSphere2 = AllocateObject<OSDFSphere>("mainShape.sphere_2");
-		auto startingSphere3 = AllocateObject<OSDFSphere>("mainShape.sphere_3");
-		//auto startingSphere = AllocateObject<OSDFSphere>("mainShape.box");
-
-
-		startingGroup->GetPosition()[2] = 200.0;
-
-		startingSphere->SetRadius(50);
-
-		startingSphere2->SetRadius(25);
-		startingSphere2->GetPosition()[1] = 50.0;
-		startingSphere2->GetPosition()[0] = 50.0;
-
-		startingSphere3->SetRadius(25);
-		startingSphere3->GetPosition()[1] = 50.0;
-		startingSphere3->GetPosition()[0] = -50.0;
-
+		startingSphere->SetRadius(10);
 		startingGroup->AddChild(startingSphere);
-		startingGroup->AddChild(startingSphere2);
-		startingGroup->AddChild(startingSphere3);
-
 		_renderableScene->AddChild(startingGroup);
 
-		///
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);
-		_gizmo->GetPosition()[2] = 200.0;
-		_gizmo->GetPosition()[1] = 50.0;
-		_gizmo->GetPosition()[0] = 50.0;
-		_gizmo->GetScale() = 0.3;
-		//_renderableScene->AddChild(_gizmo);
+		_gizmo->GetScale() = 0.1;
 
 		SPP::MakeResidentAllGPUResources();
 
@@ -626,7 +622,7 @@ public:
 		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
 
-		if (_selectionMode == ESelectionMode::None)
+		if (_selectionMode == ESelectionMode::None && _selectedElement != nullptr)
 		{
 			IntersectionInfo info;
 			if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
@@ -674,17 +670,19 @@ public:
 			// will be ignored if same
 			_graphicsDevice->ResizeBuffers(Width, Height);
 		}
+				
+		if (_selectionMode == ESelectionMode::Turn)
+		{
+			if (_keys[0x57])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Forward);
+			if (_keys[0x53])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Back);
 
-		//W
-		if (_keys[0x57])
-			cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Forward);
-		if (_keys[0x53])
-			cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Back);
-
-		if (_keys[0x41])
-			cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Left);
-		if (_keys[0x44])
-			cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Right);
+			if (_keys[0x41])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Left);
+			if (_keys[0x44])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Right);
+		}
 
 		_graphicsDevice->BeginFrame();
 		_renderableScene->GetRenderScene()->Draw();
@@ -766,16 +764,17 @@ public:
 			Vector2i Delta = (currentMouse - _mouseCaptureSpot);
 			_mouseCaptureSpot = _mousePosition;
 
+			const float Scalar = 0.5f;
 			switch (_selectionAxis)
 			{
 			case EGizmoSelectionAxis::X:
-				_selectedElement->GetPosition()[0] += (float)Delta[0];
+				_selectedElement->GetPosition()[0] += Delta[0] * Scalar;
 				break;
 			case EGizmoSelectionAxis::Y:
-				_selectedElement->GetPosition()[1] += -Delta[1];
+				_selectedElement->GetPosition()[1] += -Delta[1] * Scalar;
 				break;
 			case EGizmoSelectionAxis::Z:
-				_selectedElement->GetPosition()[2] += Delta[0];
+				_selectedElement->GetPosition()[2] += Delta[0] * Scalar;
 				break;
 			}
 

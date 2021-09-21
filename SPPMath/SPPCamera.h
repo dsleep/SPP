@@ -37,7 +37,7 @@ namespace SPP
 
 		float _FoV = 0.0f;
 
-		float _speed = 500.0f;
+		float _speed = 200.0f;
 		float _turnSpeedModifier = 0.1f;
 		Vector3 _eulerAnglesYPR;
 				

@@ -59,6 +59,7 @@ namespace SPP
 		OShapeGroup(const MetaPath& InPath) : OElement(InPath) { }
 		std::shared_ptr<RenderableSignedDistanceField> _renderableSDF;
 		std::vector<SDFShape> _shapeCache;
+		Vector3 _color = { 0.5f,0.5f,0.5f };
 
 		void _GenerateShapes();
 

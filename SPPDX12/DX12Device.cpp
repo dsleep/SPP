@@ -2010,6 +2010,8 @@ namespace SPP
 
 		cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
 		cmdList->SetGraphicsRoot32BitConstant(6, _shapeResource->GetElementCount(), 0);
+		cmdList->SetGraphicsRoot32BitConstants(6, 3, _color.data(), 1);
+
 		cmdList->DrawInstanced(4, 1, 0, 0);
 	}
 

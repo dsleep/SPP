@@ -24,6 +24,7 @@ namespace SPP
 			pos = _translation;
 
 			_renderableSDF->GetShapes() = _shapeCache;
+			_renderableSDF->GetColor() = _color;
 			_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
 		}
 	}
@@ -101,5 +102,6 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
+		.property("_color", &OShapeGroup::_color)(rttr::policy::prop::as_reference_wrapper)		
 		;
 }

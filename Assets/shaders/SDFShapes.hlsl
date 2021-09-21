@@ -1,7 +1,8 @@
 
 struct DrawParams
 {
-    uint ShapeCount;
+    uint    ShapeCount;
+    float3  ShapeColor;
 };
 
 struct SDFShape
@@ -206,10 +207,10 @@ float4 renderSDF( float3 ro, float3 rd )
 { 
 	float hitDistance = raymarch(ro, rd);
 
-    if (hitDistance < 1000)
+    if (hitDistance < 10000)
     {
         float3 pos = ro + hitDistance * rd;
-        float3 outColor = float3(1.00, 0.9, 0.80);
+        float3 outColor = DrawParams.ShapeColor;
 
         float3 objNormal = calcNormal(pos);
         float3  lig = normalize(float3(1.0, 0.8, -0.2));
