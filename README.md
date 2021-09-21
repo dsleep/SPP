@@ -11,6 +11,10 @@
 - run "UpdatePrereqs.bat" will update python with necessary modules and download the PreReqs into 3rdParty Folder
 - run "GenerateProjects.bat" will run cmake with 'cmake . -BCMAKEBUILD -G "Visual Studio 16 2019" -A x64' creating solution into CMAKEBUILD folder
 
+## WARNING
+
+This big of work is a crazy WIP, use at your own riskk!
+
 ## Optional
 
 - CUDA
@@ -27,6 +31,7 @@
 - SPPCapture
 - SPPVideo
 - SPPObject
+  - needs GC!!!!
   
 ## Use Cmake Flags
 
@@ -63,3 +68,10 @@ https://github.com/assimp/assimp
 - jsoncpp
 
 https://github.com/open-source-parsers/jsoncpp
+
+
+
+##AUTHOR
+
+David Sleeper
+david.sleeper@gmail.com
