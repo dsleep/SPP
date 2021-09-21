@@ -44,3 +44,22 @@ where APPNAME
 python --version
 cmake --version
 ```
+
+## Primary Third Parties
+
+- CEF
+
+https://github.com/chromiumembedded/cef
+
+- RTTR
+
+https://github.com/rttrorg/rttr
+https://www.rttr.org/
+
+- AssImp
+
+https://github.com/assimp/assimp
+
+- jsoncpp
+
+https://github.com/open-source-parsers/jsoncpp

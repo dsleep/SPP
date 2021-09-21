@@ -24,6 +24,10 @@ float dot2(in float2 v) { return dot(v, v); }
 float dot2(in float3 v) { return dot(v, v); }
 float ndot(in float2 a, in float2 b) { return a.x * b.x - a.y * b.y; }
 
+//https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+//https://www.youtube.com/c/InigoQuilez
+//   https://iquilezles.org/
+
 float sdSphere(float3 p, float s)
 {
     return length(p) - s;
@@ -108,6 +112,7 @@ float opSmoothIntersection(float d1, float d2, float k)
     return lerp(d2, d1, h) + k * h * (1.0 - h);
 }
 
+// slight expansion to a buffer of these shapes... very WIP
 float map( in float3 pos )
 {
     float d = 1e10;
@@ -217,11 +222,11 @@ float4 renderSDF( float3 ro, float3 rd )
         float dif = clamp(dot(objNormal, lig), 0.0, 1.0);
         float amb = 0.5;// +0.5 * objNormal.y;w
 
-        return float4( float3(0.25, 0.25, 0.25) * amb +  
-            outColor * dif, hitDistance);
+        return float4( float3(0.25, 0.25, 0.25) * amb + outColor * dif, hitDistance);
     }
 	else
 	{
+        //no convergence
         clip(-1);
 	}
 
