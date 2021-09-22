@@ -23,7 +23,8 @@ namespace SPP
 		virtual void UploadToGpu() override;
 		int32_t CreateAndWaitForProcess(const char* ProcessPath, const char* Commandline);
 		std::string read_to_string(const char* filename);
-		virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main") override;
+		virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
+			
 	};
 
 }

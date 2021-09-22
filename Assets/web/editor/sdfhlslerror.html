@@ -21,6 +21,20 @@
 	
 	<div id="compileErrorBox"></div>
 
+	<script>
+	
+	function SetCompileError(InErrorMsg)
+	{
+		document.getElementById("compileErrorBox").innerHTML = InErrorMsg;	
+	}
+	
+	if("RegisterJSFunction" in window)
+	{
+		window.RegisterJSFunction("SetCompileError", SetCompileError);
+	}
+	
+	</script>
+
     </body>
 	
 </html>

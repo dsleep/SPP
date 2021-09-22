@@ -9,6 +9,7 @@
 #include "SPPObject.h"
 #include "SPPGraphics.h"
 #include "SPPMath.h"
+#include "SPPFileSystem.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -351,7 +352,19 @@ namespace SPP
             return "Shader";
         }
 
-        virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main") = 0;
+        virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
+        {
+            std::string loadSrc;
+            if (LoadFileToString(*FileName, loadSrc))
+            {
+                return CompileShaderFromString(loadSrc, FileName.GetName().c_str(), EntryPoint, oErrorMsgs);
+            }
+            else
+            {
+                return false;
+            }
+        }
+        virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) = 0;
     };
 
     enum class TextureFormat

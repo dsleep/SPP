@@ -4,7 +4,7 @@
 
 #include "Common.hlsl"
 
-#include "SDFShapes.hlsl"
+%s
 
 struct PixelShaderInput
 {

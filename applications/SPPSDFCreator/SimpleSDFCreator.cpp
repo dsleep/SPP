@@ -51,219 +51,6 @@
 using namespace std::chrono_literals;
 using namespace SPP;
 
-struct SubTypeInfo
-{
-	Json::Value subTypes;
-	std::set< rttr::type > typeSet;
-};
-
-
-template<typename NumericType>
-bool impl_NumericConvert(rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
-{
-	if (InProperty.get_type() == rttr::type::get<NumericType>())
-	{
-		std::stringstream ssConvert(InValue);
-		NumericType realValue = { 0 };
-		ssConvert >> realValue;
-
-		// we there set it
-		if (InProperty.set_value(obj, realValue) == false)
-		{
-			SPP_QL("SetPropertyValue number failed");
-		}
-
-		return true;
-	}
-	return false;
-}
-
-template<typename ... Types>
-bool NumericConvert(rttr::instance& obj, rttr::property &InProperty, const std::string& InValue)
-{
-	bool any_of = (impl_NumericConvert< Types>(obj, InProperty, InValue) || ...);
-	return any_of;
-}
-
-bool SetPropertyValue(rttr::instance& obj, rttr::property& curPoperty, const std::string& InValue)
-{
-	auto propType = curPoperty.get_type();
-
-	if (propType.is_arithmetic())
-	{		
-		return NumericConvert<bool, 
-			char, 
-			float,
-			double,
-	
-			int8_t,
-			int16_t,
-			int32_t,
-			int64_t,
-
-			uint8_t,
-			uint16_t,
-			uint32_t,
-			uint64_t>(obj, curPoperty, InValue);
-	}
-	else if (propType.is_enumeration())
-	{
-		rttr::enumeration enumType = propType.get_enumeration();
-
-		if (curPoperty.set_value(obj, enumType.name_to_value(InValue)) == false)
-		{
-			SPP_QL("SetPropertyValue enum failed");
-		}
-
-		return true;
-	}
-	else if (propType == rttr::type::get<std::string>())
-	{
-		if (curPoperty.set_value(obj, InValue) == false)
-		{
-			SPP_QL("SetPropertyValue string failed");
-		}
-
-		return true;
-	}
-
-	return false;
-}
-
-void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string> &stringStack, const std::string &Value, uint8_t depth)
-{
-	if (stringStack.empty())
-	{
-		return;
-	}
-
-	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ? inValue.get_wrapped_instance() : inValue;
-	auto curType = obj.get_derived_type();
-
-
-	SPP_QL("SetObjectValue % s", curType.get_name().data());
-
-	auto curProp = curType.get_property(stringStack[depth]);
-	
-	rttr::variant prop_value = curProp.get_value(obj);
-	if (!prop_value)
-	{
-		return;
-	}
-
-
-	const auto name = curProp.get_name().to_string();
-
-	SPP_QL(" - prop %s", name.data());
-
-	depth++;
-
-	if (stringStack.size() == depth)
-	{
-		if (SetPropertyValue(obj, curProp, Value) == false)
-		{
-			SPP_QL("SetObjectValue failed");
-		}
-	}
-	else
-	{
-		SetObjectValue(prop_value, stringStack, Value, depth);
-		//curProp.set_value(obj, prop_value);
-	}
-}
-
-void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, const rttr::instance& inValue)
-{
-	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ? inValue.get_wrapped_instance() : inValue;
-	auto curType = obj.get_derived_type();
-
-	//auto baseObjType = rttr::type::get<SPPObject>();
-	//if (baseObjType.is_base_of(curType))
-	//{
-	//	//curType = obj.get
-	//}
-
-	//SPP_QL("GetPropertiesAsJSON % s", curType.get_name().data());
-
-	auto prop_list = curType.get_properties();
-	for (auto prop : prop_list)
-	{
-		rttr::variant prop_value = prop.get_value(obj);
-		if (!prop_value)
-			continue; // cannot serialize, because we cannot retrieve the value
-
-		const auto name = prop.get_name().to_string();
-		//SPP_QL(" - prop %s", name.data());
-
-		const auto propType = prop_value.get_type();
-
-		//
-		if (propType.is_class())
-		{
-			// does this confirm its inline struct and part of class?!
-			//SE_ASSERT(propType.is_wrapper() == false);
-
-			Json::Value nestedInfo;			
-			GetObjectPropertiesAsJSON(nestedInfo, subTypes, prop_value);
-
-			if (!nestedInfo.isNull())
-			{
-				if (subTypes.typeSet.count(propType) == 0)
-				{
-					Json::Value subType;
-					subType["type"] = "struct";
-					subTypes.subTypes[propType.get_name().data()] = subType;
-					subTypes.typeSet.insert(propType);
-				}
-
-				Json::Value propInfo;
-				propInfo["name"] = name.c_str();
-				propInfo["type"] = propType.get_name().data();
-				propInfo["value"] = nestedInfo;
-
-				rootValue.append(propInfo);
-			}
-		}
-		else if (propType.is_arithmetic() || propType.is_enumeration())
-		{
-			if (propType.is_enumeration() && subTypes.typeSet.count(propType) == 0)
-			{
-				rttr::enumeration enumType = propType.get_enumeration();
-				auto EnumValues = enumType.get_names();
-				Json::Value subType;
-				Json::Value enumValues;
-
-				for (auto& enumV : EnumValues)
-				{
-					enumValues.append(enumV.data());
-				}
-
-				subType["type"] = "enum";
-				subType["values"] = enumValues;
-
-				subTypes.subTypes[enumType.get_name().data()] = subType;
-				subTypes.typeSet.insert(propType);
-			}
-
-			Json::Value propInfo;
-
-			bool bok = false;
-			auto stringValue = prop_value.to_string(&bok);
-
-			SE_ASSERT(bok);
-
-			//SPP_QL("   - %s", stringValue.c_str());
-
-			propInfo["name"] = name.c_str();
-			propInfo["type"] = propType.get_name().data();
-			propInfo["value"] = stringValue;
-
-			rootValue.append(propInfo);
-		}
-	}
-}
-
-
 class EditorEngine
 {
 	enum class ESelectionMode
@@ -295,101 +82,30 @@ private:
 
 	ESelectionMode _selectionMode = ESelectionMode::None;
 
+	std::string _templateShader;
+
+	GPUReferencer< GPUShader > _currentActiveShader;
+
 public:
 	std::map < std::string, std::function<void(Json::Value) > > fromJSFunctionMap;
-
 
 	void HTMLReady()
 	{
 		_htmlReady = true;
-
-		UpdateObjectTree();
 	}
-
-	void GenerateObjectList(OScene* InWorld, Json::Value& rootValue)
+		
+	void CompileCode(std::string InCode)
 	{
-		auto entities = InWorld->GetChildren();
-
-		for (auto entity : entities)
+		std::string FinalCode = std::string_format(_templateShader.c_str(), InCode.c_str());
+		_currentActiveShader =  GGI()->CreateShader(EShaderType::Pixel);
+		std::string ErrorMsg;
+		if (_currentActiveShader->CompileShaderFromString(FinalCode, "PixelPosToRaysTemplate", "main_ps", &ErrorMsg) == false)
 		{
-			SE_ASSERT(entity);
-
-			if (entity == _gizmo)
-			{
-				continue;
-			}
-
-			if (entity)
-			{
-				auto pathName = entity->GetPath();
-
-				Json::Value localValue;
-				localValue["NAME"] = pathName.ToString();
-				localValue["GUID"] = entity->GetGUID().ToString();
-
-				Json::Value elementValues;
-				auto elements = entity->GetChildren();
-				for (auto element : elements)
-				{
-					auto elePath = element->GetPath();
-
-					Json::Value curElement;
-					curElement["NAME"] = elePath.ToString();
-					curElement["GUID"] = element->GetGUID().ToString();
-
-					elementValues.append(curElement);
-				}
-				if (!elements.empty())
-				{
-					localValue["CHILDREN"] = elementValues;
-				}
-
-				rootValue.append(localValue);
-			}
-		}
-	}
-
-
-	void UpdateObjectTree()
-	{
-		Json::Value rootValue;
-		GenerateObjectList(_renderableScene, rootValue);
-
-		std::string StrMessage;
-		JsonToString(rootValue, StrMessage);
-
-		JavascriptInterface::CallJS("UpdateObjectTree", StrMessage);
-	}
-
-	void UpdateSelectedProperties()
-	{
-		if (_selectedElement)
-		{
-			Json::Value rootValue;
-			SubTypeInfo infos;
-			GetObjectPropertiesAsJSON(rootValue, infos, _selectedElement);
-			std::string StrMessage;
-			JsonToString(rootValue, StrMessage);
-			std::string SubMessage;
-			JsonToString(infos.subTypes, SubMessage);
-
-			JavascriptInterface::CallJS("UpdateObjectProperties", StrMessage, SubMessage);
+			JavascriptInterface::CallJS("SetCompileError", ErrorMsg);			
 		}
 		else
 		{
-			JavascriptInterface::CallJS("UpdateObjectProperties", "", "");
-		}
-	}
-		
-	void PropertyChanged(std::string InName, std::string InValue)
-	{
-		if (_selectedElement)
-		{
-			SPP_QL("PropertyChanged: %s:%s", InName.c_str(), InValue.c_str());
-			auto splitString = std::str_split(InName, '.');
-			SetObjectValue(_selectedElement, splitString, InValue, 0);
-			
-			_selectedElement->UpdateTransform();
+			JavascriptInterface::CallJS("SetCompileError", std::string("COMPILE SUCCESSFULL!!!"));
 		}
 	}
 
@@ -422,9 +138,8 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(WindowSizeX, WindowSizeY, AppWindow);
 
-		//_renderScene = GGI()->CreateRenderScene();
-		//auto& cam = _renderScene->GetCamera();
-		//cam.GetCameraPosition()[1] = 100;
+		auto templatePath = stdfs::path(GAssetPath) / "shaders" / "PixelPosToRaysTemplate.hlsl";
+		SE_ASSERT(LoadFileToString(templatePath.generic_string().c_str(), _templateShader));
 
 		_moveGizmo = AllocateObject<OMesh>("moveG");
 
@@ -434,11 +149,7 @@ public:
 			_moveGizmo->SetMesh(MeshToLoad);
 		}
 		
-		//_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
-		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
-
 		_gizmoMat = std::make_shared< MeshMaterial >();
-		//_gizmoMat->depthState = EDepthState::Disabled;
 		_gizmoMat->rasterizerState = ERasterizerState::NoCull;
 		_gizmoMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
 		_gizmoMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
@@ -459,7 +170,6 @@ public:
 		}
 
 		/////////////SCENE SETUP
-
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
 
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
@@ -590,7 +300,7 @@ public:
 RTTR_REGISTRATION
 {
 	rttr::registration::class_<EditorEngine>("EditorEngine")
-		.method("PropertyChanged", &EditorEngine::PropertyChanged)
+		.method("CompileCode", &EditorEngine::CompileCode)
 		.method("HTMLReady", &EditorEngine::HTMLReady)	
 	;
 }

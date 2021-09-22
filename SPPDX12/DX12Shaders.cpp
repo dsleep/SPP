@@ -99,9 +99,9 @@ namespace SPP
 		return ss.str();
 	}
 
-	bool D3D12Shader::CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint)
+	bool D3D12Shader::CompileShaderFromString(const std::string& ShaderSource, const char *ShaderName, const char* EntryPoint, std::string* oErrorMsgs)
 	{
-		SPP_LOG(LOG_D3D12Shader, LOG_INFO, "CompileShaderFromFile: %s(%s) type %s", *FileName, EntryPoint, ReturnDXType(_type));
+		SPP_LOG(LOG_D3D12Shader, LOG_INFO, "CompileShaderFromFile: %s(%s) type %s", ShaderName, EntryPoint, ReturnDXType(_type));
 
 		AssetPath shaderRoot("shaders");
 
@@ -112,8 +112,8 @@ namespace SPP
 		ComPtr<IDxcIncludeHandler> pincludeHandler;
 		pLibrary->CreateDefaultIncludeHandler(&pincludeHandler);
 
-		std::string sourceString = read_to_string(*FileName);
-		std::wstring sourceName = std::utf8_to_wstring(FileName.GetName());
+		//std::string sourceString = read_to_string(*FileName);
+		std::wstring sourceName = std::utf8_to_wstring(ShaderName);
 		std::wstring EntryPointW = std::utf8_to_wstring(EntryPoint);
 		std::wstring IncludePathW = std::utf8_to_wstring(*shaderRoot);
 		
@@ -147,8 +147,8 @@ namespace SPP
 		//}
 
 		DxcBuffer sourceBuffer;
-		sourceBuffer.Ptr = sourceString.c_str();
-		sourceBuffer.Size = sourceString.length();
+		sourceBuffer.Ptr = ShaderSource.c_str();
+		sourceBuffer.Size = ShaderSource.length();
 		sourceBuffer.Encoding = 0;
 
 		std::vector<DxcDefine> dxcDefines;
@@ -175,6 +175,10 @@ namespace SPP
 			pCompileResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(pErrors.GetAddressOf()), nullptr);
 			if (pErrors && pErrors->GetStringLength() > 0)
 			{
+				if (oErrorMsgs)
+				{
+					*oErrorMsgs = (char*)pErrors->GetBufferPointer();
+				}
 				OutputDebugStringA((char*)pErrors->GetBufferPointer());
 			}
 			SPP_LOG(LOG_D3D12Shader, LOG_INFO, " - FAILED");
