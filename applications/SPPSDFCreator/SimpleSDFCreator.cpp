@@ -76,13 +76,11 @@ private:
 
 	ORenderableScene* _renderableScene = nullptr;
 	OMeshElement* _gizmo = nullptr;
-	OElement* _selectedElement = nullptr;
+	OShapeGroup* _mainGroup = nullptr;
 
 	bool _htmlReady = false;
 
 	ESelectionMode _selectionMode = ESelectionMode::None;
-
-	std::string _templateShader;
 
 	GPUReferencer< GPUShader > _currentActiveShader;
 
@@ -96,17 +94,24 @@ public:
 		
 	void CompileCode(std::string InCode)
 	{
-		std::string FinalCode = std::string_format(_templateShader.c_str(), InCode.c_str());
+		auto TemporaryWritePath = stdfs::path(GAssetPath) / "shaders" / "WorkingShader.hlsl";
+
+		WriteStringToFile(TemporaryWritePath.generic_string().c_str(), InCode);
+
 		_currentActiveShader =  GGI()->CreateShader(EShaderType::Pixel);
 		std::string ErrorMsg;
-		if (_currentActiveShader->CompileShaderFromString(FinalCode, "PixelPosToRaysTemplate", "main_ps", &ErrorMsg) == false)
+		if (_currentActiveShader->CompileShaderFromFile("shaders/PixelPosToRaysTemplate.hlsl", "main_ps", &ErrorMsg) == false)
 		{
 			JavascriptInterface::CallJS("SetCompileError", ErrorMsg);			
 		}
 		else
 		{
 			JavascriptInterface::CallJS("SetCompileError", std::string("COMPILE SUCCESSFULL!!!"));
+			_mainGroup->SetCustomShader(_currentActiveShader);
+			_mainGroup->UpdateTransform();
 		}
+
+		stdfs::remove(TemporaryWritePath);
 	}
 
 	void Initialize(void *AppWindow)
@@ -137,9 +142,6 @@ public:
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(WindowSizeX, WindowSizeY, AppWindow);
-
-		auto templatePath = stdfs::path(GAssetPath) / "shaders" / "PixelPosToRaysTemplate.hlsl";
-		SE_ASSERT(LoadFileToString(templatePath.generic_string().c_str(), _templateShader));
 
 		_moveGizmo = AllocateObject<OMesh>("moveG");
 
@@ -180,6 +182,7 @@ public:
 		startingSphere->SetRadius(10);
 		startingGroup->AddChild(startingSphere);
 		_renderableScene->AddChild(startingGroup);
+		_mainGroup = startingGroup;
 
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);

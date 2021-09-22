@@ -9,23 +9,28 @@
 				
 	<style>
 	
+	
 	input[type=text] {
-	  width: 100%;
-	  padding: 1px 1px;
-	  margin: 3px;
+	  width: 30px;
 	  box-sizing: border-box;
 	}
+	
 
 	.styled-table {
 		background: #222222;
 		border-collapse: collapse;		
 		font-size: 0.9em;
-		font-family: sans-serif;
+		font-family: Arial Narrow,Arial,sans-serif; 
 		min-width: 100px;	
 		color: #ffffff;	
 		width: 100%;
 	}
 	
+	.styled-table tr td:first-child {
+		width: 1%;
+		white-space: nowrap;
+	}
+		
 	.alnright { text-align: right; }
 	
 	.styled-table thead tr {
@@ -34,18 +39,26 @@
 		text-align: left;
 	}
 
-	.styled-table tbody tr {
-		border-bottom: 1px solid #dddddd;
-	}
 	
 	.styled-table tbody td:first-of-type {
-		border-right: 1px solid #dddddd;
+		border-right: 1px solid #000000;
+		vertical-align: top;
 	}
 
-	.styled-table tbody tr:nth-of-type(even) {
-		background-color: #444444;
-	}
 
+	.styled-table a:hover {
+	  background-color: black;
+	}
+	
+	/* unvisited link */
+	.styled-table	a:link {
+		  color: white;
+		}
+
+		/* visited link */
+	.styled-table	a:visited {
+		  color: white;
+		}
 
 
     </style>
@@ -135,10 +148,17 @@
 			tdN.setAttribute("class", "alnright");
 			tdN.appendChild(document.createTextNode(memberElement.name));
 	
-			var x = document.createElement("INPUT");
-			x.setAttribute("type", "text");
-			x.setAttribute("value", memberElement.value);
-			x.propPath = AppendPath(memberElement.name, curPath);
+			var x = document.createElement("a");
+			x.setAttribute("data-editable", "true");
+			x.setAttribute("href", "#");
+			x.dataType = NativeTypesPoD[memberyTypeName];
+			//x.setAttribute("type", "text");
+			//x.setAttribute("value", memberElement.value);
+			//x.propPath = AppendPath(memberElement.name, curPath);
+			
+			const textNode = document.createTextNode(memberElement.value);
+			//textNode.setAttribute("href", "#");
+			x.appendChild(textNode);
 			
 			if(NativeTypesPoD[memberyTypeName] == "Number")
 			{
@@ -201,7 +221,7 @@
 		$(divID).append(tbl);
 	}
 	
-	/*
+	
 		
 	var subTypeInfo =  String.raw`{
 		"Vector3" : { 
@@ -219,7 +239,7 @@
 		}		
 	}`;
 	
-	//const subTypeObj = JSON.parse(subTypeInfo);
+	const subTypeObj = JSON.parse(subTypeInfo);
 	
 	var objectDataInfo = String.raw`[
 		{
@@ -300,10 +320,43 @@
 		}
 	]`;
 	
+	/**
+	  We're defining the event on the `body` element, 
+	  because we know the `body` is not going away.
+	  Second argument makes sure the callback only fires when 
+	  the `click` event happens only on elements marked as `data-editable`
+	*/
+	$('body').on('click', '[data-editable]', function(){
+	  
+	  var $el = $(this);
+
+	  var StoredDataType = this.dataType;
+	  console.log("StoredDataType" + StoredDataType);
+	  
+	  var $input = $('<input/>').val( $el.text() );
+	  $el.replaceWith( $input );
+	  
+	  
+	  
+	  var save = function(){
+		var $p = $('<div data-editable /><a href="#" />').text( $input.val() );
+		$input.replaceWith( $p );
+	  };
+	  
+	  /**
+		We're defining the callback with `one`, because we know that
+		the element will be gone just after that, and we don't want 
+		any callbacks leftovers take memory. 
+		Next time `p` turns into `input` this single callback 
+		will be applied again.
+	  */
+	  $input.one('blur', save).focus();
+	  
+	});
 	
 	const objectData = JSON.parse(objectDataInfo);	
-	generateObjTable("objProp",objectData,subTypeObj);
-	*/
+	generateObjTable("#objProp",objectData,subTypeObj);
+	
 	
 	// Restricts input for the given textbox to the given inputFilter function.
 	function setInputFilter(textbox, inputFilter) {
@@ -376,7 +429,8 @@
 	window.addEventListener ? window.addEventListener('focus', detectFocus, true) : window.attachEvent('onfocusout', detectFocus);  
     window.addEventListener ? window.addEventListener('blur', detectBlur, true) : window.attachEvent('onblur', detectBlur);
 	
-	window.RegisterJSFunction("UpdateObjectProperties", UpdateObjectProperties);
+	if("RegisterJSFunction" in window)
+		window.RegisterJSFunction("UpdateObjectProperties", UpdateObjectProperties);
 	
 	</script>
 

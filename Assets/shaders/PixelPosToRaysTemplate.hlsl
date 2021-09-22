@@ -4,7 +4,7 @@
 
 #include "Common.hlsl"
 
-%s
+#include "WorkingShader.hlsl"
 
 struct PixelShaderInput
 {

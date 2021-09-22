@@ -66,4 +66,19 @@ namespace SPP
 
 		return false;
 	}
+
+	bool WriteStringToFile(const char* FileName, const std::string& oFileString)
+	{
+		// load to end
+		auto fileStream = std::make_unique<std::ofstream>(FileName, std::ofstream::out | std::ofstream::trunc);
+
+		if (fileStream->is_open())
+		{
+			fileStream->write((char*)oFileString.data(), oFileString.size());
+			return true;
+		}
+
+		return false;
+	}
+
 }

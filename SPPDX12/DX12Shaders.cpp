@@ -4,6 +4,7 @@
 
 #include "DX12Shaders.h"
 #include "SPPLogging.h"
+#include "SPPFileSystem.h"
 
 #include <exception>
 
@@ -13,6 +14,54 @@ namespace SPP
 {
 	LogEntry LOG_D3D12Shader("D3D12Shader");
 	
+	//class IncPathIncludeHandler : public IDxcIncludeHandler
+	//{
+	//public:
+	//	virtual ~IncPathIncludeHandler() {}
+
+	//	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject)
+	//	{
+	//		SE_ASSERT(false);
+	//		// used?!
+	//		return E_FAIL;// DoBasicQueryInterface<::IDxcIncludeHandler>(this, riid, ppvObject);
+	//	}
+
+	//	IncPathIncludeHandler(IDxcUtils* library) : m_dwRef(0), _library(library)
+	//	{}
+
+	//	HRESULT STDMETHODCALLTYPE LoadSource( LPCWSTR pFilename, IDxcBlob** ppIncludeSource) override
+	//	{
+	//		std::string sourceName = std::wstring_to_utf8(pFilename);
+
+	//		std::string FileData;
+	//		if (LoadFileToString(sourceName.c_str(), FileData))
+	//		{
+	//			ComPtr<IDxcBlobEncoding> pEncodingIncludeSource;
+	//			_library->CreateBlob(FileData.data(), FileData.size(), CP_UTF8, &pEncodingIncludeSource);
+	//			*ppIncludeSource = pEncodingIncludeSource.Detach();
+	//			return S_OK;
+	//		}
+
+	//		return E_FAIL;
+	//	}
+
+	//	ULONG STDMETHODCALLTYPE AddRef()
+	//	{
+	//		return InterlockedIncrement(&m_dwRef);
+	//	}
+
+	//	ULONG STDMETHODCALLTYPE Release()
+	//	{
+	//		ULONG result = InterlockedDecrement(&m_dwRef);
+	//		if (result == 0) delete this;
+	//		return result;
+	//	}
+
+	//private:
+	//	volatile ULONG m_dwRef = 0;
+	//	IDxcUtils* _library = nullptr;
+	//};
+
 	D3D12Shader::D3D12Shader(EShaderType InType) : GPUShader(InType)
 	{
 	}
@@ -86,19 +135,6 @@ namespace SPP
 		return dwExitCode;
 	}
 
-	std::string D3D12Shader::read_to_string(const char* filename)
-	{
-		std::ifstream fs(filename);
-		std::stringstream ss;
-
-		std::string line;
-		while (std::getline(fs, line))
-		{
-			ss << line << "\n";
-		}
-		return ss.str();
-	}
-
 	bool D3D12Shader::CompileShaderFromString(const std::string& ShaderSource, const char *ShaderName, const char* EntryPoint, std::string* oErrorMsgs)
 	{
 		SPP_LOG(LOG_D3D12Shader, LOG_INFO, "CompileShaderFromFile: %s(%s) type %s", ShaderName, EntryPoint, ReturnDXType(_type));
@@ -111,7 +147,7 @@ namespace SPP
 		DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(pCompiler.GetAddressOf()));
 		ComPtr<IDxcIncludeHandler> pincludeHandler;
 		pLibrary->CreateDefaultIncludeHandler(&pincludeHandler);
-
+		
 		//std::string sourceString = read_to_string(*FileName);
 		std::wstring sourceName = std::utf8_to_wstring(ShaderName);
 		std::wstring EntryPointW = std::utf8_to_wstring(EntryPoint);
@@ -155,9 +191,16 @@ namespace SPP
 
 		ComPtr<IDxcResult> pCompileResult;
 
+		//IncPathIncludeHandler customINclude(pLibrary.Get());
+		//customINclude.AddRef();
+
 		try
 		{			
-			pCompiler->Compile(&sourceBuffer, arguments.data(), (uint32_t)arguments.size(), pincludeHandler.Get(), IID_PPV_ARGS(pCompileResult.GetAddressOf()));
+			pCompiler->Compile(&sourceBuffer, 
+				arguments.data(),
+				(uint32_t)arguments.size(), 
+				pincludeHandler.Get(), 
+				IID_PPV_ARGS(pCompileResult.GetAddressOf()));
 		}
 		catch (std::exception& e)
 		{

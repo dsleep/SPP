@@ -467,6 +467,7 @@ namespace SPP
 	protected:
 		std::vector< SDFShape > _shapes;
 		Vector3 _color = { 0,0,0 };
+		GPUReferencer< GPUShader > _customShader;
 
 	public:
 		std::vector< SDFShape >& GetShapes()
@@ -476,6 +477,10 @@ namespace SPP
 		Vector3 & GetColor()
 		{
 			return _color;
+		}
+		void SetShader(GPUReferencer< GPUShader > InShader)
+		{
+			_customShader = InShader;
 		}
 	};
 }

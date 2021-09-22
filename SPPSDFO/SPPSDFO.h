@@ -60,10 +60,16 @@ namespace SPP
 		std::shared_ptr<RenderableSignedDistanceField> _renderableSDF;
 		std::vector<SDFShape> _shapeCache;
 		Vector3 _color = { 0.5f,0.5f,0.5f };
+		GPUReferencer< GPUShader > _shaderOverride;
 
 		void _GenerateShapes();
 
 	public:
+
+		void SetCustomShader(GPUReferencer< GPUShader > &InShader)
+		{
+			_shaderOverride = InShader;
+		}
 		
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene(class OScene* InScene) override;

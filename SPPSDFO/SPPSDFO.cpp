@@ -26,6 +26,7 @@ namespace SPP
 			auto& rot = _renderableSDF->GetRotation();
 			rot = _rotation;
 
+			_renderableSDF->SetShader(_shaderOverride);
 			_renderableSDF->GetShapes() = _shapeCache;
 			_renderableSDF->GetColor() = _color;
 			_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());

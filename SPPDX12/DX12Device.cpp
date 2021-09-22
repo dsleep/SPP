@@ -918,6 +918,8 @@ namespace SPP
 		std::shared_ptr< ArrayResource > _shapeResource;
 		bool _bIsStatic = false;
 
+		GPUReferencer< D3D12PipelineState > _customPSO;
+
 	public:
 		D3D12SDF() = default;
 		virtual void AddToScene(class RenderScene* InScene) override;
@@ -1258,6 +1260,10 @@ namespace SPP
 		GPUReferencer< D3D12PipelineState > GetSDFPSO()
 		{
 			return _fullscreenPSO;
+		}
+		GPUReferencer< GPUInputLayout > GetSDFLayout()
+		{
+			return _fullscreenLayout;
 		}
 
 		//void DrawFullScreen()
@@ -1933,6 +1939,25 @@ namespace SPP
 			DX12_BegineResourceCopy();
 			_shapeBuffer->UploadToGpu();
 			DX12_EndResourceCopy();
+
+			auto SDFVS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
+			auto SDFLayout = _parentScene->GetAs<D3D12RenderScene>().GetSDFLayout();
+
+			if (_customShader)
+			{
+				_customPSO = GetD3D12PipelineState(EBlendState::Disabled,
+					ERasterizerState::NoCull,
+					EDepthState::Enabled,
+					EDrawingTopology::TriangleList,
+					SDFLayout,
+					SDFVS,
+					_customShader,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
+			}
 		}
 	}
 
@@ -1958,8 +1983,11 @@ namespace SPP
 		auto curCLWrapper = GGraphicsDevice->GetCommandListWrapper();
 
 		auto SDFVS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
-		auto SDFPS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
 		auto SDFPSO = _parentScene->GetAs<D3D12RenderScene>().GetSDFPSO();
+		if (_customPSO)
+		{
+			SDFPSO = _customPSO;
+		}
 				
 		curCLWrapper->SetRootSignatureFromVerexShader(SDFVS);
 

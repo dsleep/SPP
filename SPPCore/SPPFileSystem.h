@@ -26,6 +26,5 @@ namespace SPP
 	SPP_CORE_API bool WriteArrayToFile(const char* FileName, const std::vector<uint8_t>& oFileData);
 		
 	SPP_CORE_API bool LoadFileToString(const char* FileName, std::string& oFileString);
-	//TODO
-	//SPP_CORE_API bool WriteStringToFile(const char* FileName, const std::string& oFileString);
+	SPP_CORE_API bool WriteStringToFile(const char* FileName, const std::string& oFileString);
 }

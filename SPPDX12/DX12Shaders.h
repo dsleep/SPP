@@ -22,7 +22,6 @@ namespace SPP
 		D3D12_SHADER_BYTECODE GetByteCode();
 		virtual void UploadToGpu() override;
 		int32_t CreateAndWaitForProcess(const char* ProcessPath, const char* Commandline);
-		std::string read_to_string(const char* filename);
 		virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
 			
 	};
