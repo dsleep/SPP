@@ -4,6 +4,9 @@ project(SPPApplications_API VERSION 1.0.0 LANGUAGES CXX)
 message( STATUS "Adding Application: SPPSDFSimpleEditor" )
 add_subdirectory("SPPSDFSimpleEditor")
 
+message( STATUS "Adding Application: SPPSDFCreator" )
+add_subdirectory("SPPSDFCreator")
+
 ##########
 add_executable( simpleconnectioncoordinator "")
 add_dependencies( simpleconnectioncoordinator SPPNetworking )			

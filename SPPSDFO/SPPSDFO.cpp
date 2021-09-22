@@ -23,6 +23,9 @@ namespace SPP
 			auto& pos = _renderableSDF->GetPosition();
 			pos = _translation;
 
+			auto& rot = _renderableSDF->GetRotation();
+			rot = _rotation;
+
 			_renderableSDF->GetShapes() = _shapeCache;
 			_renderableSDF->GetColor() = _color;
 			_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());

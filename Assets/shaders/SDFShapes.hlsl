@@ -117,26 +117,33 @@ float map( in float3 pos )
 {
     float d = 1e10;
 
+    float4x4 LocalToWorldTranslated = GetLocalToWorldViewTranslated(DrawConstants.LocalToWorldScaleRotation, 
+        -DrawConstants.Translation, double3(0,0,0));
+    float3 samplePos = mul(float4(pos, 1.0), LocalToWorldTranslated).xyz - float3(Shapes[0].translation);
+
+    //float3 samplePos = pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation));
+
     if (Shapes[0].shapeType == 1)
     {
-        d = sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation)), Shapes[0].params.x);
+        d = sdSphere(samplePos, Shapes[0].params.x);
     }
     else if (Shapes[0].shapeType == 2)
     {
-        d = sdBox(pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation)), Shapes[0].params.xyz);
+        d = sdBox(samplePos, Shapes[0].params.xyz);
     }
         
     for (uint i = 1; i < DrawParams.ShapeCount; ++i)
     {
         float cD = 0;
 
+        float3 samplePos = mul(float4(pos, 1.0), LocalToWorldTranslated).xyz - float3(Shapes[i].translation);
         if (Shapes[i].shapeType == 1)
         {
-            cD = sdSphere(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.x);
+            cD = sdSphere(samplePos, Shapes[i].params.x);
         } 
         else if (Shapes[i].shapeType == 2)
         {
-            cD = sdBox(pos - (float3(DrawConstants.Translation) + float3(Shapes[i].translation)), Shapes[i].params.xyz);
+            cD = sdBox(samplePos, Shapes[i].params.xyz);
         }
         
         if (Shapes[i].shapeOp == 0)

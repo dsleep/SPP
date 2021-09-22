@@ -266,14 +266,6 @@ void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, co
 
 class EditorEngine
 {
-	enum class EGizmoSelectionAxis
-	{
-		None,
-		X,
-		Y,
-		Z
-	};
-
 	enum class ESelectionMode
 	{
 		None,
@@ -294,16 +286,13 @@ private:
 	std::shared_ptr< SPP::MeshMaterial > _gizmoMat;	
 
 	OMesh* _moveGizmo = nullptr;
-	OMesh* _rotateGizmo = nullptr;
-	OMesh* _scaleGizmo = nullptr;
 
 	ORenderableScene* _renderableScene = nullptr;
 	OMeshElement* _gizmo = nullptr;
 	OElement* _selectedElement = nullptr;
 
-	bool _htmlReady = false;	
+	bool _htmlReady = false;
 
-	EGizmoSelectionAxis _selectionAxis = EGizmoSelectionAxis::None;
 	ESelectionMode _selectionMode = ESelectionMode::None;
 
 public:
@@ -391,59 +380,7 @@ public:
 			JavascriptInterface::CallJS("UpdateObjectProperties", "", "");
 		}
 	}
-
-	void SelectObject(OElement* SelectedObject)
-	{	
-		if (_selectedElement)
-		{
-			_renderableScene->RemoveChild(_gizmo);
-		}
-
-		if (SelectedObject)
-		{
-			auto localToWorld = SelectedObject->GenerateLocalToWorld(true);
-			_gizmo->GetPosition() = localToWorld.block<1, 3>(3, 0).cast<double>() + SelectedObject->GetTop()->GetPosition();
-			_renderableScene->AddChild(_gizmo);
-		}
-
-		_selectedElement = SelectedObject;
-
-		UpdateSelectedProperties();
-	}
-	
-	void DeleteSelection()
-	{
-		if (_selectedElement)
-		{
-			auto eleToDelete = _selectedElement;
-			auto theParent = eleToDelete->GetParent();
-
-			SelectObject(nullptr);
-
-			eleToDelete->RemoveFromParent();
-			eleToDelete = nullptr;
-
-			if (theParent != _renderableScene)
-			{
-				theParent->UpdateTransform();
-			}
-
-			UpdateObjectTree();
-		}
-	}
-
-	void SelectionChanged(std::string InElementName)
-	{
-		SPP::GUID selGUID(InElementName.c_str());
-
-		auto CurObject = GetObjectByGUID(selGUID);
-		if (CurObject)
-		{
-			SPP_QL("SelectionChanged: %s", CurObject->GetPath().ToString().c_str());
-			SelectObject((OElement*)CurObject);
-		}
-	}
-
+		
 	void PropertyChanged(std::string InName, std::string InValue)
 	{
 		if (_selectedElement)
@@ -456,57 +393,6 @@ public:
 		}
 	}
 
-	void AddShape(std::string InShapeType)
-	{
-		if (_selectedElement)
-		{
-			auto shapeType = rttr::type::get<OShape>();
-			auto grouptype = rttr::type::get<OShapeGroup>();
-
-			OElement* curElement = _selectedElement;
-			while (shapeType.is_base_of(curElement->get_type()))
-			{
-				curElement = curElement->GetParent();
-			}
-
-			if (curElement->get_type() == grouptype)
-			{
-				OElement *newShape = nullptr;
-
-				if (InShapeType == "square")
-				{
-					auto newShapeLc = AllocateObject<OSDFBox>("box");
-					newShapeLc->SetExtents({ 10,10,10 });
-					newShape = newShapeLc;
-				}
-				else
-				{
-					auto newShapeLc = AllocateObject<OSDFSphere>("sphere");
-					newShapeLc->SetRadius(10);
-					newShape = newShapeLc;
-				}
-
-				
-				curElement->AddChild(newShape);
-				newShape->UpdateTransform();
-
-				SelectObject(newShape);
-
-				UpdateObjectTree();
-			}
-		}
-	}
-
-	void AddShapeGroup()
-	{
-		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
-
-		_renderableScene->AddChild(startingGroup);
-		SelectObject(startingGroup);
-		 
-		UpdateObjectTree();
-	}
-
 	void Initialize(void *AppWindow)
 	{
 		_mainDXWindow = (HWND)AppWindow;
@@ -515,7 +401,7 @@ public:
 			auto mainAPP = GetParent(_mainDXWindow);
 			SetWindowTextA(
 				mainAPP,
-				"SPP SDF Editor"
+				"SPP SDF Creator"
 			);
 		}
 
@@ -541,19 +427,12 @@ public:
 		//cam.GetCameraPosition()[1] = 100;
 
 		_moveGizmo = AllocateObject<OMesh>("moveG");
-		_rotateGizmo = AllocateObject<OMesh>("rotateG");
-		_scaleGizmo = AllocateObject<OMesh>("scaleG");
 
 		{
 			auto MeshToLoad = std::make_shared< Mesh >();
 			MeshToLoad->LoadMesh("BlenderFiles/MoveGizmo.fbx");
 			_moveGizmo->SetMesh(MeshToLoad);
 		}
-		{
-			auto MeshToLoad = std::make_shared< Mesh >();
-			MeshToLoad->LoadMesh("BlenderFiles/RotationGizmo.fbx");
-			_rotateGizmo->SetMesh(MeshToLoad);
-		}		
 		
 		//_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
 		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
@@ -579,9 +458,6 @@ public:
 			curMesh->material = _gizmoMat; 
 		}
 
-		bool _bGizmoMode = false;
-		bool _bCamMode = false;
-
 		/////////////SCENE SETUP
 
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
@@ -598,13 +474,13 @@ public:
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);
 		_gizmo->GetScale() = 0.1;
+		_renderableScene->AddChild(_gizmo);
 
 		SPP::MakeResidentAllGPUResources();
 
 		_lastTime = std::chrono::high_resolution_clock::now();
 	}
-
-	
+		
 
 	void Update()
 	{
@@ -618,49 +494,7 @@ public:
 
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
 
-		Vector4 MousePosNear = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 10.0f, 1.0f);
-		Vector4 MousePosFar = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 100.0f, 1.0f);
-
-		Vector4 MouseLocalNear = MousePosNear * cam.GetInvViewProjMatrix();
-		MouseLocalNear /= MouseLocalNear[3];
-		Vector4 MouseLocalFar = MousePosFar * cam.GetInvViewProjMatrix();
-		MouseLocalFar /= MouseLocalFar[3];
-
-		Vector3 MouseStart = Vector3(MouseLocalNear[0], MouseLocalNear[1], MouseLocalNear[2]);
-		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
-		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
-
-		if (_selectionMode == ESelectionMode::None && _selectedElement != nullptr)
-		{
-			IntersectionInfo info;
-			if (_gizmo->Intersect_Ray(Ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay), info))
-			{
-				if (!info.hitName.empty())
-				{
-					if (info.hitName[0] == 'X')
-					{
-						_selectionAxis = EGizmoSelectionAxis::X;
-					}
-					else if (info.hitName[0] == 'Y')
-					{
-						_selectionAxis = EGizmoSelectionAxis::Y;
-					}
-					else if (info.hitName[0] == 'Z')
-					{
-						_selectionAxis = EGizmoSelectionAxis::Z;
-					}
-				}
-				//SPP_QL("Hit: %s", info.hitName.c_str());
-				_gizmo->UpdateSelection(true);
-			}
-			else
-			{
-				_gizmo->UpdateSelection(false);
-				_selectionAxis = EGizmoSelectionAxis::None;
-			}
-		}
-		//
-
+					
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
 		_lastTime = CurrentTime;
@@ -703,38 +537,15 @@ public:
 		_keys[KeyValue] = true;
 	}
 
-	void Deselect()
-	{
-		SelectObject(nullptr);
-	}
-
 	void KeyUp(uint8_t KeyValue)
 	{
 		//SPP_QL("ku: 0x%X", KeyValue);
 		_keys[KeyValue] = false;
-
-		if (KeyValue == VK_ESCAPE)
-		{
-			Deselect();
-		}
-		else if (KeyValue == VK_DELETE)
-		{
-			DeleteSelection();
-		}
-
 	}
 
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
-		//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
-
-		if (mouseButton == 0 && _selectionAxis != EGizmoSelectionAxis::None)
-		{
-			CaptureWindow(_mainDXWindow);
-			_selectionMode = ESelectionMode::Gizmo;			
-			_mouseCaptureSpot = Vector2i(mouseX, mouseY);
-		}
-		else if(mouseButton == 1)
+		if(mouseButton == 1)
 		{
 			CaptureWindow(_mainDXWindow);
 			_selectionMode = ESelectionMode::Turn;
@@ -767,34 +578,7 @@ public:
 			auto& cam = _renderableScene->GetRenderScene()->GetCamera();
 			cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
 		}
-		else if (_selectionMode == ESelectionMode::Gizmo)
-		{
-			Vector2i Delta = (currentMouse - _mouseCaptureSpot);
-			_mouseCaptureSpot = _mousePosition;
-
-			const float Scalar = 0.5f;
-			switch (_selectionAxis)
-			{
-			case EGizmoSelectionAxis::X:
-				_selectedElement->GetPosition()[0] += Delta[0] * Scalar;
-				break;
-			case EGizmoSelectionAxis::Y:
-				_selectedElement->GetPosition()[1] += -Delta[1] * Scalar;
-				break;
-			case EGizmoSelectionAxis::Z:
-				_selectedElement->GetPosition()[2] += Delta[0] * Scalar;
-				break;
-			}
-
-
-			auto localToWorld = _selectedElement->GenerateLocalToWorld();
-			_gizmo->GetPosition() = localToWorld.block<1, 3>(3, 0).cast<double>();
-
-			_gizmo->UpdateTransform();
-			_selectedElement->UpdateTransform();
-
-			UpdateSelectedProperties();
-		}
+		
 	}
 
 	void OnResize(int32_t InWidth, int32_t InHeight)
@@ -806,10 +590,7 @@ public:
 RTTR_REGISTRATION
 {
 	rttr::registration::class_<EditorEngine>("EditorEngine")
-		.method("SelectionChanged", &EditorEngine::SelectionChanged)
 		.method("PropertyChanged", &EditorEngine::PropertyChanged)
-		.method("AddShape", &EditorEngine::AddShape)
-		.method("AddShapeGroup", &EditorEngine::AddShapeGroup)
 		.method("HTMLReady", &EditorEngine::HTMLReady)	
 	;
 }
@@ -897,7 +678,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		std::thread runCEF([hInstance, editor = gameEditor.get(), &jsFuncRecv]()
 		{
 			SPP::RunBrowser(hInstance,
-				"http://spp/assets/web/editor/index.html",
+				"http://spp/assets/web/editor/sdfhlslindex.html",
 				{
 					std::bind(&EditorEngine::Initialize, editor, std::placeholders::_1),
 					std::bind(&EditorEngine::Update, editor),

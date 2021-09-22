@@ -48,6 +48,11 @@ namespace SPP
 			return _position;
 		}
 
+		Vector3& GetRotation()
+		{
+			return _eulerRotationYPR;
+		}
+
 		Vector3& GetScale()
 		{
 			return _scale;

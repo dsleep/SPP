@@ -1917,6 +1917,9 @@ namespace SPP
 	{
 		RenderableSignedDistanceField::AddToScene(InScene);
 
+		_cachedRotationScale = Matrix4x4::Identity();
+		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
+
 		static_assert((sizeof(SDFShape) * 8) % 128 == 0);
 
 		if (!_shapes.empty())
@@ -1924,7 +1927,6 @@ namespace SPP
 			_shapeResource = std::make_shared< ArrayResource >();
 			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
 			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
-
 
 			_shapeBuffer = DX12_CreateStaticBuffer(GPUBufferType::Generic, _shapeResource);			
 
@@ -1978,11 +1980,9 @@ namespace SPP
 				Vector3d Translation;
 			};
 
-			Matrix4x4 matId = Matrix4x4::Identity();
-
 			// write local to world
 			auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
-			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
+			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), _cachedRotationScale);
 			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), _position);
 
 			cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
