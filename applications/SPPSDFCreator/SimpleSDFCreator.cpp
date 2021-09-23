@@ -91,6 +91,18 @@ public:
 	{
 		_htmlReady = true;
 	}
+
+	void CodeSectionReady()
+	{
+		auto BasicSphereTest = stdfs::path(GAssetPath) / "shaders" / "BasicSDFSphere.hlsl";
+		std::string FileData;
+		if (LoadFileToString(BasicSphereTest.generic_string().c_str(), FileData))
+		{
+			JavascriptInterface::CallJS("SetHLSLText", FileData);
+
+			CompileCode(FileData);
+		}		
+	}
 		
 	void CompileCode(std::string InCode)
 	{
@@ -107,6 +119,13 @@ public:
 		else
 		{
 			JavascriptInterface::CallJS("SetCompileError", std::string("COMPILE SUCCESSFULL!!!"));
+
+			//first call
+			if (_mainGroup->GetParent() == nullptr)
+			{
+				_renderableScene->AddChild(_mainGroup);
+			}
+
 			_mainGroup->SetCustomShader(_currentActiveShader);
 			_mainGroup->UpdateTransform();
 		}
@@ -181,7 +200,6 @@ public:
 		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
 		startingSphere->SetRadius(10);
 		startingGroup->AddChild(startingSphere);
-		_renderableScene->AddChild(startingGroup);
 		_mainGroup = startingGroup;
 
 		_gizmo = AllocateObject<OMeshElement>("meshE");
@@ -304,7 +322,8 @@ RTTR_REGISTRATION
 {
 	rttr::registration::class_<EditorEngine>("EditorEngine")
 		.method("CompileCode", &EditorEngine::CompileCode)
-		.method("HTMLReady", &EditorEngine::HTMLReady)	
+		.method("HTMLReady", &EditorEngine::HTMLReady)
+		.method("CodeSectionReady", &EditorEngine::CodeSectionReady)	
 	;
 }
 

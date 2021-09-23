@@ -85,8 +85,21 @@ float4 renderSDF( float3 ro, float3 rd )
 		}
 	}
 	
+	function SetHLSLText(InText)
+	{
+		editor.setValue(InText);	
+	}
 	
+	if("RegisterJSFunction" in window)
+	{
+		window.RegisterJSFunction("SetHLSLText", SetHLSLText);
+	}
 	
+	if(window.CallNativeWithJSON != null)
+	{
+		window.CallNativeWithJSON(JSON.stringify({ func: "CodeSectionReady" }));
+	}
+		
   </script>
 
 <button class="topRight" onclick="compileButton()">Run</a>

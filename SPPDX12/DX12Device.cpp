@@ -1970,8 +1970,6 @@ namespace SPP
 		//}
 	}
 
-	
-
 	void D3D12SDF::Draw()
 	{
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
