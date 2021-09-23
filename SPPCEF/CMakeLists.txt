@@ -45,7 +45,6 @@ target_link_libraries( SPPCEFUserInterface
 
 target_link_libraries( SPPCEFUserInterface 
 	PRIVATE				
-		jsoncppd
 		# CEF FILES
 		debug "Debug/libcef" optimized "Release/libcef"
 		debug "Debug/libcef_dll_wrapper" optimized "Release/libcef_dll_wrapper"
