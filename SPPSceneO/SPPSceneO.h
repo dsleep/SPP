@@ -124,6 +124,11 @@ namespace SPP
 		virtual void AddChild(OElement* InChild) override;
 		virtual void RemoveChild(OElement* InChild) override;
 
+		LooseOctree* GetOctree()
+		{
+			return _octree.get();
+		}
+
 		virtual ~OScene() { }
 	};
 

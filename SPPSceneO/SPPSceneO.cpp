@@ -114,7 +114,7 @@ namespace SPP
 	OScene::OScene(const MetaPath& InPath) : OElement(InPath) 
 	{ 
 		_octree = std::make_unique<LooseOctree>();
-		_octree->Initialize(Vector3d(0, 0, 0), 100000, 1);
+		_octree->Initialize(Vector3d(0, 0, 0), 8192, 1);
 	}
 
 	void OScene::AddChild(OElement* InChild)

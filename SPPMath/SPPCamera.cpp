@@ -6,8 +6,10 @@
 
 namespace SPP
 {
-	static const double NearClippingZ = 10.0;
-	static const double FarClippingZ = 50000.0;
+	//5 inches
+	static const double NearClippingZ = 0.127;
+	//3 miles
+	static const double FarClippingZ = 5000.0;
 		
 	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InYPR, double FoV, double AspectRatio)
 	{

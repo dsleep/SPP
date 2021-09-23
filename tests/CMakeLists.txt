@@ -120,6 +120,27 @@ if(USE_GRAPHICS AND USE_DX12)
 	set_target_properties( testDX12withCEFeditor PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 	set_property(TARGET testDX12withCEFeditor PROPERTY FOLDER "TESTS")
 	#set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor")
+
+	
+	####################
+	# high render count
+	####################
+	add_executable( testHighRenderableCount WIN32 "")
+	add_dependencies( testHighRenderableCount SPPSDFO SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess SPPSceneO SPPGraphicsO )			
+	target_sources( testHighRenderableCount 
+		PRIVATE 
+			"${CMAKE_CURRENT_LIST_DIR}/testHighRenderableCount.cpp"		
+			"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
+	target_link_libraries( testHighRenderableCount 
+		PRIVATE
+			SPPSDFO
+			SPPGraphics
+			SPPCEFUserInterface
+			SPPSceneO
+			SPPGraphicsO )
+	set_target_properties( testHighRenderableCount PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	set_property(TARGET testHighRenderableCount PROPERTY FOLDER "TESTS")
+	#set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor"
 endif()
 
 endif()
