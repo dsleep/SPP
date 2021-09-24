@@ -42,6 +42,11 @@ namespace SPP
             int32_t elementCount = 0;
         };
 
+        struct TileCoord
+        {
+            uint32_t x, y, z;
+        };
+
         class LooseOctreeNode
         {
             LooseOctreeNode(const LooseOctreeNode&) = delete;
@@ -56,6 +61,8 @@ namespace SPP
 
             void AddElement(IOctreeElement* InElement);
             void RemoveElement(IOctreeElement* InElement);
+
+            bool CanDelete() const;
 
             LooseOctreeNode* GetPlacementNode(Vector3i InSearchCenter,
                 int32_t InSearchExtent,
@@ -78,6 +85,13 @@ namespace SPP
                 uint8_t CurrentDepth = 0);            
 
             void Report(std::vector<LooseOctree::NodeInfo>& inNodes, uint8_t CurrentDepth = 0) const;
+            
+            void ImageGeneration(int32_t Width, 
+                int32_t Height, int32_t InCurrentBoundExtents, 
+                std::vector<Color3>& oData,
+                uint8_t UnitToPixelShift,
+                const TileCoord& ParentCoord,
+                std::function<bool(const AABBi&)>& InFilter);
         };
 
     private:
@@ -103,25 +117,27 @@ namespace SPP
         void RemoveElement(IOctreeElement* InElement);
         
         void Report(std::ostream *io);
-        void ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<uint8_t>& oData) const;
+        void ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, std::function<bool(const AABBi&)>& InFilter) const;
 
-        int32_t GetSizeAtDepth(uint8_t InDepth) const
+        inline int32_t GetExtentsAtDepth(uint8_t InDepth) const
         {
             return _extents >> InDepth;
         }
 
-        int32_t GetDepthAtExtentSize(uint8_t InExtents) const
+        inline int32_t GetDepthAtExtentSize(uint8_t InExtents) const
         {
             auto curExtents = roundUpToPow2(InExtents);
             return powerOf2(_extents / curExtents);
         }
+
+        AABBi GetAABB(const TileCoord& ParentCoord, uint8_t Depth) const;
 
         void WalkElements(const AABB &InAABB, const std::function<bool(const IOctreeElement *)> &InFunction, uint8_t MaxDepthToWalk = 0xFF);
         void WalkElements(const Planed frustumPlanes[6], const std::function<bool(const IOctreeElement*)>& InFunction, uint8_t MaxDepthToWalk = 0xFF);
         void WalkNodes(const std::function<bool(const AABBi&)>& InFunction, uint8_t MaxDepthToWalk = 0xFF);
 
         const Vector3d GetCenter() const { return _center; }
-        uint8_t GetXaxDepth() const { return _maxDepth; }
+        uint8_t GetMaxDepth() const { return _maxDepth; }
     };
 
     using OctreeLinkPtr = const LooseOctree::LooseOctreeNode*;

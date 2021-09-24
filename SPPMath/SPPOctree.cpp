@@ -181,17 +181,118 @@ namespace SPP
         }
     }
 
+    void AddRectColor(int32_t Width,
+        int32_t Height,
+        const Vector2i &PixelStart, const Vector2i &PixelEnd,
+        std::vector<Color3>& oData)
+    {
+        for (int32_t PixelY = PixelStart[1]; PixelY < PixelEnd[1]; PixelY++)
+        {
+            if (PixelY < 0 || PixelY >= Height)
+            {
+                continue;
+            }
+            int32_t RowStart = PixelY * Width;
+            for (int32_t PixelX = PixelStart[0]; PixelX < PixelEnd[0]; PixelX++)
+            {
+                if (PixelX < 0 || PixelX >= Width)
+                {
+                    continue;
+                }
+                auto& curColor = oData[RowStart + PixelX];
+                curColor[0] = (uint8_t)std::min(255, (uint16_t)curColor[0] + 3);
+                curColor[1] = (uint8_t)std::min(255, (uint16_t)curColor[1] + 3);
+                curColor[2] = (uint8_t)std::min(255, (uint16_t)curColor[2] + 3);
+            }
+        }
+    }
+
+    void LooseOctree::LooseOctreeNode::ImageGeneration(int32_t Width, 
+        int32_t Height, 
+        int32_t InCurrentBoundExtents,
+        std::vector<Color3>& oData,
+        uint8_t UnitToPixelShift, const TileCoord &CurCoord,
+        std::function<bool(const AABBi&)>& InFilter)
+    {
+        auto BoundsSize = InCurrentBoundExtents << 1;
+        auto PixelCnt = BoundsSize >> UnitToPixelShift;
+        auto AddLoose = InCurrentBoundExtents;
+        auto AddLoosePixelCnt = AddLoose >> UnitToPixelShift;
+
+        Vector2i MeterStart = Vector2i{ CurCoord.x * PixelCnt, CurCoord.z * PixelCnt };
+
+        AABBi MeterStart = 
+
+        Vector2i PixelStart = Vector2i{ CurCoord.x * PixelCnt, CurCoord.z * PixelCnt  };
+        PixelStart -= Vector2i{ (AddLoosePixelCnt >> 1), (AddLoosePixelCnt >> 1) };
+        Vector2i PixelEnd = PixelStart +
+            Vector2i{ PixelCnt + AddLoosePixelCnt, PixelCnt + AddLoosePixelCnt };
+
+        AddRectColor(Width, Height, PixelStart, PixelEnd, oData);
+
+        TileCoord childStart{ CurCoord.x << 1, CurCoord.y << 1, CurCoord.z << 1 };
+        for (int32_t ChildIter = 0; ChildIter < 8; ChildIter++)
+        {
+            if (_children[ChildIter])
+            {
+                auto ChildCoord = TileCoord{
+                    (ChildIter & OctreeNodeType::Node_Right) ? childStart.x + 1 : childStart.x,
+                    (ChildIter & OctreeNodeType::Node_Up) ? childStart.y + 1 : childStart.y,
+                    (ChildIter & OctreeNodeType::Node_Forward) ? childStart.z + 1 : childStart.z };
+                             
+
+                _children[ChildIter]->ImageGeneration(Width, Height, InCurrentBoundExtents >> 1, oData, UnitToPixelShift, ChildCoord, InFilter);
+            }
+        }
+    }
+
     void LooseOctree::LooseOctreeNode::AddElement(IOctreeElement* InElement)
     {
         _elements.push_back(InElement);
         InElement->SetOctreeLink(this);
     }
 
+    bool LooseOctree::LooseOctreeNode::CanDelete() const
+    {
+        if (!_elements.empty())
+        {
+            return false;
+        }
+
+        for (int32_t ChildIter = 0; ChildIter < 8; ChildIter++)
+        {
+            if (_children[ChildIter] && !_children[ChildIter]->CanDelete())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     void LooseOctree::LooseOctreeNode::RemoveElement(IOctreeElement* InElement)
     {
         SE_ASSERT(InElement->GetOctreeLink() == this);
         InElement->SetOctreeLink(nullptr);
-        _elements.remove(InElement);        
+        _elements.remove(InElement);     
+
+        // prune?
+    }
+
+    AABBi LooseOctree::GetAABB(const TileCoord& ParentCoord, uint8_t Depth) const
+    {
+        auto CurExtent = GetExtentsAtDepth(Depth);
+        auto CurExtentLooseAdd = (CurExtent >> 1);
+        auto CurExtentLoose = CurExtent + CurExtentLooseAdd;
+
+        auto ParentMin = Vector3i{ ParentCoord.x * CurExtent - _extents - CurExtentLooseAdd,
+            ParentCoord.y * CurExtent - _extents - CurExtentLooseAdd,
+            ParentCoord.z * CurExtent - _extents - CurExtentLooseAdd };
+        auto ParentMax = Vector3i{ ParentMin[0] + CurExtentLoose,
+            ParentMin[1] + CurExtentLoose,
+            ParentMin[2] + CurExtentLoose };
+
+        return AABBi(ParentMin, ParentMax);
     }
 
     void LooseOctree::AddElement(IOctreeElement *InElement)
@@ -285,7 +386,7 @@ namespace SPP
         }
     }
 
-    void LooseOctree::ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<uint8_t>& oData) const
+    void LooseOctree::ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, std::function<bool(const AABBi&)>& InFilter) const
     {        
         auto DesiredImageSize = powerOf2(2048);
         auto CurrentSize = powerOf2(_extents << 1);
@@ -293,5 +394,11 @@ namespace SPP
         auto DeltaShift = std::max(0, CurrentSize - DesiredImageSize);
 
         oWidth = oHeight = (_extents << 1) >> DeltaShift;
+        oData.resize(oWidth * oHeight, Color3(0, 0, 0));
+
+        if (_rootNode)
+        {
+            _rootNode->ImageGeneration(oWidth, oHeight, _extents, oData, DeltaShift, { 0,0,0 }, InFilter);
+        }
     }
 }
