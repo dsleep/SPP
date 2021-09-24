@@ -103,6 +103,7 @@ namespace SPP
         void RemoveElement(IOctreeElement* InElement);
         
         void Report(std::ostream *io);
+        void ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<uint8_t>& oData) const;
 
         int32_t GetSizeAtDepth(uint8_t InDepth) const
         {

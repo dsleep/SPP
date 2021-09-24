@@ -284,4 +284,14 @@ namespace SPP
             (*io) << std::endl;
         }
     }
+
+    void LooseOctree::ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<uint8_t>& oData) const
+    {        
+        auto DesiredImageSize = powerOf2(2048);
+        auto CurrentSize = powerOf2(_extents << 1);
+
+        auto DeltaShift = std::max(0, CurrentSize - DesiredImageSize);
+
+        oWidth = oHeight = (_extents << 1) >> DeltaShift;
+    }
 }

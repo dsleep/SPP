@@ -385,6 +385,9 @@ namespace SPP
     {
         using BoxVector3 = Eigen::Matrix< T, 1, 3, Eigen::RowMajor >;
 
+        //BoxVector3 corners[8];
+        //InBox.PopulateCorners(corners);
+
         // check box outside/inside of frustum
         for (int i = 0; i < 6; i++)
         {

@@ -19,6 +19,13 @@ namespace SPP
         uint8_t R, G, B, A;
     };   
 
+    SPP_GRAPHICS_API bool SaveImageToFile(const char* FilePath,
+        uint32_t Width,
+        uint32_t Height,
+        TextureFormat Format,
+        const uint8_t* ImageData
+    );
+
     class SPP_GRAPHICS_API TextureObject
     {
     private:

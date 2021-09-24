@@ -8,14 +8,55 @@
 
 #include "SPPFileSystem.h"
 #include "SPPString.h"
+#include "SPPSTLUtils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+#define STB_IMAGE_WRITE_STATIC
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 //#include "XTK12/DDS.h"
 
 namespace SPP
 {
+	bool SaveImageToFile(const char* FilePath,
+		uint32_t Width,
+		uint32_t Height,
+		TextureFormat Format,
+		const uint8_t *ImageData)
+	{
+		if (Format == TextureFormat::RGB_888)
+		{
+			auto FileExt = stdfs::path(FilePath).extension().generic_string();
+			std::inlineToLower(FileExt);
+
+			if (EndsWith(FileExt, "jpg"))
+			{
+				stbi_write_jpg(FilePath, Width, Height, 3, ImageData, 50);
+			}
+			else if (EndsWith(FileExt, "bmp"))
+			{
+				stbi_write_bmp(FilePath, Width, Height, 3, ImageData);
+			}
+			else if (EndsWith(FileExt, "tga"))
+			{
+				stbi_write_tga(FilePath, Width, Height, 3, ImageData);
+			}
+			else
+			{
+				stbi_write_png(FilePath, Width, Height, 3, ImageData, Width * 3);
+			}
+
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 #if 0
 	inline bool LoadDDSTextureDataFromFile(
 		const char* fileName,
