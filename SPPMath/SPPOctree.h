@@ -82,7 +82,13 @@ namespace SPP
             void WalkNodes(const std::function<bool(const AABBi&)>& InFunction, 
                 Vector3i InCurrentCenter, 
                 int32_t InCurrentBoundExtents, 
-                uint8_t CurrentDepth = 0);            
+                uint8_t CurrentDepth = 0);      
+
+            void WalkElements(const LooseOctree *octree,
+                const TileCoord& Coord,
+                const std::function<bool(const AABBi&)>& InFilter,
+                const std::function<bool(const IOctreeElement*)>& InFunction,
+                uint8_t CurrentDepth = 0);
 
             void Report(std::vector<LooseOctree::NodeInfo>& inNodes, uint8_t CurrentDepth = 0) const;
             
@@ -130,10 +136,14 @@ namespace SPP
             return powerOf2(_extents / curExtents);
         }
 
-        AABBi GetAABB(const TileCoord& ParentCoord, uint8_t Depth) const;
+        AABBi GetLooseAABB(const TileCoord& ParentCoord, uint8_t Depth) const;
 
         void WalkElements(const AABB &InAABB, const std::function<bool(const IOctreeElement *)> &InFunction, uint8_t MaxDepthToWalk = 0xFF);
         void WalkElements(const Planed frustumPlanes[6], const std::function<bool(const IOctreeElement*)>& InFunction, uint8_t MaxDepthToWalk = 0xFF);
+
+        void WalkElements(const std::function<bool(const AABBi&)>& InFilter,
+            const std::function<bool(const IOctreeElement*)>& InFunction);
+
         void WalkNodes(const std::function<bool(const AABBi&)>& InFunction, uint8_t MaxDepthToWalk = 0xFF);
 
         const Vector3d GetCenter() const { return _center; }

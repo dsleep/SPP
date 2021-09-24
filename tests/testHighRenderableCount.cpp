@@ -191,19 +191,31 @@ public:
 			int32_t eleFound = 0;
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
 
-			AABB aabbTest(Vector3(-2500, -2500, -2500), Vector3(2500, 2500, 2500));
+			AABBi aabbTest(Vector3i(-2500, -2500, -2500), Vector3i(2500, 2500, 2500));
 
-			int32_t Width = 0, Height = 0;
-			std::vector<Color3> dataSize;
-			RSOctree->ImageGeneration(Width, Height, dataSize);
-
-			SaveImageToFile("test.jpg", Width, Height, TextureFormat::RGB_888, (uint8_t*) dataSize.data());
-
-			RSOctree->WalkElements(aabbTest, [&eleFound](const IOctreeElement* curEle)
+			RSOctree->WalkElements(
+				[&aabbTest, &planes](const AABBi& InAABB) -> bool
+				{
+					return boxInFrustum(planes, InAABB);
+				},
+				[&eleFound](const IOctreeElement* curEle) -> bool
 				{
 					eleFound++;
 					return true;
-				});
+				}
+				);
+
+			//int32_t Width = 0, Height = 0;
+			//std::vector<Color3> dataSize;
+			//RSOctree->ImageGeneration(Width, Height, dataSize);
+
+			//SaveImageToFile("test.jpg", Width, Height, TextureFormat::RGB_888, (uint8_t*) dataSize.data());
+
+			//RSOctree->WalkElements(aabbTest, [&eleFound](const IOctreeElement* curEle)
+			//	{
+			//		eleFound++;
+			//		return true;
+			//	});
 
 			auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - CurrentTime);
 

@@ -211,11 +211,13 @@ namespace SPP
     using Color3 = Eigen::Matrix< uint8_t, 1, 3, Eigen::RowMajor >;
     using Color4 = Eigen::Matrix< uint8_t, 1, 4, Eigen::RowMajor >;
 
-    using Plane = Eigen::Hyperplane< float, 3 >;
-    using Planed = Eigen::Hyperplane< double, 3 >;
 
     template<typename T>
     using PlaneT = Eigen::Hyperplane< T, 3 >;
+
+    using Plane = PlaneT< float >;
+    using Planed = PlaneT< double >;
+
 
     template<typename T>
     T RandomFloat(T a, T b) {

@@ -158,6 +158,8 @@ namespace SPP
 
 		Matrix4x4d viewProjMatrixWithTranslation = cameraMatrixWithTranslation.inverse() * _correctionMatrix.cast<double>() * _projectionMatrix.cast<double>();
 
+		viewProjMatrixWithTranslation.transposeInPlace();
+
 		// left
 		coeff0 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(0, 0);
 		// right

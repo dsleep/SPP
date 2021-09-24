@@ -124,6 +124,42 @@ namespace SPP
         }
     }
 
+    void LooseOctree::LooseOctreeNode::WalkElements(const LooseOctree* octree, 
+        const TileCoord& Coord,
+        const std::function<bool(const AABBi&)>& InFilter,
+        const std::function<bool(const IOctreeElement*)>& InFunction,
+        uint8_t CurrentDepth)
+    {
+        auto curBounds = octree->GetLooseAABB(Coord, CurrentDepth);
+
+        if (!InFilter(curBounds))
+        {
+            return;
+        }
+
+        for (auto& ele : _elements)
+        {
+            if (InFunction(ele) == false)
+            {
+                return;
+            }
+        }
+
+        TileCoord childStart{ Coord.x << 1, Coord.y << 1, Coord.z << 1 };
+        for (int32_t ChildIter = 0; ChildIter < 8; ChildIter++)
+        {
+            if (_children[ChildIter])
+            {
+                auto ChildCoord = TileCoord{
+                    (ChildIter & OctreeNodeType::Node_Right) ? childStart.x + 1 : childStart.x,
+                    (ChildIter & OctreeNodeType::Node_Up) ? childStart.y + 1 : childStart.y,
+                    (ChildIter & OctreeNodeType::Node_Forward) ? childStart.z + 1 : childStart.z };
+
+                _children[ChildIter]->WalkElements(octree, ChildCoord, InFilter, InFunction, CurrentDepth + 1);
+            }
+        }
+    }
+
     void LooseOctree::LooseOctreeNode::WalkNodes(const std::function<bool(const AABBi&)>& InFunction,
         Vector3i InCurrentCenter,
         int32_t InCurrentBoundExtents,
@@ -219,10 +255,6 @@ namespace SPP
         auto AddLoose = InCurrentBoundExtents;
         auto AddLoosePixelCnt = AddLoose >> UnitToPixelShift;
 
-        Vector2i MeterStart = Vector2i{ CurCoord.x * PixelCnt, CurCoord.z * PixelCnt };
-
-        AABBi MeterStart = 
-
         Vector2i PixelStart = Vector2i{ CurCoord.x * PixelCnt, CurCoord.z * PixelCnt  };
         PixelStart -= Vector2i{ (AddLoosePixelCnt >> 1), (AddLoosePixelCnt >> 1) };
         Vector2i PixelEnd = PixelStart +
@@ -279,18 +311,22 @@ namespace SPP
         // prune?
     }
 
-    AABBi LooseOctree::GetAABB(const TileCoord& ParentCoord, uint8_t Depth) const
+    AABBi LooseOctree::GetLooseAABB(const TileCoord& ParentCoord, uint8_t Depth) const
     {
         auto CurExtent = GetExtentsAtDepth(Depth);
+        auto CurLength = (CurExtent << 1);
         auto CurExtentLooseAdd = (CurExtent >> 1);
         auto CurExtentLoose = CurExtent + CurExtentLooseAdd;
 
-        auto ParentMin = Vector3i{ ParentCoord.x * CurExtent - _extents - CurExtentLooseAdd,
-            ParentCoord.y * CurExtent - _extents - CurExtentLooseAdd,
-            ParentCoord.z * CurExtent - _extents - CurExtentLooseAdd };
-        auto ParentMax = Vector3i{ ParentMin[0] + CurExtentLoose,
-            ParentMin[1] + CurExtentLoose,
-            ParentMin[2] + CurExtentLoose };
+        Vector3i ParentMin = Vector3i{
+            (int32_t) (ParentCoord.x * CurLength - _extents - CurExtentLooseAdd),
+            (int32_t) (ParentCoord.y * CurLength - _extents - CurExtentLooseAdd),
+            (int32_t) (ParentCoord.z * CurLength - _extents - CurExtentLooseAdd) };
+
+        Vector3i ParentMax = Vector3i{ 
+            ParentMin[0] + (CurExtentLoose << 1),
+            ParentMin[1] + (CurExtentLoose << 1),
+            ParentMin[2] + (CurExtentLoose << 1) };
 
         return AABBi(ParentMin, ParentMax);
     }
@@ -324,6 +360,15 @@ namespace SPP
         }        
     }
 
+    void LooseOctree::WalkElements(const std::function<bool(const AABBi&)>& InFilter,
+        const std::function<bool(const IOctreeElement*)>& InFunction)
+    {
+        if (_rootNode)
+        {
+            _rootNode->WalkElements(this, TileCoord{ 0,0 }, InFilter, InFunction);
+        }
+    }
+        
     void LooseOctree::WalkElements(const Planed frustumPlanes[6], const std::function<bool(const IOctreeElement*)>& InFunction, uint8_t MaxDepthToWalk)
     {
         if (_rootNode)
