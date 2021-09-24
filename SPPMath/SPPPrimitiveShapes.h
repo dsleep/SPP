@@ -288,7 +288,7 @@ namespace SPP
                      (int32_t)std::roundf(InValue.GetCenter()[1]),
                      (int32_t)std::roundf(InValue.GetCenter()[2])),
                      //to compensate for rounding
-            (int32_t)std::ceilf(InValue.GetRadius() + 0.5) };
+            (int32_t)std::ceilf(InValue.GetRadius() + 0.5f) };
     }
 
     inline Spherei Convert(const Vector3d &center, float extent)

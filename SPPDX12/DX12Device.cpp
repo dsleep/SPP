@@ -2110,11 +2110,11 @@ namespace SPP
 			DX12_EndResourceCopy();
 		}
 
-		virtual bool RegisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement)
+		virtual bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement)
 		{
 			return SPP::RegisterMeshElement(InMeshElement);
 		}
-		virtual bool UnregisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement)
+		virtual bool UnregisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement)
 		{
 			return SPP::UnregisterMeshElement(InMeshElement);
 		}

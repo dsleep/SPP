@@ -50,7 +50,7 @@ namespace SPP
 		}
 		inline bool SetValue(size_t Idx, const int& InValue)
 		{
-			return SetInt(Idx, (double)InValue);
+			return SetInt(Idx, InValue);
 		}
 		inline bool SetValue(size_t Idx, const double& InValue)
 		{

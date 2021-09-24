@@ -61,7 +61,7 @@ namespace SPP
 		virtual void AddToScene(class RenderScene* InScene);
 		virtual void RemoveFromScene();
 
-		virtual void DrawDebug(std::vector< class DebugVertex >& lines) { };
+		virtual void DrawDebug(std::vector< struct DebugVertex >& lines) { };
 		virtual void Draw() { };		
 
 		Matrix4x4 GenerateLocalToWorldMatrix() const

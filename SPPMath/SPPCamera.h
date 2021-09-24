@@ -44,7 +44,7 @@ namespace SPP
 	public:
 		Camera() { }
 		
-		void Initialize(const Vector3d& InPosition, const Vector3 &InYPR, double FoV, double AspectRatio);
+		void Initialize(const Vector3d& InPosition, const Vector3 &InYPR, float FoV, float AspectRatio);
 		void BuildCameraMatrices();
 
 		float GetFoV() const
@@ -54,7 +54,7 @@ namespace SPP
 		
 		float GetRecipTanHalfFovy() const;
 
-		void GenerateLeftHandFoVPerspectiveMatrix(double FoV, double AspectRatio);
+		void GenerateLeftHandFoVPerspectiveMatrix(float FoV, float AspectRatio);
 
 		void SetupStandardCorrection();
 

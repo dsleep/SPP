@@ -1,3 +1,6 @@
+// Copyright (c) David Sleeper (Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
 
 #include "SPPVideo.h"
 #include "SPPLogging.h"
@@ -7,6 +10,9 @@
 
 	#include "Windows.h"
 	
+
+	#pragma warning(disable : 4244)
+
 	extern "C" 
 	{
 	#include <libavformat/avformat.h>
@@ -255,7 +261,7 @@ namespace SPP
 			return;
 		}
 
-		for (int32_t Iter = 0; Iter < _impl->ctx->nb_streams; Iter++)
+		for (int32_t Iter = 0; Iter < (int32_t)_impl->ctx->nb_streams; Iter++)
 		{
 			if (_impl->ctx->streams[Iter]->codec &&
 				_impl->ctx->streams[Iter]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -312,7 +318,7 @@ namespace SPP
 		if (_impl->pkt->size > 0)
 		{
 			oSize = _impl->pkt->size;
-			if (outData.size() < oSize)
+			if ((int64_t)outData.size() < oSize)
 			{
 				outData.resize(oSize);
 			}

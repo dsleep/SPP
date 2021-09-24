@@ -15,6 +15,11 @@
 #include <unordered_set>
 #include <cstdio>
 
+#if _WIN32
+#pragma warning(disable : 4244)
+#pragma warning(disable : 4267)
+#endif
+
 #define FBTBLEND_IMPLEMENTATION
 #include "fbtBlend.h"
 

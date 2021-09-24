@@ -154,7 +154,7 @@ public:
 			//lets do 1000ft of variance (~300m)
 			std::uniform_int_distribution<int> heightDist(-150, 150);
 			//0.2 to 20 meters in size
-			std::uniform_real_distribution<double> objSize(0.2, 20.0);
+			std::uniform_real_distribution<float> objSize(0.2f, 20.0f);
 
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
 
@@ -181,6 +181,7 @@ public:
 		}
 
 		auto RSOctree = _renderableScene->GetOctree();
+		RSOctree->Report(&std::cout);
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
 
 		Planed planes[6];
@@ -201,7 +202,6 @@ public:
 			auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - CurrentTime);
 
 			SPP_QL("Tree Test: %f seconds found %d", time_span.count(), eleFound);
-
 		}
 				
 		

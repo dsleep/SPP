@@ -26,29 +26,14 @@ namespace SPP
 
 	}
 
-	bool OpenGLShader::CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint)
+	bool OpenGLShader::CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint, std::string* oErrorMsgs)
 	{
-		std::string ShaderCode;
-		std::ifstream ShaderStream(*FileName, std::ios::in);
-		if (ShaderStream.is_open())
-		{
-			std::stringstream sstr;
-			sstr << ShaderStream.rdbuf();
-			ShaderCode = sstr.str();
-			ShaderStream.close();
-		}
-		else
-		{
-			printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", *FileName);
-			return false;
-		}
-
 		GLint Result = GL_FALSE;
 		int InfoLogLength;
 
 		// Compile Vertex Shader
-		SPP_LOG(LOG_OpenGLShader, LOG_INFO, "Compiling shader : %s", *FileName);
-		char const* SourcePointer = ShaderCode.c_str();
+		SPP_LOG(LOG_OpenGLShader, LOG_INFO, "Compiling shader : %s", *ShaderName);
+		char const* SourcePointer = ShaderSource.c_str();
 		glShaderSource(_shaderID, 1, &SourcePointer, NULL);
 		glCompileShader(_shaderID);
 
@@ -60,6 +45,11 @@ namespace SPP
 			std::vector<char> ShaderErrorMessage(InfoLogLength + 1);
 			glGetShaderInfoLog(_shaderID, InfoLogLength, NULL, &ShaderErrorMessage[0]);
 			SPP_LOG(LOG_OpenGLShader, LOG_INFO, "%s", &ShaderErrorMessage[0]);
+
+			if (oErrorMsgs)
+			{
+				*oErrorMsgs = &ShaderErrorMessage[0];
+			}
 		}
 
 		return true;

@@ -602,8 +602,8 @@ namespace SPP
         virtual void BeginResourceCopies() { }
         virtual void EndResourceCopies() { }
 
-        virtual bool RegisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement) { return true; };
-        virtual bool UnregisterMeshElement(std::shared_ptr<class MeshElement> InMeshElement) { return true; };
+        virtual bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
+        virtual bool UnregisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
     };
 
     // global graphics interface

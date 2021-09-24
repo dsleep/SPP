@@ -7,11 +7,11 @@
 namespace SPP
 {
 	//5 inches
-	static const double NearClippingZ = 0.127;
+	static const float NearClippingZ = 0.127f;
 	//3 miles
-	static const double FarClippingZ = 5000.0;
+	static const float FarClippingZ = 5000.0f;
 		
-	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InYPR, double FoV, double AspectRatio)
+	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InYPR, float FoV, float AspectRatio)
 	{
 		_cameraPosition = InPosition;
 		_eulerAnglesYPR = InYPR;
@@ -40,11 +40,11 @@ namespace SPP
 		_invViewProjMatrix = _viewProjMatrix.inverse();
 	}
 
-	void Camera::GenerateLeftHandFoVPerspectiveMatrix(double FoV, double AspectRatio)
+	void Camera::GenerateLeftHandFoVPerspectiveMatrix(float FoV, float AspectRatio)
 	{
 		_projectionMatrix = Matrix4x4::Identity();
 
-		float xscale = 1.0f / (float)std::tan(DegToRad(FoV) * 0.5);
+		float xscale = 1.0f / (float)std::tanf(DegToRad(FoV) * 0.5f);
 		float yscale = xscale * AspectRatio;
 
 		float fnDelta = FarClippingZ - NearClippingZ;

@@ -294,7 +294,7 @@ namespace SPP
 		virtual void Seek(int64_t DataPos) override
 		{
 			SE_ASSERT(DataPos >= 0);
-			SE_ASSERT(DataPos <= _data.size());
+			SE_ASSERT(DataPos <= (int64_t)_data.size());
 			_position = DataPos;
 		}
 		virtual int64_t Tell() const override

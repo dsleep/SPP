@@ -478,8 +478,8 @@ namespace SPP
 			bufferedAmount += coder->GetBufferedAmount();
 		}
 
-		bufferedAmount += _outGoingStream.Size();
-		bufferedAmount += _incomingStream.Size();
+		bufferedAmount += (int32_t)_outGoingStream.Size();
+		bufferedAmount += (int32_t)_incomingStream.Size();
 
 		return bufferedAmount;
 	}

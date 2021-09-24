@@ -237,7 +237,7 @@ namespace SPP
 	template<typename T>
 	T DegToRad(const T& InValue)
 	{
-		return InValue * (M_PI / 180.0);
+		return (T)(InValue * (M_PI / 180.0));
 	}
 
 	template<typename T>
