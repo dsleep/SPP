@@ -220,6 +220,7 @@ namespace SPP
     void AddRectColor(int32_t Width,
         int32_t Height,
         const Vector2i &PixelStart, const Vector2i &PixelEnd,
+        uint8_t Value,
         std::vector<Color3>& oData)
     {
         for (int32_t PixelY = PixelStart[1]; PixelY < PixelEnd[1]; PixelY++)
@@ -236,31 +237,40 @@ namespace SPP
                     continue;
                 }
                 auto& curColor = oData[RowStart + PixelX];
-                curColor[0] = (uint8_t)std::min(255, (uint16_t)curColor[0] + 3);
-                curColor[1] = (uint8_t)std::min(255, (uint16_t)curColor[1] + 3);
-                curColor[2] = (uint8_t)std::min(255, (uint16_t)curColor[2] + 3);
+                curColor[0] = (uint8_t)std::min(255, (uint16_t)curColor[0] + Value);
+                curColor[1] = (uint8_t)std::min(255, (uint16_t)curColor[1] + Value);
+                curColor[2] = (uint8_t)std::min(255, (uint16_t)curColor[2] + Value);
             }
         }
     }
 
-    void LooseOctree::LooseOctreeNode::ImageGeneration(int32_t Width, 
+    void LooseOctree::LooseOctreeNode::ImageGeneration(const LooseOctree* octree,
+        int32_t Width, 
         int32_t Height, 
         int32_t InCurrentBoundExtents,
         std::vector<Color3>& oData,
         uint8_t UnitToPixelShift, const TileCoord &CurCoord,
-        std::function<bool(const AABBi&)>& InFilter)
+        const std::function<bool(const AABBi&)>& InFilter,
+        uint8_t CurrentDepth)
     {
         auto BoundsSize = InCurrentBoundExtents << 1;
         auto PixelCnt = BoundsSize >> UnitToPixelShift;
         auto AddLoose = InCurrentBoundExtents;
         auto AddLoosePixelCnt = AddLoose >> UnitToPixelShift;
 
+        auto curBounds = octree->GetLooseAABB(CurCoord, CurrentDepth);
+
+        if (!InFilter(curBounds))
+        {
+            return;
+        }
+
         Vector2i PixelStart = Vector2i{ CurCoord.x * PixelCnt, CurCoord.z * PixelCnt  };
         PixelStart -= Vector2i{ (AddLoosePixelCnt >> 1), (AddLoosePixelCnt >> 1) };
         Vector2i PixelEnd = PixelStart +
             Vector2i{ PixelCnt + AddLoosePixelCnt, PixelCnt + AddLoosePixelCnt };
 
-        AddRectColor(Width, Height, PixelStart, PixelEnd, oData);
+        AddRectColor(Width, Height, PixelStart, PixelEnd, CurrentDepth, oData );
 
         TileCoord childStart{ CurCoord.x << 1, CurCoord.y << 1, CurCoord.z << 1 };
         for (int32_t ChildIter = 0; ChildIter < 8; ChildIter++)
@@ -273,7 +283,8 @@ namespace SPP
                     (ChildIter & OctreeNodeType::Node_Forward) ? childStart.z + 1 : childStart.z };
                              
 
-                _children[ChildIter]->ImageGeneration(Width, Height, InCurrentBoundExtents >> 1, oData, UnitToPixelShift, ChildCoord, InFilter);
+                _children[ChildIter]->ImageGeneration(octree,
+                    Width, Height, InCurrentBoundExtents >> 1, oData, UnitToPixelShift, ChildCoord, InFilter, CurrentDepth+1);
             }
         }
     }
@@ -431,7 +442,7 @@ namespace SPP
         }
     }
 
-    void LooseOctree::ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, std::function<bool(const AABBi&)>& InFilter) const
+    void LooseOctree::ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, const std::function<bool(const AABBi&)>& InFilter) const
     {        
         auto DesiredImageSize = powerOf2(2048);
         auto CurrentSize = powerOf2(_extents << 1);
@@ -443,7 +454,7 @@ namespace SPP
 
         if (_rootNode)
         {
-            _rootNode->ImageGeneration(oWidth, oHeight, _extents, oData, DeltaShift, { 0,0,0 }, InFilter);
+            _rootNode->ImageGeneration(this, oWidth, oHeight, _extents, oData, DeltaShift, { 0,0,0 }, InFilter);
         }
     }
 }

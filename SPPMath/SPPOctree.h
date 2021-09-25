@@ -92,12 +92,15 @@ namespace SPP
 
             void Report(std::vector<LooseOctree::NodeInfo>& inNodes, uint8_t CurrentDepth = 0) const;
             
-            void ImageGeneration(int32_t Width, 
-                int32_t Height, int32_t InCurrentBoundExtents, 
+            void ImageGeneration(const LooseOctree* octree,
+                int32_t Width, 
+                int32_t Height, 
+                int32_t InCurrentBoundExtents, 
                 std::vector<Color3>& oData,
                 uint8_t UnitToPixelShift,
                 const TileCoord& ParentCoord,
-                std::function<bool(const AABBi&)>& InFilter);
+                const std::function<bool(const AABBi&)>& InFilter,
+                uint8_t CurrentDepth = 0);
         };
 
     private:
@@ -123,7 +126,7 @@ namespace SPP
         void RemoveElement(IOctreeElement* InElement);
         
         void Report(std::ostream *io);
-        void ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, std::function<bool(const AABBi&)>& InFilter) const;
+        void ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, const std::function<bool(const AABBi&)>& InFilter) const;
 
         inline int32_t GetExtentsAtDepth(uint8_t InDepth) const
         {
