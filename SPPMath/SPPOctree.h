@@ -125,7 +125,7 @@ namespace SPP
         void AddElement(IOctreeElement *InElement);
         void RemoveElement(IOctreeElement* InElement);
         
-        void Report(std::ostream *io);
+        void Report();
         void ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, const std::function<bool(const AABBi&)>& InFilter) const;
 
         inline int32_t GetExtentsAtDepth(uint8_t InDepth) const

@@ -227,9 +227,25 @@ namespace SPP
 			SPP_LOG(LOG_D3D12Shader, LOG_INFO, " - FAILED");
 			return false;
 		}
-				
-		pCompileResult->GetResult(&_shader);
+			
+		{
+			ComPtr<IDxcBlob> pReflectionData;
+			pCompileResult->GetOutput(DXC_OUT_REFLECTION, IID_PPV_ARGS(pReflectionData.GetAddressOf()), nullptr);
+			DxcBuffer reflectionBuffer;
+			reflectionBuffer.Ptr = pReflectionData->GetBufferPointer();
+			reflectionBuffer.Size = pReflectionData->GetBufferSize();
+			reflectionBuffer.Encoding = 0;
 
+			ComPtr<ID3D12ShaderReflection> pShaderReflection;
+			pLibrary->CreateReflection(&reflectionBuffer, IID_PPV_ARGS(pShaderReflection.GetAddressOf()));
+					
+			//lots of potentially useful things in there
+			pShaderReflection->GetDesc(&_desc);
+
+			SPP_LOG(LOG_D3D12Shader, LOG_INFO, " - instruction count: %d", _desc.InstructionCount);
+		}
+
+		pCompileResult->GetResult(&_shader);
 
 		auto bufPtr = _shader->GetBufferPointer();
 		auto bufSize = _shader->GetBufferSize();
@@ -251,6 +267,11 @@ namespace SPP
 		}
 
 		return true;
+	}
+
+	int32_t D3D12Shader::GetInstructionCount() const 
+	{
+		return _desc.InstructionCount;
 	}
 
 	GPUReferencer< GPUShader > DX12_CreateShader(EShaderType InType)

@@ -352,6 +352,11 @@ namespace SPP
             return "Shader";
         }
 
+        virtual int32_t GetInstructionCount() const
+        {
+            return 0;
+        }
+
         virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
         {
             std::string loadSrc;

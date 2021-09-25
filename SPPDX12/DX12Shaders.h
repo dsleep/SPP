@@ -13,9 +13,12 @@ namespace SPP
 	protected:
 		ComPtr<IDxcBlob>				_shader;
 		ComPtr<ID3D12RootSignature>		_rootSignature;
+		D3D12_SHADER_DESC				_desc;
 
 	public:
 		D3D12Shader(EShaderType InType);
+
+		virtual int32_t GetInstructionCount() const override;
 
 		ID3D12RootSignature* GetRootSignature() const;
 		static const char* ReturnDXType(EShaderType inType);

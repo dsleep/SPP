@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>SDF CREATOR</title>
+        <meta charset="utf-8">
+		<link rel="stylesheet" href="./fontawesome/css/all.css">        
+        <script type="text/javascript" src="./jQuery/jquery-3.5.1.js"></script>		
+		<script type="text/javascript" src="./GoldenLayout/goldenlayout.min.js"></script>		
+		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-base.css" />
+		<link type="text/css" rel="stylesheet" href="./GoldenLayout/goldenlayout-dark-theme.css" />
+		
+		<link rel=stylesheet href="codemirror/lib/codemirror.css">
+		<link rel=stylesheet href="codemirror/theme/icecoder.css">
+		<script src="codemirror/lib/codemirror.js"></script>
+		<script src="codemirror/mode/clike/clike.js"></script>
+		<script src="codemirror/addon/edit/matchbrackets.js"></script>
+		
+		
+
+		
+	<style>
+	.icon-bar {
+  width: 100%; /* Full-width */
+  background-color: #555; /* Dark-grey background */
+  overflow: auto; /* Overflow due to float */
+}
+
+.icon-bar a {
+  float: left; /* Float links side by side */
+  text-align: center; /* Center-align text */
+  width: 40px; /* Equal width (5 icons with 20% width each = 100%) */
+  padding: 5px 0; /* Some top and bottom padding */
+  transition: all 0.3s ease; /* Add transition for hover effects */
+  color: white; /* White text color */
+  font-size: 26px; /* Increased font size */
+}
+
+.icon-bar a:hover {
+  background-color: #000; /* Add a hover color */
+}
+
+.active {
+  background-color: #242424; /* Add an active/current color */
+}
+
+
+ .unselectable {
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+	
+    </style>
+
+    </head>
+    <body class="unselectable">
+	
+	<!--
+	<div>
+	
+	<div class="icon-bar">
+  <a href="#"><i class="fa fa-save"></i></a>
+  <a href="#"><i class="fa fa-folder-open"></i></a>
+</div>
+
+	</div>
+	-->
+	
+<script>
+
+var config = {
+	settings:{
+		hasHeaders: true,
+		constrainDragToContainer: true,
+		reorderEnabled: false,
+		selectionEnabled: false,
+		popoutWholeStack: false,
+		blockedPopoutsThrowError: true,
+		closePopoutsOnUnload: false,
+		showPopoutIcon: false,
+		showMaximiseIcon: true,
+		showCloseIcon: false
+    },
+	dimensions: {
+        minItemWidth: 200,
+        minItemHeight: 50
+    },
+	content: [{
+			type: 'row',
+			content:[{
+				type: 'column',
+				width: 50,
+				
+				content:[
+					{					  				
+						type: 'component',
+						isClosable: false,
+						componentName: 'visSection',
+						title:'Visibility'
+					  
+					}]
+				},{
+					type: 'column',
+					content:[{
+						type: 'component',
+						componentName: 'gameViewComp',
+						isClosable: false,
+						title:'View'
+					}]
+				}]
+    }]
+};
+
+
+var myLayout = new GoldenLayout( config );
+var initialState = null;
+
+myLayout.registerComponent( 'visSection', function( container, componentState ){	
+	 container.getElement().html( '<div id="visContainer" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+});
+
+myLayout.registerComponent( 'gameViewComp', function( container, componentState ){	
+	container.getElement().html( '<div id="gameView" style="width: 100%; height:100%">  <h2>...</h2> </div>' );
+	
+	container.on( 'resize', function()
+	{
+		var leftPos  = $("#gameView")[0].getBoundingClientRect().left   + $(window)['scrollLeft']();
+		var rightPos = $("#gameView")[0].getBoundingClientRect().right  + $(window)['scrollLeft']();
+		var topPos   = $("#gameView")[0].getBoundingClientRect().top    + $(window)['scrollTop']();
+		var bottomPos= $("#gameView")[0].getBoundingClientRect().bottom + $(window)['scrollTop']();
+		
+		console.log("leftPos:" + leftPos);
+		console.log("rightPos:" + rightPos);
+		console.log("topPos:" + topPos);
+		console.log("bottomPos:" + bottomPos);
+		
+		if(window.CallNativeWithJSON != null)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "UpdatedGameViewRegion", args: [ leftPos, rightPos, topPos, bottomPos ] }));
+		}
+	});
+});
+
+
+myLayout.on( 'initialised', function(){
+    initialState = myLayout.toConfig();  
+
+	//$('#codeContainer').load("./sdfhlsleditor.html");	
+	
+	//if(window.CallNativeWithJSON != null)
+	//{
+		//window.CallNativeWithJSON(JSON.stringify({ func: "HTMLReady" }));
+	//}
+});
+
+myLayout.init();
+
+function ResetLayout()
+{
+	//myLayout.destroy();
+	//myLayout.config = initialState;
+	//myLayout.init();
+}
+
+
+	</script>
+
+    </body>
+	
+</html>

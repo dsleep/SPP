@@ -181,7 +181,7 @@ public:
 		}
 
 		auto RSOctree = _renderableScene->GetOctree();
-		RSOctree->Report(&std::cout);
+		RSOctree->Report();
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
 
 		Planed planes[6];
@@ -191,10 +191,10 @@ public:
 			int32_t eleFound = 0;
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
 
-			AABBi aabbTest(Vector3i(-2500, -2500, -2500), Vector3i(2500, 2500, 2500));
+			//AABBi aabbTest(Vector3i(-2500, -2500, -2500), Vector3i(2500, 2500, 2500));
 
 			RSOctree->WalkElements(
-				[&aabbTest, &planes](const AABBi& InAABB) -> bool
+				[&planes](const AABBi& InAABB) -> bool
 				{
 					return boxInFrustum(planes, InAABB);
 				},
@@ -204,6 +204,10 @@ public:
 					return true;
 				}
 				);
+
+			auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - CurrentTime);
+
+			SPP_QL("Tree Test: %fms seconds found %d", time_span.count() * 1000, eleFound);
 
 			int32_t Width = 0, Height = 0;
 			std::vector<Color3> dataSize;
@@ -221,9 +225,7 @@ public:
 			//		return true;
 			//	});
 
-			auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - CurrentTime);
-
-			SPP_QL("Tree Test: %f seconds found %d", time_span.count(), eleFound);
+			
 		}
 				
 		
@@ -429,7 +431,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		std::thread runCEF([hInstance, editor = gameEditor.get(), &jsFuncRecv]()
 		{
 			SPP::RunBrowser(hInstance,
-				"http://spp/assets/web/editor/sdfhlslindex.html",
+				"http://spp/assets/web/editor/VisibilityTesting.html",
 				{
 					std::bind(&EditorEngine::Initialize, editor, std::placeholders::_1),
 					std::bind(&EditorEngine::Update, editor),

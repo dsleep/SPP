@@ -3,9 +3,12 @@
 // recognized in your jurisdiction.
 
 #include "SPPOctree.h"
+#include "SPPLogging.h"
 
 namespace SPP
 {
+    LogEntry LOG_OCT("OCTREE");
+
     LooseOctree::LooseOctreeNode* LooseOctree::LooseOctreeNode::GetPlacementNode(
         Vector3i InSearchCenter,
         int32_t InSearchExtent,
@@ -408,39 +411,33 @@ namespace SPP
         }
     }
 
-    void LooseOctree::Report(std::ostream* io)
+    void LooseOctree::Report()
     {
-        std::vector<NodeInfo> nodes;
-        nodes.resize(_maxDepth + 1);
-        if (_rootNode)
-        {
-            _rootNode->Report(nodes);
-        }
+		std::vector<NodeInfo> nodes;
+		nodes.resize(_maxDepth + 1);
+		if (_rootNode)
+		{
+			_rootNode->Report(nodes);
+		}
 
-        if (io)
-        {
-            (*io) << std::endl;
+		int32_t TotalNodes = 0;
+		int32_t TotalElements = 0;
 
-            int32_t TotalNodes = 0;
-            int32_t TotalElements = 0;
+		for (int32_t Iter = 0; Iter < nodes.size(); Iter++)
+		{
+            SPP_LOG(LOG_OCT, LOG_INFO, "Level: %d", Iter);
+            SPP_LOG(LOG_OCT, LOG_INFO, " - Active Nodes Count: %d", nodes[Iter].activeNodes);
+            SPP_LOG(LOG_OCT, LOG_INFO, " - Element Count: %d", nodes[Iter].elementCount);
+            SPP_LOG(LOG_OCT, LOG_INFO, " - Extents: %d", GetExtentsAtDepth(Iter));
 
-            for (int32_t Iter = 0; Iter < nodes.size(); Iter++)
-            {
-                (*io) << "Level: " << Iter << std::endl;
-                (*io) << " - Active Nodes Count: " << nodes[Iter].activeNodes << std::endl;
-                (*io) << " - Element Count: " << nodes[Iter].elementCount << std::endl;
+			TotalNodes += nodes[Iter].activeNodes;
+			TotalElements += nodes[Iter].elementCount;
+		}
 
-                TotalNodes += nodes[Iter].activeNodes;
-                TotalElements += nodes[Iter].elementCount;
-            }
-
-            (*io) << "TOTALS: " << std::endl;
-            (*io) << " - Total Nodes: " << TotalNodes << std::endl;
-            (*io) << " - Total Elements: " << TotalElements << std::endl;
-
-            (*io) << std::endl;
-        }
-    }
+        SPP_LOG(LOG_OCT, LOG_INFO, "TOTALS: ");
+        SPP_LOG(LOG_OCT, LOG_INFO, " - Total Nodes: %d", TotalNodes);
+        SPP_LOG(LOG_OCT, LOG_INFO, " - Total Elements: %d", TotalElements);
+	}
 
     void LooseOctree::ImageGeneration(int32_t& oWidth, int32_t& oHeight, std::vector<Color3>& oData, const std::function<bool(const AABBi&)>& InFilter) const
     {        
