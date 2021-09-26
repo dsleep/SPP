@@ -106,6 +106,7 @@ namespace SPP
     private:
         Vector3d _center;
         int32_t _extents = 0;
+        uint8_t _extentsP2 = 0;
         uint8_t _maxDepth = 0;
         std::unique_ptr < LooseOctreeNode > _rootNode;
         Matrix4x4 _worldToOctree;
@@ -118,6 +119,7 @@ namespace SPP
 
             _center = center;
             _extents = roundUpToPow2(Extents);
+            _extentsP2 = powerOf2(_extents);
             _maxDepth = powerOf2(_extents / DesiredLowestExtents);            
         }
         virtual ~LooseOctree() = default;
@@ -139,7 +141,7 @@ namespace SPP
             return powerOf2(_extents / curExtents);
         }
 
-        AABBi GetLooseAABB(const TileCoord& ParentCoord, uint8_t Depth) const;
+        inline AABBi GetLooseAABB(const TileCoord& ParentCoord, uint8_t Depth) const;
 
         void WalkElements(const AABB &InAABB, const std::function<bool(const IOctreeElement *)> &InFunction, uint8_t MaxDepthToWalk = 0xFF);
         void WalkElements(const Planed frustumPlanes[6], const std::function<bool(const IOctreeElement*)>& InFunction, uint8_t MaxDepthToWalk = 0xFF);

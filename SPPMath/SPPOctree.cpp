@@ -119,7 +119,7 @@ namespace SPP
                     childCenter + Vector3i(looseChildExt,looseChildExt,looseChildExt)
                      };
                 
-                if (boxInFrustum(frustumPlanes, childAABB))
+                if (BoxInFrustum(frustumPlanes, childAABB))
                 {
                     _children[ChildIter]->WalkElements(frustumPlanes, childCenter, InFunction, childExt, CurrentDepth - 1);
                 }                
@@ -332,18 +332,16 @@ namespace SPP
         auto CurExtentLooseAdd = (CurExtent >> 1);
         auto CurExtentLoose = CurExtent + CurExtentLooseAdd;
 
-        Vector3i ParentMin = Vector3i{
-            (int32_t) (ParentCoord.x * CurLength - _extents - CurExtentLooseAdd),
-            (int32_t) (ParentCoord.y * CurLength - _extents - CurExtentLooseAdd),
-            (int32_t) (ParentCoord.z * CurLength - _extents - CurExtentLooseAdd) };
-
-        Vector3i ParentMax = Vector3i{ 
-            ParentMin[0] + (CurExtentLoose << 1),
-            ParentMin[1] + (CurExtentLoose << 1),
-            ParentMin[2] + (CurExtentLoose << 1) };
-
-        return AABBi(ParentMin, ParentMax);
-    }
+		return AABBi(
+			Vector3i{
+			    (int32_t)(ParentCoord.x * CurLength - _extents - CurExtentLooseAdd),
+			    (int32_t)(ParentCoord.y * CurLength - _extents - CurExtentLooseAdd),
+			    (int32_t)(ParentCoord.z * CurLength - _extents - CurExtentLooseAdd) },
+			Vector3i{
+                (int32_t)(ParentCoord.x * CurLength - _extents - CurExtentLooseAdd) + (CurExtentLoose << 1),
+				(int32_t)(ParentCoord.y * CurLength - _extents - CurExtentLooseAdd) + (CurExtentLoose << 1),
+				(int32_t)(ParentCoord.z * CurLength - _extents - CurExtentLooseAdd) + (CurExtentLoose << 1) });
+	}
 
     void LooseOctree::AddElement(IOctreeElement *InElement)
     {

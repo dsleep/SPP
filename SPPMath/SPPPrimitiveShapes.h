@@ -20,8 +20,36 @@ namespace SPP
 
     public:
         AxisAlignedBoundingBox() = default;
-        AxisAlignedBoundingBox(const T& InMin, const T& InMax) : _min(InMin), _max(InMax), _bIsValid(true)
-        {}
+        AxisAlignedBoundingBox(const T& InMin, const T& InMax) : _min(InMin), _max(InMax), _bIsValid(true) {}
+        AxisAlignedBoundingBox(T&& InMin, T&& InMax) : _min(std::move(InMin)), _max(std::move(InMax)), _bIsValid(true) {}
+        AxisAlignedBoundingBox(const AxisAlignedBoundingBox<T>& MoveBox)
+        {
+            *this = MoveBox;
+        }
+        AxisAlignedBoundingBox(AxisAlignedBoundingBox<T>&& MoveBox) 
+        {
+            *this = MoveBox;
+        }
+        AxisAlignedBoundingBox<T>& operator=(const AxisAlignedBoundingBox<T>& MoveBox)
+        {
+            if (MoveBox._bIsValid)
+            {
+                _min = MoveBox._min;
+                _max = MoveBox._max;
+                _bIsValid = true;
+            }
+            return *this;
+        }
+		AxisAlignedBoundingBox<T>& operator=(AxisAlignedBoundingBox<T>&& MoveBox) noexcept
+		{
+            if (MoveBox._bIsValid)
+            {
+                _min = std::move(MoveBox._min);
+                _max = std::move(MoveBox._max);
+                _bIsValid = true;
+            }
+			return *this;
+		}
 
         AxisAlignedBoundingBox<T> Translate(const T& InValue) const
         {
@@ -381,25 +409,31 @@ namespace SPP
     }
 
     template<typename T, typename D>
-    bool boxInFrustum(  const PlaneT<T> InPlanes[6], const AxisAlignedBoundingBox<D> &InBox)
+    inline bool BoxInFrustum(  const PlaneT<T> InPlanes[6], const AxisAlignedBoundingBox<D> &InBox)
     {
         using BoxVector3 = Eigen::Matrix< T, 1, 3, Eigen::RowMajor >;
 
-        //BoxVector3 corners[8];
-        //InBox.PopulateCorners(corners);
+        BoxVector3 minB = InBox.GetMin().cast<double>();
+        BoxVector3 maxB = InBox.GetMax().cast<double>();
+        BoxVector3 boxCorners[8] = {
+            BoxVector3(minB[0], minB[1], minB[2]),
+            BoxVector3(maxB[0], minB[1], minB[2]),
+            BoxVector3(minB[0], maxB[1], minB[2]),
+            BoxVector3(maxB[0], maxB[1], minB[2]),
+            BoxVector3(minB[0], minB[1], maxB[2]),
+            BoxVector3(maxB[0], minB[1], maxB[2]),
+            BoxVector3(minB[0], maxB[1], maxB[2]),
+            BoxVector3(maxB[0], maxB[1], maxB[2])
+        };
 
         // check box outside/inside of frustum
         for (int i = 0; i < 6; i++)
         {
             int out = 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMin()[0], InBox.GetMin()[1], InBox.GetMin()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMax()[0], InBox.GetMin()[1], InBox.GetMin()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMin()[0], InBox.GetMax()[1], InBox.GetMin()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMax()[0], InBox.GetMax()[1], InBox.GetMin()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMin()[0], InBox.GetMin()[1], InBox.GetMax()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMax()[0], InBox.GetMin()[1], InBox.GetMax()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMin()[0], InBox.GetMax()[1], InBox.GetMax()[2])) < 0.0) ? 1 : 0;
-            out += (InPlanes[i].signedDistance(BoxVector3(InBox.GetMax()[0], InBox.GetMax()[1], InBox.GetMax()[2])) < 0.0) ? 1 : 0;
+            for (int j = 0; j < 8; j++)
+            {
+                out += (InPlanes[i].signedDistance(boxCorners[j]) < 0.0) ? 1 : 0;
+            }
             if (out == 8) return false;
         }
 

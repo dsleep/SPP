@@ -159,7 +159,7 @@ public:
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
 
 			// lets start with 1 million elements of varying bounds
-			for (int32_t Iter = 0; Iter < 100 * 1024; Iter++)
+			for (int32_t Iter = 0; Iter < 50 * 1024; Iter++)
 			{
 				auto* curElement = AllocateObject<OElement>("GENELE");
 
@@ -196,7 +196,7 @@ public:
 			RSOctree->WalkElements(
 				[&planes](const AABBi& InAABB) -> bool
 				{
-					return boxInFrustum(planes, InAABB);
+					return BoxInFrustum(planes, InAABB);
 				},
 				[&eleFound](const IOctreeElement* curEle) -> bool
 				{
@@ -207,14 +207,14 @@ public:
 
 			auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - CurrentTime);
 
-			SPP_QL("Tree Test: %fms seconds found %d", time_span.count() * 1000, eleFound);
+			SPP_QL("Tree Test: %fms found %d", time_span.count() * 1000, eleFound);
 
 			int32_t Width = 0, Height = 0;
 			std::vector<Color3> dataSize;
 			RSOctree->ImageGeneration(Width, Height, dataSize,
 				[&planes](const AABBi& InAABB) -> bool
 				{
-					return boxInFrustum(planes, InAABB);
+					return BoxInFrustum(planes, InAABB);
 				});
 
 			SaveImageToFile("test.jpg", Width, Height, TextureFormat::RGB_888, (uint8_t*) dataSize.data());
