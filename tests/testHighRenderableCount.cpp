@@ -158,8 +158,9 @@ public:
 
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
 
+			const int32_t EleCount = 50 * 1024;
 			// lets start with 1 million elements of varying bounds
-			for (int32_t Iter = 0; Iter < 50 * 1024; Iter++)
+			for (int32_t Iter = 0; Iter < EleCount; Iter++)
 			{
 				auto* curElement = AllocateObject<OElement>("GENELE");
 
@@ -177,7 +178,7 @@ public:
 
 			auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - CurrentTime);
 
-			SPP_QL("Push 10k elements: %f seconds", time_span.count());
+			SPP_QL("Push %d elements: %f seconds", EleCount, time_span.count());
 		}
 
 		auto RSOctree = _renderableScene->GetOctree();

@@ -7,6 +7,10 @@ add_subdirectory("SPPSDFSimpleEditor")
 message( STATUS "Adding Application: SPPSDFCreator" )
 add_subdirectory("SPPSDFCreator")
 
+message( STATUS "Adding Application: SPPAssetManagement" )
+add_subdirectory("SPPAssetManagement")
+
+
 ##########
 add_executable( simpleconnectioncoordinator "")
 add_dependencies( simpleconnectioncoordinator SPPNetworking )			
