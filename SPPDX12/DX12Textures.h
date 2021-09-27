@@ -22,7 +22,8 @@ namespace SPP
 		virtual void UploadToGpu() override;
 
 		D3D12Texture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
-			 
+			
+		virtual ~D3D12Texture() { }
 		//void CreateSRV()
 		//{
 		//	// Describe and create a SRV for the texture.
@@ -33,5 +34,19 @@ namespace SPP
 		//	srvDesc.Texture2D.MipLevels = 1;
 		//	pd3dDevice->CreateShaderResourceView(_texture.Get(), &srvDesc, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
 		//}
+	};
+
+	class D3D12RenderTarget : public GPURenderTarget
+	{
+	protected:
+		ComPtr<ID3D12Resource> _texture;
+		D3D12_CPU_DESCRIPTOR_HANDLE _srvDescriptor;
+		D3D12_CPU_DESCRIPTOR_HANDLE _rtvDescriptor;
+
+	public:
+		virtual void UploadToGpu() override { }
+		D3D12RenderTarget(int32_t Width, int32_t Height, TextureFormat Format);
+
+		virtual ~D3D12RenderTarget() { }
 	};
 }

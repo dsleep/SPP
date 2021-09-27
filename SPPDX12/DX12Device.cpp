@@ -57,7 +57,7 @@ namespace SPP
 	extern std::shared_ptr< ComputeDispatch> DX_12CreateComputeDispatch(GPUReferencer< GPUShader> InCS);
 	extern GPUReferencer< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	extern GPUReferencer< GPUInputLayout > DX12_CreateInputLayout();
-	extern GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget();
+	extern GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format);
 	extern GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
 	static DescriptorTableConfig _tableRegions[] =
@@ -2058,7 +2058,6 @@ namespace SPP
 		{			
 			return DX12_CreateShader(InType);
 		}
-		
 		virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
 		{
 			return DX12_CreateStaticBuffer(InType, InCpuData);
@@ -2073,11 +2072,10 @@ namespace SPP
 		{
 			return DX12_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
 		}
-		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget() override
+		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) override
 		{
-			return DX12_CreateRenderTarget();
+			return DX12_CreateRenderTarget(Width, Height, Format);
 		}
-
 		virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() override
 		{
 			return DX12_CreateGraphicsDevice();

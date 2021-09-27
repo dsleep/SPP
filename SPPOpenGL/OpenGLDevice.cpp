@@ -311,7 +311,7 @@ namespace SPP
 		{
 			return OpenGL_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
 		}
-		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget() override
+		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) override
 		{
 			return nullptr;
 		}

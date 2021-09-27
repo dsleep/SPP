@@ -1272,9 +1272,53 @@ namespace SPP
 		return Make_GPU<D3D12Texture>(Width, Height, Format, RawData, InMetaInfo);
 	}
 
-    GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget()
+
+    D3D12RenderTarget::D3D12RenderTarget(int32_t Width, int32_t Height, TextureFormat Format) : GPURenderTarget(Width, Height, Format)
+    {
+        auto pd3dDevice = GGraphicsDevice->GetDevice();
+
+        auto _dxformat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+        D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(_dxformat,
+            static_cast<UINT64>(_width),
+            static_cast<UINT>(_height),
+            1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+
+        D3D12_CLEAR_VALUE clearValue = { _dxformat, { 0 } };
+
+        auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        pd3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+            &desc,
+            D3D12_RESOURCE_STATE_RENDER_TARGET,
+            &clearValue,
+            IID_PPV_ARGS(&_texture));
+
+        // Create RTV.
+        pd3dDevice->CreateRenderTargetView(_texture.Get(), nullptr, _rtvDescriptor);
+
+        // Create SRV.
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Format = _dxformat;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 0;
+        pd3dDevice->CreateShaderResourceView(_texture.Get(), nullptr, _srvDescriptor);
+
+        //auto ToPreset(CD3DX12_RESOURCE_BARRIER::Transition(_texture.Get(), 
+        //    D3D12_RESOURCE_STATE_RENDER_TARGET, // default these to work with all resources... this bad?
+        //    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+        //m_commandList->ResourceBarrier(1, &ToPreset);
+
+        //auto ToPreset(CD3DX12_RESOURCE_BARRIER::Transition(_texture.Get(), 
+        //    // default these to work with all resources... this bad?
+        //    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
+        //    D3D12_RESOURCE_STATE_RENDER_TARGET));
+        //m_commandList->ResourceBarrier(1, &ToPreset);
+    }
+
+    GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format)
 	{
-		return nullptr;
+		return Make_GPU<D3D12RenderTarget>(Width, Height, Format);
 	}
 
 }

@@ -394,11 +394,12 @@ namespace SPP
 
     public:
 
-        GPUTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) :
+        GPUTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) :
             _width(Width), _height(Height), _format(Format), _rawImgData(RawData), _metaInfo(InMetaInfo)
         {
         }
 
+        virtual ~GPUTexture() { }
         virtual const char* GetName() const override
         {
             return "Texture";
@@ -497,7 +498,10 @@ namespace SPP
 
     class SPP_GRAPHICS_API GPURenderTarget : public GPUTexture
     {
-
+    public:
+        GPURenderTarget(int32_t Width, int32_t Height, TextureFormat Format) : 
+            GPUTexture(Width, Height, Format) { }
+        virtual ~GPURenderTarget() { }
     };
 
     class SPP_GRAPHICS_API GraphicsDevice
@@ -594,7 +598,7 @@ namespace SPP
 
         virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;
         virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
-        virtual GPUReferencer< GPURenderTarget > CreateRenderTarget() = 0;
+        virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) = 0;
 
 
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;

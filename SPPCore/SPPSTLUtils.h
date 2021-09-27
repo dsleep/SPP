@@ -58,6 +58,20 @@ namespace SPP
 		return true;
 	}
 
+	template<typename T>
+	void EraseUnordered(uint32_t Index, std::vector<T> &InVec)
+	{
+		if (InVec.size() > 1)
+		{
+			std::iter_swap(InVec.begin() + index, InVec.end() - 1);
+			InVec.pop_back();
+		}
+		else
+		{
+			InVec.clear();
+		}
+	}
+
 	class MultipleInheritableEnableSharedFromThis : public std::enable_shared_from_this<MultipleInheritableEnableSharedFromThis>
 	{
 	public:

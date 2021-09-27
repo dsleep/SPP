@@ -39,10 +39,4 @@ namespace SPP
 	{
 		return Make_GPU<OpenGLTexture>(Width, Height, Format, RawData, InMetaInfo);
 	}
-
-	std::shared_ptr< GPURenderTarget > DX12_CreateRenderTarget()
-	{
-		return nullptr;
-	}
-
 }
