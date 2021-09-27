@@ -61,6 +61,18 @@ set_property(TARGET IPCMemTest PROPERTY FOLDER "TESTS")
 set_property(TARGET IPCMemTest PROPERTY VS_DPI_AWARE "PerMonitor")
 
 ##########
+add_executable( testMemPools "")
+add_dependencies( testMemPools SPPCore )			
+target_sources( testMemPools 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/testMemPools.cpp" )		
+target_link_libraries( testMemPools SPPCore )
+set_target_properties( testMemPools PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET testMemPools PROPERTY FOLDER "TESTS")
+set_property(TARGET testMemPools PROPERTY VS_DPI_AWARE "PerMonitor")
+
+
+##########
 add_executable( appTransferTest "")
 add_dependencies( appTransferTest SPPCrypto SPPNetworking )			
 target_sources( appTransferTest 
