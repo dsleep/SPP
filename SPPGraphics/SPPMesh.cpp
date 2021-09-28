@@ -16,6 +16,49 @@ namespace SPP
 {
 	LogEntry LOG_MESH("MESH");
 
+	void DrawAABB(const AABB& InAABB, std::vector< DebugVertex >& lines)
+	{
+		auto minValue = InAABB.GetMin().cast<float>();
+		auto maxValue = InAABB.GetMax().cast<float>();
+
+		Vector3 topPoints[4];
+		Vector3 bottomPoints[4];
+
+		topPoints[0] = Vector3(minValue[0], minValue[1], minValue[2]);
+		topPoints[1] = Vector3(maxValue[0], minValue[1], minValue[2]);
+		topPoints[2] = Vector3(maxValue[0], minValue[1], maxValue[2]);
+		topPoints[3] = Vector3(minValue[0], minValue[1], maxValue[2]);
+
+		bottomPoints[0] = Vector3(minValue[0], maxValue[1], minValue[2]);
+		bottomPoints[1] = Vector3(maxValue[0], maxValue[1], minValue[2]);
+		bottomPoints[2] = Vector3(maxValue[0], maxValue[1], maxValue[2]);
+		bottomPoints[3] = Vector3(minValue[0], maxValue[1], maxValue[2]);
+
+		for (int32_t Iter = 0; Iter < 4; Iter++)
+		{
+			int32_t nextPoint = (Iter + 1) % 4;
+
+			lines.push_back({ topPoints[Iter], Vector3(1,1,1) });
+			lines.push_back({ topPoints[nextPoint], Vector3(1,1,1) });
+
+			lines.push_back({ bottomPoints[Iter], Vector3(1,1,1) });
+			lines.push_back({ bottomPoints[nextPoint], Vector3(1,1,1) });
+
+			lines.push_back({ topPoints[Iter], Vector3(1,1,1) });
+			lines.push_back({ bottomPoints[Iter], Vector3(1,1,1) });
+		}
+	}
+
+	void DrawSphere(const Sphere& InSphere, std::vector< DebugVertex >& lines)
+	{
+		if (InSphere)
+		{
+			auto sphRad = InSphere.GetRadius();
+			Vector3 RadiusVec = { sphRad, sphRad, sphRad };
+			DrawAABB(AABB(InSphere.GetCenter() - RadiusVec, InSphere.GetCenter() + RadiusVec), lines);
+		}
+	}
+
 	template<>
 	inline BinarySerializer& operator<< <Meshlet> (BinarySerializer& Storage, const Meshlet& Value)
 	{

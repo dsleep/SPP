@@ -311,6 +311,10 @@ namespace SPP
 		Vector3 position;
 		Vector3 color;
 	};
+
+
+	SPP_GRAPHICS_API void DrawAABB(const AABB& InAABB, std::vector< DebugVertex >& lines);
+	SPP_GRAPHICS_API void DrawSphere(const Sphere& InSphere, std::vector< DebugVertex >& lines);
 	
 	class SPP_GRAPHICS_API MeshLayout
 	{

@@ -21,6 +21,16 @@ target_sources( SPPDX12
 		"${CMAKE_CURRENT_LIST_DIR}/DX12Utils.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/DX12Utils.h"
 		
+		
+		"${CMAKE_CURRENT_LIST_DIR}/DX12RenderScene.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/DX12RenderScene.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/DX12RenderableMesh.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/DX12RenderableMesh.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/DX12RenderableSDF.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/DX12RenderableSDF.h"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/AMD/D3D12MemAlloc.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/AMD/D3D12MemAlloc.h"
 		)

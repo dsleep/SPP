@@ -92,71 +92,6 @@ namespace SPP
 
 	};
 
-	class D3D12PipelineState : public PipelineState
-	{
-	protected:
-		ComPtr<ID3D12PipelineState> _state;
-
-	public:
-		ID3D12PipelineState* GetState()
-		{
-			return _state.Get();
-		}
-
-		virtual void UploadToGpu() override { }
-
-		virtual const char* GetName() const override
-		{
-			return "D3D12PipelineState";
-		}
-
-		void Initialize(EBlendState InBlendState,
-			ERasterizerState InRasterizerState,
-			EDepthState InDepthState,
-			EDrawingTopology InTopology,
-			GPUReferencer < GPUInputLayout > InLayout,
-			GPUReferencer< GPUShader> InVS,
-			GPUReferencer< GPUShader> InPS,
-
-			GPUReferencer< GPUShader> InMS = nullptr,
-			GPUReferencer< GPUShader> InAS = nullptr,
-			GPUReferencer< GPUShader> InHS = nullptr,
-			GPUReferencer< GPUShader> InDS = nullptr,
-
-			GPUReferencer< GPUShader> InCS = nullptr);
-	};
-
-	GPUReferencer < D3D12PipelineState >  GetD3D12PipelineState(EBlendState InBlendState,
-		ERasterizerState InRasterizerState,
-		EDepthState InDepthState,
-		EDrawingTopology InTopology,
-		GPUReferencer< GPUInputLayout > InLayout,
-		GPUReferencer< GPUShader> InVS,
-		GPUReferencer< GPUShader> InPS,
-		GPUReferencer< GPUShader> InMS,
-		GPUReferencer< GPUShader> InAS,
-		GPUReferencer< GPUShader> InHS,
-		GPUReferencer< GPUShader> InDS,
-		GPUReferencer< GPUShader> InCS);
-
-	class D3D12CommandListWrapper
-	{
-	private:
-		std::list< GPUReferencer< GPUResource > > _activeResources;
-		ID3D12GraphicsCommandList6* _cmdList = nullptr;
-
-	public:
-		D3D12CommandListWrapper(ID3D12GraphicsCommandList6* InCmdList);
-
-		void FrameComplete();
-
-		//ideally avoid these
-		void AddManualRef(GPUReferencer< GPUResource > InRef);
-		void SetRootSignatureFromVerexShader(GPUReferencer< GPUShader >& InShader);
-		void SetPipelineState(GPUReferencer< class D3D12PipelineState >& InPSO);
-		void SetupSceneConstants(class D3D12RenderScene& InScene);
-	};
-
 	class DX12Device : public GraphicsDevice
 	{
 	private:
@@ -172,7 +107,7 @@ namespace SPP
 		ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
 		ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
 
-		std::unique_ptr<D3D12CommandListWrapper> _commandListWrappers[FrameCount];
+		std::unique_ptr<class D3D12CommandListWrapper> _commandListWrappers[FrameCount];
 
 		std::unique_ptr<FrameState> _frameStates[FrameCount];
 				
@@ -279,8 +214,6 @@ namespace SPP
 
 		virtual void MoveToNextFrame() override;
 	};
-
-	
 
 	extern class DX12Device* GGraphicsDevice;
 }
