@@ -8,8 +8,6 @@
 #include "DX12Buffers.h"
 #include "DX12Textures.h"
 
-#include "AMD/D3D12MemAlloc.h"
-
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -376,11 +374,9 @@ namespace SPP
 			desc.pDevice = m_device.Get();
 			desc.pAdapter = _hardwareAdapter.Get();
 
-			ComPtr<D3D12MA::Allocator> g_Allocator;
+			ThrowIfFailed(D3D12MA::CreateAllocator(&desc, &_allocator));
 
-			ThrowIfFailed(D3D12MA::CreateAllocator(&desc, &g_Allocator));
-
-			const D3D12_FEATURE_DATA_D3D12_OPTIONS& options = g_Allocator->GetD3D12Options();
+			const D3D12_FEATURE_DATA_D3D12_OPTIONS& options = _allocator->GetD3D12Options();
 			SPP_LOG(LOG_D3D12Device, LOG_INFO, "D3D12_FEATURE_DATA_D3D12_OPTIONS:");
 			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    StandardSwizzle64KBSupported = %u", options.StandardSwizzle64KBSupported ? 1 : 0);
 			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    CrossAdapterRowMajorTextureSupported = %u", options.CrossAdapterRowMajorTextureSupported ? 1 : 0);

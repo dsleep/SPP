@@ -25,6 +25,8 @@
 //#include "d3dx12.h"
 #include "../3rdParty/dxc/inc/dxcapi.h"
 
+#include "AMD/D3D12MemAlloc.h"
+
 #include <string>
 
 #include <locale>
@@ -101,6 +103,7 @@ namespace SPP
 		ComPtr<IDXGISwapChain3> m_swapChain;
 		ComPtr<ID3D12Device2> m_device;
 		ComPtr<IDXGIAdapter1> _hardwareAdapter;
+		ComPtr<D3D12MA::Allocator> _allocator;
 		ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
 		ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
 
@@ -118,8 +121,7 @@ namespace SPP
 		ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
 		ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
-
-		ComPtr<ID3D12PipelineState> m_pipelineState;
+		
 		ComPtr<ID3D12GraphicsCommandList6> m_commandList;
 		ComPtr<ID3D12GraphicsCommandList6> m_uplCommandList;
 		ComPtr<ID3D12GraphicsCommandList6> m_bundle;

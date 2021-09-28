@@ -55,6 +55,17 @@ namespace SPP
 
 		auto alignedSize = GetAlignedSize(DesiredSize);
 
+		// just grab the last active if it works out
+		if (!_chunks.empty())
+		{
+			auto currentChunk = _chunks.back();
+			if (currentChunk->frameIdx == FrameIdx &&
+				currentChunk->SizeRemaining() >= alignedSize)
+			{
+				return currentChunk->GetWritable(alignedSize, FrameIdx);
+			}
+ 		}
+
 		for (auto it = _unboundChunks.begin(); it != _unboundChunks.end(); ++it)
 		{
 			auto currentChunk = *it;
