@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPLogging.h"
 
 #include <string>
 #include <vector>
@@ -13,6 +14,8 @@
 
 namespace SPP
 {
+	extern SPP_CORE_API LogEntry LOG_MEM;
+
 	class SPP_CORE_API IPCMappedMemory
 	{
 	private:
@@ -87,25 +90,55 @@ namespace SPP
 		}
 	};
 
+	template<typename T>
+	class PlainOldDataStorage
+	{
+	private:
+		T* _data = nullptr;
+	public:
+		PlainOldDataStorage() = default;
+		~PlainOldDataStorage()
+		{
+			Free();
+		}
+		void Allocate(size_t InCount)
+		{
+			SE_ASSERT(_data == nullptr);
+			_data = (T*)malloc(sizeof(T) * InCount);
+		}
+		void Free()
+		{
+			if (_data)
+			{
+				free(_data);
+				_data = nullptr;
+			}
+		}
+		T* operator[](size_t Index)
+		{
+			return _data + Index;
+		}
+	};
+
 	/*
 	* A big old list of pool of elements and you just request a single element
 	* to reduce footprints does some template uniqueness and static params
 	*/
-	template<typename T, typename U>
+	template<typename T, typename Storage = PlainOldDataStorage<T>, typename U=char>
 	class SingleRequestor
 	{
 	protected:
 		uint64_t _totalSize = 0;
 		// bit array
 		std::vector<bool> _indices;
-		T* _data = nullptr;
+		Storage _storage;
 
 	public:
 		class Reservation
 		{
 			friend class SingleRequestor;
 			// using a U(unique) to avoid classes with multiple of same type
-			inline static SingleRequestor<T, U>* Parent = nullptr;
+			inline static SingleRequestor<T, Storage, U>* Parent = nullptr;
 
 		private:
 			uint64_t Index = 0;
@@ -135,14 +168,14 @@ namespace SPP
 			Reservation::Parent = this;
 			_totalSize = InSize;
 			_indices.resize(_totalSize, true);
-			_data = new T[InSize];
+			_storage.Allocate(InSize);
 		}
 
 		~SingleRequestor()
 		{
 			SE_ASSERT(Reservation::Parent == this);
 			Reservation::Parent = nullptr;
-			delete[] _data;
+			_storage.Free();
 		}
 
 		std::unique_ptr<Reservation> Get()
@@ -162,7 +195,7 @@ namespace SPP
 
 		T* GetAtIndex(uint64_t InIdx)
 		{
-			return _data[InIdx];
+			return _storage[InIdx];
 		}
 
 		void Free(const Reservation *InReservation)
@@ -173,26 +206,28 @@ namespace SPP
 		}
 	};
 
+	
 	/*
 	* A big old pool but you request various sizes ideally of >1 proportion
 	*/
-	template<typename T, typename U>
+	template<typename T, typename Storage = PlainOldDataStorage<T>, typename U = char>
 	class BuddyAllocator
 	{
 	protected:
 		uint64_t _totalSize = 0;
 		uint64_t _minNodeSize = 0;
-		T* _data = nullptr;
+		Storage _storage;
 
 		// bit array
 		std::vector<bool> _available;
+		std::vector<bool> _reserved;
 
 	public:
 		class Reservation
 		{
 			friend class BuddyAllocator;
 			// using a U(unique) to avoid classes with multiple of same type
-			inline static BuddyAllocator<T, U>* Parent = nullptr;
+			inline static BuddyAllocator<T, Storage, U>* Parent = nullptr;
 
 		private:
 			uint64_t Index = 0;
@@ -236,7 +271,15 @@ namespace SPP
 
 			auto TotalNodeCnt = (_totalSize / _minNodeSize) << 1;
 			_available.resize(TotalNodeCnt, true);
-			_data = new T[_totalSize];
+			_reserved.resize(TotalNodeCnt, false);
+			_storage.Allocate(_totalSize);
+		}
+
+		~BuddyAllocator()
+		{
+			SE_ASSERT(Reservation::Parent == this);
+			Reservation::Parent = nullptr;
+			_storage.Free();
 		}
 
 		inline uint64_t TotalLevels(uint64_t InLevel)
@@ -279,22 +322,26 @@ namespace SPP
 				if (InSize <= CurrentSize &&
 					_available[CurrentIdx])
 				{
+					SPP_LOG(LOG_MEM, LOG_INFO, "Reserve: %d", CurrentIdx);
 					_available[CurrentIdx] = false;
+					_reserved[CurrentIdx] = true;
 					return new Reservation(CurrentIdx);
 				}
 			}
-			else
+			else if(_reserved[CurrentIdx] == false)
 			{
 				auto ChildLeft = GetFirstChildIdx(CurrentIdx);
 				auto ChildRight = ChildLeft + 1;
 
 				if (auto didAllocate = _GetData_Impl(ChildLeft, InSize, Depth+1))
 				{
+					SPP_LOG(LOG_MEM, LOG_INFO, "Mark Partial Reserve: %d", CurrentIdx);
 					_available[CurrentIdx] = false;
 					return didAllocate;
 				}
 				if (auto didAllocate = _GetData_Impl(ChildRight, InSize, Depth+1))
 				{
+					SPP_LOG(LOG_MEM, LOG_INFO, "Mark Partial Reserve: %d", CurrentIdx);
 					_available[CurrentIdx] = false;
 					return didAllocate;
 				}
@@ -308,8 +355,16 @@ namespace SPP
 			return std::unique_ptr< Reservation>(_GetData_Impl(0, InSize, 0));
 		}
 
+		T* GetAtIndex(uint64_t InIdx)
+		{
+			return _storage[InIdx];
+		}
+
 		void FreeIdx(uint64_t InIdx)
 		{
+			SPP_LOG(LOG_MEM, LOG_INFO, "Free Partial: %d", InIdx);
+
+			SE_ASSERT(_reserved[InIdx] == false);
 			SE_ASSERT(_available[InIdx] == false);
 			_available[InIdx] = true;
 
@@ -327,8 +382,27 @@ namespace SPP
 
 		void Free(const Reservation* InReservation)
 		{
+			auto ReserverIdx = InReservation->GetIndex();
 			SE_ASSERT(Reservation::Parent == this);
-			FreeIdx(InReservation->GetIndex());
+			SE_ASSERT(_reserved[ReserverIdx]);
+			_reserved[ReserverIdx] = false;
+
+			SPP_LOG(LOG_MEM, LOG_INFO, "Free Reserved: %d", ReserverIdx);
+
+			FreeIdx(ReserverIdx);
+		}
+
+		void Report()
+		{
+			size_t TotalReservations = 0;
+			for (size_t Iter = 0; Iter < _reserved.size(); Iter++)
+			{
+				if (_reserved[Iter])
+				{
+					TotalReservations++;
+				}
+			}
+			SPP_LOG(LOG_MEM, LOG_INFO, "TotalReservations: %d", TotalReservations);
 		}
 	};
 }

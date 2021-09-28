@@ -19,6 +19,8 @@ namespace SPP
 {
 	LogEntry LOG_IPC("IPC");
 
+	LogEntry LOG_MEM("MEM");
+
 	struct IPCMappedMemory::PlatImpl
 	{
 		HANDLE hMapFile = nullptr;
