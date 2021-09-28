@@ -317,10 +317,9 @@ namespace SPP
 			auto CurrentSize = SizeAtLevel(Depth);
 			auto ChildSize = (CurrentSize >> 1);
 
-			if (InSize > ChildSize)
+			if (InSize > ChildSize || CurrentSize <= _minNodeSize)
 			{
-				if (InSize <= CurrentSize &&
-					_available[CurrentIdx])
+				if (InSize <= CurrentSize && _available[CurrentIdx])
 				{
 					SPP_LOG(LOG_MEM, LOG_INFO, "Reserve: %d", CurrentIdx);
 					_available[CurrentIdx] = false;

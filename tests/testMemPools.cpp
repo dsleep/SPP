@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
     BuddyAllocator<uint8_t, GPUFake > buddyData(1 * 1024 * 1024, 128);
 	
 	std::default_random_engine generator;
-	std::uniform_int_distribution<int> memDist(128, 1 * 1024);
+	std::uniform_int_distribution<int> memDist(64, 1 * 1024);
 
 	{
 		std::unique_ptr< BuddyAllocator<uint8_t, GPUFake >::Reservation  > reserves[150];
