@@ -216,6 +216,8 @@ namespace SPP
 	protected:
 		uint64_t _totalSize = 0;
 		uint64_t _minNodeSize = 0;
+		uint64_t _reservedAmount = 0;
+		uint64_t _wasteAmount = 0;
 		Storage _storage;
 
 		// bit array
@@ -231,15 +233,21 @@ namespace SPP
 
 		private:
 			uint64_t Index = 0;
+			uint64_t _size = 0;
 
 		public:
-			Reservation(uint64_t InIndex)
+			Reservation(uint64_t InIndex, uint64_t InSize)
 			{
 				Index = InIndex;
+				_size = InSize;
 			}
 			uint64_t GetIndex() const
 			{
 				return Index;
+			}
+			uint64_t GetSize() const
+			{
+				return _size;
 			}
 			T* Get()
 			{
@@ -254,6 +262,11 @@ namespace SPP
 		uint64_t roundUpToPow2(const uint64_t& InValue)
 		{
 			return (uint64_t)pow(2, ceil(log(InValue) / log(2)));
+		}
+
+		uint64_t roundDownToPow2(const uint64_t& InValue)
+		{
+			return (uint64_t)pow(2, floor(log(InValue) / log(2)));
 		}
 
 		uint64_t powerOf2(const uint64_t& InValue)
@@ -324,7 +337,9 @@ namespace SPP
 					SPP_LOG(LOG_MEM, LOG_INFO, "Reserve: %d", CurrentIdx);
 					_available[CurrentIdx] = false;
 					_reserved[CurrentIdx] = true;
-					return new Reservation(CurrentIdx);
+					_reservedAmount += CurrentSize;
+					_wasteAmount += (CurrentSize - InSize);
+					return new Reservation(CurrentIdx, InSize);
 				}
 			}
 			else if(_reserved[CurrentIdx] == false)
@@ -385,6 +400,12 @@ namespace SPP
 			SE_ASSERT(Reservation::Parent == this);
 			SE_ASSERT(_reserved[ReserverIdx]);
 			_reserved[ReserverIdx] = false;
+			
+			auto curRowIdx = roundDownToPow2(ReserverIdx + 1);
+			auto Depth = powerOf2(curRowIdx);
+			auto CurrentSize = SizeAtLevel(Depth);
+			_reservedAmount -= CurrentSize;
+			_wasteAmount -= (CurrentSize - InReservation->GetSize());
 
 			SPP_LOG(LOG_MEM, LOG_INFO, "Free Reserved: %d", ReserverIdx);
 
@@ -401,7 +422,8 @@ namespace SPP
 					TotalReservations++;
 				}
 			}
-			SPP_LOG(LOG_MEM, LOG_INFO, "TotalReservations: %d", TotalReservations);
+			SPP_LOG(LOG_MEM, LOG_INFO, "TotalReservations: %d Size: %d Waste: %d", 
+				TotalReservations, _reservedAmount, _wasteAmount);
 		}
 	};
 }
