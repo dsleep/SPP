@@ -386,6 +386,7 @@ namespace SPP
 			if (InIdx)
 			{
 				auto siblingIdx = GetSiblingIdx(InIdx);
+				// if sibling available, that parent is now available
 				if (_available[siblingIdx])
 				{
 					auto parentIdx = GetParentIdx(InIdx);

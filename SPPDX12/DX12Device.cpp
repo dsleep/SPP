@@ -8,6 +8,8 @@
 #include "DX12Buffers.h"
 #include "DX12Textures.h"
 
+#include "AMD/D3D12MemAlloc.h"
+
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -42,6 +44,58 @@ static std::wstring GetLatestWinPixGpuCapturerPath()
 	}
 
 	return pixInstallationPath / newestVersionFound / L"WinPixGpuCapturer.dll";
+}
+
+static const uint32_t VENDOR_ID_AMD = 0x1002;
+static const uint32_t VENDOR_ID_NVIDIA = 0x10DE;
+static const uint32_t VENDOR_ID_INTEL = 0x8086;
+
+
+static const char* VendorIDToStr(uint32_t vendorID)
+{
+	switch (vendorID)
+	{
+	case 0x10001: return "VIV";
+	case 0x10002: return "VSI";
+	case 0x10003: return "KAZAN";
+	case 0x10004: return "CODEPLAY";
+	case 0x10005: return "MESA";
+	case 0x10006: return "POCL";
+	case VENDOR_ID_AMD: return "AMD";
+	case VENDOR_ID_NVIDIA: return "NVIDIA";
+	case VENDOR_ID_INTEL: return "Intel";
+	case 0x1010: return "ImgTec";
+	case 0x13B5: return "ARM";
+	case 0x5143: return "Qualcomm";
+	}
+	return "";
+}
+
+static std::string SizeToStr(size_t size)
+{
+	if (size == 0)
+		return "0";
+	char result[32];
+	double size2 = (double)size;
+	if (size2 >= 1024.0 * 1024.0 * 1024.0 * 1024.0)
+	{
+		sprintf_s(result, "%.2f TB", size2 / (1024.0 * 1024.0 * 1024.0 * 1024.0));
+	}
+	else if (size2 >= 1024.0 * 1024.0 * 1024.0)
+	{
+		sprintf_s(result, "%.2f GB", size2 / (1024.0 * 1024.0 * 1024.0));
+	}
+	else if (size2 >= 1024.0 * 1024.0)
+	{
+		sprintf_s(result, "%.2f MB", size2 / (1024.0 * 1024.0));
+	}
+	else if (size2 >= 1024.0)
+	{
+		sprintf_s(result, "%.2f KB", size2 / 1024.0);
+	}
+	else
+		sprintf_s(result, "%llu B", size);
+	return result;
 }
 
 namespace SPP
@@ -251,6 +305,8 @@ namespace SPP
 
 		const bool _useWarpDevice = false;
 
+
+
 		//WARP is a high speed, fully conformant software rasterizer.It is a component of the DirectX graphics technology that was introduced by the Direct3D 11 runtime.
 		if (_useWarpDevice)
 		{
@@ -264,14 +320,81 @@ namespace SPP
 		}
 		else
 		{
-			ComPtr<IDXGIAdapter1> hardwareAdapter;
-			GetHardwareAdapter(factory.Get(), &hardwareAdapter);
+			GetHardwareAdapter(factory.Get(), &_hardwareAdapter);
 
+			DXGI_ADAPTER_DESC1 adapterDesc = {};
+			_hardwareAdapter->GetDesc1(&adapterDesc);
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "DXGI_ADAPTER_DESC1:");
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    Description = %s", adapterDesc.Description);
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    VendorId = 0x%X (%s)", adapterDesc.VendorId, VendorIDToStr(adapterDesc.VendorId));
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    DeviceId = 0x%X", adapterDesc.DeviceId);
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    SubSysId = 0x%X", adapterDesc.SubSysId);
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    Revision = 0x%X", adapterDesc.Revision);
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    DedicatedVideoMemory = %zu B (%s)", adapterDesc.DedicatedVideoMemory, SizeToStr(adapterDesc.DedicatedVideoMemory).c_str());
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    DedicatedSystemMemory = %zu B (%s)", adapterDesc.DedicatedSystemMemory, SizeToStr(adapterDesc.DedicatedSystemMemory).c_str());
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    SharedSystemMemory = %zu B (%s)", adapterDesc.SharedSystemMemory, SizeToStr(adapterDesc.SharedSystemMemory).c_str());
+
+			ComPtr<IDXGIAdapter3> adapter3;
+			if (SUCCEEDED(_hardwareAdapter->QueryInterface(IID_PPV_ARGS(&adapter3))))
+			{
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "DXGI_QUERY_VIDEO_MEMORY_INFO:\n");
+				for (UINT groupIndex = 0; groupIndex < 2; ++groupIndex)
+				{
+					const DXGI_MEMORY_SEGMENT_GROUP group = groupIndex == 0 ? DXGI_MEMORY_SEGMENT_GROUP_LOCAL : DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL;
+					const wchar_t* const groupName = groupIndex == 0 ? L"DXGI_MEMORY_SEGMENT_GROUP_LOCAL" : L"DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL";
+					DXGI_QUERY_VIDEO_MEMORY_INFO info = {};
+					ThrowIfFailed(adapter3->QueryVideoMemoryInfo(0, group, &info));
+					SPP_LOG(LOG_D3D12Device, LOG_INFO, "    %s:", groupName);
+					SPP_LOG(LOG_D3D12Device, LOG_INFO, "        Budget = %llu B (%s)", info.Budget, SizeToStr(info.Budget).c_str());
+					SPP_LOG(LOG_D3D12Device, LOG_INFO, "        CurrentUsage = %llu B (%s)", info.CurrentUsage, SizeToStr(info.CurrentUsage).c_str());
+					SPP_LOG(LOG_D3D12Device, LOG_INFO, "        AvailableForReservation = %llu B (%s)", info.AvailableForReservation, SizeToStr(info.AvailableForReservation).c_str());
+					SPP_LOG(LOG_D3D12Device, LOG_INFO, "        CurrentReservation = %llu B (%s)", info.CurrentReservation, SizeToStr(info.CurrentReservation).c_str());
+				}
+			}
+			
 			ThrowIfFailed(D3D12CreateDevice(
-				hardwareAdapter.Get(),
+				_hardwareAdapter.Get(),
 				D3D_FEATURE_LEVEL_11_0,
 				IID_PPV_ARGS(&m_device)
 			));
+
+			D3D12_FEATURE_DATA_ARCHITECTURE1 architecture1 = {};
+			if (SUCCEEDED(m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &architecture1, sizeof architecture1)))
+			{
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "D3D12_FEATURE_DATA_ARCHITECTURE1:");
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "    UMA: %u", architecture1.UMA ? 1 : 0);
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "    CacheCoherentUMA: %u", architecture1.CacheCoherentUMA ? 1 : 0);
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "    IsolatedMMU: %u", architecture1.IsolatedMMU ? 1 : 0);
+			}
+		}
+
+		// Create allocator
+
+		{
+			D3D12MA::ALLOCATOR_DESC desc = {};
+			desc.Flags = D3D12MA::ALLOCATOR_FLAG_NONE;
+			desc.pDevice = m_device.Get();
+			desc.pAdapter = _hardwareAdapter.Get();
+
+			ComPtr<D3D12MA::Allocator> g_Allocator;
+
+			ThrowIfFailed(D3D12MA::CreateAllocator(&desc, &g_Allocator));
+
+			const D3D12_FEATURE_DATA_D3D12_OPTIONS& options = g_Allocator->GetD3D12Options();
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "D3D12_FEATURE_DATA_D3D12_OPTIONS:");
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    StandardSwizzle64KBSupported = %u", options.StandardSwizzle64KBSupported ? 1 : 0);
+			SPP_LOG(LOG_D3D12Device, LOG_INFO, "    CrossAdapterRowMajorTextureSupported = %u", options.CrossAdapterRowMajorTextureSupported ? 1 : 0);
+			switch (options.ResourceHeapTier)
+			{
+			case D3D12_RESOURCE_HEAP_TIER_1:
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "    ResourceHeapTier = D3D12_RESOURCE_HEAP_TIER_1");
+				break;
+			case D3D12_RESOURCE_HEAP_TIER_2:
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, "    ResourceHeapTier = D3D12_RESOURCE_HEAP_TIER_2");
+				break;
+			default:
+				assert(0);
+			}
 		}
 
 		D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};

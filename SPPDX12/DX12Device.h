@@ -100,6 +100,7 @@ namespace SPP
 		//D3DX12_RECT m_scissorRect;
 		ComPtr<IDXGISwapChain3> m_swapChain;
 		ComPtr<ID3D12Device2> m_device;
+		ComPtr<IDXGIAdapter1> _hardwareAdapter;
 		ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
 		ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
 

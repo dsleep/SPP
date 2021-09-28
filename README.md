@@ -69,7 +69,12 @@ https://github.com/assimp/assimp
 
 https://github.com/open-source-parsers/jsoncpp
 
+- D3D12Allocator
 
+https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
+
+- CUDA
+- CRYPTOCPP
 
 ## AUTHOR
 

@@ -20,6 +20,9 @@ target_sources( SPPDX12
 		"${CMAKE_CURRENT_LIST_DIR}/DX12Textures.h"
 		"${CMAKE_CURRENT_LIST_DIR}/DX12Utils.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/DX12Utils.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/AMD/D3D12MemAlloc.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/AMD/D3D12MemAlloc.h"
 		)
 
 target_include_directories(SPPDX12 
@@ -28,7 +31,8 @@ target_include_directories(SPPDX12
 		
 target_include_directories(SPPDX12 
 	PRIVATE  			
-		"${THIRD_PARTY}/dxc/include" )
+		"${THIRD_PARTY}/dxc/include"
+		"${THIRD_PARTY}/AMD" )
 		
 target_link_directories(SPPDX12 
 	PRIVATE
