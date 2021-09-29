@@ -111,7 +111,10 @@ namespace SPP
 	extern std::shared_ptr< ComputeDispatch> DX_12CreateComputeDispatch(GPUReferencer< GPUShader> InCS);
 	extern GPUReferencer< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	extern GPUReferencer< GPUInputLayout > DX12_CreateInputLayout();
+
 	extern GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format);
+	extern GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format, ID3D12Resource* InResource);
+
 	extern GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 	extern std::shared_ptr<RenderableMesh> DX12_CreateRenderableMesh(bool bIsStatic);
 
@@ -482,20 +485,20 @@ namespace SPP
 		// Create descriptor heaps.
 		{
 			// Describe and create a render target view (RTV) descriptor heap.
-			D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-			rtvHeapDesc.NumDescriptors = FrameCount;
-			rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-			rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+			//D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+			//rtvHeapDesc.NumDescriptors = FrameCount;
+			//rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			//rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			//ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
 
 			// Describe and create a depth stencil view (DSV) descriptor heap.
 			// Each frame has its own depth stencils (to write shadows onto) 
 			// and then there is one for the scene itself.
-			D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-			dsvHeapDesc.NumDescriptors = FrameCount;
-			dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-			dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));			
+			//D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+			//dsvHeapDesc.NumDescriptors = FrameCount;
+			//dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+			//dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			//ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));			
 
 			int32_t TotalCount = 0;
 			for (int32_t Iter = 0; Iter < ARRAY_SIZE(_tableRegions); Iter++)
@@ -625,8 +628,10 @@ namespace SPP
 
 			for (UINT n = 0; n < FrameCount; n++)
 			{
-				m_renderTargets[n].Reset();
-				m_depthStencil[n].Reset();
+				//m_renderTargets[n].Reset();
+				//m_depthStencil[n].Reset();
+				_renderTargets[n].Reset();
+				_depthStencil[n].Reset();
 			}
 
 			DeviceWidth = NewWidth;
@@ -640,43 +645,48 @@ namespace SPP
 
 	void DX12Device::_CreateFrameResouces()
 	{
-		CD3DX12_CPU_DESCRIPTOR_HANDLE  rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-		CD3DX12_CPU_DESCRIPTOR_HANDLE  dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+		//CD3DX12_CPU_DESCRIPTOR_HANDLE  rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+		//CD3DX12_CPU_DESCRIPTOR_HANDLE  dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
 		// Create a RTV for each frame.
 		for (UINT n = 0; n < FrameCount; n++)
 		{
 			// Create the color surface
-			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
-			m_device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
-			rtvHandle.Offset(1, m_rtvDescriptorSize);
+			ComPtr<ID3D12Resource> ChainRT;
 
-			// Create the depth stencil view.
-			D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
-			depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;// DXGI_FORMAT_D32_FLOAT;
-			depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-			depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
+			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&ChainRT)));
+			//m_device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
+			//rtvHandle.Offset(1, m_rtvDescriptorSize);
 
-			D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-			depthOptimizedClearValue.Format = depthStencilDesc.Format;
-			depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
-			depthOptimizedClearValue.DepthStencil.Stencil = 0;
+			_renderTargets[n] = DX12_CreateRenderTarget(DeviceWidth, DeviceHeight, TextureFormat::RGBA_8888, ChainRT.Get());
+			_depthStencil[n] = DX12_CreateRenderTarget(DeviceWidth, DeviceHeight, TextureFormat::D24_S8);
 
-			auto heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-			auto tex2DDesc = CD3DX12_RESOURCE_DESC::Tex2D(depthStencilDesc.Format, DeviceWidth, DeviceHeight, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-			ThrowIfFailed(m_device->CreateCommittedResource(
-				&heapDefault,
-				D3D12_HEAP_FLAG_NONE,
-				&tex2DDesc,
-				D3D12_RESOURCE_STATE_DEPTH_WRITE,
-				&depthOptimizedClearValue,
-				IID_PPV_ARGS(&m_depthStencil[n])
-			));
+			//// Create the depth stencil view.
+			//D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+			//depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;// DXGI_FORMAT_D32_FLOAT;
+			//depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			//depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-			//NAME_D3D12_OBJECT(m_depthStencil);
+			//D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+			//depthOptimizedClearValue.Format = depthStencilDesc.Format;
+			//depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+			//depthOptimizedClearValue.DepthStencil.Stencil = 0;
 
-			m_device->CreateDepthStencilView(m_depthStencil[n].Get(), &depthStencilDesc, dsvHandle);
-			dsvHandle.Offset(1, m_dsvDescriptorSize);
+			//auto heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+			//auto tex2DDesc = CD3DX12_RESOURCE_DESC::Tex2D(depthStencilDesc.Format, DeviceWidth, DeviceHeight, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+			//ThrowIfFailed(m_device->CreateCommittedResource(
+			//	&heapDefault,
+			//	D3D12_HEAP_FLAG_NONE,
+			//	&tex2DDesc,
+			//	D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			//	&depthOptimizedClearValue,
+			//	IID_PPV_ARGS(&m_depthStencil[n])
+			//));
+
+			////NAME_D3D12_OBJECT(m_depthStencil);
+
+			//m_device->CreateDepthStencilView(m_depthStencil[n].Get(), &depthStencilDesc, dsvHandle);
+			//dsvHandle.Offset(1, m_dsvDescriptorSize);
 		}
 	}
 
@@ -738,24 +748,25 @@ namespace SPP
 		UpdateGPUMeshes();
 
 		// Indicate that the back buffer will be used as a render target.
-		auto ToRenderTarget(CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-		m_commandList->ResourceBarrier(1, &ToRenderTarget);
+		//auto ToRenderTarget(CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		//m_commandList->ResourceBarrier(1, &ToRenderTarget);
 
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_dsvDescriptorSize);
-		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+		//CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+		//CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(m_dsvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_dsvDescriptorSize);
+		//m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
-		// Record commands.
-		const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		//// Record commands.
+		//const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+		//m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		//m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	}
 
 	void DX12Device::EndFrame()
 	{
+		_renderTargets[m_frameIndex]->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_PRESENT);
 		// Indicate that the back buffer will now be used to present.
-		auto ToPreset(CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-		m_commandList->ResourceBarrier(1, &ToPreset);
+		//auto ToPreset(CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+		//m_commandList->ResourceBarrier(1, &ToPreset);
 
 		ThrowIfFailed(m_commandList->Close());
 

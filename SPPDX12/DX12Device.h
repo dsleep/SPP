@@ -169,8 +169,12 @@ namespace SPP
 		ComPtr<ID3D12Device2> m_device;
 		ComPtr<IDXGIAdapter1> _hardwareAdapter;
 		ComPtr<D3D12MA::Allocator> _allocator;
-		ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-		ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
+
+		GPUReferencer< GPURenderTarget > _renderTargets[FrameCount];
+		GPUReferencer< GPURenderTarget > _depthStencil[FrameCount];
+
+		//ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
+		//ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
 
 		std::unique_ptr<D3D12CommandListWrapper> _commandListWrappers[FrameCount];
 
@@ -181,9 +185,8 @@ namespace SPP
 		ComPtr<ID3D12CommandAllocator> m_bundleAllocator;
 		ComPtr<ID3D12CommandQueue> m_commandQueue;
 		ComPtr<ID3D12RootSignature> _emptyRootSignature;
-		ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-		ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
-
+		//ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+		//ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 		
 		ComPtr<ID3D12GraphicsCommandList6> m_commandList;
 		ComPtr<ID3D12GraphicsCommandList6> m_uplCommandList;
@@ -233,6 +236,21 @@ namespace SPP
 		UINT64 GetFrameCount() const 
 		{
 			return m_fenceValues[m_frameIndex];
+		}
+
+		GPURenderTarget* GetScreenColor() 
+		{
+			return _renderTargets[m_frameIndex].get();
+		}
+
+		GPURenderTarget* GetScreenDepth() 
+		{
+			return _depthStencil[m_frameIndex].get();
+		}
+
+		D3D12MA::Allocator* GetResourceAllocator()
+		{
+			return _allocator.Get();
 		}
 
 		D3D12MemoryFramedChunkBuffer* GetPerDrawScratchMemory();

@@ -27,56 +27,7 @@ namespace SPP
 	extern GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
 	static Vector3d HACKS_CameraPos;
-		
-	class D3D12GlobalObjects
-	{
-	private:
 
-		GPUReferencer< GPUShader > _debugVS;
-		GPUReferencer< GPUShader > _debugPS;
-		GPUReferencer< D3D12PipelineState > _debugPSO;
-		GPUReferencer< GPUInputLayout > _debugLayout;
-
-		// debug linear drawing
-		std::shared_ptr < ArrayResource >  _debugResource;
-		GPUReferencer< GPUBuffer > _debugBuffer;
-
-	public:
-
-		D3D12GlobalObjects()
-		{
-			_debugVS = DX12_CreateShader(EShaderType::Vertex);
-			_debugVS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
-
-			_debugPS = DX12_CreateShader(EShaderType::Pixel);
-			_debugPS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
-
-
-			_debugLayout = DX12_CreateInputLayout();
-			_debugLayout->InitializeLayout({
-					{ "POSITION",  InputLayoutElementType::Float3, offsetof(DebugVertex,position) },
-					{ "COLOR",  InputLayoutElementType::Float3, offsetof(DebugVertex,color) }
-				});
-
-			_debugPSO = GetD3D12PipelineState(EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Enabled,
-				EDrawingTopology::LineList,
-				_debugLayout,
-				_debugVS,
-				_debugPS,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr);
-
-			_debugResource = std::make_shared< ArrayResource >();
-			_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
-			_debugBuffer = DX12_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
-		}
-
-	};
 	D3D12RenderScene::D3D12RenderScene()
 	{
 		_debugVS = DX12_CreateShader(EShaderType::Vertex);
@@ -337,7 +288,7 @@ namespace SPP
 	}
 
 
-	void D3D12RenderScene::AddToScene(Renderable* InRenderable) 
+	void D3D12RenderScene::AddToScene(Renderable* InRenderable)
 	{
 		RenderScene::AddToScene(InRenderable);
 
@@ -367,6 +318,63 @@ namespace SPP
 
 	void D3D12RenderScene::Draw()
 	{
+		auto pd3dDevice = GGraphicsDevice->GetDevice();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto cmdList = GGraphicsDevice->GetCommandList();
+		auto currentFrame = GGraphicsDevice->GetFrameCount();
+		auto perFrameSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+
+		auto backBufferColor = GGraphicsDevice->GetScreenColor();
+		auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
+		
+		bool bUseBackBuffer = true;
+		if (bUseBackBuffer)
+		{
+			backBufferColor->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+			auto colorDesc = backBufferColor->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
+			auto depthDesc = backBufferDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
+
+			cmdList->OMSetRenderTargets(1, &colorDesc, FALSE, &depthDesc);
+			cmdList->ClearDepthStencilView(depthDesc, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+			const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+			cmdList->ClearRenderTargetView(colorDesc, clearColor, 0, nullptr);
+		}
+		else
+		{
+			// Set RTs
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle[5] = { 0 };// (m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+
+			int32_t ActiveCount = 0;
+			for (ActiveCount = 0; ActiveCount < ARRAY_SIZE(_activeRTs); ActiveCount++)
+			{
+				if (!_activeRTs[ActiveCount])break;
+				rtvHandle[ActiveCount] = _activeRTs[ActiveCount]->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
+
+				// make them draw
+				_activeRTs[ActiveCount]->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_RENDER_TARGET);
+			}
+
+			if (_activeDepth)
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor = _activeDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
+				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, &depthDescriptor);
+				cmdList->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+			}
+			else
+			{
+				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, nullptr);
+			}
+
+			const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+			for (int32_t Iter = 0; Iter < ARRAY_SIZE(_activeRTs); Iter++)
+			{
+				if (!_activeRTs[ActiveCount])break;
+				cmdList->ClearRenderTargetView(_activeRTs[Iter]->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle(), clearColor, 0, nullptr);
+			}
+		}
+
 		// if mesh instances dirty update that structure
 		//if (_bMeshInstancesDirty)
 		//{
@@ -387,7 +395,7 @@ namespace SPP
 		//};
 
 		_declspec(align(256u))
-			struct GPUViewConstants
+		struct GPUViewConstants
 		{
 			//all origin centered
 			Matrix4x4 ViewMatrix;
@@ -401,9 +409,6 @@ namespace SPP
 
 		_view.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)GGraphicsDevice->GetDeviceWidth() / (float)GGraphicsDevice->GetDeviceHeight());
 		_view.BuildCameraMatrices();
-
-		auto perFrameSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
-		auto currentFrame = GGraphicsDevice->GetFrameCount();
 
 		Planed frustumPlanes[6];
 		_view.GetFrustumPlanes(frustumPlanes);

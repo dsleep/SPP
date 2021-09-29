@@ -31,6 +31,10 @@ namespace SPP
 
 		GPUReferencer< D3D12PipelineState > _fullscreenPSO;
 		GPUReferencer< GPUInputLayout > _fullscreenLayout;
+
+		GPUReferencer< GPURenderTarget > _activeRTs[5];
+		GPUReferencer< GPURenderTarget > _activeDepth;
+
 	public:
 		D3D12RenderScene();
 

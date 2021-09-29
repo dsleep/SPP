@@ -156,8 +156,7 @@ namespace SPP
             }
         }
 
-    public:       
-      
+    public: 
         Referencer(T* obj = nullptr) : obj(obj)
         {
             if (obj)
@@ -165,8 +164,6 @@ namespace SPP
                 obj->incRefCnt();
             }
         }
-
-
 
         Referencer(Referencer<T>& orig) 
         {
@@ -247,8 +244,12 @@ namespace SPP
 
             *this = reinterpret_cast<Referencer<T>>(right);
         }
-
-      
+                
+        void Reset()
+        {
+            decRef();
+            obj = nullptr;
+        }
 
         operator bool()
         {
@@ -380,7 +381,8 @@ namespace SPP
         DDS_UNKNOWN,
         RG_BC5,
         GRAY_BC4,
-        RGB_BC1
+        RGB_BC1,
+        D24_S8
     };
 
     class SPP_GRAPHICS_API GPUTexture : public GPUResource

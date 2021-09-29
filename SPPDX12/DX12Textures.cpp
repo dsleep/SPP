@@ -1277,43 +1277,159 @@ namespace SPP
     {
         auto pd3dDevice = GGraphicsDevice->GetDevice();
 
-        auto _dxformat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        switch (Format)
+        {
+        case TextureFormat::RGBA_8888:
+            _dxFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+            break;
+        case TextureFormat::D24_S8:
+            _dxFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            _bColorFormat = false;
+            break;
+        }
+        
+        SE_ASSERT(_dxFormat != DXGI_FORMAT_UNKNOWN);
+        
+        if (_bColorFormat)
+        {
+            D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(_dxFormat,
+                static_cast<UINT64>(_width),
+                static_cast<UINT>(_height),
+                1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 
-        D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(_dxformat,
-            static_cast<UINT64>(_width),
-            static_cast<UINT>(_height),
-            1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+            D3D12_CLEAR_VALUE clearValue = { _dxFormat, { 0 } };
 
-        D3D12_CLEAR_VALUE clearValue = { _dxformat, { 0 } };
+            auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+            ThrowIfFailed(pd3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+                &desc,
+                D3D12_RESOURCE_STATE_RENDER_TARGET,
+                &clearValue,
+                IID_PPV_ARGS(&_texture)));
 
-        auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-        pd3dDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
-            &desc,
-            D3D12_RESOURCE_STATE_RENDER_TARGET,
-            &clearValue,
-            IID_PPV_ARGS(&_texture));
+            _rtState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        }
+        else
+        {
+            // Create the depth stencil view.
+            D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+            depthStencilDesc.Format = _dxFormat;
+            depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
 
-        // Create RTV.
-        pd3dDevice->CreateRenderTargetView(_texture.Get(), nullptr, _rtvDescriptor);
+            D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+            depthOptimizedClearValue.Format = depthStencilDesc.Format;
+            depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+            depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+            auto heapDefault = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+            auto tex2DDesc = CD3DX12_RESOURCE_DESC::Tex2D(depthStencilDesc.Format, _width, _height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+            ThrowIfFailed(pd3dDevice->CreateCommittedResource(
+                &heapDefault,
+                D3D12_HEAP_FLAG_NONE,
+                &tex2DDesc,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE,
+                &depthOptimizedClearValue,
+                IID_PPV_ARGS(&_texture)
+            ));
+
+            _rtState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        }
+        
+        CreateCPUDescriptors();
+    }
+
+    void D3D12RenderTarget::CreateCPUDescriptors()
+    {
+        auto pd3dDevice = GGraphicsDevice->GetDevice();
+
+        if (_bColorFormat)
+        {
+            // Describe and create a render target view (RTV) descriptor heap.
+            D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+            rtvHeapDesc.NumDescriptors = 1;
+            rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+            rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+            ThrowIfFailed(pd3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&_cpuDescriptor)));
+
+            CD3DX12_CPU_DESCRIPTOR_HANDLE  rtvHandle(_cpuDescriptor->GetCPUDescriptorHandleForHeapStart());
+            pd3dDevice->CreateRenderTargetView(_texture.Get(), nullptr, rtvHandle);
+        }
+        else
+        {
+            // Describe and create a depth stencil view (DSV) descriptor heap.
+            // Each frame has its own depth stencils (to write shadows onto) 
+            // and then there is one for the scene itself.
+            D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+            dsvHeapDesc.NumDescriptors = 1;
+            dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+            dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+            ThrowIfFailed(pd3dDevice->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&_cpuDescriptor)));
+
+            D3D12_DEPTH_STENCIL_VIEW_DESC depthStencilDesc = {};
+            depthStencilDesc.Format = _dxFormat;
+            depthStencilDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            depthStencilDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+            CD3DX12_CPU_DESCRIPTOR_HANDLE  dsvHandle(_cpuDescriptor->GetCPUDescriptorHandleForHeapStart());
+            pd3dDevice->CreateDepthStencilView(_texture.Get(), &depthStencilDesc, dsvHandle);
+        }
+
+        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+        srvHeapDesc.NumDescriptors = 1;
+        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        ThrowIfFailed(pd3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&_cpuSrvDescriptor)));
+
+        auto SRVFormat = _dxFormat;
+        switch (_dxFormat)
+        {
+        case DXGI_FORMAT_D24_UNORM_S8_UINT:
+            SRVFormat = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        }
 
         // Create SRV.
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srvDesc.Format = _dxformat;
+        srvDesc.Format = SRVFormat;
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels = 0;
-        pd3dDevice->CreateShaderResourceView(_texture.Get(), nullptr, _srvDescriptor);
+        srvDesc.Texture2D.MipLevels = 1;
 
-        //auto ToPreset(CD3DX12_RESOURCE_BARRIER::Transition(_texture.Get(), 
-        //    D3D12_RESOURCE_STATE_RENDER_TARGET, // default these to work with all resources... this bad?
-        //    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-        //m_commandList->ResourceBarrier(1, &ToPreset);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(_cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
+        pd3dDevice->CreateShaderResourceView(_texture.Get(), &srvDesc, srvHandle);
+    }
 
-        //auto ToPreset(CD3DX12_RESOURCE_BARRIER::Transition(_texture.Get(), 
-        //    // default these to work with all resources... this bad?
-        //    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 
-        //    D3D12_RESOURCE_STATE_RENDER_TARGET));
-        //m_commandList->ResourceBarrier(1, &ToPreset);
+    D3D12RenderTarget::D3D12RenderTarget(int32_t Width, int32_t Height, TextureFormat Format, ID3D12Resource* PriorResource) : GPURenderTarget(Width, Height, Format)
+    {
+        auto pd3dDevice = GGraphicsDevice->GetDevice();
+
+        switch (Format)
+        {
+        case TextureFormat::RGBA_8888:
+            _dxFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+            break;
+        case TextureFormat::D24_S8:
+            _dxFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+            _bColorFormat = false;
+            break;
+        }
+
+        SE_ASSERT(_dxFormat != DXGI_FORMAT_UNKNOWN);
+
+        _texture = PriorResource;
+        _rtState = _bColorFormat ? D3D12_RESOURCE_STATE_RENDER_TARGET : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+        CreateCPUDescriptors();
+    }
+
+    void D3D12RenderTarget::TransitionTo(D3D12_RESOURCE_STATES InState)
+    {
+        if (_rtState != InState)
+        {
+            auto cmdList = GGraphicsDevice->GetCommandList();
+            auto transitionBar(CD3DX12_RESOURCE_BARRIER::Transition(_texture.Get(), _rtState, InState));
+            cmdList->ResourceBarrier(1, &transitionBar);
+            _rtState = InState;
+        }
     }
 
     GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format)
@@ -1321,4 +1437,9 @@ namespace SPP
 		return Make_GPU<D3D12RenderTarget>(Width, Height, Format);
 	}
 
+    GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format, ID3D12Resource* InResource)
+    {
+        return Make_GPU<D3D12RenderTarget>(Width, Height, Format, InResource);
+    }
+   
 }

@@ -40,13 +40,26 @@ namespace SPP
 	{
 	protected:
 		ComPtr<ID3D12Resource> _texture;
-		D3D12_CPU_DESCRIPTOR_HANDLE _srvDescriptor;
-		D3D12_CPU_DESCRIPTOR_HANDLE _rtvDescriptor;
+		ComPtr<ID3D12DescriptorHeap> _cpuDescriptor;
+		ComPtr<ID3D12DescriptorHeap> _cpuSrvDescriptor;
+		bool _bColorFormat = true;
+		DXGI_FORMAT _dxFormat = DXGI_FORMAT_UNKNOWN;
+		D3D12_RESOURCE_STATES _rtState = D3D12_RESOURCE_STATE_COMMON;
 
 	public:
 		virtual void UploadToGpu() override { }
 		D3D12RenderTarget(int32_t Width, int32_t Height, TextureFormat Format);
+		D3D12RenderTarget(int32_t Width, int32_t Height, TextureFormat Format, ID3D12Resource *PriorResource);
 
+		void TransitionTo(D3D12_RESOURCE_STATES InState);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle()
+		{
+			SE_ASSERT(_cpuDescriptor);
+			return _cpuDescriptor->GetCPUDescriptorHandleForHeapStart();
+		}
+
+		void CreateCPUDescriptors();
 		virtual ~D3D12RenderTarget() { }
 	};
 }
