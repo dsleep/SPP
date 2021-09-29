@@ -1416,7 +1416,8 @@ namespace SPP
         SE_ASSERT(_dxFormat != DXGI_FORMAT_UNKNOWN);
 
         _texture = PriorResource;
-        _rtState = _bColorFormat ? D3D12_RESOURCE_STATE_RENDER_TARGET : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+		//IS THIS ONLY FOR Back buffers?!
+        _rtState = _bColorFormat ? D3D12_RESOURCE_STATE_PRESENT : D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
         CreateCPUDescriptors();
     }

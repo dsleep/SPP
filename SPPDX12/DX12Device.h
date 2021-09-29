@@ -203,10 +203,6 @@ namespace SPP
 
 		std::unique_ptr< D3D12MemoryFramedChunkBuffer  >  _perDrawMemory;
 
-
-		UINT m_rtvDescriptorSize = 0;
-		UINT m_dsvDescriptorSize = 0;
-
 		// Synchronization objects.
 		UINT m_frameIndex = 0;
 		HANDLE m_fenceEvent = nullptr;

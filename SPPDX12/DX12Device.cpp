@@ -508,9 +508,6 @@ namespace SPP
 
 			_perDrawMemory = std::make_unique< D3D12MemoryFramedChunkBuffer >(m_device.Get());
 			//DXSetName(_perDrawMemory->GetResource(), L"Per Draw Memory Chunk");
-
-			m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			m_dsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 		}
 
 		// Create frame resources.
