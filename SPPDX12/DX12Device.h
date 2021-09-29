@@ -177,9 +177,7 @@ namespace SPP
 		std::unique_ptr<FrameState> _frameStates[FrameCount];
 				
 		ComPtr<ID3D12CommandAllocator> m_commandDirectAllocator[FrameCount];
-
 		ComPtr<ID3D12CommandAllocator> m_commandCopyAllocator;
-
 		ComPtr<ID3D12CommandAllocator> m_bundleAllocator;
 		ComPtr<ID3D12CommandQueue> m_commandQueue;
 		ComPtr<ID3D12RootSignature> _emptyRootSignature;
