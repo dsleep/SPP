@@ -2,14 +2,20 @@
 
 struct VertexShaderInput
 {
-	float3 position		: POSITION;
-	float3 color		: COLOR0;
+	float3 position	: POSITION;
+	float2 UV: TEXCOORD0;
+    float3 normal: NORMAL;
+    float3 tangent: TANGENT;
+    float3 binormal: BINORMAL;
 };
 
 struct PixelShaderInput
 {
-	float4 pixelPosition	: SV_POSITION;
-	float3 color			: COLOR0;
+	float4 pixelPosition : SV_POSITION;
+	float2 UV: TEXCOORD0;
+	float3 normal: TEXCOORD1;
+    float3 tangent: TEXCOORD2;
+    float3 binormal: TEXCOORD3;
 };
 
 // Vertex shader
@@ -19,9 +25,13 @@ PixelShaderInput main_vs(VertexShaderInput vin)
 	PixelShaderInput vout;
 
 	float4x4 LocalToWorldTranslated = GetLocalToWorldViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
-	float3 worldPosition = mul(float4(vin.position, 1.0), LocalToWorldTranslated).xyz;
-	vout.pixelPosition = mul(float4(worldPosition, 1.0), ViewConstants.ViewProjectionMatrix);
-	vout.color = vin.color;
+	float4x4 localToScreen = LocalToWorldTranslated * ViewConstants.ViewProjectionMatrix;
+	
+	vout.pixelPosition = mul( float4(vin.position, 1.0), localToScreen );
+	vout.UV = vin.UV;
+	vout.normal = normalize( mul(vin.normal, (float3x3)localToScreen) );
+	vout.tangent = normalize( mul(vin.tangent, (float3x3)localToScreen) );
+	vout.binormal = normalize( mul(vin.binormal, (float3x3)localToScreen) );
 
 	return vout;
 }
@@ -37,7 +47,7 @@ struct PixelShaderOutput
 PixelShaderOutput main_ps(PixelShaderInput pin) 
 {	
 	PixelShaderOutput output;
-	output.color0 = float4(0,0,0,0);
+	output.color0 = float4(pin.UV.xy,ddx(pin.UV.x),ddy(pin.UV.y));
 	output.color1 = float4(0,0,0,0);
 	return output;
 }
