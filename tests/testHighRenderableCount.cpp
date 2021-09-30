@@ -95,21 +95,6 @@ public:
 		_htmlReady = true;
 	}
 		
-	void CompileCode(std::string InCode)
-	{
-		std::string FinalCode = std::string_format(_templateShader.c_str(), InCode.c_str());
-		_currentActiveShader =  GGI()->CreateShader(EShaderType::Pixel);
-		std::string ErrorMsg;
-		if (_currentActiveShader->CompileShaderFromString(FinalCode, "PixelPosToRaysTemplate", "main_ps", &ErrorMsg) == false)
-		{
-			JavascriptInterface::CallJS("SetCompileError", ErrorMsg);			
-		}
-		else
-		{
-			JavascriptInterface::CallJS("SetCompileError", std::string("COMPILE SUCCESSFULL!!!"));
-		}
-	}
-
 	void Initialize(void *AppWindow)
 	{
 		_mainDXWindow = (HWND)AppWindow;
@@ -139,15 +124,27 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(WindowSizeX, WindowSizeY, AppWindow);
 
-		
+		auto deferredMat = std::make_shared< MeshMaterial >();
+		deferredMat->rasterizerState = ERasterizerState::BackFaceCull;
+		deferredMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
+		deferredMat->vertexShader->CompileShaderFromFile("shaders/GBufferDeferredMaterial.hlsl", "main_vs");
+
+		deferredMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
+		deferredMat->pixelShader->CompileShaderFromFile("shaders/GBufferDeferredMaterial.hlsl", "main_ps");
+
 		/////////////SCENE SETUP
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
+
+		auto bufferA = GGI()->CreateRenderTarget(WindowSizeX, WindowSizeY, TextureFormat::R32G32B32A32F);
+		auto bufferB = GGI()->CreateRenderTarget(WindowSizeX, WindowSizeY, TextureFormat::R32G32B32A32);
+		_renderableScene->GetRenderScene()->SetColorTargets(bufferA, bufferB);
 
 		//GTA 5 is 49 square miles
 
 		//1 mile is 1609.34 meters
 		//for 100 square miles, roughly 16km by 16km or an extent of 8km
 		//default scene is 16k x 16km (8192 - power of 2 - for each extents)
+#if 0
 		{
 			std::default_random_engine generator;
 			std::uniform_int_distribution<int> posDist(-8000, 8000);
@@ -225,11 +222,9 @@ public:
 			//		eleFound++;
 			//		return true;
 			//	});
-
-			
 		}
+#endif
 				
-		
 		SPP::MakeResidentAllGPUResources();
 
 		_lastTime = std::chrono::high_resolution_clock::now();
@@ -238,17 +233,8 @@ public:
 
 	void Update()
 	{
-		RECT rect;
-		GetClientRect(_mainDXWindow, &rect);
-
-		int32_t WindowSizeX = rect.right - rect.left;
-		int32_t WindowSizeY = rect.bottom - rect.top;
-
-		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
-
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
-
-					
+			
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
 		_lastTime = CurrentTime;
@@ -264,7 +250,15 @@ public:
 			auto Height = rect.bottom - rect.top;
 
 			// will be ignored if same
-			_graphicsDevice->ResizeBuffers(Width, Height);
+			if (_graphicsDevice->GetDeviceWidth() != Width ||
+				_graphicsDevice->GetDeviceHeight() != Height)
+			{
+				_graphicsDevice->ResizeBuffers(Width, Height);
+
+				auto bufferA = GGI()->CreateRenderTarget(Width, Height, TextureFormat::R32G32B32A32F);
+				auto bufferB = GGI()->CreateRenderTarget(Width, Height, TextureFormat::R32G32B32A32);
+				_renderableScene->GetRenderScene()->SetColorTargets(bufferA, bufferB);
+			}
 		}
 				
 		if (_selectionMode == ESelectionMode::Turn)
@@ -281,6 +275,9 @@ public:
 		}
 
 		_graphicsDevice->BeginFrame();
+
+		_renderableScene->GetRenderScene()->SetRenderToBackBuffer(true);
+
 		_renderableScene->GetRenderScene()->Draw();
 		_graphicsDevice->EndFrame();
 	}
@@ -344,7 +341,6 @@ public:
 RTTR_REGISTRATION
 {
 	rttr::registration::class_<EditorEngine>("EditorEngine")
-		.method("CompileCode", &EditorEngine::CompileCode)
 		.method("HTMLReady", &EditorEngine::HTMLReady)	
 	;
 }

@@ -1286,6 +1286,12 @@ namespace SPP
             _dxFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
             _bColorFormat = false;
             break;
+        case TextureFormat::R32G32B32A32F:
+            _dxFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            break;
+        case TextureFormat::R32G32B32A32:
+            _dxFormat = DXGI_FORMAT_R32G32B32A32_UINT;
+            break;
         }
         
         SE_ASSERT(_dxFormat != DXGI_FORMAT_UNKNOWN);
@@ -1393,6 +1399,9 @@ namespace SPP
         srvDesc.Format = SRVFormat;
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = 1;
+
+        //is gpu visible
+        //_cpuSrvDescriptor->GetDesc().Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(_cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
         pd3dDevice->CreateShaderResourceView(_texture.Get(), &srvDesc, srvHandle);

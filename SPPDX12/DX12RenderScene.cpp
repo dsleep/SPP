@@ -327,8 +327,7 @@ namespace SPP
 		auto backBufferColor = GGraphicsDevice->GetScreenColor();
 		auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
 		
-		bool bUseBackBuffer = true;
-		if (bUseBackBuffer)
+		if (_bRenderToBackBuffer)
 		{
 			backBufferColor->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
@@ -356,7 +355,13 @@ namespace SPP
 				_activeRTs[ActiveCount]->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_RENDER_TARGET);
 			}
 
-			if (_activeDepth)
+			if (_bUseBBWithCustomColor)
+			{
+				auto depthDesc = backBufferDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
+				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, &depthDesc);
+				cmdList->ClearDepthStencilView(depthDesc, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+			}
+			else if(_activeDepth)
 			{
 				D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor = _activeDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
 				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, &depthDescriptor);

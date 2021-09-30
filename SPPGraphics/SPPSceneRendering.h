@@ -124,6 +124,12 @@ namespace SPP
 		LooseOctree _octree;
 		std::list<Renderable*> _renderables;
 
+		bool _bRenderToBackBuffer = true;
+		bool _bUseBBWithCustomColor = true;
+
+		GPUReferencer< GPURenderTarget > _activeRTs[5];
+		GPUReferencer< GPURenderTarget > _activeDepth;
+
 	public:
 		RenderScene() 
 		{
@@ -131,6 +137,47 @@ namespace SPP
 			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
 		}
 		virtual ~RenderScene() {}
+
+		void SetRenderToBackBuffer(bool bInRenderToBackBuffer)
+		{
+			_bRenderToBackBuffer = bInRenderToBackBuffer;
+		}
+		void SetUseBackBufferDepthWithCustomColor(bool bInUseBackBufferDepths)
+		{
+			_bUseBBWithCustomColor = bInUseBackBufferDepths;
+		}
+
+		template<typename... T>
+		void SetColorTargets(T... args)
+		{
+			static_assert(sizeof...(args) <= 5, "TO MANY TARGETS SET");
+			GPUReferencer< GPURenderTarget > setRTs[] = { args... };
+
+			int32_t Iter = 0;
+			for (Iter = 0; Iter < ARRAY_SIZE(setRTs); Iter++)
+			{
+				_activeRTs[Iter] = setRTs[Iter];
+			}
+
+			for (; Iter < ARRAY_SIZE(_activeRTs); Iter++)
+			{
+				_activeRTs[Iter].Reset();
+			}
+		}
+
+		void SetDepthTarget(GPUReferencer< GPURenderTarget > InActiveDepth)
+		{
+			_activeDepth = InActiveDepth;
+		}
+
+		void UnsetAllRTs()
+		{
+			for (int32_t Iter = 0; Iter < ARRAY_SIZE(_activeRTs); Iter++)
+			{
+				_activeRTs[Iter].Reset();
+			}
+			_activeDepth.Reset();
+		}
 
 		virtual void AddToScene(Renderable *InRenderable)
 		{

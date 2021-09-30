@@ -132,6 +132,7 @@ namespace SPP
 
         uint32_t decRefCnt()
         {
+            SE_ASSERT(_refCnt > 0);
             return --_refCnt;
         }
     };
@@ -274,12 +275,10 @@ namespace SPP
         }
 
     public:       
-        
         GPUReferencer(T* obj = nullptr) : Referencer(obj)
         {
             static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
         }
-        
 
         GPUReferencer(GPUReferencer<T>& orig) : Referencer(orig) { }
         GPUReferencer(const GPUReferencer<T>& orig) : Referencer(orig) { }
@@ -382,7 +381,9 @@ namespace SPP
         RG_BC5,
         GRAY_BC4,
         RGB_BC1,
-        D24_S8
+        D24_S8,
+        R32G32B32A32F,
+        R32G32B32A32
     };
 
     class SPP_GRAPHICS_API GPUTexture : public GPUResource

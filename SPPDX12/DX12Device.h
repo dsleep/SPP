@@ -169,6 +169,7 @@ namespace SPP
 		ComPtr<ID3D12Device2> m_device;
 		ComPtr<IDXGIAdapter1> _hardwareAdapter;
 		ComPtr<D3D12MA::Allocator> _allocator;
+		D3D_FEATURE_LEVEL _featureLevel;
 
 		GPUReferencer< GPURenderTarget > _renderTargets[FrameCount];
 		GPUReferencer< GPURenderTarget > _depthStencil[FrameCount];

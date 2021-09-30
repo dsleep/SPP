@@ -410,7 +410,23 @@ namespace SPP
 			featureLevels.NumFeatureLevels = (UINT)SPP::ARRAY_SIZE(featureLevelsArray);
 			featureLevels.pFeatureLevelsRequested = featureLevelsArray;
 			ThrowIfFailed(m_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels)));
-			//FeatureLevel = featureLevels.MaxSupportedFeatureLevel;
+			_featureLevel = featureLevels.MaxSupportedFeatureLevel;
+
+			switch(_featureLevel)
+			{
+			case D3D_FEATURE_LEVEL_11_0:
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, " - D3D_FEATURE_LEVEL_11_0");
+				break;
+			case D3D_FEATURE_LEVEL_11_1:
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, " - D3D_FEATURE_LEVEL_11_1");
+				break;
+			case D3D_FEATURE_LEVEL_12_0:
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, " - D3D_FEATURE_LEVEL_12_0");
+				break;
+			case D3D_FEATURE_LEVEL_12_1:
+				SPP_LOG(LOG_D3D12Device, LOG_INFO, " - D3D_FEATURE_LEVEL_12_1");
+				break;
+			}
 		}
 
 		D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = { D3D_SHADER_MODEL_6_5 };

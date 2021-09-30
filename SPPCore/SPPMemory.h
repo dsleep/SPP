@@ -652,8 +652,9 @@ namespace SPP
 				curNode = curNode->next;
 			}
 
-			SPP_LOG(LOG_MEM, LOG_INFO, "TotalReservations: Nodes %d Reserved: %d Available: %d Total: %d NC: %d",
-				NodeCount, Reserved, Available, Available + Reserved, DataNode::NodeCount);
+			SPP_LOG(LOG_MEM, LOG_INFO, "TotalReservations: Nodes %d Reserved: %d Available: %d Total: %d",
+				NodeCount, Reserved, Available, Available + Reserved);
+			SE_ASSERT(DataNode::NodeCount == NodeCount);
 		}
 	};
 }
