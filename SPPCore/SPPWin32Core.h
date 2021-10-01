@@ -18,6 +18,16 @@ namespace SPP
 		uint32_t ProcessorCount;
 	};
 
+	struct MonitorInfo
+	{
+		std::string Name;
+
+		int32_t X;
+		int32_t Y;
+		int32_t Width;
+		int32_t Height;
+	};
+
 	SPP_CORE_API std::string GetProcessName();
 
 	SPP_CORE_API PlatformInfo GetPlatformInfo();
@@ -29,6 +39,8 @@ namespace SPP
 	SPP_CORE_API void CaptureWindow(void *Window);
 
 	SPP_CORE_API void AddDLLSearchPath(const char* InPath);
+
+	SPP_CORE_API void GetMonitorInfo(std::vector<MonitorInfo> &oInfos);
 }
 
 extern "C" SPP_CORE_API uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible);

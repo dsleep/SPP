@@ -208,6 +208,9 @@ int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 
+	std::vector<MonitorInfo> Infos;
+	GetMonitorInfo(Infos);
+
 	{
 		Json::Value JsonConfig;
 		SE_ASSERT(FileToJson("config.txt", JsonConfig));
@@ -253,6 +256,7 @@ int main(int argc, char* argv[])
 
 	// START OS NETWORKING
 	GetOSNetwork();
+
 
 	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
 
