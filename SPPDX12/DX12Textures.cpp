@@ -5,8 +5,49 @@
 #include "DX12Textures.h"
 #include "XTK12/DDS.h"
 
+#include "SPPLogging.h"
+
 namespace SPP
 {
+    LogEntry LOG_DXTEXT("DXTEXT");
+
+    inline const char* GetBCFormat(DXGI_FORMAT fmt) noexcept
+    {
+        switch (fmt)
+        {
+        case DXGI_FORMAT_BC1_TYPELESS:
+        case DXGI_FORMAT_BC1_UNORM:
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+			return "BC1";
+		case DXGI_FORMAT_BC2_TYPELESS:
+		case DXGI_FORMAT_BC2_UNORM:
+		case DXGI_FORMAT_BC2_UNORM_SRGB:
+			return "BC2";
+		case DXGI_FORMAT_BC3_TYPELESS:
+		case DXGI_FORMAT_BC3_UNORM:
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+			return "BC3";
+		case DXGI_FORMAT_BC4_TYPELESS:
+		case DXGI_FORMAT_BC4_UNORM:
+		case DXGI_FORMAT_BC4_SNORM:
+			return "BC4";
+		case DXGI_FORMAT_BC5_TYPELESS:
+		case DXGI_FORMAT_BC5_UNORM:
+		case DXGI_FORMAT_BC5_SNORM:
+			return "BC5";
+		case DXGI_FORMAT_BC6H_TYPELESS:
+		case DXGI_FORMAT_BC6H_UF16:
+		case DXGI_FORMAT_BC6H_SF16:
+			return "BC6";
+		case DXGI_FORMAT_BC7_TYPELESS:
+		case DXGI_FORMAT_BC7_UNORM:
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			return "BC7";
+
+		default:
+			return "unknown";
+		}
+	}
     inline bool IsDepthStencil(DXGI_FORMAT fmt) noexcept
     {
         switch (fmt)
@@ -1206,6 +1247,8 @@ namespace SPP
             bool bIsCubeMap = false;
             CreateTextureFromDDS(pd3dDevice, ddsMeta->header, ddsMeta->bitData, ddsMeta->bitSize, 100 * 1024 * 1024,
                 D3D12_RESOURCE_FLAG_NONE, DDS_LOADER_DEFAULT, &_texture, subresources, &bIsCubeMap, _desc);
+
+            SPP_LOG(LOG_DXTEXT, LOG_INFO, "BCFormat %s: ", GetBCFormat(_desc.Format));
         }
         else
         {
@@ -1265,6 +1308,21 @@ namespace SPP
             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		pUplCmdList->ResourceBarrier(1, &textureTransition);
 
+        //setup cpu srv
+        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+        srvHeapDesc.NumDescriptors = 1;
+        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;    
+        ThrowIfFailed(pd3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&_cpuSrvDescriptor)));
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Format = _desc.Format;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(_cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
+        pd3dDevice->CreateShaderResourceView(_texture.Get(), &srvDesc, srvHandle);
 	}
 
     GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)

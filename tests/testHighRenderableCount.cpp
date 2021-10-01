@@ -74,7 +74,6 @@ private:
 
 	OMesh* _testMesh = nullptr;
 	OMeshElement* _testMeshElement = nullptr;
-	std::shared_ptr< SPP::MeshMaterial > _testMat;
 
 	ORenderableScene* _renderableScene = nullptr;
 
@@ -124,6 +123,12 @@ public:
 		_graphicsDevice->Initialize(WindowSizeX, WindowSizeY, AppWindow);
 
 		auto deferredMat = std::make_shared< MeshMaterial >();
+
+		auto textureLeafDiff = std::make_shared< TextureAsset >();
+		textureLeafDiff->LoadFromDisk("textures/leaf.dds");
+		auto textureBarkDiff = std::make_shared< TextureAsset >();
+		textureBarkDiff->LoadFromDisk("textures/bark.dds");
+
 		deferredMat->rasterizerState = ERasterizerState::BackFaceCull;
 		deferredMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
 		deferredMat->vertexShader->CompileShaderFromFile("shaders/GBufferDeferredMaterial.hlsl", "main_vs");
@@ -131,32 +136,35 @@ public:
 		deferredMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
 		deferredMat->pixelShader->CompileShaderFromFile("shaders/GBufferDeferredMaterial.hlsl", "main_ps");
 
+		//GGI()->CreateTexture()
 
 		_testMesh = AllocateObject<OMesh>("testM");
-		auto _testMat = std::make_shared< MeshMaterial >();
+		auto _testMatLeaf = std::make_shared< MeshMaterial >();
+		auto _testMatBark = std::make_shared< MeshMaterial >();
 				
 		{
 			auto MeshToLoad = std::make_shared< Mesh >();
 			MeshToLoad->LoadMesh("meshes/Sambucus_nigra_small.fbx");
 			_testMesh->SetMesh(MeshToLoad);
 
-			_testMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
-			_testMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
+			_testMatBark->vertexShader = _testMatLeaf->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
+			_testMatLeaf->vertexShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_vs");
 
-			_testMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
-			_testMat->pixelShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_ps");
+			_testMatBark->pixelShader = _testMatLeaf->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
+			_testMatLeaf->pixelShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_ps");
 
-			_testMat->layout = GGI()->CreateInputLayout();
-			_testMat->layout->InitializeLayout({
+			_testMatBark->layout = _testMatLeaf->layout = GGI()->CreateInputLayout();
+			_testMatLeaf->layout->InitializeLayout({
 					{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },
-					{ "COLOR",  SPP::InputLayoutElementType::UInt, offsetof(SPP::MeshVertex,color) } });
+					{ "TEXCOORD",  SPP::InputLayoutElementType::Float2, offsetof(SPP::MeshVertex,texcoord) } });
 
 			auto& meshElements = _testMesh->GetMesh()->GetMeshElements();
 
-			for (auto& curMesh : meshElements)
-			{
-				curMesh->material = _testMat;
-			}
+			_testMatBark->SetTextureUnit(0, textureBarkDiff->GetGPUTexture());
+			_testMatLeaf->SetTextureUnit(0, textureLeafDiff->GetGPUTexture());
+
+			meshElements[1]->material = _testMatBark;
+			meshElements[0]->material = _testMatLeaf;
 		}
 
 		/////////////SCENE SETUP

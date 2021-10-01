@@ -13,11 +13,17 @@ namespace SPP
 	protected:
 		ComPtr<ID3D12Resource> _texture;
 		ComPtr<ID3D12Resource> _textureUpload;
+		ComPtr<ID3D12DescriptorHeap> _cpuSrvDescriptor;
 		D3D12_RESOURCE_DESC _desc = {};
+		DXGI_FORMAT _dxFormat = DXGI_FORMAT_UNKNOWN;
 
 	public:
 
 		ID3D12Resource* GetTexture();
+		ID3D12DescriptorHeap* GetCPUDescriptor()
+		{
+			return _cpuSrvDescriptor.Get();
+		}
 		const D3D12_RESOURCE_DESC &GetDescription();
 		virtual void UploadToGpu() override;
 

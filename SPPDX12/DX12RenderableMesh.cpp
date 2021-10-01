@@ -243,8 +243,8 @@ namespace SPP
 	{		
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
 		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
-		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-		auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
+		auto &perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		auto &perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
 
@@ -311,17 +311,11 @@ namespace SPP
 
 						{
 							auto psSRVDescriptor = SRVSlotBlock[Iter];
-
 							auto texRef = _meshData->material->textureArray[Iter]->GetAs<D3D12Texture>();
-
-							auto& description = texRef.GetDescription();
-
-							D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-							srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-							srvDesc.Format = description.Format;
-							srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-							srvDesc.Texture2D.MipLevels = description.MipLevels;
-							pd3dDevice->CreateShaderResourceView(texRef.GetTexture(), &srvDesc, psSRVDescriptor.cpuHandle);
+							pd3dDevice->CopyDescriptorsSimple(1,
+								psSRVDescriptor.cpuHandle,
+								texRef.GetCPUDescriptor()->GetCPUDescriptorHandleForHeapStart(),
+								D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 						}
 
 						{

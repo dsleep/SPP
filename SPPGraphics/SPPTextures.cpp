@@ -5,6 +5,7 @@
 #include "SPPGraphics.h"
 #include "SPPGPUResources.h"
 #include "SPPTextures.h"
+#include "SPPLogging.h"
 
 #include "SPPFileSystem.h"
 #include "SPPString.h"
@@ -17,10 +18,13 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-//#include "XTK12/DDS.h"
+// UGLY
+#include "../SPPDX12/XTK12/DDS.h"
 
 namespace SPP
 {
+	LogEntry LOG_TEXTURES("TEXTURES");
+
 	bool SaveImageToFile(const char* FilePath,
 		uint32_t Width,
 		uint32_t Height,
@@ -57,7 +61,6 @@ namespace SPP
 		}
 	}
 
-#if 0
 	inline bool LoadDDSTextureDataFromFile(
 		const char* fileName,
 		std::vector<uint8_t>& ddsData,
@@ -118,18 +121,18 @@ namespace SPP
 		return true;
 	}
 
-	bool TextureObject::Generate(int32_t InWidth, int32_t InHeight, TextureFormat InFormat)
+	bool TextureAsset::Generate(int32_t InWidth, int32_t InHeight, TextureFormat InFormat)
 	{
 		_width = InWidth;
 		_height = InHeight;
 		_format = InFormat;
 
-		_texture = SPP::CreateTexture(_width, _height, _format);
+		_texture = GGI()->CreateTexture(_width, _height, _format);
 
 		return true;
 	}
 
-	bool TextureObject::LoadFromDisk(const AssetPath& FileName)
+	bool TextureAsset::LoadFromDisk(const AssetPath& FileName)
 	{
 		static_assert(sizeof(SimpleRGB) == 3);
 		static_assert(sizeof(SimpleRGBA) == 4);
@@ -137,6 +140,8 @@ namespace SPP
 		_width = 0;
 		_height = 0;
 		_rawImgData = std::make_shared< ArrayResource >();
+
+		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", *FileName);
 
 		auto extension = FileName.GetExtension();
 
@@ -158,7 +163,12 @@ namespace SPP
 				ddsmeta->bitSize = bitSize;
 
 				//_texture create gpu texture
-				_texture = SPP::CreateTexture(_width, _height, TextureFormat::DDS_UNKNOWN, _rawImgData, ddsmeta);
+				_texture = GGI()->CreateTexture(_width, _height, TextureFormat::DDS_UNKNOWN, _rawImgData, ddsmeta);
+				SPP_LOG(LOG_TEXTURES, LOG_INFO, " - loaded dds");
+			}
+			else
+			{
+				SPP_LOG(LOG_TEXTURES, LOG_INFO, " - FAILED loading dds");
 			}
 		}
 		else
@@ -197,8 +207,8 @@ namespace SPP
 
 				stbi_image_free(pixels);
 
-				//_texture create gpu texture
-				_texture = SPP::CreateTexture(_width, _height, TextureFormat::RGBA_8888, _rawImgData);
+				//_texture create gpu texture				
+				_texture = GGI()->CreateTexture(_width, _height, TextureFormat::RGBA_8888, _rawImgData);
 
 				return true;
 			}
@@ -206,5 +216,4 @@ namespace SPP
 
 		return false;
 	}
-#endif
 }

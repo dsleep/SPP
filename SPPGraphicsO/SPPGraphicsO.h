@@ -42,6 +42,11 @@ namespace SPP
 		virtual ~ORenderableScene() { }
 	};
 
+	class SPP_GRAPHICSO_API OTexture : public SPPObject
+	{
+
+	};
+
 	class SPP_GRAPHICSO_API OMesh : public SPPObject
 	{
 		RTTR_ENABLE(SPPObject);
