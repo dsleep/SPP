@@ -41,6 +41,34 @@ namespace SPP
 		return oInfo;
 	}
 
+	BOOL CALLBACK MyInfoEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+	{
+		MONITORINFOEX iMonitor;
+		iMonitor.cbSize = sizeof(MONITORINFOEX);
+		GetMonitorInfo(hMonitor, &iMonitor);
+
+		if (iMonitor.dwFlags == DISPLAY_DEVICE_MIRRORING_DRIVER)
+		{
+			return true;
+		}
+		else
+		{
+			std::vector<MonitorInfo>* info = reinterpret_cast<std::vector<MonitorInfo>*>(dwData);
+			info->push_back({
+				std::wstring_to_utf8(iMonitor.szDevice),
+				iMonitor.rcMonitor.left,
+				iMonitor.rcMonitor.top,
+				iMonitor.rcMonitor.right - iMonitor.rcMonitor.left,
+				iMonitor.rcMonitor.bottom - iMonitor.rcMonitor.left });
+			return true;
+		};
+	}
+
+	SPP_CORE_API void GetMonitorInfo(std::vector<MonitorInfo>& oInfos)
+	{
+		EnumDisplayMonitors(NULL, NULL, &MyInfoEnumProc, reinterpret_cast<LPARAM>(&oInfos));
+	}
+
 	std::map< uint32_t, std::shared_ptr< PROCESS_INFORMATION > > hostedChildProcesses;
 
 	uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible)
