@@ -121,5 +121,5 @@ namespace SPP
 		//return static_cast<ObjectType*>(AllocateObject(*ObjectType::GetStaticMetaType(), InPath));
 	//}
 
-
+	SPP_OBJECT_API void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string>& stringStack, const std::string& Value, uint8_t depth);
 }

@@ -71,13 +71,12 @@ private:
 	Vector2i _mousePosition = { -1, -1 };
 	Vector2i _mouseCaptureSpot = { -1, -1 };
 	std::chrono::high_resolution_clock::time_point _lastTime;
-	std::shared_ptr< SPP::MeshMaterial > _gizmoMat;	
 
-	OMesh* _moveGizmo = nullptr;
+	OMesh* _testMesh = nullptr;
+	OMeshElement* _testMeshElement = nullptr;
+	std::shared_ptr< SPP::MeshMaterial > _testMat;
 
 	ORenderableScene* _renderableScene = nullptr;
-	OMeshElement* _gizmo = nullptr;
-	OElement* _selectedElement = nullptr;
 
 	bool _htmlReady = false;
 
@@ -132,8 +131,40 @@ public:
 		deferredMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
 		deferredMat->pixelShader->CompileShaderFromFile("shaders/GBufferDeferredMaterial.hlsl", "main_ps");
 
+
+		_testMesh = AllocateObject<OMesh>("testM");
+		auto _testMat = std::make_shared< MeshMaterial >();
+				
+		{
+			auto MeshToLoad = std::make_shared< Mesh >();
+			MeshToLoad->LoadMesh("meshes/Sambucus_nigra_small.fbx");
+			_testMesh->SetMesh(MeshToLoad);
+
+			_testMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
+			_testMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
+
+			_testMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
+			_testMat->pixelShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_ps");
+
+			_testMat->layout = GGI()->CreateInputLayout();
+			_testMat->layout->InitializeLayout({
+					{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },
+					{ "COLOR",  SPP::InputLayoutElementType::UInt, offsetof(SPP::MeshVertex,color) } });
+
+			auto& meshElements = _testMesh->GetMesh()->GetMeshElements();
+
+			for (auto& curMesh : meshElements)
+			{
+				curMesh->material = _testMat;
+			}
+		}
+
 		/////////////SCENE SETUP
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
+
+		_testMeshElement = AllocateObject<OMeshElement>("meshE");
+		_testMeshElement->SetMesh(_testMesh);
+		_renderableScene->AddChild(_testMeshElement);
 
 		auto bufferA = GGI()->CreateRenderTarget(WindowSizeX, WindowSizeY, TextureFormat::R32G32B32A32F);
 		auto bufferB = GGI()->CreateRenderTarget(WindowSizeX, WindowSizeY, TextureFormat::R32G32B32A32);
