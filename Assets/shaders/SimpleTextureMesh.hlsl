@@ -12,7 +12,7 @@ struct PixelShaderInput
 	float2 uv				: TEXCOORD;
 };
 
-Texture2D diffuseTexture : register(t1);
+Texture2D diffuseTexture : register(t0, space0);
 SamplerState dSampler : register(s0);
 
 

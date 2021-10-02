@@ -242,7 +242,7 @@ namespace SPP
 	void D3D12RenderableMesh::Draw()
 	{		
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
-		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
 		auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
 		auto cmdList = GGraphicsDevice->GetCommandList();
@@ -297,15 +297,16 @@ namespace SPP
 			//4 domain
 			//5,6 mesh
 
-			//table 4&5 SRV and SAMPLERS
+			//table 7&12 SRV and SAMPLERS
 			{
-				if (_meshData->material->textureArray.size())
+				auto textureCount = _meshData->material->textureArray.size();
+				if (textureCount)
 				{
-					auto SRVSlotBlock = perDrawDescriptorHeap->GetDescriptorSlots((uint8_t)_meshData->material->textureArray.size());
-					auto SamplerSlotBlock = perDrawSamplerHeap->GetDescriptorSlots((uint8_t)_meshData->material->textureArray.size());
+					auto SRVSlotBlock = perDrawDescriptorHeap->GetDescriptorSlots((uint8_t)textureCount);
+					auto SamplerSlotBlock = perDrawSamplerHeap->GetDescriptorSlots((uint8_t)textureCount);
 
 					// Describe and create a SRV for the texture.
-					for (int32_t Iter = 0; Iter < _meshData->material->textureArray.size(); Iter++)
+					for (int32_t Iter = 0; Iter < textureCount; Iter++)
 					{
 						SE_ASSERT(_meshData->material->textureArray[Iter]);
 

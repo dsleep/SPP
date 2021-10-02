@@ -93,7 +93,7 @@ namespace SPP
 		if (_lines.empty()) return;
 
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
-		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
 
@@ -177,7 +177,7 @@ namespace SPP
 		cmdList->SetPipelineState(_debugPSO->GetState());
 		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 
-		auto perFrameSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto perFrameSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 
 		auto heapChunk = perFrameSratchMem->GetWritable(_lines.size() * sizeof(DebugVertex), currentFrame);
 
@@ -225,10 +225,9 @@ namespace SPP
 	void D3D12RenderScene::Draw()
 	{
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
-		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
-		auto perFrameSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
 
 		auto backBufferColor = GGraphicsDevice->GetScreenColor();
 		auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
@@ -325,7 +324,7 @@ namespace SPP
 		_view.GetFrustumPlanes(frustumPlanes);
 
 		// get first index
-		_currentFrameMem = perFrameSratchMem->GetWritable(sizeof(GPUViewConstants), currentFrame);
+		_currentFrameMem = perDrawSratchMem->GetWritable(sizeof(GPUViewConstants), currentFrame);
 
 		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, ViewMatrix), _view.GetCameraMatrix());
 		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, ViewProjectionMatrix), _view.GetViewProjMatrix());

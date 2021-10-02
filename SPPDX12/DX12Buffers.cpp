@@ -53,7 +53,7 @@ namespace SPP
 		}
 
 		uint32_t CopySize = _cpuLink->GetPerElementSize() * Count;
-		auto perFrameSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto perFrameSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 		auto memoryDirtyRegion = perFrameSratchMem->GetWritable(CopySize, currentFrame);
 
 		// actually copy it over from the buff
@@ -91,7 +91,7 @@ namespace SPP
 			}
 
 #if 1
-			auto perFrameSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+			auto perFrameSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 			auto memChunk = perFrameSratchMem->Write(GetData(), GetDataSize(), currentFrame);
 			pUplCmdList->CopyBufferRegion(_buffer.Get(), 0, memChunk.orgResource.Get(), memChunk.offsetOrgResource, GetDataSize());
 #else	

@@ -248,7 +248,7 @@ namespace SPP
 			return _allocator.Get();
 		}
 
-		D3D12MemoryFramedChunkBuffer* GetPerDrawScratchMemory();
+		D3D12MemoryFramedChunkBuffer* GetPerFrameScratchMemory();
 		ID3D12Device2* GetDevice();
 		ID3D12GraphicsCommandList6* GetUploadCommandList();
 		ID3D12GraphicsCommandList6* GetCommandList();

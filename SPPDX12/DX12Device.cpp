@@ -161,7 +161,7 @@ namespace SPP
 		GGraphicsDevice = this;
 	}
 
-	D3D12MemoryFramedChunkBuffer* DX12Device::GetPerDrawScratchMemory()
+	D3D12MemoryFramedChunkBuffer* DX12Device::GetPerFrameScratchMemory()
 	{
 		return _perDrawMemory.get();
 	}
@@ -1049,7 +1049,7 @@ namespace SPP
 		virtual void Dispatch(const Vector3i &ThreadGroupCounts) override
 		{
 			auto pd3dDevice = GGraphicsDevice->GetDevice();
-			auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+			auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 			auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
 			auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
 			auto cmdList = GGraphicsDevice->GetCommandList();

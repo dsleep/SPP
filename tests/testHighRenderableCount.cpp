@@ -163,8 +163,8 @@ public:
 			_testMatBark->SetTextureUnit(0, textureBarkDiff->GetGPUTexture());
 			_testMatLeaf->SetTextureUnit(0, textureLeafDiff->GetGPUTexture());
 
-			meshElements[1]->material = _testMatBark;
-			meshElements[0]->material = _testMatLeaf;
+			meshElements[0]->material = _testMatBark;
+			meshElements[1]->material = _testMatLeaf;
 		}
 
 		/////////////SCENE SETUP

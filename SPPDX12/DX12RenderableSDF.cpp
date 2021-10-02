@@ -105,7 +105,7 @@ namespace SPP
 	{
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
 		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
 		auto curCLWrapper = GGraphicsDevice->GetCommandListWrapper();

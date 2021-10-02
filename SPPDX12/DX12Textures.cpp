@@ -1321,8 +1321,9 @@ namespace SPP
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = _desc.MipLevels;
 
-        CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(_cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
-        pd3dDevice->CreateShaderResourceView(_texture.Get(), &srvDesc, srvHandle);
+        pd3dDevice->CreateShaderResourceView(_texture.Get(), 
+            &srvDesc, 
+            _cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
 	}
 
     GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
