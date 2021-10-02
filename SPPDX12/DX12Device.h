@@ -193,8 +193,6 @@ namespace SPP
 		ComPtr<ID3D12GraphicsCommandList6> m_uplCommandList;
 		ComPtr<ID3D12GraphicsCommandList6> m_bundle;
 
-		ComPtr<ID3D12Resource> _constantBuffer[FrameCount];
-
 		std::array<D3D12SimpleDescriptorBlock, HDT_Num> _presetDescriptorHeaps;
 		std::unique_ptr< D3D12SimpleDescriptorHeap >  _descriptorGlobalHeap;		
 		D3D12WritableDescriptorBlock _dynamicDescriptorHeapBlock;

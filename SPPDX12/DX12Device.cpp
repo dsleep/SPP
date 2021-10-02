@@ -529,23 +529,9 @@ namespace SPP
 		// Create frame resources.
 		_CreateFrameResouces();
 
-		// direct allocators
-		const UINT64 constantBufferSize = 5 * 1024 * 1024;
-		auto heapUpload = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-		auto bufferResourceSize = CD3DX12_RESOURCE_DESC::Buffer(constantBufferSize);
-
 		for (UINT n = 0; n < FrameCount; n++)
 		{
 			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandDirectAllocator[n])));
-
-			ThrowIfFailed(m_device->CreateCommittedResource(
-				&heapUpload,
-				D3D12_HEAP_FLAG_NONE,
-				&bufferResourceSize,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&_constantBuffer[n])
-			));
 		}
 
 		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandCopyAllocator)));
