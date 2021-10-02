@@ -221,13 +221,13 @@ namespace SPP
 	public:
 		DX12Device();
 
-		D3D12WritableDescriptorBlock& GetDynamicDescriptorHeap()
+		D3D12WritableDescriptorBlock* GetDynamicDescriptorHeap()
 		{
-			return _dynamicDescriptorHeapBlock;
+			return &_dynamicDescriptorHeapBlock;
 		}
-		D3D12WritableDescriptorBlock& GetDynamicSamplerHeap()
+		D3D12WritableDescriptorBlock* GetDynamicSamplerHeap()
 		{
-			return _dynamicSamplerDescriptorHeapBlock;
+			return &_dynamicSamplerDescriptorHeapBlock;
 		}
 
 		UINT64 GetFrameCount() const 

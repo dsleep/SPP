@@ -1099,7 +1099,7 @@ namespace SPP
 				cmdList->SetComputeRootConstantBufferView(Iter, HeapAddrs.gpuAddr);
 			}
 
-			auto UAVSlotBlock = perDrawDescriptorHeap.GetDescriptorSlots(_textures.size());
+			auto UAVSlotBlock = perDrawDescriptorHeap->GetDescriptorSlots(_textures.size());
 
 			for (int32_t Iter = 0; Iter < _textures.size(); Iter++)
 			{

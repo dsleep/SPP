@@ -243,8 +243,8 @@ namespace SPP
 	{		
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
 		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
-		auto &perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-		auto &perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
+		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
 
@@ -301,8 +301,8 @@ namespace SPP
 			{
 				if (_meshData->material->textureArray.size())
 				{
-					auto SRVSlotBlock = perDrawDescriptorHeap.GetDescriptorSlots((uint8_t)_meshData->material->textureArray.size());
-					auto SamplerSlotBlock = perDrawSamplerHeap.GetDescriptorSlots((uint8_t)_meshData->material->textureArray.size());
+					auto SRVSlotBlock = perDrawDescriptorHeap->GetDescriptorSlots((uint8_t)_meshData->material->textureArray.size());
+					auto SamplerSlotBlock = perDrawSamplerHeap->GetDescriptorSlots((uint8_t)_meshData->material->textureArray.size());
 
 					// Describe and create a SRV for the texture.
 					for (int32_t Iter = 0; Iter < _meshData->material->textureArray.size(); Iter++)

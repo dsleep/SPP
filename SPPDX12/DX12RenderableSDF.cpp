@@ -104,8 +104,7 @@ namespace SPP
 	void D3D12SDF::Draw()
 	{
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
-		//TODO Make smarter was dangerous copy
-		auto &perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
 		auto perDrawSratchMem = GGraphicsDevice->GetPerDrawScratchMemory();
 		auto cmdList = GGraphicsDevice->GetCommandList();
 		auto currentFrame = GGraphicsDevice->GetFrameCount();
@@ -149,7 +148,7 @@ namespace SPP
 		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 		//3 shapes for now
-		auto ShapeSetBlock = perDrawDescriptorHeap.GetDescriptorSlots(1);
+		auto ShapeSetBlock = perDrawDescriptorHeap->GetDescriptorSlots(1);
 
 		SE_ASSERT(_shapeResource->GetElementCount() == _shapes.size());
 

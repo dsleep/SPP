@@ -178,6 +178,9 @@ namespace SPP
 
 	class D3D12WritableDescriptorBlock : public D3D12SimpleDescriptorBlock
 	{
+		// delete copy and move constructors and assign operators
+		NO_COPY_ALLOWED(D3D12WritableDescriptorBlock);
+
 	protected:
 		uint32_t _currentWriteIdx = 0;
 
@@ -186,6 +189,11 @@ namespace SPP
 		D3D12WritableDescriptorBlock(const D3D12SimpleDescriptorBlock& InBlock)
 		{
 			*(D3D12SimpleDescriptorBlock*)this = InBlock;
+		}
+		D3D12WritableDescriptorBlock &operator=(const D3D12SimpleDescriptorBlock& InBlock)
+		{
+			*(D3D12SimpleDescriptorBlock*)this = InBlock;
+			return *this;
 		}
 		D3D12SimpleDescriptorBlock GetDescriptorSlots(uint8_t SlotCount = 1);
 		D3D12_GPU_DESCRIPTOR_HANDLE WriteToDescriptors(ID3D12Device* InDevice, D3D12SimpleDescriptorHeap& srcHeap, int32_t Count = 0);
