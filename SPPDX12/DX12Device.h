@@ -165,8 +165,8 @@ namespace SPP
 		// Pipeline objects.
 		//D3DX12_VIEWPORT m_viewport;
 		//D3DX12_RECT m_scissorRect;
-		ComPtr<IDXGISwapChain3> m_swapChain;
-		ComPtr<ID3D12Device2> m_device;
+		ComPtr<IDXGISwapChain3> _swapChain;
+		ComPtr<ID3D12Device2> _device;
 		ComPtr<IDXGIAdapter1> _hardwareAdapter;
 		ComPtr<D3D12MA::Allocator> _allocator;
 		D3D_FEATURE_LEVEL _featureLevel;
@@ -174,24 +174,17 @@ namespace SPP
 		GPUReferencer< GPURenderTarget > _renderTargets[FrameCount];
 		GPUReferencer< GPURenderTarget > _depthStencil[FrameCount];
 
-		//ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-		//ComPtr<ID3D12Resource> m_depthStencil[FrameCount];
-
 		std::unique_ptr<D3D12CommandListWrapper> _commandListWrappers[FrameCount];
 
 		std::unique_ptr<FrameState> _frameStates[FrameCount];
 				
-		ComPtr<ID3D12CommandAllocator> m_commandDirectAllocator[FrameCount];
-		ComPtr<ID3D12CommandAllocator> m_commandCopyAllocator;
-		ComPtr<ID3D12CommandAllocator> m_bundleAllocator;
-		ComPtr<ID3D12CommandQueue> m_commandQueue;
+		ComPtr<ID3D12CommandAllocator> _commandDirectAllocator[FrameCount];
+		ComPtr<ID3D12CommandAllocator> _commandCopyAllocator;
+		ComPtr<ID3D12CommandQueue> _commandQueue;
 		ComPtr<ID3D12RootSignature> _emptyRootSignature;
-		//ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-		//ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 		
-		ComPtr<ID3D12GraphicsCommandList6> m_commandList;
-		ComPtr<ID3D12GraphicsCommandList6> m_uplCommandList;
-		ComPtr<ID3D12GraphicsCommandList6> m_bundle;
+		ComPtr<ID3D12GraphicsCommandList6> _commandList;
+		ComPtr<ID3D12GraphicsCommandList6> _uplCommandList;
 
 		std::array<D3D12SimpleDescriptorBlock, HDT_Num> _presetDescriptorHeaps;
 		std::unique_ptr< D3D12SimpleDescriptorHeap >  _descriptorGlobalHeap;		
@@ -203,16 +196,16 @@ namespace SPP
 		std::unique_ptr< D3D12MemoryFramedChunkBuffer  >  _perDrawMemory;
 
 		// Synchronization objects.
-		UINT m_frameIndex = 0;
-		HANDLE m_fenceEvent = nullptr;
-		ComPtr<ID3D12Fence> m_fence;
-		UINT64 m_fenceValues[FrameCount] = {};
+		uint32_t _frameIndex = 0;
+		HANDLE _fenceEvent = nullptr;
+		ComPtr<ID3D12Fence> _fence;
+		uint64_t _fenceValues[FrameCount] = {};
 
-		int32_t DeviceWidth = 0;
-		int32_t DeviceHeight = 0;
+		int32_t _deviceWidth = 0;
+		int32_t _deviceHeight = 0;
 
 
-		HWND dxWindow = nullptr;
+		HWND _hwnd = nullptr;
 
 		void _CreateFrameResouces();
 
@@ -230,17 +223,17 @@ namespace SPP
 
 		UINT64 GetFrameCount() const 
 		{
-			return m_fenceValues[m_frameIndex];
+			return _fenceValues[_frameIndex];
 		}
 
 		GPURenderTarget* GetScreenColor() 
 		{
-			return _renderTargets[m_frameIndex].get();
+			return _renderTargets[_frameIndex].get();
 		}
 
 		GPURenderTarget* GetScreenDepth() 
 		{
-			return _depthStencil[m_frameIndex].get();
+			return _depthStencil[_frameIndex].get();
 		}
 
 		D3D12MA::Allocator* GetResourceAllocator()
@@ -271,11 +264,11 @@ namespace SPP
 
 		virtual int32_t GetDeviceWidth() const
 		{
-			return DeviceWidth;
+			return _deviceWidth;
 		}
 		virtual int32_t GetDeviceHeight() const
 		{
-			return DeviceHeight;
+			return _deviceHeight;
 		}
 
 		void WaitForGpu();

@@ -168,24 +168,24 @@ namespace SPP
 
 	ID3D12Device2* DX12Device::GetDevice()
 	{
-		return m_device.Get();
+		return _device.Get();
 	}
 
 	ID3D12GraphicsCommandList6* DX12Device::GetUploadCommandList()
 	{
-		return m_uplCommandList.Get();
+		return _uplCommandList.Get();
 	}
 	ID3D12GraphicsCommandList6* DX12Device::GetCommandList()
 	{
-		return m_commandList.Get();
+		return _commandList.Get();
 	}
 	ID3D12CommandQueue* DX12Device::GetCommandQueue()
 	{
-		return m_commandQueue.Get();
+		return _commandQueue.Get();
 	}
 	class D3D12CommandListWrapper* DX12Device::GetCommandListWrapper()
 	{
-		return _commandListWrappers[m_frameIndex].get();
+		return _commandListWrappers[_frameIndex].get();
 	}
 
 	void DX12Device::GetHardwareAdapter(
@@ -257,10 +257,10 @@ namespace SPP
 
 		UINT dxgiFactoryFlags = 0;
 
-		dxWindow = (HWND)OSWindow;
+		_hwnd = (HWND)OSWindow;
 
-		DeviceWidth = InitialWidth;
-		DeviceHeight = InitialHeight;
+		_deviceWidth = InitialWidth;
+		_deviceHeight = InitialHeight;
 
 #if defined(_DEBUG)
 		// Check to see if a copy of WinPixGpuCapturer.dll has already been injected into the application.
@@ -308,7 +308,7 @@ namespace SPP
 		    ThrowIfFailed(D3D12CreateDevice(
 		        warpAdapter.Get(),
 		        D3D_FEATURE_LEVEL_11_0,
-		        IID_PPV_ARGS(&m_device)
+		        IID_PPV_ARGS(&_device)
 		    ));
 		}
 		else
@@ -348,11 +348,11 @@ namespace SPP
 			ThrowIfFailed(D3D12CreateDevice(
 				_hardwareAdapter.Get(),
 				D3D_FEATURE_LEVEL_11_0,
-				IID_PPV_ARGS(&m_device)
+				IID_PPV_ARGS(&_device)
 			));
 
 			D3D12_FEATURE_DATA_ARCHITECTURE1 architecture1 = {};
-			if (SUCCEEDED(m_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &architecture1, sizeof architecture1)))
+			if (SUCCEEDED(_device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, &architecture1, sizeof architecture1)))
 			{
 				SPP_LOG(LOG_D3D12Device, LOG_INFO, "D3D12_FEATURE_DATA_ARCHITECTURE1:");
 				SPP_LOG(LOG_D3D12Device, LOG_INFO, "    UMA: %u", architecture1.UMA ? 1 : 0);
@@ -366,7 +366,7 @@ namespace SPP
 		{
 			D3D12MA::ALLOCATOR_DESC desc = {};
 			desc.Flags = D3D12MA::ALLOCATOR_FLAG_NONE;
-			desc.pDevice = m_device.Get();
+			desc.pDevice = _device.Get();
 			desc.pAdapter = _hardwareAdapter.Get();
 
 			ThrowIfFailed(D3D12MA::CreateAllocator(&desc, &_allocator));
@@ -389,7 +389,7 @@ namespace SPP
 		}
 
 		D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
-		m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
+		_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options));
 		if (options.TiledResourcesTier == D3D12_TILED_RESOURCES_TIER_NOT_SUPPORTED)
 		{
 			OutputDebugStringA("NO TILING SUPPORT\n");
@@ -409,7 +409,7 @@ namespace SPP
 			D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels = { };
 			featureLevels.NumFeatureLevels = (UINT)SPP::ARRAY_SIZE(featureLevelsArray);
 			featureLevels.pFeatureLevelsRequested = featureLevelsArray;
-			ThrowIfFailed(m_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels)));
+			ThrowIfFailed(_device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels)));
 			_featureLevel = featureLevels.MaxSupportedFeatureLevel;
 
 			switch(_featureLevel)
@@ -430,7 +430,7 @@ namespace SPP
 		}
 
 		D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = { D3D_SHADER_MODEL_6_5 };
-		if (FAILED(m_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel)))
+		if (FAILED(_device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel)))
 			|| (shaderModel.HighestShaderModel < D3D_SHADER_MODEL_6_5))
 		{
 			OutputDebugStringA("ERROR: Shader Model 6.5 is not supported\n");
@@ -439,7 +439,7 @@ namespace SPP
 
 		{
 			D3D12_FEATURE_DATA_D3D12_OPTIONS7 featureData = {};
-			m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &featureData, sizeof(featureData));
+			_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &featureData, sizeof(featureData));
 
 			if (featureData.MeshShaderTier == D3D12_MESH_SHADER_TIER_NOT_SUPPORTED)
 			{
@@ -459,7 +459,7 @@ namespace SPP
 			// This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
 			featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
-			if (FAILED(m_device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
+			if (FAILED(_device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
 			{
 				featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 			}
@@ -470,13 +470,13 @@ namespace SPP
 		queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-		ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+		ThrowIfFailed(_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&_commandQueue)));
 
 		// Describe and create the swap chain.
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 		swapChainDesc.BufferCount = FrameCount;
-		swapChainDesc.Width = DeviceWidth;
-		swapChainDesc.Height = DeviceHeight;
+		swapChainDesc.Width = _deviceWidth;
+		swapChainDesc.Height = _deviceHeight;
 		swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -484,7 +484,7 @@ namespace SPP
 
 		ComPtr<IDXGISwapChain1> swapChain;
 		ThrowIfFailed(factory->CreateSwapChainForHwnd(
-			m_commandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
+			_commandQueue.Get(),        // Swap chain needs the queue so that it can force a flush on it.
 			(HWND)OSWindow,
 			&swapChainDesc,
 			nullptr,
@@ -495,8 +495,8 @@ namespace SPP
 		// This sample does not support fullscreen transitions.
 		ThrowIfFailed(factory->MakeWindowAssociation((HWND)OSWindow, DXGI_MWA_NO_ALT_ENTER));
 
-		ThrowIfFailed(swapChain.As(&m_swapChain));
-		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+		ThrowIfFailed(swapChain.As(&_swapChain));
+		_frameIndex = _swapChain->GetCurrentBackBufferIndex();
 
 		// Create descriptor heaps.
 		{
@@ -505,7 +505,7 @@ namespace SPP
 			{
 				TotalCount += _tableRegions[Iter].Count;
 			}
-			_descriptorGlobalHeap = std::make_unique< D3D12SimpleDescriptorHeap >(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, TotalCount, true);
+			_descriptorGlobalHeap = std::make_unique< D3D12SimpleDescriptorHeap >(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, TotalCount, true);
 
 			DXSetName(_descriptorGlobalHeap->GetDeviceHeap(), L"Global CBV/SRV/UAV Heap");
 
@@ -518,11 +518,11 @@ namespace SPP
 			_dynamicDescriptorHeapBlock = _presetDescriptorHeaps[HDT_Dynamic];
 			
 			// dynamic sampler
-			_dynamicSamplerDescriptorHeap = std::make_unique< D3D12SimpleDescriptorHeap >(m_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1 * 1024, true);
+			_dynamicSamplerDescriptorHeap = std::make_unique< D3D12SimpleDescriptorHeap >(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1 * 1024, true);
 			_dynamicSamplerDescriptorHeapBlock = _dynamicSamplerDescriptorHeap->GetBlock(0, _dynamicSamplerDescriptorHeap->GetDescriptorCount());
 			DXSetName(_dynamicSamplerDescriptorHeap->GetDeviceHeap(), L"Dyanmic Sampler Heap");
 
-			_perDrawMemory = std::make_unique< D3D12MemoryFramedChunkBuffer >(m_device.Get());
+			_perDrawMemory = std::make_unique< D3D12MemoryFramedChunkBuffer >(_device.Get());
 			//DXSetName(_perDrawMemory->GetResource(), L"Per Draw Memory Chunk");
 		}
 
@@ -531,10 +531,10 @@ namespace SPP
 
 		for (UINT n = 0; n < FrameCount; n++)
 		{
-			ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandDirectAllocator[n])));
+			ThrowIfFailed(_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandDirectAllocator[n])));
 		}
 
-		ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandCopyAllocator)));
+		ThrowIfFailed(_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandCopyAllocator)));
 
 		/*
 		The Root Signature is the object that represents the link between the command list and the resources used by the pipeline..
@@ -556,35 +556,35 @@ namespace SPP
 			ComPtr<ID3DBlob> signature;
 			ComPtr<ID3DBlob> error;
 			ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-			ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&_emptyRootSignature)));
+			ThrowIfFailed(_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&_emptyRootSignature)));
 		}
 
 		// Create the command lists
-		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandDirectAllocator[m_frameIndex].Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
-		ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandCopyAllocator.Get(), nullptr, IID_PPV_ARGS(&m_uplCommandList)));
+		ThrowIfFailed(_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandDirectAllocator[_frameIndex].Get(), nullptr, IID_PPV_ARGS(&_commandList)));
+		ThrowIfFailed(_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandCopyAllocator.Get(), nullptr, IID_PPV_ARGS(&_uplCommandList)));
 
-		DXSetName(m_commandList.Get(), L"Default Command List");
-		DXSetName(m_uplCommandList.Get(), L"Upload Command List");
+		DXSetName(_commandList.Get(), L"Default Command List");
+		DXSetName(_uplCommandList.Get(), L"Upload Command List");
 
 		for (UINT n = 0; n < FrameCount; n++)
 		{
-			_commandListWrappers[n] = std::make_unique<D3D12CommandListWrapper>(m_commandList.Get());
+			_commandListWrappers[n] = std::make_unique<D3D12CommandListWrapper>(_commandList.Get());
 		}
 
 		//// Command lists are created in the recording state, but there is nothing
 		//// to record yet. The main loop expects it to be closed, so close it now.
-		ThrowIfFailed(m_commandList->Close());
-		ThrowIfFailed(m_uplCommandList->Close());
+		ThrowIfFailed(_commandList->Close());
+		ThrowIfFailed(_uplCommandList->Close());
 
 
 		// Create synchronization objects and wait until assets have been uploaded to the GPU.
 		{
-			ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-			m_fenceValues[m_frameIndex]++;
+			ThrowIfFailed(_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence)));
+			_fenceValues[_frameIndex]++;
 
 			// Create an event handle to use for frame synchronization.
-			m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-			if (m_fenceEvent == nullptr)
+			_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+			if (_fenceEvent == nullptr)
 			{
 				ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 			}
@@ -595,14 +595,14 @@ namespace SPP
 
 	void DX12Device::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
 	{
-		if (DeviceWidth != NewWidth || DeviceHeight != NewHeight)
+		if (_deviceWidth != NewWidth || _deviceHeight != NewHeight)
 		{
 			SPP_LOG(LOG_D3D12Device, LOG_INFO, "DX12Device::ResizeBuffer %d by %d", NewWidth, NewHeight);
 
 			WaitForGpu();
 
 			// this needed ?, bascially get to 0 before reset
-			while (m_frameIndex != 0)
+			while (_frameIndex != 0)
 			{
 				BeginFrame();
 				EndFrame();
@@ -615,10 +615,10 @@ namespace SPP
 				_depthStencil[n].Reset();
 			}
 
-			DeviceWidth = NewWidth;
-			DeviceHeight = NewHeight;
+			_deviceWidth = NewWidth;
+			_deviceHeight = NewHeight;
 			
-			m_swapChain->ResizeBuffers(FrameCount, DeviceWidth, DeviceHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
+			_swapChain->ResizeBuffers(FrameCount, _deviceWidth, _deviceHeight, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
 			
 			_CreateFrameResouces();
 		}
@@ -631,24 +631,24 @@ namespace SPP
 		{
 			// Create the color surface
 			ComPtr<ID3D12Resource> ChainRT;
-			ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&ChainRT)));
+			ThrowIfFailed(_swapChain->GetBuffer(n, IID_PPV_ARGS(&ChainRT)));
 
-			_renderTargets[n] = DX12_CreateRenderTarget(DeviceWidth, DeviceHeight, TextureFormat::RGBA_8888, ChainRT.Get());
-			_depthStencil[n] = DX12_CreateRenderTarget(DeviceWidth, DeviceHeight, TextureFormat::D24_S8);
+			_renderTargets[n] = DX12_CreateRenderTarget(_deviceWidth, _deviceHeight, TextureFormat::RGBA_8888, ChainRT.Get());
+			_depthStencil[n] = DX12_CreateRenderTarget(_deviceWidth, _deviceHeight, TextureFormat::D24_S8);
 		}
 	}
 
 	void DX12Device::WaitForGpu()
 	{
 		// Schedule a Signal command in the queue.
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValues[m_frameIndex]));
+		ThrowIfFailed(_commandQueue->Signal(_fence.Get(), _fenceValues[_frameIndex]));
 
 		// Wait until the fence has been processed.
-		ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_frameIndex], m_fenceEvent));
-		WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
+		ThrowIfFailed(_fence->SetEventOnCompletion(_fenceValues[_frameIndex], _fenceEvent));
+		WaitForSingleObjectEx(_fenceEvent, INFINITE, FALSE);
 
 		// Increment the fence value for the current frame.
-		m_fenceValues[m_frameIndex]++;
+		_fenceValues[_frameIndex]++;
 	}
 
 	void DX12Device::BeginResourceCopy()
@@ -656,16 +656,16 @@ namespace SPP
 		// Command list allocators can only be reset when the associated 
 		// command lists have finished execution on the GPU; apps should use 
 		// fences to determine GPU execution progress.
-		ThrowIfFailed(m_commandCopyAllocator->Reset());
-		ThrowIfFailed(m_uplCommandList->Reset(m_commandCopyAllocator.Get(), nullptr));
+		ThrowIfFailed(_commandCopyAllocator->Reset());
+		ThrowIfFailed(_uplCommandList->Reset(_commandCopyAllocator.Get(), nullptr));
 	}
 
 	void DX12Device::EndResourceCopy()
 	{
 		// Close the command list and execute it to begin the initial GPU setup.
-		ThrowIfFailed(m_uplCommandList->Close());
-		ID3D12CommandList* ppCommandLists[] = { m_uplCommandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		ThrowIfFailed(_uplCommandList->Close());
+		ID3D12CommandList* ppCommandLists[] = { _uplCommandList.Get() };
+		_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		WaitForGpu();
 	}
@@ -677,36 +677,36 @@ namespace SPP
 		// Command list allocators can only be reset when the associated 
 		// command lists have finished execution on the GPU; apps should use 
 		// fences to determine GPU execution progress.
-		ThrowIfFailed(m_commandDirectAllocator[m_frameIndex]->Reset());
+		ThrowIfFailed(_commandDirectAllocator[_frameIndex]->Reset());
 
 		// However, when ExecuteCommandList() is called on a particular command 
 		// list, that command list can then be reset at any time and must be before 
 		// re-recording.
-		ThrowIfFailed(m_commandList->Reset(m_commandDirectAllocator[m_frameIndex].Get(), nullptr));
+		ThrowIfFailed(_commandList->Reset(_commandDirectAllocator[_frameIndex].Get(), nullptr));
 
 		// Set necessary state.
-		m_commandList->SetGraphicsRootSignature(_emptyRootSignature.Get());
+		_commandList->SetGraphicsRootSignature(_emptyRootSignature.Get());
 				
 		ID3D12DescriptorHeap* ppHeaps[] = { 
 			_descriptorGlobalHeap->GetDeviceHeap(),
 			_dynamicSamplerDescriptorHeap->GetDeviceHeap()
 		};
-		m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+		_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
 
 		UpdateGPUMeshes();
 	}
 
 	void DX12Device::EndFrame()
 	{
-		_renderTargets[m_frameIndex]->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_PRESENT);		
-		ThrowIfFailed(m_commandList->Close());
+		_renderTargets[_frameIndex]->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_PRESENT);		
+		ThrowIfFailed(_commandList->Close());
 
 		// Execute the command list.
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		ID3D12CommandList* ppCommandLists[] = { _commandList.Get() };
+		_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 		// Present the frame.
-		ThrowIfFailed(m_swapChain->Present(1, 0));
+		ThrowIfFailed(_swapChain->Present(1, 0));
 
 		//
 		MoveToNextFrame();
@@ -720,24 +720,24 @@ namespace SPP
 	void DX12Device::MoveToNextFrame()
 	{
 		// Schedule a Signal command in the queue.
-		const UINT64 currentFenceValue = m_fenceValues[m_frameIndex];
-		ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), currentFenceValue));
+		const UINT64 currentFenceValue = _fenceValues[_frameIndex];
+		ThrowIfFailed(_commandQueue->Signal(_fence.Get(), currentFenceValue));
 
 		// Update the frame index.
-		m_frameIndex = m_swapChain->GetCurrentBackBufferIndex();
+		_frameIndex = _swapChain->GetCurrentBackBufferIndex();
 
 		// If the next frame is not ready to be rendered yet, wait until it is ready.
-		if (m_fence->GetCompletedValue() < m_fenceValues[m_frameIndex])
+		if (_fence->GetCompletedValue() < _fenceValues[_frameIndex])
 		{
-			ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_frameIndex], m_fenceEvent));
-			WaitForSingleObjectEx(m_fenceEvent, INFINITE, FALSE);
+			ThrowIfFailed(_fence->SetEventOnCompletion(_fenceValues[_frameIndex], _fenceEvent));
+			WaitForSingleObjectEx(_fenceEvent, INFINITE, FALSE);
 		}
 
-		GPUDoneWithFrame(m_fenceValues[m_frameIndex]);
-		_commandListWrappers[m_frameIndex]->FrameComplete();
+		GPUDoneWithFrame(_fenceValues[_frameIndex]);
+		_commandListWrappers[_frameIndex]->FrameComplete();
 
 		// Set the fence value for the next frame.
-		m_fenceValues[m_frameIndex] = currentFenceValue + 1;
+		_fenceValues[_frameIndex] = currentFenceValue + 1;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

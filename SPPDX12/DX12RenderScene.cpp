@@ -248,8 +248,7 @@ namespace SPP
 		else
 		{
 			// Set RTs
-			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle[5] = { 0 };// (m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-
+			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle[5] = { 0 };
 			int32_t ActiveCount = 0;
 			for (ActiveCount = 0; ActiveCount < ARRAY_SIZE(_activeRTs); ActiveCount++)
 			{
