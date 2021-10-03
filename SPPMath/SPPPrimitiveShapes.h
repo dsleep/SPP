@@ -244,6 +244,11 @@ namespace SPP
             return _bValid;
         }
 
+        bool IsValid() const
+        {
+            return _bValid;
+        }
+
 		const Vector3& GetCenter() const
 		{
 			return _center;
@@ -492,6 +497,39 @@ namespace SPP
         else
         {
             Value = AABB();
+        }
+        return Storage;
+    }
+
+
+    template<>
+    inline BinarySerializer& operator<< <Sphere> (BinarySerializer& Storage, const Sphere& Value)
+    {
+        bool IsValid = Value.IsValid();
+        Storage << IsValid;
+        if (IsValid)
+        {
+            Storage << Value.GetCenter();
+            Storage << Value.GetRadius();
+        }
+        return Storage;
+    }
+    template<>
+    inline BinarySerializer& operator>> <Sphere> (BinarySerializer& Storage, Sphere& Value)
+    {
+        bool IsValid = false;
+        Storage >> IsValid;
+        if (IsValid)
+        {
+            Vector3 center;
+            float radius;
+            Storage >> center;
+            Storage >> radius;
+            Value = Sphere(center, radius);
+        }
+        else
+        {
+            Value = Sphere();
         }
         return Storage;
     }

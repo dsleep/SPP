@@ -80,11 +80,40 @@ namespace SPP
 	{
 		SPP_LOG(LOG_MESH, LOG_INFO, "Loading Mesh: %s", *FileName);
 
-		//auto FoundCachedBlob = GetCachedAsset(FileName);
+		auto FoundCachedBlob = GetCachedAsset(FileName);
 
-		if (false)//FoundCachedBlob)
+		if (FoundCachedBlob)
 		{
-			//BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
+			_bounds = Sphere();
+
+			BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
+
+			uint32_t LayerCount = 0;
+			blobAsset >> LayerCount;
+
+			for (uint32_t Iter = 0; Iter < LayerCount; Iter++)
+			{
+				Sphere curBounds;
+				std::string LayerName;
+				auto VertexResource = std::make_shared< ArrayResource >();
+				auto IndexResource = std::make_shared< ArrayResource >();
+
+				blobAsset >> curBounds;
+				blobAsset >> LayerName;
+				blobAsset >> *VertexResource;
+				blobAsset >> *IndexResource;
+
+				auto newMeshElement = std::make_shared<MeshElement>();
+				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, VertexResource);
+				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, IndexResource);
+				newMeshElement->Bounds = curBounds;
+				newMeshElement->Name = LayerName;
+
+				_elements.push_back(newMeshElement);
+				_bounds += newMeshElement->Bounds;
+				//GGI()->RegisterMeshElement(newMeshElement);
+			}
+
 
 			//uint32_t MeshCount = 0;
 			//blobAsset >> MeshCount;
@@ -145,6 +174,9 @@ namespace SPP
 #endif
 			_bounds = Sphere();
 
+			uint32_t LayerCount = loadedMeshes.Layers.size();
+			outCachedAsset << LayerCount;
+
 			for (auto& curLayer : loadedMeshes.Layers)
 			{
 				auto newMeshElement = std::make_shared<MeshElement>();
@@ -152,6 +184,12 @@ namespace SPP
 				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
 				newMeshElement->Bounds = curLayer.bounds;
 				newMeshElement->Name = curLayer.Name;
+
+				outCachedAsset << curLayer.bounds;
+				outCachedAsset << curLayer.Name;
+				outCachedAsset << *curLayer.VertexResource;
+				outCachedAsset << *curLayer.IndexResource;
+
 				_elements.push_back(newMeshElement);
 				_bounds += newMeshElement->Bounds;
 				//GGI()->RegisterMeshElement(newMeshElement);

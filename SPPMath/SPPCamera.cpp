@@ -19,6 +19,7 @@ namespace SPP
 
 		SetupStandardCorrection();
 		GenerateLeftHandFoVPerspectiveMatrix(FoV, AspectRatio);		
+		//GenerateOrthogonalMatrix({ 1920, 1080 });
 		BuildCameraMatrices();		
 	}
 
@@ -54,6 +55,16 @@ namespace SPP
 		_projectionMatrix(3, 2) = (-NearClippingZ * FarClippingZ) / fnDelta; // used to remap z [0,1] 
 		_projectionMatrix(2, 3) = 1; // set w = z 
 		_projectionMatrix(3, 3) = 0;		
+	}
+
+	void Camera::GenerateOrthogonalMatrix(const Vector2i& InSize)
+	{
+		_projectionMatrix = Matrix4x4::Identity();
+
+		float fnDelta = FarClippingZ - NearClippingZ;
+		_projectionMatrix(0, 0) = 2.0f / InSize[0]; // scale the x coordinates of the projected point 
+		_projectionMatrix(1, 1) = 2.0f / InSize[1]; // scale the y coordinates of the projected point 
+		_projectionMatrix(2, 2) = 2 / fnDelta; // used to remap z to [0,1] 
 	}
 
 	float Camera::GetRecipTanHalfFovy() const

@@ -73,8 +73,6 @@ private:
 	std::chrono::high_resolution_clock::time_point _lastTime;
 
 	OMesh* _testMesh = nullptr;
-	OMeshElement* _testMeshElement = nullptr;
-
 	ORenderableScene* _renderableScene = nullptr;
 
 	bool _htmlReady = false;
@@ -150,6 +148,8 @@ public:
 			_testMatBark->vertexShader = _testMatLeaf->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
 			_testMatLeaf->vertexShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_vs");
 
+			_testMatLeaf->rasterizerState = ERasterizerState::NoCull;
+
 			_testMatBark->pixelShader = _testMatLeaf->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
 			_testMatLeaf->pixelShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_ps");
 
@@ -170,9 +170,14 @@ public:
 		/////////////SCENE SETUP
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
 
-		_testMeshElement = AllocateObject<OMeshElement>("meshE");
-		_testMeshElement->SetMesh(_testMesh);
-		_renderableScene->AddChild(_testMeshElement);
+		for (int32_t IterX = 0; IterX < 10; IterX++)
+		{
+			auto _testMeshElement = AllocateObject<OMeshElement>("meshE");
+			_testMeshElement->GetPosition()[2] = IterX * 30;
+			_testMeshElement->SetMesh(_testMesh);	
+			_renderableScene->AddChild(_testMeshElement);
+		}
+
 
 		auto bufferA = GGI()->CreateRenderTarget(WindowSizeX, WindowSizeY, TextureFormat::R32G32B32A32F);
 		auto bufferB = GGI()->CreateRenderTarget(WindowSizeX, WindowSizeY, TextureFormat::R32G32B32A32);
