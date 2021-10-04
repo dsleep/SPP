@@ -83,6 +83,8 @@ private:
 
 	GPUReferencer< GPUShader > _currentActiveShader;
 
+	std::shared_ptr< TextureAsset > _skyCube;
+
 public:
 	std::map < std::string, std::function<void(Json::Value) > > fromJSFunctionMap;
 
@@ -126,6 +128,9 @@ public:
 		textureLeafDiff->LoadFromDisk("textures/leaf.dds");
 		auto textureBarkDiff = std::make_shared< TextureAsset >();
 		textureBarkDiff->LoadFromDisk("textures/bark.dds");
+
+		_skyCube = std::make_shared< TextureAsset >();
+		_skyCube->LoadFromDisk("textures/dayskycubemap.dds");
 
 		deferredMat->rasterizerState = ERasterizerState::BackFaceCull;
 		deferredMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);

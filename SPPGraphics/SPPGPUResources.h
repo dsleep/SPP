@@ -374,6 +374,7 @@ namespace SPP
 
     enum class TextureFormat
     {
+        UNKNOWN,
         RGB_888,
         RGBA_8888,
         RGBA_BC7,
@@ -389,9 +390,10 @@ namespace SPP
     class SPP_GRAPHICS_API GPUTexture : public GPUResource
     {
     protected:
-        int32_t _width;
-        int32_t _height;
-        TextureFormat _format;
+        int32_t _width = -1;
+        int32_t _height = -1;
+        TextureFormat _format = TextureFormat::UNKNOWN;
+        bool _bCubemap = false;
         std::shared_ptr< ArrayResource > _rawImgData;
         std::shared_ptr< ImageMeta > _metaInfo;
 

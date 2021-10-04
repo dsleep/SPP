@@ -1243,12 +1243,13 @@ namespace SPP
         if (_format == TextureFormat::DDS_UNKNOWN)
         {
             SE_ASSERT(_metaInfo);
-            auto ddsMeta = std::static_pointer_cast<DDSImageMeta>(_metaInfo);                       
-            bool bIsCubeMap = false;
+            auto ddsMeta = std::static_pointer_cast<DDSImageMeta>(_metaInfo); 
             CreateTextureFromDDS(pd3dDevice, ddsMeta->header, ddsMeta->bitData, ddsMeta->bitSize, 100 * 1024 * 1024,
-                D3D12_RESOURCE_FLAG_NONE, DDS_LOADER_DEFAULT, &_texture, subresources, &bIsCubeMap, _desc);
+                D3D12_RESOURCE_FLAG_NONE, DDS_LOADER_DEFAULT, &_texture, subresources, &_bCubemap, _desc);
 
-            SPP_LOG(LOG_DXTEXT, LOG_INFO, "BCFormat %s: ", GetBCFormat(_desc.Format));
+            SPP_LOG(LOG_DXTEXT, LOG_INFO, " - BCFormat %s: Cubemap %d", GetBCFormat(_desc.Format));
+            SPP_LOG(LOG_DXTEXT, LOG_INFO, " - Cubemap %d", _bCubemap);
+            SPP_LOG(LOG_DXTEXT, LOG_INFO, " - Mips %d", _desc.MipLevels);
         }
         else
         {
