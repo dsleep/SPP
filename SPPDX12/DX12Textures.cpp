@@ -1247,7 +1247,7 @@ namespace SPP
             CreateTextureFromDDS(pd3dDevice, ddsMeta->header, ddsMeta->bitData, ddsMeta->bitSize, 100 * 1024 * 1024,
                 D3D12_RESOURCE_FLAG_NONE, DDS_LOADER_DEFAULT, &_texture, subresources, &_bCubemap, _desc);
 
-            SPP_LOG(LOG_DXTEXT, LOG_INFO, " - BCFormat %s: Cubemap %d", GetBCFormat(_desc.Format));
+            SPP_LOG(LOG_DXTEXT, LOG_INFO, " - BCFormat %s", GetBCFormat(_desc.Format));
             SPP_LOG(LOG_DXTEXT, LOG_INFO, " - Cubemap %d", _bCubemap);
             SPP_LOG(LOG_DXTEXT, LOG_INFO, " - Mips %d", _desc.MipLevels);
         }
@@ -1319,7 +1319,9 @@ namespace SPP
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srvDesc.Format = _desc.Format;
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.ViewDimension = _bCubemap ?
+            D3D12_SRV_DIMENSION_TEXTURECUBE : 
+            D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = _desc.MipLevels;
 
         pd3dDevice->CreateShaderResourceView(_texture.Get(), 

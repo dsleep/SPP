@@ -174,6 +174,7 @@ public:
 
 		/////////////SCENE SETUP
 		_renderableScene = AllocateObject<ORenderableScene>("rScene");
+		_renderableScene->GetRenderScene()->SetSkyBox(_skyCube->GetGPUTexture());
 
 		for (int32_t IterX = 0; IterX < 10; IterX++)
 		{

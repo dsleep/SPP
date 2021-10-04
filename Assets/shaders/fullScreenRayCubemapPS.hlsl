@@ -16,8 +16,8 @@ struct PixelShaderInput
 };
 
 [RootSignature(MESH_SIG)]
-float4 main_ps(PixelShaderInput pin, out float depth : SV_Depth) :SV_TARGET
+float4 main_ps(PixelShaderInput pin) :SV_TARGET
 {
 	float3 ColorSample = cubeMapTexture.Sample(cSampler, pin.rD).rgb;  
-	return float4( ColorSample, 1 );
+	return float4( ColorSample.rgb, 1 );
 }
