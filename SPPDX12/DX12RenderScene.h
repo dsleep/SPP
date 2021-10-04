@@ -26,31 +26,33 @@ namespace SPP
 
 		std::vector< DebugVertex > _lines;
 
-		GPUReferencer< GPUShader > _fullscreenVS;
-		GPUReferencer< GPUShader > _fullscreenPS;
+		GPUReferencer< GPUShader > _fullscreenRayVS;
+		GPUReferencer< GPUShader > _fullscreenRaySDFPS, _fullscreenRaySkyBoxPS;
 
-		GPUReferencer< D3D12PipelineState > _fullscreenPSO;
-		GPUReferencer< GPUInputLayout > _fullscreenLayout;
+		GPUReferencer< D3D12PipelineState > _fullscreenRaySDFPSO, _fullscreenSkyBoxPSO;
+		GPUReferencer< GPUInputLayout > _fullscreenRayVSLayout;
 
 
 	public:
 		D3D12RenderScene();
 
+		void DrawSkyBox();
+
 		GPUReferencer< GPUShader > GetSDFVS()
 		{
-			return _fullscreenVS;
+			return _fullscreenRayVS;
 		}
 		GPUReferencer< GPUShader > GetSDFPS()
 		{
-			return _fullscreenPS;
+			return _fullscreenRaySDFPS;
 		}
 		GPUReferencer< D3D12PipelineState > GetSDFPSO()
 		{
-			return _fullscreenPSO;
+			return _fullscreenRaySDFPSO;
 		}
-		GPUReferencer< GPUInputLayout > GetSDFLayout()
+		GPUReferencer< GPUInputLayout > GetRayVSLayout()
 		{
-			return _fullscreenLayout;
+			return _fullscreenRayVSLayout;
 		}
 
 		void DrawDebug();

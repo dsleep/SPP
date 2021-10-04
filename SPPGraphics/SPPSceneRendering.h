@@ -130,6 +130,8 @@ namespace SPP
 		GPUReferencer< GPURenderTarget > _activeRTs[5];
 		GPUReferencer< GPURenderTarget > _activeDepth;
 
+		GPUReferencer< GPUTexture > _skyBox;
+
 	public:
 		RenderScene() 
 		{
@@ -145,6 +147,10 @@ namespace SPP
 		void SetUseBackBufferDepthWithCustomColor(bool bInUseBackBufferDepths)
 		{
 			_bUseBBWithCustomColor = bInUseBackBufferDepths;
+		}
+		void SetSkyBox(GPUReferencer< GPUTexture > InSkyBox)
+		{
+			_skyBox = InSkyBox;
 		}
 
 		template<typename... T>

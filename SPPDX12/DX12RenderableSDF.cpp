@@ -72,7 +72,7 @@ namespace SPP
 			DX12_EndResourceCopy();
 
 			auto SDFVS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
-			auto SDFLayout = _parentScene->GetAs<D3D12RenderScene>().GetSDFLayout();
+			auto SDFLayout = _parentScene->GetAs<D3D12RenderScene>().GetRayVSLayout();
 
 			if (_customShader)
 			{

@@ -62,30 +62,45 @@ namespace SPP
 
 
 		//
-		_fullscreenVS = DX12_CreateShader(EShaderType::Vertex);
-		_fullscreenVS->CompileShaderFromFile("shaders/fullscreenShader.hlsl", "main_vs");
+		_fullscreenRayVS = DX12_CreateShader(EShaderType::Vertex);
+		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
-		_fullscreenPS = DX12_CreateShader(EShaderType::Pixel);
-		_fullscreenPS->CompileShaderFromFile("shaders/fullscreenShader.hlsl", "main_ps");
+		_fullscreenRaySDFPS = DX12_CreateShader(EShaderType::Pixel);
+		_fullscreenRaySDFPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
-		_fullscreenLayout = DX12_CreateInputLayout();
-		_fullscreenLayout->InitializeLayout({
+		_fullscreenRaySkyBoxPS = DX12_CreateShader(EShaderType::Pixel);
+		_fullscreenRaySkyBoxPS->CompileShaderFromFile("shaders/fullScreenRayCubemapPS.hlsl", "main_ps");
+
+		_fullscreenRayVSLayout = DX12_CreateInputLayout();
+		_fullscreenRayVSLayout->InitializeLayout({
 				{ "POSITION",  InputLayoutElementType::Float2, offsetof(FullscreenVertex,position) }
 			});
 
-		_fullscreenPSO = GetD3D12PipelineState(EBlendState::Disabled,
+		_fullscreenRaySDFPSO = GetD3D12PipelineState(EBlendState::Disabled,
 			ERasterizerState::NoCull,
 			EDepthState::Enabled,
 			EDrawingTopology::TriangleList,
-			_fullscreenLayout,
-			_fullscreenVS,
-			_fullscreenPS,
+			_fullscreenRayVSLayout,
+			_fullscreenRayVS,
+			_fullscreenRaySDFPS,
 			nullptr,
 			nullptr,
 			nullptr,
 			nullptr,
 			nullptr);
 
+		_fullscreenSkyBoxPSO = GetD3D12PipelineState(EBlendState::Disabled,
+			ERasterizerState::NoCull,
+			EDepthState::Disabled,
+			EDrawingTopology::TriangleList,
+			_fullscreenRayVSLayout,
+			_fullscreenRayVS,
+			_fullscreenRaySkyBoxPS,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr);
 	}
 
 	void D3D12RenderScene::DrawDebug()
@@ -355,11 +370,105 @@ namespace SPP
 		}
 		DrawDebug();
 #endif
-		//DrawFullScreen();
+
+		if (_skyBox)
+		{
+			DrawSkyBox();
+		}
 
 		for (auto renderItem : _renderables)
 		{
 			renderItem->Draw();
 		}
 	};
+
+	void D3D12RenderScene::DrawSkyBox()
+	{
+		auto pd3dDevice = GGraphicsDevice->GetDevice();
+		auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
+		auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
+		auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
+		auto cmdList = GGraphicsDevice->GetCommandList();
+		auto currentFrame = GGraphicsDevice->GetFrameCount();
+
+		ID3D12RootSignature* rootSig = nullptr;
+
+		if (_fullscreenRayVS)
+		{
+			rootSig = _fullscreenRayVS->GetAs<D3D12Shader>().GetRootSignature();
+		}
+
+		cmdList->SetGraphicsRootSignature(rootSig);
+
+		//table 0, shared all constant, scene stuff 
+		{
+			cmdList->SetGraphicsRootConstantBufferView(0, GetGPUAddrOfViewConstants());
+
+			CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+			CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
+			cmdList->RSSetViewports(1, &m_viewport);
+			cmdList->RSSetScissorRects(1, &m_scissorRect);
+		}
+
+		//table 1, VS only constants
+		{
+			auto pd3dDevice = GGraphicsDevice->GetDevice();
+
+			_declspec(align(256u))
+				struct GPUDrawConstants
+			{
+				//altered viewposition translated
+				Matrix4x4 LocalToWorldScaleRotation;
+				Vector3d Translation;
+			};
+
+			Matrix4x4 matId = Matrix4x4::Identity();
+			Vector3d dummyVec(0, 0, 0);
+
+			// write local to world
+			auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
+			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
+			WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
+
+			cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
+		}
+
+		cmdList->SetPipelineState(_fullscreenSkyBoxPSO->GetState());
+		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		auto SRVSlotBlock = perDrawDescriptorHeap->GetDescriptorSlots(1);
+		auto SamplerSlotBlock = perDrawSamplerHeap->GetDescriptorSlots(1);
+
+		{
+			auto psSRVDescriptor = SRVSlotBlock[0];
+			auto texRef = _skyBox->GetAs<D3D12Texture>();
+			pd3dDevice->CopyDescriptorsSimple(1,
+				psSRVDescriptor.cpuHandle,
+				texRef.GetCPUDescriptor()->GetCPUDescriptorHandleForHeapStart(),
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
+	
+		{
+			auto psSamplerDescriptor = SamplerSlotBlock[0];
+
+			D3D12_SAMPLER_DESC wrapSamplerDesc = {};
+			wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+			wrapSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			wrapSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			wrapSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			wrapSamplerDesc.MinLOD = 0;
+			wrapSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+			wrapSamplerDesc.MipLODBias = 0.0f;
+			wrapSamplerDesc.MaxAnisotropy = 1;
+			wrapSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+			wrapSamplerDesc.BorderColor[0] = wrapSamplerDesc.BorderColor[1] = wrapSamplerDesc.BorderColor[2] = wrapSamplerDesc.BorderColor[3] = 0;
+
+			pd3dDevice->CreateSampler(&wrapSamplerDesc, psSamplerDescriptor.cpuHandle);
+		}
+
+		cmdList->SetGraphicsRootDescriptorTable(7, SRVSlotBlock.gpuHandle);
+		cmdList->SetGraphicsRootDescriptorTable(12, SamplerSlotBlock.gpuHandle);
+
+		cmdList->DrawInstanced(4, 1, 0, 0);
+	}
 }
