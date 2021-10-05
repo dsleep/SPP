@@ -72,7 +72,7 @@ namespace SPP
 		HDT_MeshletResource,
 		HDT_UniqueVertexIndices,
 		HDT_PrimitiveIndices,
-		HDT_PBRTextures,
+		HDT_Textures,
 		HDT_Dynamic,
 		HDT_Num
 	};

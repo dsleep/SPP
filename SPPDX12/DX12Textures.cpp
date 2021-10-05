@@ -1227,15 +1227,34 @@ namespace SPP
         return _desc;
     }
 
+    static uint32_t GHighestTextureID = 1;
+    static std::list<uint32_t> GAvailableTextureIDs;
+
     D3D12Texture::D3D12Texture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) : GPUTexture(Width, Height, Format, RawData, InMetaInfo)
     {
-
+        if (!GAvailableTextureIDs.empty())
+        {
+            _uniqueID = GAvailableTextureIDs.front();
+            GAvailableTextureIDs.pop_front();
+        }
+        else
+        {
+            _uniqueID = GHighestTextureID++;
+        }
     }
+
+    D3D12Texture::~D3D12Texture()
+    {
+        GAvailableTextureIDs.push_back(_uniqueID);
+    }
+
+
 
 	void D3D12Texture::UploadToGpu()
 	{
 		auto pd3dDevice = GGraphicsDevice->GetDevice();
 		auto pUplCmdList = GGraphicsDevice->GetUploadCommandList();
+        auto& textureDesriptors = GGraphicsDevice->GetPresetDescriptorHeap(HDT_Textures);
 
         std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 
@@ -1327,6 +1346,14 @@ namespace SPP
         pd3dDevice->CreateShaderResourceView(_texture.Get(), 
             &srvDesc, 
             _cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
+
+        // TODO Setting up the unbounded global shader system... should this be better?
+        // push it on the global
+        pd3dDevice->CopyDescriptorsSimple(1,
+            textureDesriptors[_uniqueID].cpuHandle,
+            _cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart(),
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        
 	}
 
     GPUReferencer< GPUTexture > DX12_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)

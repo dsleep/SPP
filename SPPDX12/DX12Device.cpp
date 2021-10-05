@@ -127,7 +127,7 @@ namespace SPP
 		{ HDT_UniqueVertexIndices, MAX_MESH_ELEMENTS },
 		{ HDT_PrimitiveIndices, MAX_MESH_ELEMENTS },
 
-		{ HDT_PBRTextures, MAX_TEXTURE_COUNT },
+		{ HDT_Textures, MAX_TEXTURE_COUNT },
 		{ HDT_Dynamic, DYNAMIC_MAX_COUNT },
 	};
 

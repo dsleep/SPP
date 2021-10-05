@@ -18,6 +18,14 @@ struct PixelShaderInput
     float3 binormal: TEXCOORD3;
 };
 
+struct DrawParams
+{
+	uint Selected;
+	uint MaterialID;
+};
+
+ConstantBuffer<DrawParams> DrawParams : register(b3);
+
 // Vertex shader
 [RootSignature(MESH_SIG)]
 PixelShaderInput main_vs(VertexShaderInput vin)
@@ -38,8 +46,8 @@ PixelShaderInput main_vs(VertexShaderInput vin)
 
 struct PixelShaderOutput
 {
-	float4 color0	: SV_Target0;
-	float4 color1	: SV_Target1;
+	float4 color0 : SV_Target0;
+	uint4 color1 : SV_Target1;
 };
 
 // Pixel shader
@@ -48,6 +56,6 @@ PixelShaderOutput main_ps(PixelShaderInput pin)
 {	
 	PixelShaderOutput output;
 	output.color0 = float4(pin.UV.xy,ddx(pin.UV.x),ddy(pin.UV.y));
-	output.color1 = float4(0,0,0,0);
+	output.color1 = float4(DrawParams.MaterialID,0,0,0);
 	return output;
 }

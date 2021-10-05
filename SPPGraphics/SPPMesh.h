@@ -352,7 +352,7 @@ namespace SPP
 		virtual ~Material() {}
 	};
 
-	struct SPP_GRAPHICS_API PBRMaterial : public Material
+	struct SPP_GRAPHICS_API PBRMaterial : public Material, public GPUResource
 	{
 	protected:
 		uint32_t _uniqueID = 0;

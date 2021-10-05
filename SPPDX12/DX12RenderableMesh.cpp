@@ -370,7 +370,7 @@ namespace SPP
 			}
 
 			cmdList->SetGraphicsRoot32BitConstant(6, _bSelected ? 1 : 0, 0);
-
+			cmdList->SetGraphicsRoot32BitConstant(6, 4, 1);
 			//cmdList->SetComputeRootUnorderedAccessView
 
 			if (_meshData->material->vertexShader)
