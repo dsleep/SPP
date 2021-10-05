@@ -402,4 +402,23 @@ namespace SPP
 		return true;
 	}
 
+	static uint32_t GHighestMaterialID = 0;
+	static std::list<uint32_t> GAvailableMatIDs;
+
+	PBRMaterial::PBRMaterial()
+	{
+		if (!GAvailableMatIDs.empty())
+		{
+			_uniqueID = GAvailableMatIDs.front();
+			GAvailableMatIDs.pop_front();
+		}
+		else
+		{
+			_uniqueID = GHighestMaterialID++;
+		}
+	}
+	PBRMaterial::~PBRMaterial()
+	{
+		GAvailableMatIDs.push_back(_uniqueID);
+	}
 }

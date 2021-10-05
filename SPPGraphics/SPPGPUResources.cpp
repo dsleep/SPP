@@ -84,6 +84,29 @@ namespace SPP
 		SE_ASSERT(_shader);
 		_shader->CompileShaderFromFile(FilePath, EntryPoint);
 	}
+	
+	static uint32_t GHighestTextureID = 0;
+	static std::list<uint32_t> GTextureAvailIDs;
+
+	GPUTexture::GPUTexture(int32_t Width, int32_t Height, TextureFormat Format, 
+		std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) :
+		_width(Width), _height(Height), _format(Format), _rawImgData(RawData), _metaInfo(InMetaInfo)
+	{
+		if (!GTextureAvailIDs.empty())
+		{
+			_uniqueID = GTextureAvailIDs.front();
+			GTextureAvailIDs.pop_front();
+		}
+		else
+		{
+			_uniqueID = GHighestTextureID++;
+		}
+	}
+
+	GPUTexture::~GPUTexture() 
+	{ 
+		GTextureAvailIDs.push_back(_uniqueID);
+	}
 
 	//GLOBAL GRAPHICS INTERFACE
 	static IGraphicsInterface* GGIPtr = nullptr;

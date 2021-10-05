@@ -396,15 +396,13 @@ namespace SPP
         bool _bCubemap = false;
         std::shared_ptr< ArrayResource > _rawImgData;
         std::shared_ptr< ImageMeta > _metaInfo;
+        uint32_t _uniqueID = 0;
 
     public:
-
-        GPUTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) :
-            _width(Width), _height(Height), _format(Format), _rawImgData(RawData), _metaInfo(InMetaInfo)
-        {
-        }
-
-        virtual ~GPUTexture() { }
+        GPUTexture(int32_t Width, int32_t Height, TextureFormat Format,
+            std::shared_ptr< ArrayResource > RawData = nullptr, 
+            std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
+        virtual ~GPUTexture();
         virtual const char* GetName() const override
         {
             return "Texture";

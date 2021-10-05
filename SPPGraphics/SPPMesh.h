@@ -332,7 +332,53 @@ namespace SPP
 		}
 	};
 
-	struct SPP_GRAPHICS_API MeshMaterial
+	namespace MaterialTypes
+	{
+		enum BaseMaterials
+		{
+			Unknown = 0,
+			PBR,
+			Mesh,
+			BaseMaterials_LAST,
+		};
+	}
+
+	struct SPP_GRAPHICS_API Material
+	{
+		virtual MaterialTypes::BaseMaterials GetMaterialType() const
+		{
+			return MaterialTypes::Unknown;
+		}
+		virtual ~Material() {}
+	};
+
+	struct SPP_GRAPHICS_API PBRMaterial : public Material
+	{
+	protected:
+		uint32_t _uniqueID = 0;
+
+	public:
+		GPUReferencer<GPUTexture> albedo;
+		GPUReferencer<GPUTexture> normal;
+		GPUReferencer<GPUTexture> metalness;
+		GPUReferencer<GPUTexture> roughness;
+		GPUReferencer<GPUTexture> specular;
+		GPUReferencer<GPUTexture> irradiance;
+		GPUReferencer<GPUTexture> specularBRDF_LUT;
+
+		GPUReferencer<GPUTexture> masked;
+		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
+
+		virtual MaterialTypes::BaseMaterials GetMaterialType() const override
+		{
+			return MaterialTypes::PBR;
+		}
+
+		PBRMaterial();
+		virtual ~PBRMaterial();
+	};
+
+	struct SPP_GRAPHICS_API MeshMaterial : public Material
 	{
 		std::vector< GPUReferencer<GPUTexture> > textureArray;
 
@@ -358,6 +404,13 @@ namespace SPP
 
 			textureArray[Idx] = InTexture;
 		}
+
+		virtual MaterialTypes::BaseMaterials GetMaterialType() const override
+		{
+			return MaterialTypes::Mesh;
+		}
+
+		virtual ~MeshMaterial() { }
 	};
 	
 	//ugly update eventuallly
