@@ -36,6 +36,14 @@ namespace SPP
 		uint32_t iB,
 		uint32_t iC,
 		uint32_t iD) : A(iA), B(iB), C(iC), D(iD) { }
+
+		bool IsValid() const
+		{
+			return (A != 0) ||
+				(B != 0) ||
+				(C != 0) ||
+				(D != 0);
+		}
 		
 		uint32_t& operator[](size_t Index);
 

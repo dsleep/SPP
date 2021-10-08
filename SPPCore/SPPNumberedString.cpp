@@ -42,6 +42,18 @@ namespace SPP
 		auto stringValue = std::string(InValue);
 		std::inlineToLower(stringValue);
 
+		std::size_t found = stringValue.find_last_of("_");
+		if (found != std::string::npos && 
+			found <= (stringValue.length() - 2))
+		{
+			auto numberValue = stringValue.substr(found + 1);
+			if (std::is_number(numberValue))
+			{
+				stringValue = stringValue.substr(0, found);
+				_counter = std::atoi(numberValue.c_str());
+			}
+		}
+
 		const auto [it, success] = NameToID.insert({ stringValue, internal::nameIdx });
 		if (success)
 		{

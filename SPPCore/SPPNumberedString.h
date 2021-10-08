@@ -19,6 +19,7 @@ namespace SPP
 	{
 	private:
 		uint32_t _id = 0;
+		uint32_t _counter = ~((uint32_t)0);
 		const char* _name = nullptr;
 
 	public:

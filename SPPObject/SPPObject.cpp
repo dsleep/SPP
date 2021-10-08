@@ -15,29 +15,38 @@ namespace SPP
 {
 	LogEntry LOG_OBJ("OBJECT");
 
+	std::unordered_map<GUID, SPPObject*> &GetObjGUIDMap()
+	{
+		static std::unordered_map<GUID, SPPObject*> sO;
+		return sO;
+	}
 	static SPPObject* GFirstObject = nullptr;
+
 	void SPPObject::Link()
 	{
-		GFirstObject = this;
-		this->nextObj = GFirstObject;
 		if (GFirstObject) GFirstObject->prevObj = this;
+		this->nextObj = GFirstObject;
+		GFirstObject = this;
 	}
 	void SPPObject::Unlink()
 	{
 		if (GFirstObject == this)
 		{
 			GFirstObject = nextObj;
+			SE_ASSERT(prevObj == nullptr);
 		}
-		else
+
+		if (prevObj)
 		{
-			SE_ASSERT(GFirstObject->prevObj);
-
-			GFirstObject->prevObj->nextObj = nextObj;
-			nextObj->prevObj = prevObj;
-
-			nextObj = nullptr;
-			prevObj = nullptr;
+			prevObj->nextObj = nextObj;
 		}
+		if (nextObj)
+		{
+			nextObj->prevObj = prevObj;
+		}
+
+		nextObj = nullptr;
+		prevObj = nullptr;
 	}
 
 	const NumberedString& MetaPath::operator[](uint32_t index) const
@@ -82,30 +91,42 @@ namespace SPP
 		return true;
 	}
 
-	static std::unordered_map<GUID, SPPObject*> GGUIDTable;
-
 	SPPObject::SPPObject(const MetaPath& InPath) : _path(InPath)
 	{
+		//check for collisions?!?!
 		_guid = GUID::Create();		
 		Link();
-		GGUIDTable[_guid] = this;
+		GetObjGUIDMap()[_guid] = this;
 	}
 
 	SPPObject::~SPPObject()
 	{
 		Unlink();
-		GGUIDTable.erase(_guid);
+		GetObjGUIDMap().erase(_guid);
 	}
 
 
 	SPP_OBJECT_API SPPObject* GetObjectByGUID(const GUID& InGuid)
 	{
-		auto foundObject = GGUIDTable.find(InGuid);
-		if (foundObject != GGUIDTable.end())
+		auto foundObject = GetObjGUIDMap().find(InGuid);
+		if (foundObject != GetObjGUIDMap().end())
 		{
 			return foundObject->second;
 		}
 		return nullptr;
+	}
+
+	void IterateObjects(const std::function<bool(SPPObject*)>& InFunction)
+	{
+		auto curObject = GFirstObject;
+		while (curObject)
+		{
+			if (InFunction(curObject) == false)
+			{
+				return;
+			}
+			curObject = curObject->nextObj;
+		}
 	}
 
 	MetaPath::MetaPath(const char* InPath)

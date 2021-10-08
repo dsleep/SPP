@@ -3,6 +3,7 @@
 // recognized in your jurisdiction.
 
 #include "SPPSceneO.h"
+#include "SPPSTLUtils.h"
 
 namespace SPP
 {
@@ -14,14 +15,24 @@ namespace SPP
 	void OElement::AddChild(OElement* InChild)
 	{
 		InChild->RemoveFromParent();
-		_children.insert(InChild);
+		_children.push_back(InChild);
 		InChild->_parent = this;
 	}
 
 	void OElement::RemoveChild(OElement* InChild)
 	{
 		SE_ASSERT(InChild->_parent == this);
-		_children.erase(InChild);
+		bool bFoundEle = false;
+		for (int32_t Iter = 0; Iter < _children.size(); Iter++)
+		{
+			if (_children[Iter] == InChild)
+			{
+				EraseWithBackSwap(Iter, _children);
+				bFoundEle = true;
+				break;
+			}
+		}
+		SE_ASSERT(bFoundEle);
 		InChild->_parent = nullptr;
 	}
 
@@ -167,7 +178,7 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_parent", &OElement::_parent)
+		.property("_parent", &OElement::_parent)(rttr::policy::prop::as_reference_wrapper)
 		.property("_children", &OElement::_children)(rttr::policy::prop::as_reference_wrapper)
 		.property("_translation", &OElement::_translation)(rttr::policy::prop::as_reference_wrapper)
 		.property("_rotation", &OElement::_rotation)(rttr::policy::prop::as_reference_wrapper)

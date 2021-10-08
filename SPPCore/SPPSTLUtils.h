@@ -59,11 +59,13 @@ namespace SPP
 	}
 
 	template<typename T>
-	void EraseUnordered(uint32_t Index, std::vector<T> &InVec)
+	void EraseWithBackSwap(uint32_t Idx, std::vector<T> &InVec)
 	{
+		SE_ASSERT(Idx < InVec.size());
+
 		if (InVec.size() > 1)
 		{
-			std::iter_swap(InVec.begin() + index, InVec.end() - 1);
+			std::iter_swap(InVec.begin() + Idx, InVec.end() - 1);
 			InVec.pop_back();
 		}
 		else

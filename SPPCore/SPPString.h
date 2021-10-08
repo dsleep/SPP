@@ -27,6 +27,8 @@ namespace std
 
     SPP_CORE_API bool str_equals(const std::string& a, const std::string& b, bool bIgnoreCase = true);
 
+	SPP_CORE_API bool is_number(const std::string& s);
+
 	template<typename ... Args>
 	inline std::string string_format(const std::string& format, Args ... args)
 	{

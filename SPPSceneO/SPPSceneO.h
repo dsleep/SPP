@@ -39,8 +39,7 @@ namespace SPP
 	protected:
 		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
 
-		class OElement* _parent = nullptr;
-		std::unordered_set<OElement*> _children;
+		
 
 		Sphere _bounds;
 		Vector3d _translation = { 0,0,0 };
@@ -49,6 +48,10 @@ namespace SPP
 		OctreeLinkPtr _octreeLink = nullptr;
 
 	public:
+		class OElement* _parent = nullptr;
+
+		std::vector<OElement*> _children;
+
 		virtual Sphere& Bounds()
 		{
 			return _bounds;
@@ -89,7 +92,7 @@ namespace SPP
 
 		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo &oInfo) const;
 
-		const std::unordered_set<OElement*> GetChildren() const
+		const std::vector<OElement*> GetChildren() const
 		{
 			return _children;
 		}

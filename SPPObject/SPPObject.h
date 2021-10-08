@@ -75,13 +75,20 @@ namespace SPP
 
 	class SPP_OBJECT_API SPPObject
 	{
+		friend SPP_OBJECT_API void IterateObjects(const std::function<bool(SPPObject*)>& InFunction);
+
 		RTTR_ENABLE()
 		RTTR_REGISTRATION_FRIEND
+
+		NO_COPY_ALLOWED(SPPObject);
+		NO_MOVE_ALLOWED(SPPObject);
 
 	protected:
 		MetaPath _path;
 		GUID _guid;
 		SPPObject(const MetaPath& InPath);
+
+		uint8_t _tempFlags = 0;
 
 		SPPObject* nextObj = nullptr;
 		SPPObject* prevObj = nullptr;
@@ -100,6 +107,14 @@ namespace SPP
 		{
 			return _path;
 		}
+		void SetTempFlags(uint8_t FlagsIn)
+		{
+			_tempFlags = FlagsIn;
+		}
+		const uint8_t GetTempFlags() const
+		{
+			return _tempFlags;
+		}
 	};
 	
 	SPP_OBJECT_API SPPObject* AllocateObject(const rttr::type &InType, const MetaPath& InPath);
@@ -112,8 +127,55 @@ namespace SPP
 		return (ObjType*)AllocateObject(curType, InPath);
 	}
 
-
 	SPP_OBJECT_API SPPObject* GetObjectByGUID(const GUID &InGuid);
+	SPP_OBJECT_API void IterateObjects(const std::function<bool(SPPObject*)> &InFunction);
+
+	template<typename T>
+	class WeakObjPtr
+	{
+	private:
+		GUID _objguid;
+
+	public:
+		WeakObjPtr() 
+		{
+			static_assert(std::is_base_of_v<SPPObject, T>, "Must be OBJECT!!!");
+		}
+		WeakObjPtr(T* InObj)
+		{
+			if (InObj)
+			{
+				_objguid = InObj->GetGUID();
+			}
+		}
+		WeakObjPtr &operator=(T* InObj)
+		{
+			if (InObj)
+			{
+				_objguid = InObj->GetGUID();
+			}
+			else
+			{
+				_objguid = GUID();
+			}
+		}
+		bool IsValid() const
+		{
+			if (_objguid.IsValid())
+			{
+				return (GetObjectByGUID(_objguid) != nullptr);
+			}
+			return false;
+		}
+		T* Get()
+		{
+			if (_objguid.IsValid())
+			{
+				return GetObjectByGUID(_objguid);
+			}
+			return nullptr;
+		}
+	};
 
 	//template<typename ObjectType>
 	//ObjectType* TAllocateObject(const MetaPath& InPath)

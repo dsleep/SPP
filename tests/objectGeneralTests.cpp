@@ -550,13 +550,246 @@ void GenerateObjectList(OScene*InWorld, Json::Value &rootValue)
 	//}
 }
 
+bool MaybeObjectType(rttr::type InType)
+{
+	if (InType.is_wrapper())
+	{
+		InType = InType.get_wrapped_type();
+	}
+	if (InType.is_associative_container())
+	{
+		return false;
+	}
+	if (InType.is_pointer())
+	{
+		auto ObjectType = rttr::type::get<SPPObject>();
+		if (InType.is_derived_from(ObjectType))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	if (InType.is_sequential_container() || InType.is_array())
+	{
+		return true;
+	}
+	if (InType.is_class())
+	{
+		return true;
+	}
+	return false;
+}
+
+bool IsObjectProperty(rttr::type& propType)
+{
+	auto ObjectType = rttr::type::get<SPPObject>();
+	return propType.is_pointer() && propType.is_derived_from(ObjectType);
+}
+
+bool ProcessObjectPropertySequentialView(rttr::instance& obj,
+	rttr::property& InProperty,
+	rttr::variant& prop_value,
+	rttr::type& propType,
+	const std::function<bool(SPPObject*&)>& InFunction)
+{
+	SPPObject* objRef = prop_value.get_value<SPPObject*>();
+	SPPObject* objOrg = objRef;
+
+	if (objRef != nullptr)
+	{
+		auto bContinue = InFunction(objRef);
+
+		if (objOrg != objRef)
+		{
+			if (InProperty.set_value(obj, (SPPObject*)nullptr) == false)
+			{
+				//SPP_LOG(LOG_OBJ, LOG_INFO, "SetPropertyValue number failed");
+			}
+		}
+
+		return bContinue;
+	}
+
+	return false;
+}
+
+//bool ProcessObjectProperty(rttr::instance& obj, 
+//	rttr::property& InProperty,
+//	rttr::variant& prop_value,
+//	rttr::type& propType,
+//	const std::function<bool(SPPObject*&)>& InFunction)
+//{	
+//	SPPObject* objRef = prop_value.get_value<SPPObject*>();
+//	SPPObject* objOrg = objRef;
+//
+//	if (objRef != nullptr)
+//	{
+//		auto bContinue = InFunction(objRef);
+//
+//		if (objOrg != objRef)
+//		{
+//			if (InProperty.set_value(obj, (SPPObject*)nullptr) == false)
+//			{
+//				//SPP_LOG(LOG_OBJ, LOG_INFO, "SetPropertyValue number failed");
+//			}
+//		}
+//
+//		return bContinue;
+//	}
+//
+//	return false;
+//}
+
+void WalkObjects(const rttr::variant& inValue, const std::function<bool(SPPObject*&)>& InFunction)
+{
+	auto originalType = inValue.get_type();
+	SPP_LOG(LOG_APP, LOG_INFO, "WalkObjects org %s", originalType.get_name().data());
+
+	SE_ASSERT(originalType.is_wrapper());
+
+	//original
+	rttr::instance orgobj = inValue;
+	//dewrap this dealio
+	rttr::instance obj = orgobj.get_type().get_raw_type().is_wrapper() ? orgobj.get_wrapped_instance() : orgobj;
+
+	auto curType = obj.get_derived_type();
+	SPP_LOG(LOG_APP, LOG_INFO, "WalkObjects %s", curType.get_name().data());
+
+	auto ObjectType = rttr::type::get<SPPObject>();
+
+	SPPObject* objRef = nullptr;
+	if (curType.is_derived_from(ObjectType))
+	{
+		objRef = obj.try_convert< SPPObject >();
+
+		std::reference_wrapper<SPPObject*> wrappedValue =
+			inValue.get_value< std::reference_wrapper<SPPObject*> >();
+
+		if (objRef)
+		{
+			if (InFunction(wrappedValue.get()) == false)
+			{
+				return;
+			}
+		}
+		else
+		{
+			return;
+		}
+	}
+
+	auto prop_list = curType.get_properties();
+	for (auto prop : prop_list)
+	{
+		rttr::variant org_prop_value = prop.get_value(obj);
+		if (!org_prop_value)
+			continue; // cannot serialize, because we cannot retrieve the value
+
+		const auto name = prop.get_name().to_string();
+		SPP_LOG(LOG_APP, LOG_INFO, " - prop %s", name.data());
+
+		auto propType = org_prop_value.get_type();
+
+		//SE_ASSERT(propType.is_wrapper());
+		//std::reference_wrapper<SPPObject*> wrappedValue = 
+		//	prop_value.get_value< std::reference_wrapper<SPPObject*> >();
+
+		//wrappedValue.get() = nullptr;
+
+		SPP_LOG(LOG_APP, LOG_INFO, " - propType %s", propType.get_name().data());
+		if (propType.is_wrapper())
+		{
+			propType = propType.get_wrapped_type();
+			SPP_LOG(LOG_APP, LOG_INFO, " - was wrapper propType %s", propType.get_name().data());
+		}
+		
+		if (propType.is_class())
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, " - class");
+			//WalkObjects(org_prop_value, InFunction);
+		}
+
+		if (propType.is_sequential_container())
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, " - sequential container");
+
+			auto view = org_prop_value.create_sequential_view();
+			auto valueType = view.get_type();
+
+
+			SPP_LOG(LOG_APP, LOG_INFO, " - inside type %s", valueType.get_name().data());
+			SPP_LOG(LOG_APP, LOG_INFO, " - size %d", view.get_size());
+
+			for (const auto& item : view)
+			{
+				auto curItemT = item.get_type();
+
+
+				std::reference_wrapper<SPPObject*> wrappedValue =
+					item.get_value< std::reference_wrapper<SPPObject*> >();
+
+				SPP_LOG(LOG_APP, LOG_INFO, " - inside type %s", curItemT.get_name().data());
+			}
+
+			/*
+			rttr::variant org_prop_value = prop.get_value(obj);
+
+			std::reference_wrapper< std::vector<SPPObject*> > wrappedValue =
+				org_prop_value.get_value< std::reference_wrapper< std::vector<SPPObject*> > >();
+
+			auto view = prop_value.create_sequential_view();
+			SPP_LOG(LOG_APP, LOG_INFO, " - size %d", view.get_size());
+			
+			auto valueType = view.get_value_type();
+			if (IsObjectProperty(valueType))
+			{
+				for (const auto& item : view)
+				{
+					if( ProcessObjectProperty(obj, 
+						prop, 
+						prop_value, 
+						propType, InFunction))
+					{
+						WalkObjects(item, InFunction);
+					}
+				}
+			}
+			else if (MaybeObjectType(view.get_value_type()))
+			{
+				for (const auto& item : view)
+				{
+					WalkObjects(item, InFunction);
+				}
+			}
+			*/
+		}
+
+		if (propType.is_associative_container())
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, " - associative container UNSUPPORTED!!!");
+			return;
+		}
+		
+		if (IsObjectProperty(propType))
+		{
+			WalkObjects(org_prop_value, InFunction);
+		}
+	}
+}
 
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 	GetSDFVersion();
 
+	NumberedString testString("bigValue_0");
 
+	AllocateObject<OScene>("Scene0");
+	AllocateObject<OSDFBox>("dummyBox");
+	AllocateObject<OScene>("Scene5");
 
 	auto EntityScene = AllocateObject<OScene>("Scene");
 
@@ -566,30 +799,81 @@ int main(int argc, char* argv[])
 	CurrentEntity->AddChild(CurrentObject);
 	EntityScene->AddChild(CurrentEntity);
 
-	Json::Value rootValue;
-	
-	SubTypeInfo infos;
-	GetObjectPropertiesAsJSON(rootValue, infos, CurrentObject);
+	SPP_LOG(LOG_APP, LOG_INFO, "CurrentEntity parent addr: 0x%p", &CurrentEntity);
 
-	std::string StrMessage;
-	JsonToString(rootValue, StrMessage);
+	SPP_LOG(LOG_APP, LOG_INFO, "CurrentEntity children addr: 0x%p", &CurrentEntity->_children);
+	SPP_LOG(LOG_APP, LOG_INFO, "CurrentEntity children first addr: 0x%p", &CurrentEntity->_children[0]);
 
-	std::string SubMessage;
-	JsonToString(infos.subTypes, SubMessage);
+	//RESET 
+	IterateObjects([](SPPObject *InObj) -> bool
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, "object %s", InObj->GetPath().ToString().c_str());
+			InObj->SetTempFlags(0);
+			return true;
+		});
+	//MARK
+	WalkObjects(std::ref(CurrentEntity), [](SPPObject* &InObj) -> bool
+		{
+			auto flags = InObj->GetTempFlags();
+			if (flags & 0x01)
+			{
+				return false;
+			}
+			else
+			{
+				InObj->SetTempFlags(0x01);
+				return true;
+			}
+		});
+	//PRUNE
+	IterateObjects([](SPPObject* InObj) -> bool
+		{
+			if (InObj->GetTempFlags() & 0x01)
+			{
+				SPP_LOG(LOG_APP, LOG_INFO, "touched %s", InObj->GetPath().ToString().c_str());
+			}
+			else
+			{
+				InObj->SetTempFlags(0x02);
+			}
+			return true;
+		});
 
+	//RESET 
+	IterateObjects([](SPPObject* InObj) -> bool
+		{
+			InObj->SetTempFlags(0);
+			return true;
+		});
+	WalkObjects(CurrentEntity, [](SPPObject*& InObj) -> bool
+		{
+			auto flags = InObj->GetTempFlags();
 
-	Json::Value worldEntities;
-	GenerateObjectList(EntityScene, worldEntities);
-	std::string worldString;
-	JsonToString(worldEntities, worldString);
+			// already visited just leave it
+			if (flags & 0x01)
+			{
+				return false;
+			}
+			// 
+			else if(flags & 0x02)
+			{
+				InObj = nullptr;
 
-	//rttr::variant asVariant(CurrentObject);
-	//objData.PopulateObjectLinks(asVariant);
-
-	//objData.WriteVariant(asVariant);
-
-	//objData << objects;
-	//CurrentObject
+			}
+			else
+			{
+				InObj->SetTempFlags(0x01);
+			}
+		});
+	//EVICT
+	IterateObjects([](SPPObject* InObj) -> bool
+		{
+			if (InObj->GetTempFlags() & 0x02)
+			{
+				delete InObj;
+			}
+			return true;
+		});
 
 	return 0;
 }
