@@ -689,93 +689,35 @@ void WalkObjects(const rttr::variant& inValue, const std::function<bool(SPPObjec
 			continue; // cannot serialize, because we cannot retrieve the value
 
 		const auto name = prop.get_name().to_string();
-		SPP_LOG(LOG_APP, LOG_INFO, " - prop %s", name.data());
-
 		auto propType = org_prop_value.get_type();
-
-		//SE_ASSERT(propType.is_wrapper());
-		//std::reference_wrapper<SPPObject*> wrappedValue = 
-		//	prop_value.get_value< std::reference_wrapper<SPPObject*> >();
-
-		//wrappedValue.get() = nullptr;
-
-		SPP_LOG(LOG_APP, LOG_INFO, " - propType %s", propType.get_name().data());
+		
+		// it is all wrappers
 		if (propType.is_wrapper())
 		{
 			propType = propType.get_wrapped_type();
-			SPP_LOG(LOG_APP, LOG_INFO, " - was wrapper propType %s", propType.get_name().data());
-		}
-		
-		if (propType.is_class())
-		{
-			SPP_LOG(LOG_APP, LOG_INFO, " - class");
-			//WalkObjects(org_prop_value, InFunction);
-		}
 
-		if (propType.is_sequential_container())
-		{
-			SPP_LOG(LOG_APP, LOG_INFO, " - sequential container");
-
-			auto view = org_prop_value.create_sequential_view();
-			auto valueType = view.get_type();
-
-
-			SPP_LOG(LOG_APP, LOG_INFO, " - inside type %s", valueType.get_name().data());
-			SPP_LOG(LOG_APP, LOG_INFO, " - size %d", view.get_size());
-
-			for (const auto& item : view)
+			if (IsObjectProperty(propType))
 			{
-				auto curItemT = item.get_type();
-
-
-				std::reference_wrapper<SPPObject*> wrappedValue =
-					item.get_value< std::reference_wrapper<SPPObject*> >();
-
-				SPP_LOG(LOG_APP, LOG_INFO, " - inside type %s", curItemT.get_name().data());
+				WalkObjects(org_prop_value, InFunction);
 			}
-
-			/*
-			rttr::variant org_prop_value = prop.get_value(obj);
-
-			std::reference_wrapper< std::vector<SPPObject*> > wrappedValue =
-				org_prop_value.get_value< std::reference_wrapper< std::vector<SPPObject*> > >();
-
-			auto view = prop_value.create_sequential_view();
-			SPP_LOG(LOG_APP, LOG_INFO, " - size %d", view.get_size());
-			
-			auto valueType = view.get_value_type();
-			if (IsObjectProperty(valueType))
+			else if (propType.is_sequential_container())
 			{
-				for (const auto& item : view)
-				{
-					if( ProcessObjectProperty(obj, 
-						prop, 
-						prop_value, 
-						propType, InFunction))
-					{
-						WalkObjects(item, InFunction);
-					}
-				}
-			}
-			else if (MaybeObjectType(view.get_value_type()))
-			{
-				for (const auto& item : view)
+				auto sub_array_view = org_prop_value.create_sequential_view();
+				for (auto& item : sub_array_view)
 				{
 					WalkObjects(item, InFunction);
 				}
 			}
-			*/
-		}
-
-		if (propType.is_associative_container())
-		{
-			SPP_LOG(LOG_APP, LOG_INFO, " - associative container UNSUPPORTED!!!");
-			return;
-		}
-		
-		if (IsObjectProperty(propType))
-		{
-			WalkObjects(org_prop_value, InFunction);
+			else if (propType.is_associative_container())
+			{
+				SPP_LOG(LOG_APP, LOG_INFO, " - associative container UNSUPPORTED!!!");
+				return;
+			}
+			else if(propType.is_class())
+			{
+				SPP_LOG(LOG_APP, LOG_INFO, " - class");
+				WalkObjects(org_prop_value, InFunction);
+			}
 		}
 	}
 }

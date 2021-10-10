@@ -4,4 +4,9 @@
 
 #pragma once
 
-#include "SPPCore.h"
+#include "SPPObject.h"
+
+namespace SPP
+{
+	
+}

@@ -24,14 +24,11 @@ target_sources(SPPObject
 		"${CMAKE_CURRENT_LIST_DIR}/SPPObject.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPObject.h" 
 		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPField.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPField.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPObjectJSON.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPObjectJSON.h"
 		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPFunction.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPFunction.h"
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPStruct.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPStruct.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPGarbageCollection.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPGarbageCollection.h"
 		)
 
 target_include_directories(SPPObject 

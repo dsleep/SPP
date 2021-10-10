@@ -4,4 +4,10 @@
 
 #pragma once
 
-#include "SPPCore.h"
+#include "SPPObject.h"
+#include "json/json.h"
+
+namespace SPP
+{
+	SPP_OBJECT_API void ObjectToJSON(const SPPObject* InObject, Json::Value& CurrentContainer);
+}

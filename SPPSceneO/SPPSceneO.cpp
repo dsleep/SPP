@@ -182,7 +182,7 @@ RTTR_REGISTRATION
 		.property("_children", &OElement::_children)(rttr::policy::prop::as_reference_wrapper)
 		.property("_translation", &OElement::_translation)(rttr::policy::prop::as_reference_wrapper)
 		.property("_rotation", &OElement::_rotation)(rttr::policy::prop::as_reference_wrapper)
-		.property("_scale", &OElement::_scale)
+		.property("_scale", &OElement::_scale)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OScene>("OScene")

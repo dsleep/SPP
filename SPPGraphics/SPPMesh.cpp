@@ -82,7 +82,7 @@ namespace SPP
 
 		auto FoundCachedBlob = GetCachedAsset(FileName);
 
-		if (FoundCachedBlob)
+		if (false)//FoundCachedBlob)
 		{
 			_bounds = Sphere();
 
