@@ -39,18 +39,16 @@ namespace SPP
 	protected:
 		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
 
-		
-
 		Sphere _bounds;
 		Vector3d _translation = { 0,0,0 };
 		Vector3 _rotation = { 0, 0, 0 };
 		float _scale = 1.0f;
 		OctreeLinkPtr _octreeLink = nullptr;
 
-	public:
 		class OElement* _parent = nullptr;
-
 		std::vector<OElement*> _children;
+
+	public:
 
 		virtual Sphere& Bounds()
 		{

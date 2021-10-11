@@ -111,6 +111,10 @@ namespace SPP
 		{
 			_tempFlags = FlagsIn;
 		}
+		void SetTempFlag(uint8_t FlagIn)
+		{
+			_tempFlags |= FlagIn;
+		}
 		const uint8_t GetTempFlags() const
 		{
 			return _tempFlags;

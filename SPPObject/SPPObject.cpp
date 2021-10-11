@@ -124,11 +124,13 @@ namespace SPP
 		auto curObject = GFirstObject;
 		while (curObject)
 		{
-			if (InFunction(curObject) == false)
+			auto cacheObject = curObject;
+			curObject = curObject->nextObj;
+			// cache to support deleting 
+			if (InFunction(cacheObject) == false)
 			{
 				return;
 			}
-			curObject = curObject->nextObj;
 		}
 	}
 

@@ -8,5 +8,8 @@
 
 namespace SPP
 {
-	
+	SPP_OBJECT_API void AddToRoot(SPPObject *InObject);
+	SPP_OBJECT_API void RemoveFromRoot(SPPObject* InObject);
+
+	SPP_OBJECT_API void GC_MarkAndSweep();
 }

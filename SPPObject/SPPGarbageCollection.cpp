@@ -9,9 +9,13 @@ namespace SPP
 {
 	extern LogEntry LOG_OBJ;
 
-#if 0
-	void WalkObjectProperties(const rttr::variant& inValue,
-		const std::function<bool(SPPObject*&)>& InFunction)
+	bool IsObjectProperty(rttr::type& propType)
+	{
+		auto ObjectType = rttr::type::get<SPPObject>();
+		return propType.is_pointer() && propType.is_derived_from(ObjectType);
+	}
+
+	void WalkObjects(const rttr::variant& inValue, const std::function<bool(SPPObject*&)>& InFunction)
 	{
 		auto originalType = inValue.get_type();
 		SE_ASSERT(originalType.is_wrapper());
@@ -73,16 +77,104 @@ namespace SPP
 				}
 				else if (propType.is_associative_container())
 				{
-					SPP_LOG(LOG_APP, LOG_INFO, " - associative container UNSUPPORTED!!!");
+					SPP_LOG(LOG_OBJ, LOG_INFO, " - associative container UNSUPPORTED!!!");
 					return;
 				}
 				else if (propType.is_class())
 				{
-					SPP_LOG(LOG_APP, LOG_INFO, " - class");
 					WalkObjects(org_prop_value, InFunction);
 				}
 			}
 		}
 	}
-#endif
+
+	static std::list< SPPObject* > GC_ROOTS;
+
+	static uint8_t const GC_VISIBLE = 0x01;
+	static uint8_t const GC_DYING = 0x02;
+
+	void AddToRoot(SPPObject* InObject)
+	{
+		GC_ROOTS.push_back(InObject);
+	}
+
+	void RemoveFromRoot(SPPObject* InObject)
+	{
+		GC_ROOTS.remove(InObject);
+	}
+
+	void GC_MarkAndSweep()
+	{
+		IterateObjects([](SPPObject* InObj) -> bool
+			{
+				InObj->SetTempFlags(0);
+				return true;
+			});
+
+		for (auto& rootItem : GC_ROOTS)
+		{
+			WalkObjects(std::ref(rootItem), [](SPPObject*& InObj) -> bool
+				{
+					auto flags = InObj->GetTempFlags();
+					if (flags & GC_VISIBLE)
+					{
+						return false;
+					}
+					else
+					{
+						InObj->SetTempFlag(GC_VISIBLE);
+						return true;
+					}
+				});
+		}
+		// all objects go back to dying or cleared
+		IterateObjects([](SPPObject* InObj) -> bool
+			{
+				// not visible to root
+				if (!(InObj->GetTempFlags() & GC_VISIBLE))
+				{
+					InObj->SetTempFlags(GC_DYING);
+				}
+				else
+				{
+					InObj->SetTempFlags(0);
+				}
+				return true;
+			});
+
+		for (auto& rootItem : GC_ROOTS)
+		{
+			WalkObjects(std::ref(rootItem), [](SPPObject*& InObj) -> bool
+				{
+					auto flags = InObj->GetTempFlags();
+
+					if (flags & GC_DYING)
+					{
+						InObj = nullptr;
+						return false;
+					}
+
+					if (flags & GC_VISIBLE)
+					{
+						return false;
+					}
+					else
+					{
+						InObj->SetTempFlags(GC_VISIBLE);
+						return true;
+					}
+				});
+		}
+
+		// all objects go back to dying or cleared
+		IterateObjects([](SPPObject* InObj) -> bool
+			{
+				// not visible to root
+				if (InObj->GetTempFlags() & GC_DYING)
+				{
+					delete InObj;
+				}
+				return true;
+			});
+	}
 }
