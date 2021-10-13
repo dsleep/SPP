@@ -11,6 +11,8 @@ namespace SPP
 	{
 	protected:
 		ComPtr<ID3D12Resource> _buffer;
+		ComPtr<ID3D12DescriptorHeap> _cpuSrvDescriptor;
+		
 		//ComPtr<ID3D12Resource> _heapUpload;
 		D3D12_RESOURCE_STATES _currentState;
 

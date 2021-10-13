@@ -352,7 +352,7 @@ namespace SPP
 		virtual ~Material() {}
 	};
 
-	struct SPP_GRAPHICS_API PBRMaterial : public Material, public GPUResource
+	struct SPP_GRAPHICS_API PBRMaterialAsset : public Material
 	{
 	protected:
 		uint32_t _uniqueID = 0;
@@ -369,13 +369,15 @@ namespace SPP
 		GPUReferencer<GPUTexture> masked;
 		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
 
+		void SetData();
+
 		virtual MaterialTypes::BaseMaterials GetMaterialType() const override
 		{
 			return MaterialTypes::PBR;
 		}
 
-		PBRMaterial();
-		virtual ~PBRMaterial();
+		PBRMaterialAsset();
+		virtual ~PBRMaterialAsset();
 	};
 
 	struct SPP_GRAPHICS_API MeshMaterial : public Material

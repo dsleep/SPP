@@ -14,65 +14,80 @@
 
 namespace SPP
 {
-	template<typename T>
-	class ThreadSafeList
-	{
-	private:
-		std::mutex		_mutex;
-		std::list<T>	_list;
+	//template<typename T>
+	//class ThreadSafeList
+	//{
+	//private:
+	//	std::mutex		_mutex;
+	//	std::list<T>	_list;
 
-	public:
-		void Add(const T &InResource)
-		{
-			std::lock_guard<std::mutex> guard(_mutex);
-			_list.push_back(InResource);
-		}
+	//public:
+	//	void Add(const T &InResource)
+	//	{
+	//		std::lock_guard<std::mutex> guard(_mutex);
+	//		_list.push_back(InResource);
+	//	}
 
-		void Remove(const T& InResource)
-		{
-			std::lock_guard<std::mutex> guard(_mutex);
-			_list.remove(InResource);
-		}
+	//	void Remove(const T& InResource)
+	//	{
+	//		std::lock_guard<std::mutex> guard(_mutex);
+	//		_list.remove(InResource);
+	//	}
 
-		template<typename Func>
-		void Iterate(Func&& f)
-		{
-			std::lock_guard<std::mutex> guard(_mutex);
-			for (auto& ele : _list)
-			{
-				f(ele);
-			}			
-		}
-	};
-
-	ThreadSafeList< GPUResource* >& GetGPUResourceList()
-	{
-		static ThreadSafeList< GPUResource* > sO;
-		return sO;
-	}
+	//	template<typename Func>
+	//	void Iterate(Func&& f)
+	//	{
+	//		std::lock_guard<std::mutex> guard(_mutex);
+	//		for (auto& ele : _list)
+	//		{
+	//			f(ele);
+	//		}			
+	//	}
+	//};
+	
+	static GPUResource* GRootResource = nullptr;
 
 	GPUResource::GPUResource()
 	{
-		GetGPUResourceList().Add(this);
+		if (GRootResource)
+		{
+			GRootResource->_prevResource = this;
+			_nextResource = GRootResource;
+		}
+		GRootResource = this;
 	}
 
 	GPUResource::~GPUResource()
 	{
-		GetGPUResourceList().Remove(this);
-	}
+		if (_nextResource)
+		{
+			_nextResource->_prevResource = _prevResource;
+		}
+		if (_prevResource)
+		{
+			_prevResource->_nextResource = _nextResource;
+		}
 
+		if (GRootResource == this)
+		{
+			SE_ASSERT(_prevResource == nullptr);
+			GRootResource = _nextResource;
+		}		
+	}
 
 	void MakeResidentAllGPUResources()
 	{
 		SE_ASSERT(GGI());
 		GGI()->BeginResourceCopies();
 
-		GetGPUResourceList().Iterate([](GPUResource *InEle)
-			{
-				SPP_QL("MakeResidentAllGPUResources: %s", InEle->GetName());
+		auto CurResource = GRootResource;
+		while(CurResource)
+		{
+			SPP_QL("MakeResidentAllGPUResources: %s", CurResource->GetName());
 
-				InEle->UploadToGpu();
-			});
+			CurResource->UploadToGpu();
+			CurResource = CurResource->GetNext();
+		};
 
 		GGI()->EndResourceCopies();
 	}

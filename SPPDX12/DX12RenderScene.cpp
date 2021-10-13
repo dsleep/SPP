@@ -354,14 +354,7 @@ namespace SPP
 		}
 
 		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, RecipTanHalfFovy), _view.GetRecipTanHalfFovy());
-
-		/*
-		_octree.WalkElements(frustumPlanes, [](const IOctreeElement* InElement) -> bool
-			{
-				((Renderable*)InElement)->Draw();
-				return true;
-			});
-		*/
+			
 
 #if 0
 		for (auto renderItem : _renderables)
@@ -376,10 +369,18 @@ namespace SPP
 			DrawSkyBox();
 		}
 
+#if 1
+		_octree.WalkElements(frustumPlanes, [](const IOctreeElement* InElement) -> bool
+			{
+				((Renderable*)InElement)->Draw();
+				return true;
+			});
+#else
 		for (auto renderItem : _renderables)
 		{
 			renderItem->Draw();
 		}
+#endif
 	};
 
 	void D3D12RenderScene::DrawSkyBox()

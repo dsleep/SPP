@@ -6,6 +6,7 @@
 
 #include "SPPSceneO.h"
 #include "SPPGraphics.h"
+#include "SPPTextures.h"
 #include "SPPMesh.h"
 
 #if _WIN32 && !defined(SPP_GRAPHICSO_STATIC)
@@ -44,7 +45,16 @@ namespace SPP
 
 	class SPP_GRAPHICSO_API OTexture : public SPPObject
 	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
 
+	protected:
+		std::unique_ptr<TextureAsset> _texture;
+
+	public:
+		OTexture(const MetaPath& InPath) : SPPObject(InPath) { }
+
+		virtual ~OTexture() { }
 	};
 
 	class SPP_GRAPHICSO_API OMesh : public SPPObject

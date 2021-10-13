@@ -405,8 +405,70 @@ namespace SPP
 	static uint32_t GHighestMaterialID = 0;
 	static std::list<uint32_t> GAvailableMatIDs;
 
-	PBRMaterial::PBRMaterial()
+	struct PBRMaterialIDContainer
 	{
+		uint32_t albedoTextureID;
+		uint32_t normalTextureID;
+		uint32_t metalnessTextureID;
+		uint32_t roughnessTextureID;
+		uint32_t specularTextureID;
+		uint32_t irradianceTextureID;
+		uint32_t specularBRDF_LUTTextureID;
+		uint32_t maskedTextureID;
+	};
+
+#define MAX_MATERIALS 1024
+
+	class GlobalPRBMaterials : public GPUResource
+	{
+	private:
+		std::shared_ptr< ArrayResource > _materialIDResource;
+		GPUReferencer< GPUBuffer > _materialGPUBuffer;
+		std::set<uint32_t> _updates;
+
+	public:
+		GlobalPRBMaterials()
+		{
+			_materialIDResource = std::make_shared< ArrayResource >();
+			auto pMeshInfos = _materialIDResource->InitializeFromType<PBRMaterialIDContainer>(MAX_MATERIALS);
+			memset(pMeshInfos, 0, _materialIDResource->GetTotalSize());
+			_materialGPUBuffer = GGI()->CreateStaticBuffer(GPUBufferType::Generic, _materialIDResource);
+		}
+
+		virtual const char* GetName() const override
+		{
+			return "GlobalPRBMaterials";
+		}
+
+		void SetData(const PBRMaterialIDContainer &InData, uint32_t InID)
+		{
+			auto dataSpan = _materialIDResource->GetSpan< PBRMaterialIDContainer>();
+			dataSpan[InID] = InData;
+			_updates.insert(InID);
+		}
+
+		virtual void UploadToGpu() override
+		{
+			if (!_updates.empty())
+			{
+				// if anything dirty
+				for (auto& updateID : _updates)
+				{
+					_materialGPUBuffer->UpdateDirtyRegion(updateID, 1);
+				}
+			}
+		}
+	};
+
+	GPUReferencer<GlobalPRBMaterials> GPBRMaterials;
+
+	PBRMaterialAsset::PBRMaterialAsset()
+	{
+		if (!GPBRMaterials)
+		{
+			GPBRMaterials = Make_GPU< GlobalPRBMaterials >();
+		}
+
 		if (!GAvailableMatIDs.empty())
 		{
 			_uniqueID = GAvailableMatIDs.front();
@@ -417,8 +479,25 @@ namespace SPP
 			_uniqueID = GHighestMaterialID++;
 		}
 	}
-	PBRMaterial::~PBRMaterial()
+
+	PBRMaterialAsset::~PBRMaterialAsset()
 	{
 		GAvailableMatIDs.push_back(_uniqueID);
+	}
+
+	void PBRMaterialAsset::SetData()
+	{
+		PBRMaterialIDContainer pbrData{
+			albedo ? albedo->GetID() : 0,
+			normal ? normal->GetID() : 0,
+			metalness ? metalness->GetID() : 0,
+			roughness ? roughness->GetID() : 0,
+			specular ? specular->GetID() : 0,
+			irradiance ? irradiance->GetID() : 0,
+			specularBRDF_LUT ? specularBRDF_LUT->GetID() : 0,
+			masked ? masked->GetID() : 0,
+		};
+
+		GPBRMaterials->SetData(pbrData, _uniqueID);
 	}
 }

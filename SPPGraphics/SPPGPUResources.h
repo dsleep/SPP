@@ -316,15 +316,22 @@ namespace SPP
     {
     protected:
         bool _gpuResident = false;
+        GPUResource* _prevResource = nullptr;
+        GPUResource* _nextResource = nullptr;
 
     public:
         GPUResource();
         virtual ~GPUResource();
 
-        virtual const char* GetName() const = 0;
+        GPUResource* GetNext()
+        {
+            return _nextResource;
+        }
+
+        virtual const char* GetName() const = 0;       
+        virtual void UploadToGpu() = 0;
 
         bool IsGPUResident() const { return _gpuResident; }
-        virtual void UploadToGpu() = 0;
 
         //crazy ugly no verification TODO improve....
         template<typename T>
@@ -403,6 +410,7 @@ namespace SPP
             std::shared_ptr< ArrayResource > RawData = nullptr, 
             std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
         virtual ~GPUTexture();
+        uint32_t GetID() const { return _uniqueID; }
         virtual const char* GetName() const override
         {
             return "Texture";

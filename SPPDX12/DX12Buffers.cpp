@@ -25,6 +25,24 @@ namespace SPP
 
 			DXSetName(_buffer.Get(), L"D3D12Buffer");
 
+			//TODO pool these?
+			D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+			srvHeapDesc.NumDescriptors = 1;
+			srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			ThrowIfFailed(pd3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&_cpuSrvDescriptor)));
+
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+			srvDesc.Buffer.FirstElement = 0;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.Buffer.StructureByteStride = InCpuData->GetPerElementSize(); // We assume we'll only use the first vertex buffer
+			srvDesc.Buffer.NumElements = InCpuData->GetElementCount();
+			pd3dDevice->CreateShaderResourceView(_buffer.Get(),
+				&srvDesc, 
+				_cpuSrvDescriptor->GetCPUDescriptorHandleForHeapStart());
+
 			_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
 		}
 		else

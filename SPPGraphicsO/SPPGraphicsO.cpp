@@ -118,6 +118,13 @@ RTTR_REGISTRATION
 		)
 		;
 
+	rttr::registration::class_<OTexture>("OTexture")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
+
 	rttr::registration::class_<ORenderableElement>("ORenderableElement")
 		.constructor<const MetaPath&>()
 		(
