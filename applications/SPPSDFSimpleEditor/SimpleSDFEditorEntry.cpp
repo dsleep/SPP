@@ -435,9 +435,9 @@ public:
 			_moveGizmo->SetMesh(MeshToLoad);
 		}
 		{
-			auto MeshToLoad = std::make_shared< Mesh >();
-			MeshToLoad->LoadMesh("BlenderFiles/RotationGizmo.fbx");
-			_rotateGizmo->SetMesh(MeshToLoad);
+			//auto MeshToLoad = std::make_shared< Mesh >();
+			//MeshToLoad->LoadMesh("BlenderFiles/RotationGizmo.fbx");
+			//_rotateGizmo->SetMesh(MeshToLoad);
 		}		
 		
 		//_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
