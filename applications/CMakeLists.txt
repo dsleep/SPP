@@ -10,6 +10,8 @@ add_subdirectory("SPPSDFCreator")
 message( STATUS "Adding Application: SPPAssetManagement" )
 add_subdirectory("SPPAssetManagement")
 
+message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
+add_subdirectory("SPPRemoteApplicationwxWidgets")
 
 ##########
 add_executable( simpleconnectioncoordinator "")

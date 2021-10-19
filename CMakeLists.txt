@@ -143,10 +143,11 @@ if(OS_WINDOWS)
 endif()
 
 list(APPEND SPPProjects "applications" "tests" "assets" )
-	
-if(OS_WINDOWS)
-	list(APPEND SPPProjects "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
-endif()
+
+# swapped to wxwidgets	
+# if(OS_WINDOWS)
+	# list(APPEND SPPProjects "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
+# endif()
 
 # set working directory
 function(add_executable target_name)
