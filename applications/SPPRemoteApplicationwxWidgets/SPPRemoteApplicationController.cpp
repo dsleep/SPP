@@ -95,7 +95,6 @@ EVT_BUTTON(BTN_Connect, MyFrame::OnButton_Connect)
 EVT_BUTTON(BTN_Disconnect, MyFrame::OnButton_Disconnect)
 
 wxEND_EVENT_TABLE()
-//wxIMPLEMENT_APP(MyApp);
 IMPLEMENT_APP_NO_MAIN(MyApp);
 
 bool MyApp::OnInit()
@@ -109,16 +108,6 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(NULL, wxID_ANY, title, pos, size)
 {
 	SetIcon(wxICON(sppapp));
-	//wxMenu* menuFile = new wxMenu;
-	//menuFile->Append(ID_Hello, "&Hello...\tCtrl-H", "Help string shown in status bar for this menu item");
-	//menuFile->AppendSeparator();
-	//menuFile->Append(wxID_EXIT);
-	//wxMenu* menuHelp = new wxMenu;
-	//menuHelp->Append(wxID_ABOUT);
-	//wxMenuBar* menuBar = new wxMenuBar;
-	//menuBar->Append(menuFile, "&File");
-	//menuBar->Append(menuHelp, "&Help");
-	//SetMenuBar(menuBar);
 	CreateStatusBar();
 	SetStatusText("Worker not started...");
 
