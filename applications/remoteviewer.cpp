@@ -2,12 +2,8 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
-#include <windows.h>	
-#include <GL/gl.h>			
+//#include <windows.h>	
 
-#ifdef SendMessage
-#undef SendMessage
-#endif
 
 #include "SPPCore.h"
 #include "SPPNatTraversal.h"
@@ -27,11 +23,29 @@
 #include "SPPApplication.h"
 #include "SPPWin32Core.h"
 
+#include <wx/msw/msvcrt.h>
+#include <wx/wx.h>
+#include <wx/glcanvas.h>
+
+#include <GL/gl.h>			
+
+#ifdef SendMessage
+#undef SendMessage
+#endif
+
+
 #pragma comment(lib, "opengl32.lib")
 
 using namespace SPP;
 
 LogEntry LOG_APP("APP");
+
+IPv4_SocketAddress RemoteCoordAddres;
+std::string StunURL;
+uint16_t StunPort;
+
+class MyApp;
+MyApp* GApp = nullptr;
 
 struct RemoteClient
 {
@@ -43,6 +57,283 @@ struct RemoteClient
 
 class VideoConnection;
 
+/// <summary>
+/// 
+/// </summary>
+/// 
+/// class MyFrame;
+
+
+class BasicGLPane : public wxGLCanvas
+{
+private:
+	wxGLContext* m_context;
+
+	int32_t VideoSizeX = 0;
+	int32_t VideoSizeY = 0;
+
+	GLuint tex2D = 0;
+	Matrix3x3 virtualToReal;
+
+	std::atomic_bool _lockImage;
+	std::vector<uint8_t> _imageData;
+
+public:
+	BasicGLPane(wxFrame* parent, int* args);
+	virtual ~BasicGLPane();
+	
+	void resized(wxSizeEvent& evt);
+
+	int getWidth();
+	int getHeight();
+
+	void render(wxPaintEvent& evt);
+
+	// events
+	void mouseMoved(wxMouseEvent& event);
+	void mouseDown(wxMouseEvent& event);
+	void mouseWheelMoved(wxMouseEvent& event);
+	void mouseReleased(wxMouseEvent& event);
+	void rightClick(wxMouseEvent& event);
+	void mouseLeftWindow(wxMouseEvent& event);
+	void keyPressed(wxKeyEvent& event);
+	void keyReleased(wxKeyEvent& event);
+
+	//MUST BE ON MAIN LOOP THREAD
+	void THREADSAFE_IncomingVideoImageData(int32_t ImageX, int32_t ImageY, const void* ImageData)
+	{
+		auto bDidLock = (_lockImage.exchange(true) == false);
+
+		if (bDidLock)
+		{
+			const uint32_t ImageSize = ImageX * ImageY * 4;
+			if(_imageData.size() != ImageSize)
+				_imageData.resize(ImageSize);
+			memcpy(_imageData.data(), ImageData, ImageSize);
+
+			auto appInstance = (wxApp*)wxApp::GetInstance();
+			appInstance->GetTopWindow()->GetEventHandler()->CallAfter([ImageX, ImageY, ImageData = _imageData.data(), OurFrame = this]()
+				{
+					OurFrame->IncomingVideoImageData(ImageX, ImageY, ImageData);
+				});
+		}
+	}
+
+	void IncomingVideoImageData(int32_t ImageX, int32_t ImageY, const void* ImageData)
+	{
+		VideoSizeX = ImageX;
+		VideoSizeY = ImageY;
+
+		glBindTexture(GL_TEXTURE_2D, tex2D);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, ImageX, ImageY, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		_lockImage.exchange(false);
+
+		wxWindow::Refresh();
+	}
+
+	DECLARE_EVENT_TABLE()
+};
+
+BasicGLPane* GGLPane = nullptr;
+
+BEGIN_EVENT_TABLE(BasicGLPane, wxGLCanvas)
+EVT_MOTION(BasicGLPane::mouseMoved)
+EVT_LEFT_DOWN(BasicGLPane::mouseDown)
+EVT_LEFT_UP(BasicGLPane::mouseReleased)
+EVT_RIGHT_DOWN(BasicGLPane::rightClick)
+EVT_LEAVE_WINDOW(BasicGLPane::mouseLeftWindow)
+EVT_SIZE(BasicGLPane::resized)
+EVT_KEY_DOWN(BasicGLPane::keyPressed)
+EVT_KEY_UP(BasicGLPane::keyReleased)
+EVT_MOUSEWHEEL(BasicGLPane::mouseWheelMoved)
+EVT_PAINT(BasicGLPane::render)
+END_EVENT_TABLE()
+
+// some useful events to use
+void BasicGLPane::mouseMoved(wxMouseEvent& event) 
+{
+}
+void BasicGLPane::mouseDown(wxMouseEvent& event) 
+{
+}
+void BasicGLPane::mouseWheelMoved(wxMouseEvent& event) 
+{
+}
+void BasicGLPane::mouseReleased(wxMouseEvent& event) 
+{
+}
+void BasicGLPane::rightClick(wxMouseEvent& event) 
+{
+}
+void BasicGLPane::mouseLeftWindow(wxMouseEvent& event) 
+{
+}
+void BasicGLPane::keyPressed(wxKeyEvent& event) 
+{
+}
+void BasicGLPane::keyReleased(wxKeyEvent& event) 
+{
+}
+
+BasicGLPane::BasicGLPane(wxFrame* parent, int* args) :
+	wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
+{
+	m_context = new wxGLContext(this);
+	// To avoid flashing on MSW
+	SetBackgroundStyle(wxBG_STYLE_CUSTOM);
+
+	wxGLCanvas::SetCurrent(*m_context);
+
+	glGenTextures(1, &tex2D);
+	glBindTexture(GL_TEXTURE_2D, tex2D);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	uint32_t ImageData = 0;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &ImageData);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glDisable(GL_DEPTH);
+	glDisable(GL_LIGHTING);
+	glDepthFunc(GL_ALWAYS);
+
+	GGLPane = this;
+}
+
+BasicGLPane::~BasicGLPane()
+{
+	GGLPane = nullptr;
+	wxGLCanvas::SetCurrent(*m_context);
+	glDeleteTextures(1, &tex2D);
+	delete m_context;
+}
+
+void BasicGLPane::resized(wxSizeEvent& evt)
+{
+	//wxGLCanvas::OnSize(evt);
+	Refresh();
+}
+
+int BasicGLPane::getWidth()
+{
+	return GetSize().x;
+}
+
+int BasicGLPane::getHeight()
+{
+	return GetSize().y;
+}
+
+void BasicGLPane::render(wxPaintEvent& evt)
+{
+	if (!IsShown()) return;
+
+	wxGLCanvas::SetCurrent(*m_context);
+	wxPaintDC paintscope(this); // only to be used in paint events. use wxClientDC to paint outside the paint event
+
+	int32_t WindowSizeX = getWidth();
+	int32_t WindowSizeY = getHeight();
+
+	float WindowAspectRatio = (float)WindowSizeX / (float)WindowSizeY;
+	float VideoAspectRatio = (float)VideoSizeX / (float)VideoSizeY;
+	int32_t VideoDrawWidth = 0;
+	int32_t VideoDrawHeight = 0;
+
+	// video wider aspect than window
+	if (VideoAspectRatio <= WindowAspectRatio)
+	{
+		VideoDrawHeight = WindowSizeY;
+		VideoDrawWidth = (int32_t)(VideoDrawHeight * VideoAspectRatio);
+	}
+	else
+	{
+		VideoDrawWidth = WindowSizeX;
+		VideoDrawHeight = (int32_t)(VideoDrawWidth / VideoAspectRatio);
+	}
+
+	glViewport(0, 0, WindowSizeX, WindowSizeY);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	float ScaleX = (float)VideoSizeX / (float)VideoDrawWidth;
+	float ScaleY = (float)VideoSizeY / (float)VideoDrawHeight;
+
+	int32_t ShiftAmountX = (WindowSizeX - VideoDrawWidth) / 2;
+	int32_t ShiftAmountY = (WindowSizeY - VideoDrawHeight) / 2;
+
+	virtualToReal <<
+		ScaleX, 0, 0,
+		0, ScaleY, 0,
+		(float)-ShiftAmountX * ScaleX, (float)-ShiftAmountY * ScaleY, 1.0f;
+
+	glViewport(ShiftAmountX, ShiftAmountY, WindowSizeX, WindowSizeY);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, WindowSizeX, 0, WindowSizeY, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glBindTexture(GL_TEXTURE_2D, tex2D);
+	glEnable(GL_TEXTURE_2D);
+	glBegin(GL_QUADS);
+
+	glTexCoord2i(0, 0); glVertex2i(0, VideoDrawHeight);  //you should probably change these vertices.
+	glTexCoord2i(0, 1); glVertex2i(0, 0);
+	glTexCoord2i(1, 1); glVertex2i(VideoDrawWidth, 0);
+	glTexCoord2i(1, 0); glVertex2i(VideoDrawWidth, VideoDrawHeight);
+
+	glEnd();
+	glDisable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glFlush(); //don't need this with GLUT_DOUBLE and glutSwapBuffers
+	SwapBuffers();
+
+
+}
+
+class MyApp : public wxApp
+{
+private:
+	bool OnInit();
+	wxFrame* _frame = nullptr;
+	BasicGLPane* _glPane = nullptr;
+
+public:
+	BasicGLPane* GetGLPane()
+	{
+		return _glPane;
+	}
+};
+
+bool MyApp::OnInit()
+{
+	wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+	_frame = new wxFrame(nullptr, -1, wxT("Remote Viewer"), wxPoint(50, 50), wxSize(400, 200));
+	_frame->SetIcon(wxICON(sppapp));
+	int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
+
+	_glPane = new BasicGLPane(_frame, args);
+	sizer->Add(_glPane, 1, wxEXPAND);
+
+	_frame->SetSizer(sizer);
+	_frame->SetAutoLayout(true);
+
+	_frame->Show(true);
+
+#if _WIN32
+	auto hWnd = _frame->GetHandle();
+	ShowWindow(hWnd, SW_SHOWDEFAULT);
+	ShowWindow(hWnd, SW_SHOWDEFAULT);
+	ShowWindow(hWnd, SW_SHOWNORMAL);
+#endif
+
+	return true;
+}
+
+IMPLEMENT_APP_NO_MAIN(MyApp);
+
+#if 0
 class SimpleGlutApp
 {
 private:
@@ -283,44 +574,42 @@ public:
 	}
 
 };
+#endif
 
 class VideoConnection : public NetworkConnection
 {
 protected:
 	std::unique_ptr< VideoDecodingInterface> VideoDecoder;
-	std::unique_ptr<SimpleGlutApp> app;
+	//std::unique_ptr<SimpleGlutApp> app;
 	uint16_t CreatedWidth;
 	uint16_t CreatedHeight;
 
-	HDC hDC;				/* device context */
-	HGLRC hRC;				/* opengl context */
-	HWND  hWnd;				/* window */
+	//HDC hDC;				/* device context */
+	//HGLRC hRC;				/* opengl context */
+	//HWND  hWnd;				/* window */
 
 	std::vector<uint8_t> recvBuffer;
 
 public:
 	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer, false) 
 	{ 
-		app = std::make_unique< SimpleGlutApp>(this);
+		//app = std::make_unique< SimpleGlutApp>(this);
+		//hWnd = app->CreateOpenGLWindow("Viewer", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
+		//hDC = GetDC(hWnd);
+		//hRC = wglCreateContext(hDC);
+		//wglMakeCurrent(hDC, hRC);
 
-		hWnd = app->CreateOpenGLWindow("Viewer", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
-
-		hDC = GetDC(hWnd);
-		hRC = wglCreateContext(hDC);
-		wglMakeCurrent(hDC, hRC);
-
-		app->SetupOpenglGLAssets();
+		//app->SetupOpenglGLAssets();
 
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
 	}
 
 	virtual ~VideoConnection()
 	{
-		wglMakeCurrent(NULL, NULL);
-		ReleaseDC(hWnd, hDC);
-		wglDeleteContext(hRC);
-
-		app.reset(nullptr);
+		//wglMakeCurrent(NULL, NULL);
+		//ReleaseDC(hWnd, hDC);
+		//wglDeleteContext(hRC);
+		//app.reset(nullptr);
 	}
 
 	virtual void Tick() override
@@ -332,12 +621,13 @@ public:
 		}
 
 		NetworkConnection::Tick();
-		app->Update();
+		
+		//app->Update();
 
-		if (app->IsDone())
-		{
-			CloseDown("ViewerWindow Closed");
-		}
+		//if (app->IsDone())
+		//{
+		//	CloseDown("ViewerWindow Closed");
+		//}
 	}
 
 	virtual void MessageReceived(const void* Data, int32_t DataLength)
@@ -376,7 +666,7 @@ public:
 			VideoDecoder = CreateVideoDecoder([&](const void* InData, int32_t InDataSize)
 				{
 					//SPP_LOG(LOG_APP, LOG_INFO, "DECODED FRAME: %d", InDataSize);
-					app->DrawImage(CreatedWidth, CreatedHeight, InData);
+					GGLPane->THREADSAFE_IncomingVideoImageData(CreatedWidth, CreatedHeight, InData);
 				}, VideoSettings{ VidWidth, VidHeight, 4, 3, 32 } );
 		}
 
@@ -385,6 +675,7 @@ public:
 	}
 };
 
+#if 0
 LRESULT SimpleGlutApp::LocalWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static PAINTSTRUCT ps;
@@ -437,6 +728,7 @@ LRESULT SimpleGlutApp::LocalWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
+#endif
 
 
 bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string& OutValue)
@@ -449,15 +741,8 @@ bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string
 	return false;
 }
 
-IPv4_SocketAddress RemoteCoordAddres;
-std::string StunURL;
-uint16_t StunPort;
-
-int main(int argc, char* argv[])
+void SPPApp(int argc, char* argv[])
 {
-	IntializeCore(nullptr);
-
-
 	{
 		Json::Value JsonConfig;
 		SE_ASSERT(FileToJson("config.txt", JsonConfig));
@@ -506,14 +791,14 @@ int main(int argc, char* argv[])
 
 	//
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-	
+
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
-	
+
 	coordinator->SetKeyPair("GUID", ThisRUNGUID);
 	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
-	
+
 	std::shared_ptr< VideoConnection > videoConnection;
 
 	using namespace std::chrono_literals;
@@ -559,8 +844,8 @@ int main(int argc, char* argv[])
 				Hosts[GuidValue.asCString()] = RemoteClient{
 					std::chrono::steady_clock::now(),
 					std::string(NameValue.asCString()),
-					std::string(AppNameValue.asCString()) 
-				};				
+					std::string(AppNameValue.asCString())
+				};
 			}
 		});
 
@@ -578,9 +863,9 @@ int main(int argc, char* argv[])
 			if (!videoConnection)
 			{
 				std::string ConnectKey;
-				coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);				
-				JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;				
-			}			
+				coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
+				JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
+			}
 			else
 			{
 				if (videoConnection->IsConnected())
@@ -608,7 +893,7 @@ int main(int argc, char* argv[])
 					}
 				}
 				JsonMessage["HOSTS"] = HostValues;
-			}			
+			}
 
 			Json::StreamWriterBuilder wbuilder;
 			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
@@ -646,8 +931,8 @@ int main(int argc, char* argv[])
 						}
 					}
 				}
-			}			
-						
+			}
+
 			memset(GUIDToJoin, 0, 6);
 			ipcMem.WriteMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
 		}
@@ -706,8 +991,41 @@ int main(int argc, char* argv[])
 				videoConnection->Connect();
 			}
 		}
-						
+
 		std::this_thread::sleep_for(1ms);
+	}
+}
+
+int main(int argc, char* argv[])
+{
+	IntializeCore(nullptr);
+	
+#if 1
+	_CrtSetDbgFlag(0);
+#else
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetBreakAlloc(9554);
+	_CrtSetBreakAlloc(9553);
+	_CrtSetBreakAlloc(9552);
+#endif
+
+	GApp = new MyApp();
+	// MyWxApp derives from wxApp
+	wxApp::SetInstance(GApp);
+	wxEntryStart(argc, argv);
+	GApp->CallOnInit();
+
+	std::thread ourApp(SPPApp, argc, argv);
+
+	GApp->OnRun();	
+	//GApp->ExitMainLoop();
+	GApp->OnExit();
+	delete GApp;
+	wxEntryCleanup();
+
+	if (ourApp.joinable())
+	{
+		ourApp.join();
 	}
 
 	return 0;
