@@ -146,7 +146,7 @@ list(APPEND SPPProjects "applications" "tests" "assets" )
 
 # swapped to wxwidgets	
 # if(OS_WINDOWS)
-	# list(APPEND SPPProjects "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
+# 	list(APPEND SPPProjects "RemoteControllerWPF" "RemoteApplicationWPF" "ApplicationThroughputWPF")
 # endif()
 
 # set working directory

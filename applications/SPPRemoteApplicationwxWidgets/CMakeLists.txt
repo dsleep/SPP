@@ -4,11 +4,12 @@ project(SPPApplicationsGroup_API VERSION 1.0.0 LANGUAGES CXX)
 ###################################################
 ## SPPRemoteApplicationManager
 ###################################################
-add_executable( SPPRemoteApplicationManager "")
+add_executable( SPPRemoteApplicationManager WIN32 "")
 add_dependencies( SPPRemoteApplicationManager SPPCore )			
 target_sources( SPPRemoteApplicationManager 
 	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationManager.cpp"	 )		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationManager.cpp"					
+		"${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )		
 target_link_libraries( SPPRemoteApplicationManager 
 	PRIVATE
 		SPPCore
@@ -36,11 +37,13 @@ target_link_directories(SPPRemoteApplicationManager
 ## SPPRemoteApplicationController
 ###################################################
 
-add_executable( SPPRemoteApplicationController "")
+add_executable( SPPRemoteApplicationController WIN32 "")
 add_dependencies( SPPRemoteApplicationController SPPCore )			
 target_sources( SPPRemoteApplicationController 
 	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationController.cpp"	 )		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationController.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc"
+	)		
 target_link_libraries( SPPRemoteApplicationController 
 	PRIVATE
 		SPPCore

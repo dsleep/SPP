@@ -8,9 +8,14 @@
 #include "SPPString.h"
 #include "SPPMemory.h"
 
+#include "SPPSerialization.h"
+#include "SPPJsonUtils.h"
+#include "SPPLogging.h"
+
 #include <thread>  
 
 using namespace SPP;
+using namespace std::chrono_literals;
 
 #include <wx/msw/msvcrt.h>
 #include <wx/wx.h>
@@ -31,10 +36,19 @@ enum
 	BTN_Stop
 };
 
+class MyFrame;
+
 class MyApp : public wxApp
 {
+private:
+	MyFrame* _frame = nullptr;
 public:
 	virtual bool OnInit();
+
+	MyFrame* GetFrame()
+	{
+		return _frame;
+	}
 };
 
 class MyFrame : public wxFrame
@@ -45,14 +59,22 @@ public:
 	wxTextCtrl* ArgsEditBox = nullptr;
 	wxBoxSizer* MainSizer = nullptr;
 
-	void OnButton_SelectPath(wxCommandEvent& event);
-	void OnButton_Start(wxCommandEvent& event);
-	void OnButton_Stop(wxCommandEvent& event);
+	bool _bWorker = false;
+	bool _bCoord = false;
+	bool _bStun = false;
+	uint8_t _connectStatus = 0;
+
+	void UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN);
 
 private:
 	void OnHello(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
+
+	void OnButton_SelectPath(wxCommandEvent& event);
+	void OnButton_Start(wxCommandEvent& event);
+	void OnButton_Stop(wxCommandEvent& event);
+
 	wxDECLARE_EVENT_TABLE();
 };
 enum
@@ -73,14 +95,16 @@ IMPLEMENT_APP_NO_MAIN(MyApp);
 
 bool MyApp::OnInit()
 {
-	MyFrame* frame = new MyFrame("Remote Application Manager", wxPoint(50, 50), wxSize(512, 256));
-	frame->Show(true);
+	_frame = new MyFrame("Remote Application Manager", wxPoint(50, 50), wxSize(512, 256));
+	_frame->Show(true);
 	return true;
 }
 
 MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(NULL, wxID_ANY, title, pos, size)
 {
+	SetIcon(wxICON(sppapp));
+
 	//wxMenu* menuFile = new wxMenu;
 	//menuFile->Append(ID_Hello, "&Hello...\tCtrl-H", "Help string shown in status bar for this menu item");
 	//menuFile->AppendSeparator();
@@ -103,14 +127,15 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	MainEditBox = new wxTextCtrl(this, TEXT_AppPath, "", wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, wxTextCtrlNameStr);
 	pathSizer->Add(MainEditBox, 1, wxEXPAND);
 	pathSizer->Add(pathButton);
-	MainSizer->Add(staticText);
-	MainSizer->Add(pathSizer, 0, wxEXPAND);
+	
+	MainSizer->Add(staticText, 0, wxALL, 5);
+	MainSizer->Add(pathSizer, 0, wxEXPAND | wxALL, 5);
 
 	auto staticText2 = new wxStaticText(this, wxID_ANY, "Additional Arguments:");
 	ArgsEditBox = new wxTextCtrl(this, TEXT_Args, "", wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, wxTextCtrlNameStr);
 
-	MainSizer->Add(staticText2);
-	MainSizer->Add(ArgsEditBox, 0, wxEXPAND);
+	MainSizer->Add(staticText2, 0, wxALL, 5);
+	MainSizer->Add(ArgsEditBox, 0, wxEXPAND | wxALL, 5);
 
 	auto buttonSizer = new wxBoxSizer(wxHORIZONTAL);
 	auto startButton = new wxButton(this, BTN_Start, "START", wxDefaultPosition, wxDefaultSize, 0); 
@@ -119,7 +144,7 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	buttonSizer->Add(startButton);
 	buttonSizer->Add(stopButton);
 
-	MainSizer->Add(buttonSizer);
+	MainSizer->Add(buttonSizer, 0, wxALL, 5);
 
 	MainSizer->SetMinSize(512, 100);
 
@@ -152,18 +177,58 @@ void MyFrame::OnHello(wxCommandEvent& event)
 	wxLogMessage("Hello world from wxWidgets!");
 }
 
+void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN)
+{
+	bool bDoUpdate = false;
+
+	if (Worker != _bWorker)
+	{
+		_bWorker = Worker;
+		bDoUpdate = true;
+	}
+	if (Coordinator != _bCoord)
+	{
+		_bCoord = Coordinator;
+		bDoUpdate = true;
+	}
+	if (STUN != _bStun)
+	{
+		_bStun = STUN;
+		bDoUpdate = true;
+	}
+	if (ConnectionStatus != _connectStatus)
+	{
+		_connectStatus = ConnectionStatus;
+		bDoUpdate = true;
+	}
+	if (bDoUpdate)
+	{
+		std::string ArgString = std::string_format("Worker: %s, Coordinator: %s, STUN: %s, Connection: %s",
+			_bWorker ? "GOOD" : "BAD",
+			_bCoord ? "GOOD" : "NOT CONNECTED",
+			_bStun ? "GOOD" : "NOT CONNECTED",
+			_connectStatus ? "GOOD" : "NOT CONNECTED");
+
+		SetStatusText(ArgString.c_str());
+	}
+}
+
 uint32_t GProcessID = 0;
 std::string GIPMemoryID;
 std::unique_ptr< std::thread > GWorkerThread;
 
 void WorkerThread(const std::string &AppPath, const std::string &Args)
 {
+	GIPMemoryID = std::generate_hex(3);
+	const int32_t MemSize = 1 * 1024 * 1024;
+	IPCMappedMemory ipcMem(GIPMemoryID.c_str(), MemSize, true);
+
 	std::string ArgString = std::string_format("-MEM=%s -APP=\"%s\" -CMDLINE=\"%s\"",
 		GIPMemoryID.c_str(),
 		AppPath.c_str(),
 		Args.c_str());
 
-#if DEBUG
+#if _DEBUG
 	GProcessID = CreateChildProcess("applicationhostd.exe",
 #else
 	GProcessID = CreateChildProcess("applicationhost.exe",
@@ -175,7 +240,45 @@ void WorkerThread(const std::string &AppPath, const std::string &Args)
 		// do stuff...
 		if (!IsChildRunning(GProcessID))
 		{
-			return;
+			// child exited/crashed
+			auto appInstance = (MyApp*)wxApp::GetInstance();
+			if (appInstance && appInstance->GetTopWindow())
+			{
+				appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance]()
+					{
+						appInstance->GetFrame()->UpdateStatus(0, false, false, false);
+					});
+			}
+			break;
+		}
+		else
+		{
+			auto memAccess = ipcMem.Lock();
+
+			MemoryView inMem(memAccess, MemSize);
+			uint32_t dataSize = 0;
+			inMem >> dataSize;
+			if (dataSize)
+			{
+				inMem.RebuildViewFromCurrent();
+				Json::Value outRoot;
+				if (MemoryToJson(inMem.GetData(), dataSize, outRoot))
+				{
+					auto hasCoord = outRoot["COORD"].asUInt();
+					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
+					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
+
+					auto appInstance = (MyApp*)wxApp::GetInstance();
+					appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun]()
+						{
+							appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun);
+						});
+				}
+			}
+
+			*(uint32_t*)memAccess = 0;
+			ipcMem.Release();
+			std::this_thread::sleep_for(250ms);
 		}
 	}
 }
@@ -185,7 +288,10 @@ void StopThread()
 	if (GWorkerThread)
 	{
 		CloseChild(GProcessID);
-		GWorkerThread->join();
+		if (GWorkerThread->joinable())
+		{
+			GWorkerThread->join();
+		}
 		GWorkerThread.reset();
 	}
 }
@@ -205,7 +311,10 @@ void MyFrame::OnButton_Stop(wxCommandEvent& event)
 	StopThread();
 }
 
-int main(int argc, char* argv[])
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR    lpCmdLine,
+	_In_ int       nCmdShow)
 {
 	IntializeCore(nullptr);
 
@@ -218,19 +327,30 @@ int main(int argc, char* argv[])
 	_CrtSetBreakAlloc(9552);
 #endif
 
-	GIPMemoryID = std::generate_hex(3);
-	IPCMappedMemory ipcMem(GIPMemoryID.c_str(), 1 * 1024 * 1024, true);
-		
-	auto ourApp = new MyApp();
-	// MyWxApp derives from wxApp
-	wxApp::SetInstance(ourApp);
-	wxEntryStart(argc, argv);
-	ourApp->CallOnInit();
-	ourApp->OnRun();
-	ourApp->OnExit();	
-	
-	delete ourApp;
-	wxEntryCleanup();
+	{
+
+		auto ourApp = new MyApp();
+		// MyWxApp derives from wxApp
+		wxApp::SetInstance(ourApp);
+		int argc = 0;
+		char** argv = nullptr;
+		wxEntryStart(argc, argv);
+		ourApp->CallOnInit();
+
+#if _DEBUG
+		CreateChildProcess("SPPRemoteApplicationControllerd.exe", "", true);
+		CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
+#endif
+
+		ourApp->OnRun();
+
+		StopThread();
+
+		ourApp->OnExit();
+
+		delete ourApp;
+		wxEntryCleanup();
+	}
 
 	return 0;
 }
