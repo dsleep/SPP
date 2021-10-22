@@ -261,77 +261,7 @@ namespace SPP
 		return AllocateObject(class_type, InPath);
 	}
 
-	template<typename NumericType>
-	bool impl_NumericConvert(rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
-	{
-		if (InProperty.get_type() == rttr::type::get<NumericType>())
-		{
-			std::stringstream ssConvert(InValue);
-			NumericType realValue = { 0 };
-			ssConvert >> realValue;
-
-			// we there set it
-			if (InProperty.set_value(obj, realValue) == false)
-			{
-				SPP_LOG(LOG_OBJ, LOG_INFO, "SetPropertyValue number failed");
-			}
-
-			return true;
-		}
-		return false;
-	}
-
-	template<typename ... Types>
-	bool NumericConvert(rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
-	{
-		bool any_of = (impl_NumericConvert< Types>(obj, InProperty, InValue) || ...);
-		return any_of;
-	}
-
-	bool SetPropertyValue(rttr::instance& obj, rttr::property& curPoperty, const std::string& InValue)
-	{
-		auto propType = curPoperty.get_type();
-
-		if (propType.is_arithmetic())
-		{
-			return NumericConvert<bool,
-				char,
-				float,
-				double,
-
-				int8_t,
-				int16_t,
-				int32_t,
-				int64_t,
-
-				uint8_t,
-				uint16_t,
-				uint32_t,
-				uint64_t>(obj, curPoperty, InValue);
-		}
-		else if (propType.is_enumeration())
-		{
-			rttr::enumeration enumType = propType.get_enumeration();
-
-			if (curPoperty.set_value(obj, enumType.name_to_value(InValue)) == false)
-			{
-				SPP_LOG(LOG_OBJ, LOG_INFO, "SetPropertyValue enum failed");
-			}
-
-			return true;
-		}
-		else if (propType == rttr::type::get<std::string>())
-		{
-			if (curPoperty.set_value(obj, InValue) == false)
-			{
-				SPP_LOG(LOG_OBJ, LOG_INFO, "SetPropertyValue string failed");
-			}
-
-			return true;
-		}
-
-		return false;
-	}
+	
 
 	SPP_OBJECT_API void SetObjectValue(const rttr::instance& inValue, const std::vector<std::string>& stringStack, const std::string& Value, uint8_t depth)
 	{

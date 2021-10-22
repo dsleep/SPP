@@ -5,6 +5,8 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPReflection.h"
+
 #include "SPPGUID.h"
 #include "SPPNumberedString.h"
 #include "SPPSerialization.h"
@@ -15,11 +17,6 @@
 #include <functional>
 #include <map>
 #include <unordered_map>
-
-#include "json/json.h"
-
-#include <rttr/registration>
-#include <rttr/registration_friend>
 
 #if _WIN32 && !defined(SPP_OBJECT_STATIC)
 

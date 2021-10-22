@@ -4,12 +4,13 @@
 
 
 #include "SPPCore.h"
-#include "SPPWin32Core.h"
 #include "SPPString.h"
 #include "SPPMemory.h"
 #include "SPPSerialization.h"
 #include "SPPJsonUtils.h"
 #include "SPPLogging.h"
+
+#include "SPPWin32Core.h"
 
 #include <thread>  
 

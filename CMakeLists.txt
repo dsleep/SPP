@@ -116,6 +116,7 @@ if(OS_WINDOWS)
 			
 	if(USE_OBJECTS)
 		list(APPEND SPPProjects								
+				"SPPReflection"
 				"SPPObject" 
 				"SPPSceneO"				
 				"SPPSDFO")
