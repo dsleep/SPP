@@ -121,7 +121,7 @@ namespace SPP
 	}
 
 	template<typename NumericType>
-	bool impl_NumericConvert(rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
+	bool impl_NumericConvert(const rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
 	{
 		if (InProperty.get_type() == rttr::type::get<NumericType>())
 		{
@@ -141,15 +141,50 @@ namespace SPP
 	}
 
 	template<typename ... Types>
-	bool NumericConvert(rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
+	bool NumericConvert(const rttr::instance& obj, rttr::property& InProperty, const std::string& InValue)
 	{
 		bool any_of = (impl_NumericConvert< Types>(obj, InProperty, InValue) || ...);
 		return any_of;
 	}
 
-	bool SetPropertyValue(rttr::instance& obj, rttr::property& curPoperty, const std::string& InValue)
+
+	template<typename NumericType>
+	bool impl_NumericConvert(rttr::variant& InVar, const std::string& InValue)
+	{
+		auto VarType = InVar.get_type();
+		SE_ASSERT(VarType.is_wrapper());
+		VarType = VarType.get_wrapped_type();
+		if (VarType == rttr::type::get<NumericType>())
+		{
+			std::stringstream ssConvert(InValue);
+			NumericType realValue = { 0 };
+			ssConvert >> realValue;
+
+			std::reference_wrapper<NumericType> wrappedValue =
+				InVar.get_value< std::reference_wrapper<NumericType> >();
+			wrappedValue.get() = realValue;
+
+			return true;
+		}
+		return false;
+	}
+
+	template<typename ... Types>
+	bool NumericConvert(rttr::variant& InVar, const std::string& InValue)
+	{
+		bool any_of = (impl_NumericConvert< Types>(InVar, InValue) || ...);
+		return any_of;
+	}
+
+	bool SetPropertyValue(const rttr::instance& obj, 
+		rttr::property& curPoperty, 
+		const std::string& InValue)
 	{
 		auto propType = curPoperty.get_type();
+		if (propType.is_wrapper())
+		{
+			propType = propType.get_wrapped_type();
+		}
 
 		if (propType.is_arithmetic())
 		{
@@ -192,10 +227,58 @@ namespace SPP
 		return false;
 	}
 
-	void JSONToPOD(rttr::instance& inValue, Json::Value& InJsonValue)
+	bool SetVariantValue(rttr::variant& InVariant, const std::string& InValue)
+	{
+		auto VarType = InVariant.get_type();
+		SE_ASSERT(VarType.is_wrapper());
+		VarType = VarType.get_wrapped_type();
+				
+		if (VarType.is_arithmetic())
+		{
+			return NumericConvert<bool,
+				char,
+				float,
+				double,
+
+				int8_t,
+				int16_t,
+				int32_t,
+				int64_t,
+
+				uint8_t,
+				uint16_t,
+				uint32_t,
+				uint64_t>(InVariant, InValue);
+		}
+		else if (VarType.is_enumeration())
+		{
+			//TBD
+			//rttr::enumeration enumType = propType.get_enumeration();
+
+			//if (curPoperty.set_value(obj, enumType.name_to_value(InValue)) == false)
+			//{
+			//	SPP_LOG(LOG_REFL, LOG_INFO, "SetPropertyValue enum failed");
+			//}
+
+			return true;
+		}
+		else if (VarType == rttr::type::get<std::string>())
+		{
+			std::reference_wrapper<std::string> wrappedValue =
+				InVariant.get_value< std::reference_wrapper<std::string> >();
+			wrappedValue.get() = InValue;
+			return true;
+		}
+
+		return false;
+	}
+
+	void JSONToPOD(const rttr::instance& inValue, const Json::Value& InJsonValue)
 	{
 		auto originalType = inValue.get_type();
 		SE_ASSERT(originalType.is_wrapper());
+
+		SPP_LOG(LOG_REFL, LOG_INFO, "JSONToPOD: %s", originalType.get_name().to_string().c_str());
 
 		rttr::instance orgobj = inValue;
 		rttr::instance obj = orgobj.get_type().get_raw_type().is_wrapper() ? orgobj.get_wrapped_instance() : orgobj;
@@ -228,7 +311,7 @@ namespace SPP
 					propType.is_enumeration() ||
 					propType == rttr::type::get<std::string>())
 				{			
-					SetPropertyValue(inValue, prop, PropValue);
+					SetVariantValue(org_prop_value, PropValue);
 				}
 				else if (propType.is_sequential_container())
 				{

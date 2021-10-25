@@ -30,7 +30,7 @@ namespace SPP
 {	
 	SPP_REFLECTION_API uint32_t GetReflectionVersion();
 
-	SPP_REFLECTION_API bool SetPropertyValue(rttr::instance& obj, rttr::property& curPoperty, const std::string& InValue);
+	SPP_REFLECTION_API bool SetPropertyValue(const rttr::instance& obj, rttr::property& curPoperty, const std::string& InValue);
 	SPP_REFLECTION_API void PODToJSON(const rttr::instance& inValue, Json::Value& JsonRoot);
-	SPP_REFLECTION_API void JSONToPOD(rttr::instance& inValue, const Json::Value& JsonRoot);
+	SPP_REFLECTION_API void JSONToPOD(const rttr::instance& inValue, const Json::Value& JsonRoot);
 }

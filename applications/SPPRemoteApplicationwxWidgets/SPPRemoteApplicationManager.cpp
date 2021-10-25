@@ -4,6 +4,8 @@
 
 
 #include "SPPCore.h"
+#include "SPPReflection.h"
+#include "SPPFileSystem.h"
 #include "SPPWin32Core.h"
 #include "SPPString.h"
 #include "SPPMemory.h"
@@ -70,10 +72,14 @@ private:
 	void OnHello(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
+	void OnClose(wxCloseEvent& event);
+
 
 	void OnButton_SelectPath(wxCommandEvent& event);
 	void OnButton_Start(wxCommandEvent& event);
 	void OnButton_Stop(wxCommandEvent& event);
+
+	void SaveSettings();
 
 	wxDECLARE_EVENT_TABLE();
 };
@@ -83,9 +89,10 @@ enum
 };
 
 wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
-EVT_MENU(ID_Hello, MyFrame::OnHello)
-EVT_MENU(wxID_EXIT, MyFrame::OnExit)
-EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
+//EVT_MENU(ID_Hello, MyFrame::OnHello)
+//EVT_MENU(wxID_EXIT, MyFrame::OnExit)
+//EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
+EVT_CLOSE(MyFrame::OnClose)
 EVT_BUTTON(BTN_SelectPath, MyFrame::OnButton_SelectPath)
 EVT_BUTTON(BTN_Start, MyFrame::OnButton_Start)
 EVT_BUTTON(BTN_Stop, MyFrame::OnButton_Stop)
@@ -99,6 +106,41 @@ bool MyApp::OnInit()
 	_frame->Show(true);
 	return true;
 }
+
+struct AppConfig
+{
+	RTTR_ENABLE()
+
+public:
+	AppConfig()
+	{
+
+	}
+
+	AppConfig(std::string InApplicationPath, std::string InApplicationArguments) :
+		ApplicationPath(InApplicationPath),
+		ApplicationArguments(InApplicationArguments)
+	{
+	}
+
+	std::string ApplicationPath;
+	std::string ApplicationArguments;
+};
+
+RTTR_REGISTRATION
+{
+	rttr::registration::class_<AppConfig>("AppConfig")
+		.constructor()
+			(
+				rttr::policy::ctor::as_raw_ptr
+			)
+		.property("ApplicationPath", &AppConfig::ApplicationPath)(rttr::policy::prop::as_reference_wrapper)
+		.property("ApplicationArguments", &AppConfig::ApplicationArguments)(rttr::policy::prop::as_reference_wrapper)
+	;
+}
+
+//SPP_REFLECTION_API void PODToJSON(const rttr::instance& inValue, Json::Value& JsonRoot);
+//SPP_REFLECTION_API void JSONToPOD(rttr::instance& inValue, const Json::Value& JsonRoot);
 
 MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(NULL, wxID_ANY, title, pos, size)
@@ -148,6 +190,18 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 
 	MainSizer->SetMinSize(512, 100);
 
+
+	//
+	AppConfig appConfig;
+	Json::Value jsonData;
+	if (FileToJson("./RAMSettings.txt", jsonData))
+	{
+		JSONToPOD(std::ref(appConfig), jsonData);
+
+		MainEditBox->SetValue(appConfig.ApplicationPath.c_str());
+		ArgsEditBox->SetValue(appConfig.ApplicationArguments.c_str());
+	}
+
 	SetSizerAndFit(MainSizer);
 }
 
@@ -162,9 +216,27 @@ void MyFrame::OnButton_SelectPath(wxCommandEvent& event)
 	MainEditBox->SetLabelText(filePath);
 }
 
+void MyFrame::OnClose(wxCloseEvent& event)
+{
+	SaveSettings();
+	Destroy();
+}
+
 void MyFrame::OnExit(wxCommandEvent& event)
 {
+	SaveSettings();
 	Close(true);
+}
+
+void MyFrame::SaveSettings()
+{
+	AppConfig appConfig( 
+		(std::string)MainEditBox->GetValue().mb_str(),
+		(std::string)ArgsEditBox->GetValue().mb_str() );
+
+	Json::Value jsonData;
+	PODToJSON(std::ref(appConfig), jsonData);
+	JsonToFile("./RAMSettings.txt", jsonData);	
 }
 
 void MyFrame::OnAbout(wxCommandEvent& event)
@@ -337,7 +409,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		wxEntryStart(argc, argv);
 		ourApp->CallOnInit();
 
-#if _DEBUG
+#if 0// _DEBUG
 		CreateChildProcess("SPPRemoteApplicationControllerd.exe", "", true);
 		CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
 #endif

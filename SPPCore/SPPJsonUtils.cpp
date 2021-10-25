@@ -56,4 +56,16 @@ namespace SPP
 		return false;
 	}
 
+	bool JsonToFile(const char* FileName, const Json::Value& InValue)
+	{
+		std::string FileString;
+		if (JsonToString(InValue, FileString))
+		{
+			if (WriteStringToFile(FileName, FileString))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 }

@@ -5,7 +5,7 @@ project(SPPApplicationsGroup_API VERSION 1.0.0 LANGUAGES CXX)
 ## SPPRemoteApplicationManager
 ###################################################
 add_executable( SPPRemoteApplicationManager WIN32 "")
-add_dependencies( SPPRemoteApplicationManager SPPCore )			
+add_dependencies( SPPRemoteApplicationManager SPPCore SPPReflection )			
 target_sources( SPPRemoteApplicationManager 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationManager.cpp"					
@@ -13,6 +13,7 @@ target_sources( SPPRemoteApplicationManager
 target_link_libraries( SPPRemoteApplicationManager 
 	PRIVATE
 		SPPCore
+		SPPReflection
 	)
 set_target_properties( SPPRemoteApplicationManager PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET SPPRemoteApplicationManager PROPERTY FOLDER "APPLICATIONS")
@@ -38,7 +39,7 @@ target_link_directories(SPPRemoteApplicationManager
 ###################################################
 
 add_executable( SPPRemoteApplicationController WIN32 "")
-add_dependencies( SPPRemoteApplicationController SPPCore )			
+add_dependencies( SPPRemoteApplicationController SPPCore SPPReflection )			
 target_sources( SPPRemoteApplicationController 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationController.cpp"
@@ -47,6 +48,7 @@ target_sources( SPPRemoteApplicationController
 target_link_libraries( SPPRemoteApplicationController 
 	PRIVATE
 		SPPCore
+		SPPReflection
 	)
 set_target_properties( SPPRemoteApplicationController PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET SPPRemoteApplicationController PROPERTY FOLDER "APPLICATIONS")
