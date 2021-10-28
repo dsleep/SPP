@@ -302,8 +302,13 @@ void MyFrame::OnButton_Connect(wxCommandEvent& event)
 	
 	if (selection >= 0 && selection < _hostList.size())
 	{
-		// 1 MB off to write in
-		GIPCMem->WriteMemory(_hostList[selection].GUID.c_str(), _hostList[selection].GUID.size(), 1 * 1024 * 1024);
+		uint8_t hasData = ~(uint8_t)0;
+
+		BinaryBlobSerializer outData;
+		outData << hasData;
+		outData << _hostList[selection].GUID;
+		outData << _hostList[selection].APPCL;
+		GIPCMem->WriteMemory(outData.GetData(), outData.Size(), 1 * 1024 * 1024);
 	}
 }
 

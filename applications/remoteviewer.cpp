@@ -980,14 +980,21 @@ void SPPApp(int argc, char* argv[])
 			//ipcMem.WriteMemory(outData.GetData(), outData.Size());
 
 			// app wants to connect
-			char GUIDToJoin[7];
-			ipcMem.ReadMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
-			GUIDToJoin[6] = 0;
+			auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
 
-			if (GUIDToJoin[0])
+			MemoryView inMem(memLock, 1 * 1024 * 1024);
+			uint8_t hasData = 0;
+			inMem >> hasData;
+
+			if (hasData)
 			{
-				std::string GUIDStr = GUIDToJoin;
-				SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s", GUIDStr.c_str());
+				std::string GUIDStr;
+				std::string AppCLStr;
+
+				inMem >> GUIDStr;
+				inMem >> AppCLStr;
+
+				SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", GUIDStr.c_str(), AppCLStr.c_str());
 
 				for (auto& [key, value] : Hosts)
 				{
@@ -996,13 +1003,16 @@ void SPPApp(int argc, char* argv[])
 						if (juiceSocket->HasRemoteSDP() == false)
 						{
 							coordinator->SetKeyPair("GUIDCONNECTTO", key);
+							// set the string we want them to run
+							coordinator->SetKeyPair("APPCL", AppCLStr);
 						}
 					}
 				}
-			}
 
-			memset(GUIDToJoin, 0, 6);
-			ipcMem.WriteMemory(GUIDToJoin, 6, 1 * 1024 * 1024);
+				memLock[0] = 0;
+			}
+			
+			ipcMem.Release();
 		}
 
 		if (juiceSocket->IsReady())

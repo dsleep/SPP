@@ -234,6 +234,7 @@ int main(int argc, char* argv[])
 	std::string IPMemoryID;
 	std::string AppPath;
 	std::string AppCommandline;
+	std::string ClientRequestCommandline;
 
 	for (int i = 0; i < argc; ++i)
 	{
@@ -269,7 +270,7 @@ int main(int argc, char* argv[])
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
 	coordinator->SetKeyPair("APPCL", AppCommandline);
 
-	coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get()](const std::string &InValue)
+	coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get(), &ClientRequestCommandline](const std::string &InValue)
 		{
 			SPP_LOG(LOG_APP, LOG_INFO, "CALLBACK: %s", InValue.c_str());
 
@@ -294,10 +295,12 @@ int main(int argc, char* argv[])
 					Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
 					Json::Value ConnectToValue = CurrentEle.get("GUIDCONNECTTO", Json::Value::nullSingleton());
 					Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
+					Json::Value APPCLValue = CurrentEle.get("APPCL", Json::Value(""));
 
 					if (!ConnectToValue.isNull() && !SDPValue.isNull() && !GUIDValue.isNull())
 					{
 						localCoord->SetKeyPair("GUIDCONNECTTO", GUIDValue.asCString());
+						ClientRequestCommandline = APPCLValue.asCString();
 						juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
 						return;
 					}					
@@ -376,7 +379,19 @@ int main(int argc, char* argv[])
 			}
 			else if (juiceSocket->IsConnected())
 			{
-				videoConnection = std::make_shared< VideoConnection >(juiceSocket, AppPath, AppCommandline);
+				auto appCLArgs = std::str_split(AppCommandline, ';');
+				
+				std::string CLToUse = appCLArgs.empty() ? AppCommandline : appCLArgs[0];
+				for (auto& appCL : appCLArgs)
+				{
+					if (ClientRequestCommandline == appCL)
+					{
+						CLToUse = appCL;
+						break;
+					}
+				}
+
+				videoConnection = std::make_shared< VideoConnection >(juiceSocket, AppPath, CLToUse);
 				videoConnection->CreateTranscoderStack(
 					// allow reliability to UDP
 					std::make_shared< ReliabilityTranscoder >(),
