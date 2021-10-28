@@ -53,6 +53,7 @@ struct HostFromCoord
 {
 	std::string NAME;
 	std::string APPNAME;
+	std::string APPCL;
 	std::string GUID;
 };
 
@@ -60,6 +61,7 @@ inline bool operator==(const HostFromCoord& InA, const HostFromCoord& InB) noexc
 {
 	return InA.NAME == InB.NAME &&
 		InA.APPNAME == InB.APPNAME &&
+		InA.APPCL == InB.APPCL &&
 		InA.GUID == InB.GUID;
 }
 
@@ -184,9 +186,10 @@ void MyFrame::SetHosts(const std::vector< HostFromCoord >& InHosts)
 	wxArrayString strings;
 	for (auto& curHost : InHosts)
 	{
-		std::string ArgString = std::string_format("PC=%s, Application=%s",
+		std::string ArgString = std::string_format("PC=%s, Application=%s, CommandLine=%s",
 			curHost.NAME.c_str(),
-			curHost.APPNAME.c_str());
+			curHost.APPNAME.c_str(),
+			curHost.APPCL.c_str());
 
 		strings.push_back(ArgString.c_str());
 	}
@@ -260,6 +263,7 @@ void WorkerThread()
 							hosts.push_back({
 								currentHost["NAME"].asCString(),
 								currentHost["APPNAME"].asCString(),
+								currentHost["APPCL"].asCString(),
 								currentHost["GUID"].asCString() });
 						}
 

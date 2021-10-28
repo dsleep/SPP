@@ -52,7 +52,7 @@ struct RemoteClient
 	std::chrono::steady_clock::time_point LastUpdate;
 	std::string Name;
 	std::string AppName;
-	std::string SDP;
+	std::string AppCL;
 };
 
 class VideoConnection;
@@ -77,6 +77,22 @@ private:
 
 	std::atomic_bool _lockImage;
 	std::vector<uint8_t> _imageData;
+
+	void _KeyboardEvent(wxKeyEvent& event, bool bKeyDown);
+	void _MouseEvent(wxMouseEvent& event);
+	void _IncomingVideoImageData(int32_t ImageX, int32_t ImageY, const void* ImageData)
+	{
+		VideoSizeX = ImageX;
+		VideoSizeY = ImageY;
+
+		glBindTexture(GL_TEXTURE_2D, tex2D);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, ImageX, ImageY, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		_lockImage.exchange(false);
+
+		wxWindow::Refresh();
+	}
 
 public:
 	BasicGLPane(wxFrame* parent, int* args);
@@ -114,24 +130,12 @@ public:
 			auto appInstance = (wxApp*)wxApp::GetInstance();
 			appInstance->GetTopWindow()->GetEventHandler()->CallAfter([ImageX, ImageY, ImageData = _imageData.data(), OurFrame = this]()
 				{
-					OurFrame->IncomingVideoImageData(ImageX, ImageY, ImageData);
+					OurFrame->_IncomingVideoImageData(ImageX, ImageY, ImageData);
 				});
 		}
 	}
 
-	void IncomingVideoImageData(int32_t ImageX, int32_t ImageY, const void* ImageData)
-	{
-		VideoSizeX = ImageX;
-		VideoSizeY = ImageY;
-
-		glBindTexture(GL_TEXTURE_2D, tex2D);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, ImageX, ImageY, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		_lockImage.exchange(false);
-
-		wxWindow::Refresh();
-	}
+	
 
 	DECLARE_EVENT_TABLE()
 };
@@ -151,30 +155,86 @@ EVT_MOUSEWHEEL(BasicGLPane::mouseWheelMoved)
 EVT_PAINT(BasicGLPane::render)
 END_EVENT_TABLE()
 
+void BasicGLPane::_KeyboardEvent(wxKeyEvent& event, bool bKeyDown)
+{
+	uint8_t bDown = bKeyDown ? 1 : 0;
+	int32_t keyCode = event.GetKeyCode();
+
+	BinaryBlobSerializer thisMessage;
+	thisMessage << bDown;
+	thisMessage << keyCode;
+	//_parentConnect->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+}
+
+void BasicGLPane::_MouseEvent(wxMouseEvent& event)
+{
+	//wxMOUSE_BTN_NONE = 0,
+	//wxMOUSE_BTN_LEFT = 1,
+	//wxMOUSE_BTN_MIDDLE = 2,
+
+	int32_t curButton = event.GetButton();
+	uint8_t ActualButton = event.GetButton();
+	uint8_t bDown = 0;
+
+	if (event.ButtonDown())
+	{
+		ActualButton = (uint8_t)curButton;
+		bDown = 1;
+	}
+	else if (event.ButtonUp())
+	{
+		ActualButton = (uint8_t)curButton;
+	}
+	
+	int32_t xPos = event.GetX();
+	int32_t yPos = event.GetX();
+	
+	Vector3 remap(xPos, yPos, 1);
+	Vector3 RemappedPosition = remap * virtualToReal;
+
+	if (RemappedPosition[0] >= 0 && RemappedPosition[1] >= 0)
+	{		
+		BinaryBlobSerializer thisMessage;
+		thisMessage << ActualButton;
+		thisMessage << bDown;
+		thisMessage << (uint16_t)RemappedPosition[0];
+		thisMessage << (uint16_t)RemappedPosition[1];
+		//_parentConnect->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+	}
+}
+
 // some useful events to use
 void BasicGLPane::mouseMoved(wxMouseEvent& event) 
 {
+	_MouseEvent(event);
 }
 void BasicGLPane::mouseDown(wxMouseEvent& event) 
 {
+	_MouseEvent(event);
 }
 void BasicGLPane::mouseWheelMoved(wxMouseEvent& event) 
 {
+	_MouseEvent(event);
 }
 void BasicGLPane::mouseReleased(wxMouseEvent& event) 
 {
+	_MouseEvent(event);
 }
 void BasicGLPane::rightClick(wxMouseEvent& event) 
 {
+	_MouseEvent(event);
 }
 void BasicGLPane::mouseLeftWindow(wxMouseEvent& event) 
 {
+	_MouseEvent(event);
 }
 void BasicGLPane::keyPressed(wxKeyEvent& event) 
 {
+	_KeyboardEvent(event,true);
 }
 void BasicGLPane::keyReleased(wxKeyEvent& event) 
 {
+	_KeyboardEvent(event,false);
 }
 
 BasicGLPane::BasicGLPane(wxFrame* parent, int* args) :
@@ -838,13 +898,15 @@ void SPPApp(int argc, char* argv[])
 				}
 
 				Json::Value AppNameValue = CurrentEle.get("APPNAME", Json::Value::nullSingleton());
+				Json::Value AppCL = CurrentEle.get("APPCL", Json::Value(""));
 				Json::Value NameValue = CurrentEle.get("NAME", Json::Value::nullSingleton());
 				Json::Value GuidValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
 
 				Hosts[GuidValue.asCString()] = RemoteClient{
 					std::chrono::steady_clock::now(),
 					std::string(NameValue.asCString()),
-					std::string(AppNameValue.asCString())
+					std::string(AppNameValue.asCString()),
+					std::string(AppCL.asCString())					
 				};
 			}
 		});
@@ -885,11 +947,17 @@ void SPPApp(int argc, char* argv[])
 				{
 					if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
 					{
-						Json::Value SingleHost;
-						SingleHost["NAME"] = value.Name;
-						SingleHost["APPNAME"] = value.AppName;
-						SingleHost["GUID"] = key;
-						HostValues.append(SingleHost);
+						auto appCLArgs = std::str_split(value.AppCL, ';');
+										
+						for (auto& appCL : appCLArgs)
+						{
+							Json::Value SingleHost;
+							SingleHost["NAME"] = value.Name;
+							SingleHost["APPNAME"] = value.AppName;
+							SingleHost["APPCL"] = appCL;
+							SingleHost["GUID"] = key;
+							HostValues.append(SingleHost);
+						}						
 					}
 				}
 				JsonMessage["HOSTS"] = HostValues;
@@ -945,7 +1013,7 @@ void SPPApp(int argc, char* argv[])
 				std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
 			{
 				{
-					auto SQLRequest = std::string_format("SELECT GUID, NAME, APPNAME FROM clients WHERE APPNAME != ''");
+					auto SQLRequest = std::string_format("SELECT GUID, NAME, APPNAME, APPCL FROM clients WHERE APPNAME != ''");
 					coordinator->SQLRequest(SQLRequest.c_str());
 				}
 				{

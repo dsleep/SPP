@@ -257,7 +257,6 @@ int main(int argc, char* argv[])
 	// START OS NETWORKING
 	GetOSNetwork();
 
-
 	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
 
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
@@ -268,6 +267,7 @@ int main(int argc, char* argv[])
 	coordinator->SetKeyPair("APPNAME", SimpleAppName);
 	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+	coordinator->SetKeyPair("APPCL", AppCommandline);
 
 	coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get()](const std::string &InValue)
 		{
