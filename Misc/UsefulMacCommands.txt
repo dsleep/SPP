@@ -1,0 +1,6 @@
+brew install yasm
+
+cmake -G Xcode -S . -B CMAKEBUILD
+
+xcodebuild -configuration Release -scheme rttr_core
+xcodebuild -list -project rttr.xcodeproj
