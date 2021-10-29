@@ -1,6 +1,18 @@
+Homebrew very useful and easy
+https://brew.sh/
+HOMEBREW INSTALL
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+brew install git
 brew install yasm
+brew install cmake
+brew install python
 
-cmake -G Xcode -S . -B CMAKEBUILD
+FOR PYTHON TO BE USED IN .profile
+export PATH="/usr/local/opt/python/libexec/bin:$PATH"
 
+cmake -G Xcode -H. -BCMAKEBUILD
+
+RTTR examples CLI building
 xcodebuild -configuration Release -scheme rttr_core
 xcodebuild -list -project rttr.xcodeproj
