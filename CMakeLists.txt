@@ -23,29 +23,41 @@ message( STATUS "BUILD SYSTEM: ${CMAKE_SYSTEM}" )
 message( STATUS "BUILD SYSTEM NAME: ${CMAKE_SYSTEM_NAME}" ) 
 message( STATUS "BUILD SYSTEM PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}" )
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+	set(OS_MAC ON)
+	message(STATUS "MACOS FOUND")	
+	add_definitions(-DPLATFORM_MAC=1)
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(OS_LINUX ON)
 	message(STATUS "LINUX FOUND")
+	add_definitions(-DPLATFORM_LINUX=1)
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set(OS_WINDOWS ON)
 	message(STATUS "WINDOWS FOUND")
+	add_definitions(-DPLATFORM_WINDOWS=1)
 else()
 	message(FATAL_ERROR "We do not know OS!!!")
 endif()
 	
 set(SPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" )
 set(THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/3rdParty" )	
-set(LIB_PATH_POSTFIX "win64/vc16" )	
 set(CMAKE_DEBUG_POSTFIX "d" )	
 	
-set(USE_VS_MULTIPROCESS ON CACHE BOOL "Use MultiProcessor compiling on VS")
+if(OS_WINDOWS)
+	set(LIB_PATH_POSTFIX "win64/vc16" )	
+else()
+	set(LIB_PATH_POSTFIX "" )	
+endif()
 
 set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
 set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
 set(USE_DX12 OFF CACHE BOOL "Use DX12")
 set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
+set(USE_VULKAN OFF CACHE BOOL "Use Vulkan")
+
 set(USE_CRYPTOCPP ON CACHE BOOL "Include lib Cryptopp")
 set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
+
 set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
 set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
 
@@ -60,6 +72,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
 
+	set(USE_VS_MULTIPROCESS ON CACHE BOOL "Use MultiProcessor compiling on VS")
+	
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 	
 	if(USE_VS_MULTIPROCESS)
@@ -101,26 +115,27 @@ list(APPEND
 
 if(USE_CRYPTOCPP)
 
-list(APPEND 
-		SPPProjects 
-			"SPPCrypto" 
-			 )
+	list(APPEND 
+			SPPProjects 
+				"SPPCrypto" 
+				 )
 
 endif()
-			
-if(OS_WINDOWS)
-	list(APPEND SPPProjects
+
+list(APPEND SPPProjects
 			"SPPEngine" 			
 			"SPPCapture" 
 			"SPPVideo" )
 			
-	if(USE_OBJECTS)
-		list(APPEND SPPProjects								
-				"SPPReflection"
-				"SPPObject" 
-				"SPPSceneO"				
-				"SPPSDFO")
-	endif()
+if(USE_OBJECTS)
+	list(APPEND SPPProjects								
+			"SPPReflection"
+			"SPPObject" 
+			"SPPSceneO"				
+			"SPPSDFO")
+endif()
+			
+if(OS_WINDOWS)
 	
 	if(USE_CEF)
 		list(APPEND SPPProjects "SPPCEF")
