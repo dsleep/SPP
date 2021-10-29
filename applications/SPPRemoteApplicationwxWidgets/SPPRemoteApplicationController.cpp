@@ -53,6 +53,7 @@ struct HostFromCoord
 {
 	std::string NAME;
 	std::string APPNAME;
+	std::string APPCL;
 	std::string GUID;
 };
 
@@ -60,6 +61,7 @@ inline bool operator==(const HostFromCoord& InA, const HostFromCoord& InB) noexc
 {
 	return InA.NAME == InB.NAME &&
 		InA.APPNAME == InB.APPNAME &&
+		InA.APPCL == InB.APPCL &&
 		InA.GUID == InB.GUID;
 }
 
@@ -184,9 +186,10 @@ void MyFrame::SetHosts(const std::vector< HostFromCoord >& InHosts)
 	wxArrayString strings;
 	for (auto& curHost : InHosts)
 	{
-		std::string ArgString = std::string_format("PC=%s, Application=%s",
+		std::string ArgString = std::string_format("PC=%s, Application=%s, CommandLine=%s",
 			curHost.NAME.c_str(),
-			curHost.APPNAME.c_str());
+			curHost.APPNAME.c_str(),
+			curHost.APPCL.c_str());
 
 		strings.push_back(ArgString.c_str());
 	}
@@ -260,6 +263,7 @@ void WorkerThread()
 							hosts.push_back({
 								currentHost["NAME"].asCString(),
 								currentHost["APPNAME"].asCString(),
+								currentHost["APPCL"].asCString(),
 								currentHost["GUID"].asCString() });
 						}
 
@@ -298,8 +302,13 @@ void MyFrame::OnButton_Connect(wxCommandEvent& event)
 	
 	if (selection >= 0 && selection < _hostList.size())
 	{
-		// 1 MB off to write in
-		GIPCMem->WriteMemory(_hostList[selection].GUID.c_str(), _hostList[selection].GUID.size(), 1 * 1024 * 1024);
+		uint8_t hasData = ~(uint8_t)0;
+
+		BinaryBlobSerializer outData;
+		outData << hasData;
+		outData << _hostList[selection].GUID;
+		outData << _hostList[selection].APPCL;
+		GIPCMem->WriteMemory(outData.GetData(), outData.Size(), 1 * 1024 * 1024);
 	}
 }
 

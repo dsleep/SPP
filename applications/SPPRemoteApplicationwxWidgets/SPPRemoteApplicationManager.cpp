@@ -173,7 +173,7 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	MainSizer->Add(staticText, 0, wxALL, 5);
 	MainSizer->Add(pathSizer, 0, wxEXPAND | wxALL, 5);
 
-	auto staticText2 = new wxStaticText(this, wxID_ANY, "Additional Arguments:");
+	auto staticText2 = new wxStaticText(this, wxID_ANY, "Additional Arguments (';' as a delimiter for unique RAC entries):");
 	ArgsEditBox = new wxTextCtrl(this, TEXT_Args, "", wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, wxTextCtrlNameStr);
 
 	MainSizer->Add(staticText2, 0, wxALL, 5);
@@ -305,7 +305,8 @@ void WorkerThread(const std::string &AppPath, const std::string &Args)
 #else
 	GProcessID = CreateChildProcess("applicationhost.exe",
 #endif
-		ArgString.c_str());
+		ArgString.c_str(),
+		false);
 
 	while (true)
 	{
@@ -409,7 +410,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		wxEntryStart(argc, argv);
 		ourApp->CallOnInit();
 
-#if 0// _DEBUG
+#if _DEBUG
 		CreateChildProcess("SPPRemoteApplicationControllerd.exe", "", true);
 		CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
 #endif

@@ -40,6 +40,7 @@ int main()
 				{ "SDP", ESQLFieldType::Text},
 				{ "NAME", ESQLFieldType::Text},
 				{ "APPNAME", ESQLFieldType::Text},
+				{ "APPCL", ESQLFieldType::Text},
 				{ "GUIDCONNECTTO", ESQLFieldType::Text},
 				{ "LASTUPDATETIME", ESQLFieldType::Direct}
 		}));
