@@ -59,6 +59,9 @@ HWND find_main_window(uint32_t process_id)
 	return data.window_handle;
 }
 
+const uint8_t KeyBoardMessage = 0x02;
+const uint8_t MouseMessage = 0x03;
+
 /// <summary>
 /// 
 /// </summary>
@@ -105,19 +108,85 @@ public:
 
 	virtual void MessageReceived(const void* Data, int32_t DataLength)
 	{
-		SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
-
-		MemoryView DataView(Data, DataLength);
-		UINT uMsg;
-		WPARAM wParam;
-		LPARAM lParam;
-		DataView >> uMsg;
-		DataView >> wParam;
-		DataView >> lParam;
+		//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
 
 		if (CurrentLinkedApp)
 		{
-			PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+			MemoryView DataView(Data, DataLength);
+			uint8_t msgType;
+
+			DataView >> msgType;
+
+			if (msgType == KeyBoardMessage)
+			{
+				uint8_t bDown = 0;
+				int32_t keyCode = 0;
+
+				DataView >> bDown;
+				DataView >> keyCode;
+				
+#if _WIN32
+				UINT uMsg = bDown ? WM_KEYDOWN : WM_KEYUP;
+				WPARAM wParam = keyCode;
+				LPARAM lParam = 0;
+
+				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+#endif
+
+				//SPP_LOG(LOG_APP, LOG_INFO, "KEYEVENT Down: %d, KC: %d", bDown, keyCode);
+			}
+			else if (msgType == MouseMessage)
+			{				
+				uint8_t ActualButton = 0;
+				uint8_t bDown = 0;
+
+				uint8_t DownState = 0;
+
+				uint16_t posX = 0;
+				uint16_t posy = 0;
+				
+				DataView >> ActualButton;
+				DataView >> bDown;
+				DataView >> DownState;
+				DataView >> posX;
+				DataView >> posy;
+
+#if _WIN32
+				UINT uMsg = WM_MOUSEMOVE;
+       				
+				switch (ActualButton)
+				{
+				case 1:
+					uMsg = bDown ? WM_LBUTTONDOWN : WM_LBUTTONUP;
+					break;
+				case 2:
+					uMsg = bDown ? WM_MBUTTONDOWN : WM_MBUTTONUP;
+					break;
+				case 3:
+					uMsg = bDown ? WM_RBUTTONDOWN : WM_RBUTTONUP;
+					break;
+				}
+
+				WPARAM wParam = 0;
+
+				if (DownState & 0x01)
+				{
+					wParam |= MK_LBUTTON;
+				}
+				if (DownState & 0x02)
+				{
+					wParam |= MK_MBUTTON;
+				}
+				if (DownState & 0x04)
+				{
+					wParam |= MK_RBUTTON;
+				}
+
+				LPARAM lParam = posX | ((LPARAM)posy << 16);
+
+				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+#endif
+			}
 		}
 	}
 

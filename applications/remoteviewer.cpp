@@ -23,6 +23,8 @@
 #include "SPPApplication.h"
 #include "SPPWin32Core.h"
 
+#include <mutex>
+
 #include <wx/msw/msvcrt.h>
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
@@ -62,7 +64,48 @@ class VideoConnection;
 /// </summary>
 /// 
 /// class MyFrame;
+/// 
 
+class InputHandler
+{
+private:
+	bool _bIsReceiving = false;
+	std::mutex _handlerLock;
+	std::list< std::vector<uint8_t> > _events;
+
+public:
+	void StartReceiving()
+	{
+		std::unique_lock<std::mutex> lock(_handlerLock);
+		_bIsReceiving = true;
+	}
+
+	void StopReceiving()
+	{
+		std::unique_lock<std::mutex> lock(_handlerLock);
+		_bIsReceiving = false;
+		_events.clear();
+	}
+
+	void PushEvent(std::vector<uint8_t> &InEvent)
+	{
+		std::unique_lock<std::mutex> lock(_handlerLock);
+		if (!_bIsReceiving) return;
+		std::vector<uint8_t> localEvent;
+		std::swap(localEvent, InEvent);
+		_events.push_back(localEvent);
+	}	
+
+	void GetEvents(std::list< std::vector<uint8_t> > &oEvents)
+	{
+		std::unique_lock<std::mutex> lock(_handlerLock);
+		if (!_bIsReceiving) return;
+		std::swap(oEvents, _events);
+		_events.clear();
+	}
+};
+
+InputHandler GInputHandler;
 
 class BasicGLPane : public wxGLCanvas
 {
@@ -155,15 +198,20 @@ EVT_MOUSEWHEEL(BasicGLPane::mouseWheelMoved)
 EVT_PAINT(BasicGLPane::render)
 END_EVENT_TABLE()
 
+const uint8_t KeyBoardMessage = 0x02;
+const uint8_t MouseMessage = 0x03;
+
 void BasicGLPane::_KeyboardEvent(wxKeyEvent& event, bool bKeyDown)
 {
 	uint8_t bDown = bKeyDown ? 1 : 0;
 	int32_t keyCode = event.GetKeyCode();
 
 	BinaryBlobSerializer thisMessage;
+	thisMessage << KeyBoardMessage;
 	thisMessage << bDown;
 	thisMessage << keyCode;
-	//_parentConnect->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+
+	GInputHandler.PushEvent(thisMessage.GetArray());	
 }
 
 void BasicGLPane::_MouseEvent(wxMouseEvent& event)
@@ -171,6 +219,7 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 	//wxMOUSE_BTN_NONE = 0,
 	//wxMOUSE_BTN_LEFT = 1,
 	//wxMOUSE_BTN_MIDDLE = 2,
+	//wxMOUSE_BTN_RIGHT = 3
 
 	int32_t curButton = event.GetButton();
 	uint8_t ActualButton = event.GetButton();
@@ -185,9 +234,14 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 	{
 		ActualButton = (uint8_t)curButton;
 	}
-	
+
+	uint8_t DownState = 0;
+	DownState |= event.LeftIsDown() ? 0x01 : 0;
+	DownState |= event.MiddleIsDown() ? 0x02 : 0;
+	DownState |= event.RightIsDown() ? 0x04 : 0;
+
 	int32_t xPos = event.GetX();
-	int32_t yPos = event.GetX();
+	int32_t yPos = event.GetY();
 	
 	Vector3 remap(xPos, yPos, 1);
 	Vector3 RemappedPosition = remap * virtualToReal;
@@ -195,11 +249,14 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 	if (RemappedPosition[0] >= 0 && RemappedPosition[1] >= 0)
 	{		
 		BinaryBlobSerializer thisMessage;
+		thisMessage << MouseMessage;
 		thisMessage << ActualButton;
 		thisMessage << bDown;
+		thisMessage << DownState;
 		thisMessage << (uint16_t)RemappedPosition[0];
 		thisMessage << (uint16_t)RemappedPosition[1];
-		//_parentConnect->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+
+		GInputHandler.PushEvent(thisMessage.GetArray());
 	}
 }
 
@@ -661,11 +718,13 @@ public:
 
 		//app->SetupOpenglGLAssets();
 
+		GInputHandler.StartReceiving();
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
 	}
 
 	virtual ~VideoConnection()
 	{
+		GInputHandler.StopReceiving();
 		//wglMakeCurrent(NULL, NULL);
 		//ReleaseDC(hWnd, hDC);
 		//wglDeleteContext(hRC);
@@ -682,6 +741,14 @@ public:
 
 		NetworkConnection::Tick();
 		
+		std::list< std::vector<uint8_t> > inputEvents;
+		GInputHandler.GetEvents(inputEvents);
+
+		for (auto& curEvent : inputEvents)
+		{
+			SendMessage(curEvent.data(), curEvent.size(), EMessageMask::IS_RELIABLE);
+		}
+
 		//app->Update();
 
 		//if (app->IsDone())
@@ -948,7 +1015,7 @@ void SPPApp(int argc, char* argv[])
 					if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
 					{
 						auto appCLArgs = std::str_split(value.AppCL, ';');
-										
+						if (appCLArgs.empty()) appCLArgs.push_back("");
 						for (auto& appCL : appCLArgs)
 						{
 							Json::Value SingleHost;
