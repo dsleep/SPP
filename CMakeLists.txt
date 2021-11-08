@@ -60,6 +60,8 @@ set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
 
 set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
 set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
+set(USE_WINRT ON CACHE BOOL "Use C++/WinRt")
+
 
 if(USE_OBJECTS)
 	add_definitions(-DUSE_OBJECTS=1)
@@ -156,6 +158,11 @@ if(OS_WINDOWS)
 			list(APPEND SPPProjects "SPPOpenGL")	
 		endif()			
 	endif()
+	
+	if(USE_WINRT)
+		list(APPEND SPPProjects "Misc/SPPWinRTBTE")
+	endif()
+	
 endif()
 
 list(APPEND SPPProjects "applications" "tests" "assets" )

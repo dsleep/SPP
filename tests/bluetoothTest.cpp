@@ -2,6 +2,7 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
+
 #include "SPPCore.h"
 #include "json/json.h"
 #include "SPPLogging.h"
@@ -11,6 +12,8 @@
 #include "SPPWin32Core.h"
 
 #include "SPPSockets.h"
+
+#include "SPPWinRTBTE.h"
 
 using namespace SPP;
 
@@ -94,12 +97,29 @@ public:
 
 using namespace std::chrono_literals;
 
+
 int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 
 	// START OS NETWORKING
 	GetOSNetwork();
+
+	auto dataOne = [](uint8_t* InData, size_t DataSize)
+	{
+		SPP_LOG(LOG_APP, LOG_INFO, "BTE data: %d", DataSize);
+	};
+
+	BTEWatcher watcher;
+	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
+		{ 
+			{ "366DEE95-85A3-41C1-A507-8C3E02342001", dataOne }
+		});
+
+	while (true)
+	{
+		std::this_thread::sleep_for(10ms);
+	}
 
 	bool bIsServer = true;
 
