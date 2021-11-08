@@ -14,6 +14,7 @@
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Devices.Bluetooth.Advertisement.h>
 #include <winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 #include <chrono>
 #include "combaseapi.h"
@@ -44,6 +45,17 @@ static void ValidWinRT()
 	}
 }
 
+namespace std
+{
+	template<> struct less<winrt::guid>
+	{
+		bool operator() (const winrt::guid& lhs, const winrt::guid& rhs) const
+		{
+			return memcmp(&lhs, &rhs, sizeof(winrt::guid)) < 0;
+		}
+	};
+}
+
 namespace SPP
 {
 	LogEntry LOG_BTW("BTE");
@@ -60,7 +72,7 @@ namespace SPP
 		winrt::Windows::Devices::Bluetooth::BluetoothLEDevice _bluetoothLeDevice{ nullptr };
 
 		winrt::guid RequestedServiceGUID;
-		std::vector<winrt::guid> CharacteristicsToWatch;
+		std::map<winrt::guid, std::function<void(uint8_t*, size_t)> > CharToFuncMap;
 		std::vector<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic> registeredCharacteristic;
 
 	public:
@@ -97,7 +109,7 @@ namespace SPP
 			{
 				winrt::guid newCharToWatch;
 				CLSIDFromString(utf8_to_wstring(std::string_format("{%s}", key.c_str())).c_str(), (LPCLSID)&newCharToWatch);
-				CharacteristicsToWatch.push_back(newCharToWatch);
+				CharToFuncMap[newCharToWatch] = Value;
 			}
 
 			_deviceWatcher.Start();
@@ -106,6 +118,13 @@ namespace SPP
 		void Characteristic_ValueChanged(GattCharacteristic const& changed, GattValueChangedEventArgs args)
 		{
 			std::wcout << L"Characteristic_ValueChanged: " << std::endl;
+
+			auto foundIt = CharToFuncMap.find(changed.Uuid());
+			if (foundIt != CharToFuncMap.end())
+			{
+				auto iBuffer = args.CharacteristicValue();				
+				foundIt->second(iBuffer.data(), iBuffer.Length());
+			}
 		}
 
 		fire_and_forget DeviceWatcher_Added(DeviceWatcher sender, DeviceInformation deviceInfo)
@@ -200,9 +219,8 @@ namespace SPP
 								guid uuid = c.Uuid();
 								auto UUIStrign = to_hstring(uuid);
 								std::wcout << L" - Characteristic: " << UUIStrign.c_str() << std::endl;
-
-								auto foundIt = std::find(CharacteristicsToWatch.begin(), CharacteristicsToWatch.end(), uuid);
-								if (foundIt == CharacteristicsToWatch.end())
+																
+								if (CharToFuncMap.find(uuid) == CharToFuncMap.end())
 								{
 									continue;
 								}
