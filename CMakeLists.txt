@@ -99,6 +99,9 @@ else()
 	# set position independent
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fPIC")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+ 
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -D_DEBUG")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG -D_DEBUG")
 
     if(OS_LINUX)
         link_libraries(stdc++fs dl pthread)

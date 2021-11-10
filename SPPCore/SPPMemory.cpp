@@ -17,24 +17,63 @@ namespace SPP
 
 #if PLATFORM_MAC || PLATFORM_LINUX
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <semaphore.h>
 
 namespace SPP
 {
     struct IPCMappedMemory::PlatImpl
     {
+        std::string storedName;
+        int shm_fd = -1;
         uint8_t* dataLink = nullptr;
+        sem_t *mutex_sem = nullptr;
     };
 
     IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl()), _memorySize(MemorySize)
     {
         SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: (%s:%d) %d", MappedName, bIsNew, MemorySize);
+        
+        int shmFlag = O_RDWR;
+        if(bIsNew)
+        {
+            shmFlag |= O_CREAT;
+        }
+        
+        _impl->storedName = MappedName;
+        _impl->shm_fd = shm_open(MappedName, shmFlag, 0666);
+        SE_ASSERT(_impl->shm_fd  != -1);
+        
+        std::string MutexName = std::string(MappedName) + "_M";
+        
+        _impl->mutex_sem = sem_open (MutexName.c_str(), bIsNew ? O_CREAT : 0, 0660, 0);
+        SE_ASSERT(_impl->mutex_sem  != SEM_FAILED);
 
-        //size_t pagesize = getpagesize();
+        if(bIsNew)
+        {
+            /* configure the size of the shared memory object */
+            if(ftruncate(_impl->shm_fd, MemorySize) == -1)
+            {
+                SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: failed ftruncate");
+            }
+        }
+         
+        /* memory map the shared memory object */
+        _impl->dataLink = (uint8_t*)mmap(0, MemorySize, PROT_READ | PROT_WRITE, MAP_SHARED, _impl->shm_fd, 0);
+        SE_ASSERT(_impl->dataLink  != MAP_FAILED);
+
     }
 
     IPCMappedMemory::~IPCMappedMemory()
     {
+        munmap( _impl->dataLink, _memorySize );
+        /* remove the shared memory object */
+        shm_unlink(_impl->storedName.c_str());
     }
 
     bool IPCMappedMemory::IsValid() const
@@ -50,19 +89,28 @@ namespace SPP
 
     uint8_t* IPCMappedMemory::Lock()
     {
-        return nullptr;
+        sem_wait(_impl->mutex_sem);
+        return _impl->dataLink;
     }
 
     void IPCMappedMemory::Release()
     {
+        sem_post(_impl->mutex_sem);
     }
+
 
     void IPCMappedMemory::WriteMemory(const void* InMem, size_t DataSize, size_t Offset)
     {
+        Lock();
+        memcpy(_impl->dataLink + Offset, InMem, DataSize);
+        Release();
     }
 
     void IPCMappedMemory::ReadMemory(void* OutMem, size_t DataSize, size_t Offset)
     {
+        Lock();
+        memcpy(OutMem, _impl->dataLink + Offset, DataSize);
+        Release();
     }
 }
 
@@ -140,7 +188,7 @@ namespace SPP
 	}
 	IPCMappedMemory::~IPCMappedMemory()
 	{
-
+        //TODO FIX THIS!!!
 	}
 
 	bool IPCMappedMemory::IsValid() const

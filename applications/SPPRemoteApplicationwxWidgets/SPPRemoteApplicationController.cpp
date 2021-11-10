@@ -208,10 +208,10 @@ void WorkerThread()
 	std::string ArgString = std::string_format("-MEM=%s",
 		GIPMemoryID.c_str());
 
-#if _DEBUG
-	GProcessID = CreateChildProcess("remoteviewerd.exe",
+#if _DEBUG    
+	GProcessID = CreateChildProcess("remoteviewerd",
 #else
-	GProcessID = CreateChildProcess("remoteviewer.exe",
+	GProcessID = CreateChildProcess("remoteviewer",
 #endif
 		ArgString.c_str(),false);
 
