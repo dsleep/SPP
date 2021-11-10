@@ -53,9 +53,11 @@ namespace SPP
         
         _impl->mutex_sem = sem_open (MutexName.c_str(), bIsNew ? O_CREAT : 0, 0660, 0);
         SE_ASSERT(_impl->mutex_sem  != SEM_FAILED);
-
+        
         if(bIsNew)
         {
+            sem_post(_impl->mutex_sem);
+            
             /* configure the size of the shared memory object */
             if(ftruncate(_impl->shm_fd, MemorySize) == -1)
             {

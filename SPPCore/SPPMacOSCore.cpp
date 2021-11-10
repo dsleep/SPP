@@ -49,8 +49,8 @@ namespace SPP
     };
 
     
-    std::mutex childMutex;
-    std::map< uint32_t, std::shared_ptr< ProcessInformation > > hostedChildProcesses;
+    static std::mutex childMutex;
+    static std::map< uint32_t, std::shared_ptr< ProcessInformation > > hostedChildProcesses;
 
     void child_sig(int signo)
     {
@@ -58,6 +58,9 @@ namespace SPP
         int   status;
         while ((pid = waitpid(-1, &status, WNOHANG)) != -1)
         {
+            std::unique_lock<std::mutex> lk(childMutex);
+            hostedChildProcesses.erase(pid);
+            SPP_LOG(LOG_MACOSCORE, LOG_INFO, "Child Died: %d", pid);
             //
             //unregister_child(pid, status);   // Or whatever you need to do with the PID
         }
@@ -83,7 +86,7 @@ namespace SPP
         
         if (status == 0)
         {
-            printf("Child pid: %i\n", pid);
+            printf("Child pid: %d\n", pid);
         }
         else
         {
@@ -104,19 +107,13 @@ namespace SPP
 
 	bool IsChildRunning(uint32_t processID)
 	{
+        std::unique_lock<std::mutex> lk(childMutex);
+        
 		auto foundChild = hostedChildProcesses.find(processID);
 
 		if (foundChild != hostedChildProcesses.end())
 		{
-            int status = 0;
-            pid_t result = waitpid(processID, &status, WNOHANG);
-            if (result == 0) {
-              // Child still alive
-            } else if (result == -1) {
-              // Error
-            } else {
-              // Child exited
-            }
+            return true;
 		}
 
 		return false;
@@ -134,6 +131,8 @@ namespace SPP
 
 	void CloseChild(uint32_t processID)
 	{
+        std::unique_lock<std::mutex> lk(childMutex);
+        
         auto foundChild = hostedChildProcesses.find(processID);
         if (foundChild != hostedChildProcesses.end())
         {

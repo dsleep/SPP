@@ -215,8 +215,6 @@ void WorkerThread()
 #endif
 		ArgString.c_str(),false);
 
-	
-
 	while (true)
 	{
 		// do stuff...
