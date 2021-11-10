@@ -74,7 +74,7 @@ target_include_directories(SPPCore
 
 target_link_directories(SPPCore 
 	PUBLIC		
-		"${THIRD_PARTY}/jsoncpp/lib"
+		"${THIRD_PARTY}/jsoncpp/lib${LIB_PATH_POSTFIX}"
 		)
 
 target_link_libraries(SPPCore 

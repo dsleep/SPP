@@ -35,9 +35,19 @@ target_link_directories(SPPCrypto
         "${THIRD_PARTY}/cryptopp/lib"
         )
 
+if(OS_WINDOWS)
+
+target_link_libraries( SPPCrypto 
+	PRIVATE
+		debug "Debug/cryptlib" optimized "Release/cryptlib" )
+
+else()
+
 target_link_libraries( SPPCrypto 
 	PRIVATE
 		debug "cryptoppd" optimized "cryptopp" )
+
+endif()
 
 install(TARGETS SPPCrypto DESTINATION "${SPP_ROOT}/INSTALL")
 

@@ -3,7 +3,7 @@
 // recognized in your jurisdiction.
 
 
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 #include "SPPString.h"
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"

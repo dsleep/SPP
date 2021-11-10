@@ -113,7 +113,7 @@ bool MyApp::OnInit()
 MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(NULL, wxID_ANY, title, pos, size)
 {
-#if OS_WINDOWS
+#if PLATFORM_WINDOWS
 	SetIcon(wxICON(sppapp));
 #endif
 	CreateStatusBar();
@@ -322,7 +322,7 @@ void MyFrame::OnButton_Disconnect(wxCommandEvent& event)
 	
 }
 
-#if OS_WINDOWS
+#if PLATFORM_WINDOWS
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -336,21 +336,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	GIPMemoryID = std::generate_hex(3);	
 	GIPCMem.reset(new IPCMappedMemory(GIPMemoryID.c_str(), MemSize, true));
 
-#if OS_WINDOWS
-#if 1
+#if PLATFORM_WINDOWS
 	_CrtSetDbgFlag(0);
-#else
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetBreakAlloc(9554);
-	_CrtSetBreakAlloc(9553);
-	_CrtSetBreakAlloc(9552);
-#endif
 #endif
 		
 	auto ourApp = new MyApp();
 	// MyWxApp derives from wxApp
 	wxApp::SetInstance(ourApp);
-#if OS_WINDOWS
+#if PLATFORM_WINDOWS
 	int argc = 0;
 	char** argv = nullptr;
 #endif

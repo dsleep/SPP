@@ -13,7 +13,7 @@
 
 #include "SPPMemory.h"
 #include "SPPApplication.h"
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 
 #include "SPPMath.h"
 

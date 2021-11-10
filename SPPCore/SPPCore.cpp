@@ -7,10 +7,7 @@
 #include "ThreadPool.h"
 #include "SPPTiming.h"
 #include "SPPFileSystem.h"
-
-#if _WIN32
-	#include "SPPWin32Core.h"
-#endif
+#include "SPPPlatformCore.h"
 
 namespace SPP
 {

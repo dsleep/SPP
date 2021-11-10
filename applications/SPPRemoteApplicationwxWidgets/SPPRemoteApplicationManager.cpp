@@ -6,7 +6,7 @@
 #include "SPPCore.h"
 #include "SPPReflection.h"
 #include "SPPFileSystem.h"
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 #include "SPPString.h"
 #include "SPPMemory.h"
 

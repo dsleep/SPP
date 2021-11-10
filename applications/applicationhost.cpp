@@ -20,7 +20,7 @@
 
 #include "SPPNetworkConnection.h"
 #include "SPPNetworkMessenger.h"
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 #include "SPPJsonUtils.h"
 
 #include "SPPFileSystem.h"

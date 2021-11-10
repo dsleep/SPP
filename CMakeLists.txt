@@ -46,7 +46,7 @@ set(THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/3rdParty" )
 set(CMAKE_DEBUG_POSTFIX "d" )	
 	
 if(OS_WINDOWS)
-	set(LIB_PATH_POSTFIX "win64/vc16" )	
+	set(LIB_PATH_POSTFIX "/win64/vc16" )	
 else()
 	set(LIB_PATH_POSTFIX "" )	
 endif()

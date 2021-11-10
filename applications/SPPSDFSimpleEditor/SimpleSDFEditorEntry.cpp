@@ -44,7 +44,7 @@
 
 #include "cefclient/JSCallbackInterface.h"
 #include <condition_variable>
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 
 #define MAX_LOADSTRING 100
 

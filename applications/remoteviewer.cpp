@@ -2,8 +2,17 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
-//#include <windows.h>	
+//
+#if PLATFORM_WINDOWS
+	#include <windows.h>	
+	#include <wx/msw/msvcrt.h>
+	#pragma comment(lib, "opengl32.lib")
+	#include <GL/gl.h>
 
+	#ifdef SendMessage
+		#undef SendMessage
+	#endif
+#endif
 
 #include "SPPCore.h"
 #include "SPPNatTraversal.h"
@@ -21,22 +30,14 @@
 #include "SPPNetworkMessenger.h"
 #include "SPPMemory.h"
 #include "SPPApplication.h"
-//#include "SPPWin32Core.h"
+
+#include "SPPPlatformCore.h"
 
 #include <mutex>
-
-#if PLATFORM_WINDOWS
-    #include <wx/msw/msvcrt.h>
-    #pragma comment(lib, "opengl32.lib")
-    #include <GL/gl.h>
-#endif
 
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 
-#ifdef SendMessage
-#undef SendMessage
-#endif
 
 using namespace SPP;
 
