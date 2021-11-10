@@ -52,3 +52,5 @@ CMAKEBUILD/
 Binaries/
 !Binaries/*.txt
 
+#MAC
+*.DS_Store

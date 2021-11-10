@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
+#include <string>
 #include <functional>
 #include <map>
 

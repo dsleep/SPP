@@ -17,7 +17,7 @@
 
 #else
 
-	#define SPP_NETWORKING_API 
+	#define SPP_VIDEO_API
 
 #endif
 

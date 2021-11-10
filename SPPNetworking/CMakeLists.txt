@@ -73,7 +73,7 @@ else()
 
 	target_link_libraries(SPPNetworking 
 		PRIVATE
-			"juice" )
+            debug juiced optimized juice )
 
 endif()
 

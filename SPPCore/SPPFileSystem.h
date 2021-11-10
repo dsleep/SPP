@@ -16,6 +16,9 @@
 #elif defined(__linux__)
 	#include <experimental/filesystem>	
 	namespace stdfs = std::experimental::filesystem;
+#elif __APPLE__
+    #include <filesystem>
+    namespace stdfs = std::filesystem;
 #else
 	#error "Unsupported platform"
 #endif

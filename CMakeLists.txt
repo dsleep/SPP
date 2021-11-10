@@ -23,6 +23,8 @@ message( STATUS "BUILD SYSTEM: ${CMAKE_SYSTEM}" )
 message( STATUS "BUILD SYSTEM NAME: ${CMAKE_SYSTEM_NAME}" ) 
 message( STATUS "BUILD SYSTEM PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}" )
 
+include(wxWidgetsHelper)
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 	set(OS_MAC ON)
 	message(STATUS "MACOS FOUND")	
@@ -98,8 +100,10 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fPIC")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
-	link_libraries(stdc++fs dl pthread)
-
+    if(OS_LINUX)
+        link_libraries(stdc++fs dl pthread)
+    endif()
+    
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_CURRENT_SOURCE_DIR}/Binaries/ReleaseWithDebug/lib)
@@ -141,9 +145,7 @@ list(APPEND SPPProjects
 if(USE_OBJECTS)
 	list(APPEND SPPProjects								
 			"SPPReflection"
-			"SPPObject" 
-			"SPPSceneO"				
-			"SPPSDFO")
+			"SPPObject")
 endif()
 			
 if(OS_WINDOWS)
@@ -165,10 +167,16 @@ if(OS_WINDOWS)
 		
 		if(USE_OPENGL)
 			list(APPEND SPPProjects "SPPOpenGL")	
-		endif()			
+		endif()
 		
 		if(USE_VULKAN)
 			list(APPEND SPPProjects "SPPVulkan")	
+		endif()
+
+		if(USE_OBJECTS)
+			list(APPEND SPPProjects		
+				"SPPSceneO"				
+				"SPPSDFO")
 		endif()
 	endif()
 	
@@ -178,7 +186,8 @@ if(OS_WINDOWS)
 	
 endif()
 
-list(APPEND SPPProjects "applications" "tests" "assets" )
+list(APPEND SPPProjects "applications" ) 
+#"tests" "assets" )
 
 # swapped to wxwidgets	
 # if(OS_WINDOWS)

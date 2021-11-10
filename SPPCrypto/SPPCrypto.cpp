@@ -3,14 +3,14 @@
 
 #include "SPPCrypto.h"
 
-#include "osrng.h"
-#include "default.h"
-#include "base64.h"
-#include "aes.h"
-#include "cryptlib.h"
-#include "rsa.h"
-#include "hex.h"
-#include "randpool.h"
+#include "cryptopp/osrng.h"
+#include "cryptopp/default.h"
+#include "cryptopp/base64.h"
+#include "cryptopp/aes.h"
+#include "cryptopp/cryptlib.h"
+#include "cryptopp/rsa.h"
+#include "cryptopp/hex.h"
+#include "cryptopp/randpool.h"
 
 namespace SPP
 {

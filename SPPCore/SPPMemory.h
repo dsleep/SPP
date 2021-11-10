@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <math.h>
 
 namespace SPP
 {

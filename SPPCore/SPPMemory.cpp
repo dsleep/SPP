@@ -9,6 +9,67 @@
 #include <memory>
 #include <stdexcept>
 
+namespace SPP
+{
+    LogEntry LOG_IPC("IPC");
+    LogEntry LOG_MEM("MEM");
+}
+
+#if PLATFORM_MAC || PLATFORM_LINUX
+
+#include <sys/mman.h>
+
+namespace SPP
+{
+    struct IPCMappedMemory::PlatImpl
+    {
+        uint8_t* dataLink = nullptr;
+    };
+
+    IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl()), _memorySize(MemorySize)
+    {
+        SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: (%s:%d) %d", MappedName, bIsNew, MemorySize);
+
+        //size_t pagesize = getpagesize();
+    }
+
+    IPCMappedMemory::~IPCMappedMemory()
+    {
+    }
+
+    bool IPCMappedMemory::IsValid() const
+    {
+        return (_impl && _impl->dataLink != nullptr);
+    }
+
+
+    size_t IPCMappedMemory::Size() const
+    {
+        return _memorySize;
+    }
+
+    uint8_t* IPCMappedMemory::Lock()
+    {
+        return nullptr;
+    }
+
+    void IPCMappedMemory::Release()
+    {
+    }
+
+    void IPCMappedMemory::WriteMemory(const void* InMem, size_t DataSize, size_t Offset)
+    {
+    }
+
+    void IPCMappedMemory::ReadMemory(void* OutMem, size_t DataSize, size_t Offset)
+    {
+    }
+}
+
+
+
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include <stdio.h>
@@ -17,10 +78,6 @@
 
 namespace SPP
 {
-	LogEntry LOG_IPC("IPC");
-
-	LogEntry LOG_MEM("MEM");
-
 	struct IPCMappedMemory::PlatImpl
 	{
 		HANDLE hMapFile = nullptr;

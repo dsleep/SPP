@@ -42,56 +42,52 @@ set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:
 set_target_properties(applicationhost PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideo_CUDAd.dll" )
 
 ####################
-# remoteviewer
-####################
-add_executable( remoteviewer "")
-add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo )			
-target_sources( remoteviewer 
-	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"					
-		"${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )	
-target_link_libraries( remoteviewer 
-	PRIVATE
-		SPPNetworking 
-		SPPEngine 
-		SPPVideo )
-		
-target_compile_definitions( remoteviewer
-	PRIVATE
-		WXUSINGDLL=1)				
-
-target_include_directories( remoteviewer 
-	PRIVATE  	
-		"${THIRD_PARTY}/wxWidgets/include"
-		"${THIRD_PARTY}/wxWidgets/include/msvc" )
-		
-target_link_directories( remoteviewer 
-	PRIVATE
-		"${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll" )		
-
-set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
-set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")
-	
-set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo.dll" )
-set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo.dll" )
-set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
-
-
-####################
-# remoteviewer
+# windows only event app test
 ####################
 add_executable( windowsEventApp WIN32 "")
-add_dependencies( windowsEventApp SPPNetworking SPPEngine SPPVideo )			
-target_sources( windowsEventApp 
-	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/windowsEventApp.cpp" )		
-target_link_libraries( windowsEventApp 
-	PRIVATE
-		SPPEngine
-		SPPCapture )
+add_dependencies( windowsEventApp SPPNetworking SPPEngine SPPVideo )
+target_sources( windowsEventApp
+    PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/windowsEventApp.cpp" )
+target_link_libraries( windowsEventApp
+    PRIVATE
+        SPPEngine
+        SPPCapture )
 set_target_properties( windowsEventApp PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET windowsEventApp PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET windowsEventApp PROPERTY VS_DPI_AWARE "PerMonitor")
 
 endif()
+
+####################
+# remoteviewer
+####################
+add_executable( remoteviewer "")
+add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo )
+target_sources( remoteviewer
+    PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )
+target_link_libraries( remoteviewer
+    PRIVATE
+        SPPNetworking
+        SPPEngine
+        SPPVideo )
+        
+set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")
+
+if(OS_WINDOWS)
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo.dll" )
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo.dll" )
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
+endif()
+
+if(OS_MAC)
+   target_link_libraries( remoteviewer
+        PRIVATE
+            "-framework OpenGL" )
+endif()
+
+TargetWxWidgetsSetup( remoteviewer )

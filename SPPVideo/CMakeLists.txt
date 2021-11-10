@@ -40,6 +40,20 @@ target_link_libraries( SPPVideo
 		avresample
 		avutil
 		swscale)
+  
+if(OS_MAC)
+
+target_link_libraries( SPPVideo
+    PRIVATE
+        z
+        BZ2
+        "-framework CoreFoundation"
+        "-framework VideoDecodeAcceleration"
+        "-framework CoreGraphics"
+        "-framework AVFoundation"
+        "-framework CoreVideo" )
+
+endif()
 
 install(TARGETS SPPVideo DESTINATION "${SPP_ROOT}/INSTALL")
 

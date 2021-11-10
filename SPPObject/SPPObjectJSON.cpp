@@ -155,7 +155,7 @@ namespace SPP
 			{
 				auto sub_array_view = org_prop_value.create_sequential_view();
 				auto arraySize = sub_array_view.get_size();
-				newProperty["ArraySize"] = arraySize;
+				newProperty["ArraySize"] = (int32_t)arraySize;
 
 				if (arraySize > 0)
 				{

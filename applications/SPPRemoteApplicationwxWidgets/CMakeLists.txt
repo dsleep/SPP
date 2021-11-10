@@ -19,26 +19,18 @@ set_target_properties( SPPRemoteApplicationManager PROPERTIES DEBUG_POSTFIX ${CM
 set_property(TARGET SPPRemoteApplicationManager PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET SPPRemoteApplicationManager PROPERTY VS_DPI_AWARE "PerMonitor")
 
-target_compile_definitions(SPPRemoteApplicationManager
-	PRIVATE
-		WXUSINGDLL=1)
-				
+TargetWxWidgetsSetup( SPPRemoteApplicationManager )
 
-target_include_directories(SPPRemoteApplicationManager 
-	PRIVATE  	
-		"${THIRD_PARTY}/wxWidgets/include"
-		"${THIRD_PARTY}/wxWidgets/include/msvc" )
-		
-target_link_directories(SPPRemoteApplicationManager 
-	PRIVATE
-		"${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll" )		
-		
-		
 ###################################################
 ## SPPRemoteApplicationController
 ###################################################
 
-add_executable( SPPRemoteApplicationController WIN32 "")
+if(OS_WINDOWS)
+    add_executable( SPPRemoteApplicationController WIN32 "")
+else()
+    add_executable( SPPRemoteApplicationController "")
+endif()
+
 add_dependencies( SPPRemoteApplicationController SPPCore SPPReflection )			
 target_sources( SPPRemoteApplicationController 
 	PRIVATE 
@@ -54,17 +46,5 @@ set_target_properties( SPPRemoteApplicationController PROPERTIES DEBUG_POSTFIX $
 set_property(TARGET SPPRemoteApplicationController PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET SPPRemoteApplicationController PROPERTY VS_DPI_AWARE "PerMonitor")
 
-target_compile_definitions(SPPRemoteApplicationController
-	PRIVATE
-		WXUSINGDLL=1)
-				
+TargetWxWidgetsSetup( SPPRemoteApplicationController )
 
-target_include_directories(SPPRemoteApplicationController 
-	PRIVATE  	
-		"${THIRD_PARTY}/wxWidgets/include"
-		"${THIRD_PARTY}/wxWidgets/include/msvc" )
-		
-target_link_directories(SPPRemoteApplicationController 
-	PRIVATE
-		"${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll" )		
-		

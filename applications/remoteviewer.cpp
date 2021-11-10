@@ -21,22 +21,22 @@
 #include "SPPNetworkMessenger.h"
 #include "SPPMemory.h"
 #include "SPPApplication.h"
-#include "SPPWin32Core.h"
+//#include "SPPWin32Core.h"
 
 #include <mutex>
 
-#include <wx/msw/msvcrt.h>
+#if PLATFORM_WINDOWS
+    #include <wx/msw/msvcrt.h>
+    #pragma comment(lib, "opengl32.lib")
+    #include <GL/gl.h>
+#endif
+
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
-
-#include <GL/gl.h>			
 
 #ifdef SendMessage
 #undef SendMessage
 #endif
-
-
-#pragma comment(lib, "opengl32.lib")
 
 using namespace SPP;
 
@@ -427,7 +427,9 @@ bool MyApp::OnInit()
 {
 	wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 	_frame = new wxFrame(nullptr, -1, wxT("Remote Viewer"), wxPoint(50, 50), wxSize(400, 200));
+#if PLATFORM_WINDOWS
 	_frame->SetIcon(wxICON(sppapp));
+#endif
 	int args[] = { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 };
 
 	_glPane = new BasicGLPane(_frame, args);
@@ -438,7 +440,7 @@ bool MyApp::OnInit()
 
 	_frame->Show(true);
 
-#if _WIN32
+#if PLATFORM_WINDOWS
 	auto hWnd = _frame->GetHandle();
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
@@ -888,8 +890,9 @@ void SPPApp(int argc, char* argv[])
 	}
 
 	auto ThisRUNGUID = std::generate_hex(3);
+#if PLATFORM_WINDOWS
 	AddDLLSearchPath("../3rdParty/libav/bin");
-
+#endif
 	std::string IPMemoryID;
 	std::string AppPath;
 	std::string AppCommandline;
@@ -1145,13 +1148,8 @@ int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 	
-#if 1
+#if PLATFORM_WINDOWS
 	_CrtSetDbgFlag(0);
-#else
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetBreakAlloc(9554);
-	_CrtSetBreakAlloc(9553);
-	_CrtSetBreakAlloc(9552);
 #endif
 
 	GApp = new MyApp();

@@ -418,8 +418,8 @@ namespace SPP
     {
         using BoxVector3 = Eigen::Matrix< T, 1, 3, Eigen::RowMajor >;
 
-        BoxVector3 minB = InBox.GetMin().cast<double>();
-        BoxVector3 maxB = InBox.GetMax().cast<double>();
+        BoxVector3 minB = InBox.GetMin().template cast<double>();
+        BoxVector3 maxB = InBox.GetMax().template cast<double>();
         BoxVector3 boxCorners[8] = {
             BoxVector3(minB[0], minB[1], minB[2]),
             BoxVector3(maxB[0], minB[1], minB[2]),

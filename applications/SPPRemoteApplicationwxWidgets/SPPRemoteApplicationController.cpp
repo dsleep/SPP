@@ -10,14 +10,17 @@
 #include "SPPJsonUtils.h"
 #include "SPPLogging.h"
 
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 
 #include <thread>  
 
 using namespace SPP;
 using namespace std::chrono_literals;
 
-#include <wx/msw/msvcrt.h>
+#if PLATFORM_WINDOWS
+    #include <wx/msw/msvcrt.h>
+#endif
+
 #include <wx/wx.h>
 #include <wx/filedlg.h>
 
@@ -110,7 +113,9 @@ bool MyApp::OnInit()
 MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(NULL, wxID_ANY, title, pos, size)
 {
+#if OS_WINDOWS
 	SetIcon(wxICON(sppapp));
+#endif
 	CreateStatusBar();
 	SetStatusText("Worker not started...");
 
@@ -317,17 +322,21 @@ void MyFrame::OnButton_Disconnect(wxCommandEvent& event)
 	
 }
 
+#if OS_WINDOWS
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
+#else
+    int main(int argc, char *argv[])
+#endif
 {
-	UNREFERENCED_PARAMETER(hPrevInstance);
 	IntializeCore(nullptr);
 
 	GIPMemoryID = std::generate_hex(3);	
 	GIPCMem.reset(new IPCMappedMemory(GIPMemoryID.c_str(), MemSize, true));
 
+#if OS_WINDOWS
 #if 1
 	_CrtSetDbgFlag(0);
 #else
@@ -336,13 +345,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_CrtSetBreakAlloc(9553);
 	_CrtSetBreakAlloc(9552);
 #endif
-
+#endif
 		
 	auto ourApp = new MyApp();
 	// MyWxApp derives from wxApp
 	wxApp::SetInstance(ourApp);
+#if OS_WINDOWS
 	int argc = 0;
 	char** argv = nullptr;
+#endif
 	wxEntryStart(argc, argv);
 	ourApp->CallOnInit();
 

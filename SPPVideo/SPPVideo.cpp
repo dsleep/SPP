@@ -13,16 +13,16 @@
 
 	#pragma warning(disable : 4244)
 
-	extern "C" 
-	{
-	#include <libavformat/avformat.h>
-	#include <libavutil/opt.h>
-	#include <libavutil/mathematics.h>
-	#include <libavresample/avresample.h>
-	#include <libswscale/swscale.h>
-	}
-
 #endif
+
+extern "C"
+{
+#include <libavformat/avformat.h>
+#include <libavutil/opt.h>
+#include <libavutil/mathematics.h>
+#include <libavresample/avresample.h>
+#include <libswscale/swscale.h>
+}
 
 namespace SPP
 {
