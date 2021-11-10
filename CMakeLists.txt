@@ -63,6 +63,15 @@ set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
 set(USE_WINRT ON CACHE BOOL "Use C++/WinRt")
 
 
+if(OS_WINDOWS)
+	set(WIN_SDK_REG "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0")
+
+	GET_FILENAME_COMPONENT(WIN10_SDK "[${WIN_SDK_REG};InstallationFolder]" ABSOLUTE CACHE)
+	GET_FILENAME_COMPONENT(WIN10_SDK_VER "[${WIN_SDK_REG};ProductVersion]" ABSOLUTE CACHE)
+	message(STATUS "WIN10_SDK = ${WIN10_SDK}")
+	message(STATUS "WIN10_SDK_VER = ${WIN10_SDK_VER}")
+endif()
+
 if(USE_OBJECTS)
 	add_definitions(-DUSE_OBJECTS=1)
 endif()
@@ -157,6 +166,10 @@ if(OS_WINDOWS)
 		if(USE_OPENGL)
 			list(APPEND SPPProjects "SPPOpenGL")	
 		endif()			
+		
+		if(USE_VULKAN)
+			list(APPEND SPPProjects "SPPVulkan")	
+		endif()
 	endif()
 	
 	if(USE_WINRT)

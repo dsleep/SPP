@@ -74,6 +74,10 @@
 			"Path": "wxWidgets",
 			"Version": 1,
 			"BinCopy": [ "lib/vc_x64_dll/*.dll" ]
+		},
+		{
+			"Path": "ktx",
+			"Version": 1
 		}
 	]
 }
