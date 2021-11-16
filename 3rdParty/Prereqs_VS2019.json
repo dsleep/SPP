@@ -63,7 +63,7 @@
 		},
 		{
 			"Path": "cryptopp",
-			"Version": 1
+			"Version": 2
 		},
 		{
 			"Path": "rttr",

@@ -59,7 +59,8 @@ target_include_directories(SPPVulkan
 target_include_directories(SPPVulkan 
 	PRIVATE  			
 		"${VK_SDK_PATH}/include"
-		"${THIRD_PARTY}/ktx/include")
+		"${THIRD_PARTY}/ktx/include"
+		"${THIRD_PARTY}/ktx/other_include")
 		
 target_link_directories(SPPVulkan 
 	PRIVATE
