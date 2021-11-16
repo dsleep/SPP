@@ -12,6 +12,8 @@
 #include "cryptopp/hex.h"
 #include "cryptopp/randpool.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	class VectorSink : public CryptoPP::Bufferless<CryptoPP::Sink>

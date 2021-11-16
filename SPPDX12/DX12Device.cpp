@@ -16,6 +16,8 @@
 
 #include <shlobj.h>
 
+SPP_OVERLOAD_ALLOCATORS
+
 static std::wstring GetLatestWinPixGpuCapturerPath()
 {
 	LPWSTR programFilesPath = nullptr;

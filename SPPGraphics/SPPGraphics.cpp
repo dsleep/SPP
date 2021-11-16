@@ -7,6 +7,8 @@
 #include "SPPLogging.h"
 #include "ThreadPool.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	LogEntry LOG_GRAPHICS("GRAPHICS");

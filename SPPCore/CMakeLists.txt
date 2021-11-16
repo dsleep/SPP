@@ -8,14 +8,18 @@ set_target_properties(SPPCore PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 # will need define to not create empty dll export
 target_compile_definitions(SPPCore
 	PRIVATE
-		SPP_CORE_EXPORT=1)
+		SPP_CORE_EXPORT=1
+		)
 		
 target_compile_definitions(SPPCore
 	PUBLIC
 		UNICODE 
 		_UNICODE
 		NOMINMAX
-		WIN32_LEAN_AND_MEAN)		
+		WIN32_LEAN_AND_MEAN
+		USE_DL_PREFIX=1
+		ONLY_MSPACES=1
+		NO_MALLINFO=1)		
 
 target_sources(SPPCore
 	PRIVATE	
@@ -55,7 +59,12 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/SPPTiming.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPArrayResource.h"
         "${CMAKE_CURRENT_LIST_DIR}/SPPPlatformCore.h"
-                     )	
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPDLMalloc.c"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPDLMalloc.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPSTLAllocator.h"
+        )	
 	
 if(OS_WINDOWS)
 	target_sources(SPPCore

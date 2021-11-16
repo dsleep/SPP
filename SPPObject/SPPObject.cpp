@@ -14,6 +14,8 @@
 #include <functional>
 #include <mutex>
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	LogEntry LOG_OBJ("OBJECT");

@@ -4,6 +4,8 @@
 
 #include "SPPMath.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
   	uint32_t GetMathVersion()

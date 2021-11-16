@@ -5,6 +5,8 @@
 #include "SPPEngine.h"
 #include "SPPFileSystem.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	SPP_ENGINE_API std::string GAssetPath;

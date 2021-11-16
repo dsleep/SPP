@@ -12,6 +12,8 @@
 
 #include "Windowsx.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 #define ROUNDUP(x, y) ((x + y - 1) & ~(y - 1))
 
 struct handle_data {

@@ -51,6 +51,8 @@
 using namespace std::chrono_literals;
 using namespace SPP;
 
+SPP_OVERLOAD_ALLOCATORS
+
 class EditorEngine
 {
 	enum class ESelectionMode

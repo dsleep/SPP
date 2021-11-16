@@ -49,6 +49,8 @@
 
 #define MAX_LOADSTRING 100
 
+SPP_OVERLOAD_ALLOCATORS
+
 using namespace std::chrono_literals;
 using namespace SPP;
 

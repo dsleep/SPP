@@ -25,6 +25,8 @@
 #include <iomanip>
 #include <set>
 
+SPP_OVERLOAD_ALLOCATORS
+
 using namespace winrt;
 using namespace winrt::Windows::Devices;
 using namespace winrt::Windows::Devices::Bluetooth;

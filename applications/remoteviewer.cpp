@@ -38,6 +38,7 @@
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 
+SPP_OVERLOAD_ALLOCATORS
 
 using namespace SPP;
 

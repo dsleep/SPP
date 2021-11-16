@@ -25,6 +25,8 @@
 
 #include "SPPFileSystem.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 using namespace SPP;
 
 LogEntry LOG_APP("APP");

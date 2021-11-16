@@ -1,6 +1,7 @@
 #include <windows.h>
 #include "SPPCEFUI.h"
 
+SPP_OVERLOAD_ALLOCATORS
 
 // Program entry point function.
 int APIENTRY wWinMain(HINSTANCE hInstance,

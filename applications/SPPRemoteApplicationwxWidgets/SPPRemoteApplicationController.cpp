@@ -14,6 +14,8 @@
 
 #include <thread>  
 
+SPP_OVERLOAD_ALLOCATORS
+
 using namespace SPP;
 using namespace std::chrono_literals;
 

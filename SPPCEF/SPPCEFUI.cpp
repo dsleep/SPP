@@ -27,6 +27,7 @@
 
 #include "cefclient/JSCallbackInterface.h"
 
+SPP_OVERLOAD_ALLOCATORS
 
 using namespace client;
 

@@ -71,8 +71,12 @@ namespace SPP
 
 	std::map< uint32_t, std::shared_ptr< PROCESS_INFORMATION > > hostedChildProcesses;
 
-	uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible)
+	uint32_t CreateChildProcess(const char* _ProcessPath, const char* Commandline, bool bStartVisible)
 	{
+		std::string stringProcessPath = _ProcessPath;
+		stringProcessPath += ".exe";
+		const char* ProcessPath = stringProcessPath.c_str();
+
 		SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: %s %s", ProcessPath, Commandline);
 
 		BOOL bIsProcessInJob = false;

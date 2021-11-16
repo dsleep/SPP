@@ -7,6 +7,8 @@
 #include "SPPString.h"
 #include <sqllite/sqlite3.h>
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	LogEntry LOG_SQLDB("SQLLITE");

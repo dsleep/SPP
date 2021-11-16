@@ -5,6 +5,8 @@
 #include "SPPSceneO.h"
 #include "SPPSTLUtils.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	uint32_t GetSceneVersion()

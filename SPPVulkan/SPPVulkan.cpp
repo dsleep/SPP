@@ -9,6 +9,8 @@
 #include "SPPMesh.h"
 #include "SPPLogging.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	LogEntry LOG_VULKAN("Vulkan");

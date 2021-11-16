@@ -9,9 +9,21 @@
 #include "SPPFileSystem.h"
 #include "SPPPlatformCore.h"
 
+SPP_OVERLOAD_ALLOCATORS
+
 namespace SPP
 {
 	LogEntry LOG_CORE("CORE");
+
+	void* SPP_MALLOC(std::size_t size)
+	{
+		void* ptr = malloc(size);
+		return ptr;
+	}
+	void SPP_FREE(void* ptr)
+	{
+		free(ptr);
+	}
 
 	SPP_CORE_API std::unique_ptr<class ThreadPool> CPUThreaPool;
 

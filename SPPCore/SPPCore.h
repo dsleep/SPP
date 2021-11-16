@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "SPPDLMalloc.h"
+
 #include <memory>
 #include <cstdint>
 #include <cstddef>
@@ -58,6 +60,34 @@ namespace SPP
 	SPP_CORE_API void IntializeCore(const char* Commandline);
 	
 	SPP_CORE_API extern std::unique_ptr<class ThreadPool> CPUThreaPool;
+
+	SPP_CORE_API void* SPP_MALLOC(std::size_t size);
+	SPP_CORE_API void SPP_FREE(void* ptr);
 }
+
+
+
+#define SPP_OVERLOAD_ALLOCATORS      \
+void* operator new  (std::size_t size) { return SPP::SPP_MALLOC(size); }                                         \
+void* operator new[](std::size_t size) { return SPP::SPP_MALLOC(size); }                                         \
+void* operator new  ( std::size_t size, std::align_val_t al ) { return SPP::SPP_MALLOC(size); }					 \
+void* operator new[]( std::size_t size, std::align_val_t al ) { return SPP::SPP_MALLOC(size); }					 \
+void* operator new  (std::size_t size, const std::nothrow_t& tag) noexcept { return SPP::SPP_MALLOC(size); }     \
+void* operator new[](std::size_t size, const std::nothrow_t& tag) noexcept { return SPP::SPP_MALLOC(size); }     \
+void* operator new  ( std::size_t size, std::align_val_t al, const std::nothrow_t&) noexcept { return SPP::SPP_MALLOC(size); }     \
+void* operator new[]( std::size_t size, std::align_val_t al, const std::nothrow_t&) noexcept { return SPP::SPP_MALLOC(size); }     \
+\
+void operator delete  (void* ptr) { return SPP::SPP_FREE(ptr); }                                             \
+void operator delete[](void* ptr) { return SPP::SPP_FREE(ptr); }                                             \
+void operator delete  (void* ptr, const std::nothrow_t& tag) { return SPP::SPP_FREE(ptr); }                  \
+void operator delete[](void* ptr, const std::nothrow_t& tag) { return SPP::SPP_FREE(ptr); }                  \
+void operator delete  (void* ptr, std::size_t sz) { return SPP::SPP_FREE(ptr); }                             \
+void operator delete[](void* ptr, std::size_t sz) { return SPP::SPP_FREE(ptr); }							 \
+void operator delete  ( void* ptr, std::align_val_t al ) noexcept { return SPP::SPP_FREE(ptr); }			 \
+void operator delete[]( void* ptr, std::align_val_t al ) noexcept { return SPP::SPP_FREE(ptr); }			 \
+void operator delete  ( void* ptr, std::size_t sz, std::align_val_t al) noexcept { return SPP::SPP_FREE(ptr); }  \
+void operator delete[](void* ptr, std::size_t sz, std::align_val_t al) noexcept { return SPP::SPP_FREE(ptr); }  \
+void operator delete  (void* ptr, std::align_val_t al, const std::nothrow_t& tag) noexcept { return SPP::SPP_FREE(ptr); }  \
+void operator delete[]( void* ptr, std::align_val_t al, const std::nothrow_t& tag) noexcept { return SPP::SPP_FREE(ptr); }
 
 extern "C" SPP_CORE_API void C_IntializeCore();
