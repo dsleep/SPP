@@ -16,10 +16,10 @@ namespace SPP
 	LogEntry LOG_VULKAN("Vulkan");
 
 		
-	struct DXGraphicInterface : public IGraphicsInterface
+	struct VulkanGraphicInterface : public IGraphicsInterface
 	{
 		// hacky so one GGI per DLL
-		DXGraphicInterface()
+		VulkanGraphicInterface()
 		{
 			SET_GGI(this);
 		}
@@ -88,5 +88,5 @@ namespace SPP
 		}
 	};
 
-	static DXGraphicInterface staticDGI;
+	static VulkanGraphicInterface staticDGI;
 }

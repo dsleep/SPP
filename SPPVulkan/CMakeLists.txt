@@ -38,6 +38,16 @@ target_sources(SPPVulkan
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanTools.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanTools.h"
+
+		"${THIRD_PARTY}/ktx/lib/texture.c"
+		"${THIRD_PARTY}/ktx/lib/hashlist.c"
+		"${THIRD_PARTY}/ktx/lib/hashtable.c"
+
+		"${THIRD_PARTY}/ktx/lib/memstream.c"
+		"${THIRD_PARTY}/ktx/lib/filestream.c"
+
+		"${THIRD_PARTY}/ktx/lib/swap.c"
+		"${THIRD_PARTY}/ktx/lib/checkheader.c"
 		)
 
 target_include_directories(SPPVulkan 
