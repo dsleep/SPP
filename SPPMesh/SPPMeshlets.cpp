@@ -14,7 +14,7 @@
 #include <exception>
 	
 
-#include "SPPAssetCache.h"
+//#include "SPPAssetCache.h"
 
 namespace SPP
 {
@@ -520,7 +520,7 @@ namespace SPP
 		MetisRecurseAndReduce(CurrentGrapLayer->Child, DesiredNumberOfPartitions, DesiredMinPartitions, CurrentLayer+1);
 	}
 
-	Meshletizer::Meshletizer(const AssetPath& InAssetPath, std::shared_ptr< MeshTranslator> InTranslator, uint32_t InMaxVerts, uint32_t InMaxPrims)
+	Meshletizer::Meshletizer(const char *InAssetPath, std::shared_ptr< MeshTranslator> InTranslator, uint32_t InMaxVerts, uint32_t InMaxPrims)
 	{
 		SE_ASSERT(InTranslator);
 		SPP_LOG(LOG_MESHLET, LOG_INFO, "Meshletizer::Meshletizer VertCount %d TriCount %d MaxVerts %d MaxPrimts %d",
@@ -528,22 +528,22 @@ namespace SPP
 			InTranslator->GetIndexCount() / 3,
 			InMaxVerts, InMaxPrims);
 
-		_assetPath = InAssetPath;
+		//_assetPath = InAssetPath;
 		_translator = InTranslator;
 		_maxVerts = InMaxVerts;
 		_maxPrims = InMaxPrims;		
 
-		if (auto findBounds = GetCachedAsset(_assetPath, "Bounds"))
-		{
-			BinaryBlobSerializer& blobAsset = *findBounds;			
-			blobAsset >> _bounds;
-		}
-		else
+		//if (auto findBounds = GetCachedAsset(_assetPath, "Bounds"))
+		//{
+		//	BinaryBlobSerializer& blobAsset = *findBounds;			
+		//	blobAsset >> _bounds;
+		//}
+		//else
 		{			
 			_bounds = InTranslator->GetBounds();
 			BinaryBlobSerializer outCachedAsset;
 			outCachedAsset << _bounds;
-			PutCachedAsset(_assetPath, outCachedAsset, "Bounds");
+			//PutCachedAsset(_assetPath, outCachedAsset, "Bounds");
 		}
 
 		auto boundsExtents = _bounds.Extent();
@@ -682,7 +682,7 @@ namespace SPP
 			_translator->Store(outCachedAsset);
 			outCachedAsset << _nodes;
 			outCachedAsset << _meshlets;
-			PutCachedAsset(_assetPath, outCachedAsset, "NodalMeshletsV2");
+			//PutCachedAsset(_assetPath, outCachedAsset, "NodalMeshletsV2");
 			
 			//SPP_LOG(LOG_MESHLET, LOG_INFO, " - Total Tri Counts %d", TotalTriCount);
 			//SPP_LOG(LOG_MESHLET, LOG_INFO, " - Coarsified Count %d", NewTotalTriCount);
@@ -754,7 +754,7 @@ namespace SPP
 			primDest += builtMeshlets[j].PrimitiveIndices.size();
 		}
 
-		SPP_LOG(LOG_MESHLET, LOG_INFO, "MESHLET COMPUTE REPORT %s", *_assetPath);
+		SPP_LOG(LOG_MESHLET, LOG_INFO, "MESHLET COMPUTE REPORT");//% s", *_assetPath);
 		SPP_LOG(LOG_MESHLET, LOG_INFO, " - meshlets %d", builtMeshlets.size());
 		SPP_LOG(LOG_MESHLET, LOG_INFO, " - meshlet nodes %d", meshnodes.size());
 		SPP_LOG(LOG_MESHLET, LOG_INFO, " - uniqueVertexIndices count %d", uniqueVertexIndices.size() / sizeof(uint32_t));

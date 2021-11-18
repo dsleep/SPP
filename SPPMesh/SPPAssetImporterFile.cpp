@@ -4,7 +4,7 @@
 
 #include "SPPAssetImporterFile.h"
 #include "SPPSerialization.h"
-#include "SPPAssetCache.h"
+//#include "SPPAssetCache.h"
 #include "SPPMeshlets.h"
 #include "SPPMeshSimplifying.h"
 #include "SPPLogging.h"
@@ -137,12 +137,12 @@ namespace SPP
 	}
 
 
-	bool LoadUsingAssImp(const AssetPath& FileName, LoadedMeshes &oMeshes)
+	bool LoadUsingAssImp(const char* FileName, LoadedMeshes &oMeshes)
 	{
 		LogStream::initialize();
 
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(*FileName, GeneicStaticImportFlags);
+		const aiScene* scene = importer.ReadFile(FileName, GeneicStaticImportFlags);
 
 		uint32_t MeshCount = scene ? scene->mNumMeshes : 0;
 		if (scene && scene->HasMeshes())

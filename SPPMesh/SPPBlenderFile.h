@@ -8,5 +8,5 @@
 
 namespace SPP
 {
-	SPP_GRAPHICS_API bool LoadBlenderFile(const AssetPath& FileName, LoadedMeshes& oMeshes);
+	SPP_MESH_API bool LoadBlenderFile(const char *FileName, LoadedMeshes& oMeshes);
 }

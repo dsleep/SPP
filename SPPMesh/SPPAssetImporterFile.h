@@ -8,5 +8,5 @@
 
 namespace SPP
 {
-	SPP_GRAPHICS_API bool LoadUsingAssImp(const AssetPath& FileName, LoadedMeshes& oMeshes);
+	SPP_MESH_API bool LoadUsingAssImp(const char *FileName, LoadedMeshes& oMeshes);
 }

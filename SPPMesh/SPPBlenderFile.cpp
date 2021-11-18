@@ -4,7 +4,7 @@
 
 #include "SPPBlenderFile.h"
 #include "SPPSerialization.h"
-#include "SPPAssetCache.h"
+//#include "SPPAssetCache.h"
 #include "SPPMeshlets.h"
 #include "SPPMeshSimplifying.h"
 #include "SPPLogging.h"
@@ -1112,14 +1112,14 @@ namespace SPP
 	}
 
 
-	bool LoadBlenderFile(const AssetPath& FileName, LoadedMeshes& oMeshes)
+	bool LoadBlenderFile(const char *FileName, LoadedMeshes& oMeshes)
 	{
-		SPP_LOG(LOG_BLENDER, LOG_INFO, "Loading Asset: %s", *FileName);
+		SPP_LOG(LOG_BLENDER, LOG_INFO, "Loading Asset: %s", FileName);
 
 		fbtBlend blendfile; // we keep it scoped inside InitGL() to save memory
-		if (blendfile.parse(*FileName) != fbtFile::FS_OK)
+		if (blendfile.parse(FileName) != fbtFile::FS_OK)
 		{
-			SPP_LOG(LOG_BLENDER, LOG_INFO, "FAILED BLENDER LOAD: %s", *FileName);
+			SPP_LOG(LOG_BLENDER, LOG_INFO, "FAILED BLENDER LOAD: %s", FileName);
 			return false;
 		}
 

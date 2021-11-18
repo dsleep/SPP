@@ -9,10 +9,11 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <chrono>
+#include <set>
 
 namespace SPP
 {
-	SPP_GRAPHICS_API extern LogEntry LOG_MESHLET;
+	SPP_MESH_API extern LogEntry LOG_MESHLET;
 
 	struct Meshlet
 	{
@@ -275,7 +276,7 @@ namespace SPP
 	class Meshletizer
 	{
 	private:
-		AssetPath _assetPath;
+		//AssetPath _assetPath;
 		std::shared_ptr< MeshTranslator> _translator;
 
 		uint32_t _maxVerts;
@@ -288,7 +289,7 @@ namespace SPP
 		void _Meshletize();
 
 	public:
-		Meshletizer(const AssetPath &InAssetPath, std::shared_ptr< MeshTranslator> InTranslator, uint32_t InMaxVerts, uint32_t InMaxPrims);
+		Meshletizer(const char *InAssetPath, std::shared_ptr< MeshTranslator> InTranslator, uint32_t InMaxVerts, uint32_t InMaxPrims);
 		
 		bool ComputeMeshlets(
 			std::vector<Subset>& meshletSubsets,

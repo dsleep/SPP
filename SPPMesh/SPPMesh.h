@@ -4,10 +4,25 @@
 
 #pragma once
 
-#include "SPPGraphics.h"
-#include "SPPGPUResources.h"
+#include "SPPCore.h"
+
+#if _WIN32 && !defined(SPP_MESH_STATIC)
+
+	#ifdef SPP_MESH_EXPORT
+		#define SPP_MESH_API __declspec(dllexport)
+	#else
+		#define SPP_MESH_API __declspec(dllimport)
+	#endif
+
+#else
+
+	#define SPP_MESH_API 
+
+#endif
+
 #include "SPPMath.h"
-#include "SPPSceneRendering.h"
+#include "SPPPrimitiveShapes.h"
+#include "SPPArrayResource.h"
 #include <vector>
 #include <cstddef>
 #include <unordered_set>
@@ -312,11 +327,78 @@ namespace SPP
 		Vector3 color;
 	};
 
-
-	SPP_GRAPHICS_API void DrawAABB(const AABB& InAABB, std::vector< DebugVertex >& lines);
-	SPP_GRAPHICS_API void DrawSphere(const Sphere& InSphere, std::vector< DebugVertex >& lines);
+	SPP_MESH_API void DrawAABB(const AABB& InAABB, std::vector< DebugVertex >& lines);
+	SPP_MESH_API void DrawSphere(const Sphere& InSphere, std::vector< DebugVertex >& lines);
 	
-	class SPP_GRAPHICS_API MeshLayout
+	enum class MeshTypes
+	{
+		Simple,
+		Meshlets
+	};
+
+	struct SPP_MESH_API MeshElement
+	{
+		std::string Name;
+		//EDrawingTopology topology = EDrawingTopology::TriangleList;
+
+		Sphere Bounds;
+
+		int32_t MeshIndex = -1;
+		//
+		std::shared_ptr< ArrayResource > VertexResource;
+		std::shared_ptr< ArrayResource > IndexResource;
+
+		//std::shared_ptr< MeshMaterial > material;
+
+		virtual MeshTypes GetType() const
+		{
+			return MeshTypes::Simple;
+		}
+		virtual ~MeshElement()
+		{
+
+		}
+	};
+
+	struct SPP_MESH_API MeshletedElement : public MeshElement
+	{
+		// meshlet related
+		std::vector<struct MeshNode> MeshletNodes;
+		std::vector<struct Subset> MeshletSubsets;
+
+		//std::shared_ptr< GPUBuffer > MeshletResource;
+		//std::shared_ptr< GPUBuffer > UniqueVertexIndexResource;
+		//std::shared_ptr< GPUBuffer > PrimitiveIndexResource;
+		//std::shared_ptr< GPUBuffer > CullDataResource;
+
+		virtual MeshTypes GetType() const
+		{
+			return MeshTypes::Meshlets;
+		}
+
+		virtual ~MeshletedElement()
+		{
+
+		}
+	};
+
+	class SPP_MESH_API Mesh
+	{
+	protected:
+		std::vector< std::shared_ptr<MeshElement> > _elements;
+		Sphere _bounds;
+
+	public:
+		bool LoadMesh(const char* FileName);
+
+		std::vector< std::shared_ptr<MeshElement> >& GetMeshElements()
+		{
+			return _elements;
+		}
+	};
+
+#if 0
+	class SPP_MESH_API MeshLayout
 	{
 	private:
 		std::unique_ptr<GPUInputLayout> _meshVertexLayout;
@@ -343,7 +425,7 @@ namespace SPP
 		};
 	}
 
-	struct SPP_GRAPHICS_API Material
+	struct SPP_MESH_API Material
 	{
 		virtual MaterialTypes::BaseMaterials GetMaterialType() const
 		{
@@ -352,7 +434,7 @@ namespace SPP
 		virtual ~Material() {}
 	};
 
-	struct SPP_GRAPHICS_API PBRMaterialAsset : public Material
+	struct SPP_MESH_API PBRMaterialAsset : public Material
 	{
 	protected:
 		uint32_t _uniqueID = 0;
@@ -380,7 +462,7 @@ namespace SPP
 		virtual ~PBRMaterialAsset();
 	};
 
-	struct SPP_GRAPHICS_API MeshMaterial : public Material
+	struct SPP_MESH_API MeshMaterial : public Material
 	{
 		std::vector< GPUReferencer<GPUTexture> > textureArray;
 
@@ -415,131 +497,11 @@ namespace SPP
 		virtual ~MeshMaterial() { }
 	};
 	
-	//ugly update eventuallly
-	enum class MeshTypes
-	{
-		Simple,
-		Meshlets
-	};
+	
 
-	struct SPP_GRAPHICS_API MeshElement
-	{
-		std::string Name;
-		EDrawingTopology topology = EDrawingTopology::TriangleList;
+	
 
-		Sphere Bounds;
-
-		int32_t MeshIndex = -1;
-		//
-		GPUReferencer< GPUBuffer > VertexResource;
-		GPUReferencer< GPUBuffer > IndexResource;
-				
-		std::shared_ptr< MeshMaterial > material;
-
-		virtual MeshTypes GetType() const
-		{
-			return MeshTypes::Simple;
-		}
-		virtual ~MeshElement()
-		{
-
-		}
-	};	
-
-	struct SPP_GRAPHICS_API MeshletedElement : public MeshElement
-	{
-		// meshlet related
-		std::vector<struct MeshNode> MeshletNodes;
-		std::vector<struct Subset> MeshletSubsets;
-
-		std::shared_ptr< GPUBuffer > MeshletResource;
-		std::shared_ptr< GPUBuffer > UniqueVertexIndexResource;
-		std::shared_ptr< GPUBuffer > PrimitiveIndexResource;
-		std::shared_ptr< GPUBuffer > CullDataResource;
-
-		virtual MeshTypes GetType() const
-		{
-			return MeshTypes::Meshlets;
-		}
-
-		virtual ~MeshletedElement()
-		{
-
-		}
-	};
-
-	class SPP_GRAPHICS_API Mesh 
-	{
-	protected:
-		std::vector< std::shared_ptr<MeshElement> > _elements;
-		Sphere _bounds;
-
-	public:
-		bool LoadMesh(const AssetPath& FileName);
-
-		std::vector< std::shared_ptr<MeshElement> > &GetMeshElements()
-		{
-			return _elements;
-		}
-	};
-
-	class SPP_GRAPHICS_API RenderableMesh : public Renderable
-	{
-	protected:		
-		std::vector< std::shared_ptr<MeshElement> > _meshElements;
-
-	public:
-		void SetMeshData(const std::vector< std::shared_ptr<MeshElement> >& InMeshData)
-		{
-			_meshElements = InMeshData;
-		}
-	};
-
-	enum class EShapeOp : uint32_t
-	{
-		Add = 0,
-		Subtract,
-		Intersect
-	};
-
-	enum class EShapeType : uint32_t
-	{
-		Unknown = 0,
-		Sphere,
-		Box
-	};
-
-	struct SPP_GRAPHICS_API SDFShape
-	{
-		EShapeType shapeType = EShapeType::Unknown;
-		Vector3 translation = { 0,0,0 };
-
-		EShapeOp shapeOp = EShapeOp::Add;
-		Vector3 eulerRotation = { 0,0,0 };
-
-		Vector4 shapeBlendAndScale = { 0,0,0,0 };		
-		Vector4 params = { 0,0,0,0 };
-	};
-
-	class SPP_GRAPHICS_API RenderableSignedDistanceField : public Renderable
-	{
-	protected:
-		std::vector< SDFShape > _shapes;
-		Vector3 _color = { 0,0,0 };
-		GPUReferencer< GPUShader > _customShader;
-
-	public:
-		std::vector< SDFShape >& GetShapes()
-		{
-			return _shapes;
-		}
-		Vector3 & GetColor()
-		{
-			return _color;
-		}
-		void SetShader(GPUReferencer< GPUShader > InShader)
-		{
-			_customShader = InShader;
-		}
-	};
+	
+#endif
+		
 }

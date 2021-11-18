@@ -128,7 +128,7 @@ list(APPEND
 			"SPPCore" 
 			"SPPDatabase" 
 			"SPPNetworking" 
-			"SPPMath"
+			"SPPMath"			
 			 )
 
 if(USE_CRYPTOCPP)
@@ -158,7 +158,7 @@ if(OS_WINDOWS)
 	endif()
 
 	if(USE_GRAPHICS)
-		list(APPEND SPPProjects "SPPGraphics")
+		list(APPEND SPPProjects "SPPMesh" "SPPGraphics")
 		
 		if(USE_OBJECTS)
 			list(APPEND SPPProjects "SPPGraphicsO")

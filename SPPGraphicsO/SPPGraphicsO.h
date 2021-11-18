@@ -8,6 +8,7 @@
 #include "SPPGraphics.h"
 #include "SPPTextures.h"
 #include "SPPMesh.h"
+#include "SPPSceneRendering.h"
 
 #if _WIN32 && !defined(SPP_GRAPHICSO_STATIC)
 
@@ -93,6 +94,18 @@ namespace SPP
 		virtual void RemovedFromScene(class OScene* InScene) override;
 
 		virtual ~ORenderableElement() { }
+	};
+
+	class SPP_GRAPHICSO_API RenderableMesh : public Renderable
+	{
+	protected:
+		std::vector< std::shared_ptr<MeshElement> > _meshElements;
+
+	public:
+		void SetMeshData(const std::vector< std::shared_ptr<MeshElement> >& InMeshData)
+		{
+			_meshElements = InMeshData;
+		}
 	};
 
 	class SPP_GRAPHICSO_API OMeshElement : public ORenderableElement

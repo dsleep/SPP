@@ -58,8 +58,9 @@ namespace SPP
 			}
 		}
 
-		newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
-		newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, indicesResource);
+		//TODO FIXXORS TERRAIN
+		//newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, verticesResource);
+		//newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, indicesResource);
 
 		_elements.push_back(newMeshElement);
 	}

@@ -4,7 +4,8 @@
 
 #include "SPPMesh.h"
 #include "SPPSerialization.h"
-#include "SPPAssetCache.h"
+#include "SPPLogging.h"
+//#include "SPPAssetCache.h"
 #include "SPPMeshlets.h"
 #include "SPPMeshSimplifying.h"
 #include "SPPLogging.h"
@@ -76,11 +77,11 @@ namespace SPP
 		return Storage;
 	}
 	
-	bool Mesh::LoadMesh(const AssetPath& FileName)
+	bool Mesh::LoadMesh(const char *FileName)
 	{
 		SPP_LOG(LOG_MESH, LOG_INFO, "Loading Mesh: %s", *FileName);
 
-		auto FoundCachedBlob = GetCachedAsset(FileName);
+		std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob;// = false;// GetCachedAsset(FileName);
 
 		if (false)//FoundCachedBlob)
 		{
@@ -104,8 +105,8 @@ namespace SPP
 				blobAsset >> *IndexResource;
 
 				auto newMeshElement = std::make_shared<MeshElement>();
-				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, VertexResource);
-				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, IndexResource);
+				newMeshElement->VertexResource = VertexResource;// GGI()->CreateStaticBuffer(GPUBufferType::Vertex, VertexResource);
+				newMeshElement->IndexResource = IndexResource;// GGI()->CreateStaticBuffer(GPUBufferType::Index, IndexResource);
 				newMeshElement->Bounds = curBounds;
 				newMeshElement->Name = LayerName;
 
@@ -180,8 +181,8 @@ namespace SPP
 			for (auto& curLayer : loadedMeshes.Layers)
 			{
 				auto newMeshElement = std::make_shared<MeshElement>();
-				newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
-				newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
+				//newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
+				//newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
 				newMeshElement->Bounds = curLayer.bounds;
 				newMeshElement->Name = curLayer.Name;
 
@@ -396,12 +397,15 @@ namespace SPP
 			//	return false;
 			//}
 
-			PutCachedAsset(FileName, outCachedAsset);
+			//TODO DISABLED
+			//PutCachedAsset(FileName, outCachedAsset);
 		}
 
 		return true;
 	}
 
+
+#if 0
 	static uint32_t GHighestMaterialID = 0;
 	static std::list<uint32_t> GAvailableMatIDs;
 
@@ -500,4 +504,5 @@ namespace SPP
 
 		GPBRMaterials->SetData(pbrData, _uniqueID);
 	}
+#endif
 }

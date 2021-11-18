@@ -124,7 +124,7 @@ namespace SPP
 		std::vector<BoneInfo*> rootBoneInfos;
 	};
 
-	class SPP_GRAPHICS_API SkinnedMesh : public Mesh
+	class SPP_MESH_API SkinnedMesh : public Mesh
 	{
 	protected:
 
@@ -132,17 +132,17 @@ namespace SPP
 
 	};
 
-	class SPP_GRAPHICS_API RenderableSkinnedMesh : public RenderableMesh
-	{
-	protected:
-		std::vector< std::shared_ptr<MeshElement> > _meshElements;
+	//class SPP_MESH_API RenderableSkinnedMesh : public RenderableMesh
+	//{
+	//protected:
+	//	std::vector< std::shared_ptr<MeshElement> > _meshElements;
 
-	public:
-		void SetMeshData(const std::vector< std::shared_ptr<MeshElement> >& InMeshData)
-		{
-			_meshElements = InMeshData;
-		}
-	};
+	//public:
+	//	void SetMeshData(const std::vector< std::shared_ptr<MeshElement> >& InMeshData)
+	//	{
+	//		_meshElements = InMeshData;
+	//	}
+	//};
 
 	//SPP_GRAPHICS_API std::shared_ptr<RenderableSkinnedMesh> CreateRenderableSkinnedMesh(bool bIsStatic = false);
 }

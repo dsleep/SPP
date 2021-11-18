@@ -9,8 +9,8 @@
 
 namespace SPP
 {
-	SPP_GRAPHICS_API Vector3 barycentric(const Vector3& p, const Vector3& a, const Vector3& b, const Vector3& c);
-	SPP_GRAPHICS_API Vector2 interpolate(const Vector3& p, const Vector3& a, const Vector3& b, const Vector3& c, const Vector2 attrs[3]);
+	SPP_MESH_API Vector3 barycentric(const Vector3& p, const Vector3& a, const Vector3& b, const Vector3& c);
+	SPP_MESH_API Vector2 interpolate(const Vector3& p, const Vector3& a, const Vector3& b, const Vector3& c, const Vector2 attrs[3]);
 
 	namespace Simplify
 	{
@@ -79,7 +79,7 @@ namespace SPP
 			double m[10];
 		};
 
-		SPP_GRAPHICS_API double vertex_error(SymetricMatrix q, double x, double y, double z);
+		SPP_MESH_API double vertex_error(SymetricMatrix q, double x, double y, double z);
 
 		/////////////////////////////////////////////
 		//
