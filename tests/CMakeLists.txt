@@ -84,75 +84,75 @@ set_property(TARGET appTransferTest PROPERTY FOLDER "TESTS")
 set_property(TARGET appTransferTest PROPERTY VS_DPI_AWARE "PerMonitor")
 
 
-if(USE_GRAPHICS AND USE_DX12)
-	####################
-	# basic opengl app
-	####################
-	add_executable( testOpenGLApp WIN32 "")
-	add_dependencies( testOpenGLApp SPPGraphics SPPOpenGL )			
-	target_sources( testOpenGLApp 
-		PRIVATE 
-			"${CMAKE_CURRENT_LIST_DIR}/testOpenGLApp.cpp" )		
-	target_link_libraries( testOpenGLApp 
-		PRIVATE
-			SPPGraphics )
-	set_target_properties( testOpenGLApp PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-	set_property(TARGET testOpenGLApp PROPERTY FOLDER "TESTS")
-	set_property(TARGET testOpenGLApp PROPERTY VS_DPI_AWARE "PerMonitor")
+if(USE_GRAPHICS)
+	# ####################
+	# # basic opengl app
+	# ####################
+	# add_executable( testOpenGLApp WIN32 "")
+	# add_dependencies( testOpenGLApp SPPGraphics SPPOpenGL )			
+	# target_sources( testOpenGLApp 
+		# PRIVATE 
+			# "${CMAKE_CURRENT_LIST_DIR}/testOpenGLApp.cpp" )		
+	# target_link_libraries( testOpenGLApp 
+		# PRIVATE
+			# SPPGraphics )
+	# set_target_properties( testOpenGLApp PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	# set_property(TARGET testOpenGLApp PROPERTY FOLDER "TESTS")
+	# set_property(TARGET testOpenGLApp PROPERTY VS_DPI_AWARE "PerMonitor")
 	
 	####################
 	# basic dx 12 app
 	####################
-	add_executable( testDX12App WIN32 "")
-	add_dependencies( testDX12App SPPGraphics SPPDX12 )			
-	target_sources( testDX12App 
+	add_executable( testGraphicsApp WIN32 "")
+	add_dependencies( testGraphicsApp SPPGraphics ${SPPGDI} )			
+	target_sources( testGraphicsApp 
 		PRIVATE 
-			"${CMAKE_CURRENT_LIST_DIR}/testDX12App.cpp" )		
-	target_link_libraries( testDX12App 
+			"${CMAKE_CURRENT_LIST_DIR}/testGraphicsApp.cpp" )		
+	target_link_libraries( testGraphicsApp 
 		PRIVATE
 			SPPGraphics )
-	set_target_properties( testDX12App PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-	set_property(TARGET testDX12App PROPERTY FOLDER "TESTS")
-	set_property(TARGET testDX12App PROPERTY VS_DPI_AWARE "PerMonitor")
+	set_target_properties( testGraphicsApp PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	set_property(TARGET testGraphicsApp PROPERTY FOLDER "TESTS")
+	set_property(TARGET testGraphicsApp PROPERTY VS_DPI_AWARE "PerMonitor")
 
-	####################
-	# basic dx 12 app with CEF
-	####################
-	add_executable( testDX12withCEFeditor WIN32 "")
-	add_dependencies( testDX12withCEFeditor SPPSDFO SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess )			
-	target_sources( testDX12withCEFeditor 
-		PRIVATE 
-			"${CMAKE_CURRENT_LIST_DIR}/testDX12withCEFeditor.cpp"		
-			"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
-	target_link_libraries( testDX12withCEFeditor 
-		PRIVATE
-			SPPSDFO
-			SPPGraphics
-			SPPCEFUserInterface )
-	set_target_properties( testDX12withCEFeditor PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-	set_property(TARGET testDX12withCEFeditor PROPERTY FOLDER "TESTS")
-	#set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor")
+	# ####################
+	# # basic dx 12 app with CEF
+	# ####################
+	# add_executable( testDX12withCEFeditor WIN32 "")
+	# add_dependencies( testDX12withCEFeditor SPPSDFO SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess )			
+	# target_sources( testDX12withCEFeditor 
+		# PRIVATE 
+			# "${CMAKE_CURRENT_LIST_DIR}/testDX12withCEFeditor.cpp"		
+			# "${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
+	# target_link_libraries( testDX12withCEFeditor 
+		# PRIVATE
+			# SPPSDFO
+			# SPPGraphics
+			# SPPCEFUserInterface )
+	# set_target_properties( testDX12withCEFeditor PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	# set_property(TARGET testDX12withCEFeditor PROPERTY FOLDER "TESTS")
+	# #set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor")
 
 	
-	####################
-	# high render count
-	####################
-	add_executable( testHighRenderableCount WIN32 "")
-	add_dependencies( testHighRenderableCount SPPSDFO SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess SPPSceneO SPPGraphicsO )			
-	target_sources( testHighRenderableCount 
-		PRIVATE 
-			"${CMAKE_CURRENT_LIST_DIR}/testHighRenderableCount.cpp"		
-			"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
-	target_link_libraries( testHighRenderableCount 
-		PRIVATE
-			SPPSDFO
-			SPPGraphics
-			SPPCEFUserInterface
-			SPPSceneO
-			SPPGraphicsO )
-	set_target_properties( testHighRenderableCount PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-	set_property(TARGET testHighRenderableCount PROPERTY FOLDER "TESTS")
-	#set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor"
+	# ####################
+	# # high render count
+	# ####################
+	# add_executable( testHighRenderableCount WIN32 "")
+	# add_dependencies( testHighRenderableCount SPPSDFO SPPGraphics SPPDX12 SPPCEFUserInterface CEFProcess SPPSceneO SPPGraphicsO )			
+	# target_sources( testHighRenderableCount 
+		# PRIVATE 
+			# "${CMAKE_CURRENT_LIST_DIR}/testHighRenderableCount.cpp"		
+			# "${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
+	# target_link_libraries( testHighRenderableCount 
+		# PRIVATE
+			# SPPSDFO
+			# SPPGraphics
+			# SPPCEFUserInterface
+			# SPPSceneO
+			# SPPGraphicsO )
+	# set_target_properties( testHighRenderableCount PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	# set_property(TARGET testHighRenderableCount PROPERTY FOLDER "TESTS")
+	# #set_property(TARGET testDX12withCEFeditor PROPERTY VS_DPI_AWARE "PerMonitor"
 endif()
 
 endif()

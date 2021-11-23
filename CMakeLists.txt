@@ -64,7 +64,6 @@ set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
 set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
 set(USE_WINRT ON CACHE BOOL "Use C++/WinRt")
 
-
 if(OS_WINDOWS)
 	set(WIN_SDK_REG "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0")
 
@@ -166,14 +165,17 @@ if(OS_WINDOWS)
 		
 		if(USE_DX12)
 			list(APPEND SPPProjects "SPPDX12")	
+			list(APPEND SPPGDI "SPPDX12")
 		endif()	
 		
 		if(USE_OPENGL)
 			list(APPEND SPPProjects "SPPOpenGL")	
+			list(APPEND SPPGDI "SPPOpenGL")
 		endif()
 		
 		if(USE_VULKAN)
 			list(APPEND SPPProjects "SPPVulkan")	
+			list(APPEND SPPGDI "SPPVulkan")
 		endif()
 
 		if(USE_OBJECTS)
@@ -189,7 +191,9 @@ if(OS_WINDOWS)
 	
 endif()
 
-list(APPEND SPPProjects "applications" ) 
+message( STATUS "SPP GDI LIST: ${SPPGDI}" )
+
+list(APPEND SPPProjects "applications" "tests" ) 
 #"tests" "assets" )
 
 # swapped to wxwidgets	

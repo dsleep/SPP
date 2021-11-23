@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(SPPVulkan_API VERSION 1.0.0 LANGUAGES CXX)
 
+add_definitions(-DUSE_VULKAN=1)
+
 add_library(SPPVulkan SHARED "")
 
 set_target_properties(SPPVulkan PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})

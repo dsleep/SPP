@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(SPPOpenGL_API VERSION 1.0.0 LANGUAGES CXX)
 
+add_definitions(-DUSE_OPENGL=1)
+
 add_library(SPPOpenGL SHARED "")
 
 set_target_properties(SPPOpenGL PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})

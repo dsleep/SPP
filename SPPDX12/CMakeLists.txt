@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 project(SPPDX12_API VERSION 1.0.0 LANGUAGES CXX)
 
+add_definitions(-DUSE_DX12=1)
+
 add_library(SPPDX12 SHARED "")
 
 set_target_properties(SPPDX12 PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPDX12 SPPEngine )
+add_dependencies( SPPDX12 SPPEngine SPPGraphics SPPMesh SPPGraphicsO )
 			
 target_sources( SPPDX12
 	PRIVATE			
@@ -53,7 +55,9 @@ target_link_directories(SPPDX12
 target_link_libraries( SPPDX12 
 	PUBLIC
 		SPPEngine
-		SPPGraphics	)
+		SPPGraphics
+		SPPMesh
+		SPPGraphicsO )
 		
 target_link_libraries( SPPDX12 
 	PRIVATE

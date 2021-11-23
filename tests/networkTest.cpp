@@ -8,7 +8,7 @@
 #include <set>
 
 #include "SPPMemory.h"
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 
 #include "SPPNetworkConnection.h"
 #include "SPPNetworkMessenger.h"

@@ -13,6 +13,9 @@ add_subdirectory("SPPAssetManagement")
 message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
 add_subdirectory("SPPRemoteApplicationwxWidgets")
 
+message( STATUS "Adding Application: SPPMesher" )
+add_subdirectory("SPPMesher")
+
 ##########
 add_executable( simpleconnectioncoordinator "")
 add_dependencies( simpleconnectioncoordinator SPPNetworking )			

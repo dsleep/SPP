@@ -45,6 +45,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 
+#ifdef _DEBUG
+	LoadLibraryA("SPPDX12d.dll");
+#else
+	LoadLibraryA("SPPDX12.dll");
+#endif
+
 	//Alloc Console
 	//print some stuff to the console
 	//make sure to include #include "stdio.h"
@@ -72,7 +78,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		auto dx12Device = GGI()->CreateGraphicsDevice();
 		dx12Device->Initialize(1280, 720, app->GetOSWindow());
-
 
 		auto mainScene = GGI()->CreateRenderScene();
 		auto& cam = mainScene->GetCamera();
