@@ -63,6 +63,15 @@ HWND find_main_window(uint32_t process_id)
 
 const uint8_t KeyBoardMessage = 0x02;
 const uint8_t MouseMessage = 0x03;
+const uint8_t BTMessage = 0x04;
+
+struct IPCMotionState
+{
+	int32_t buttonState[2];
+	float motionXY[2];
+	float orientationQuaternion[4];
+};
+
 
 /// <summary>
 /// 
@@ -72,6 +81,8 @@ class VideoConnection : public NetworkConnection
 protected:
 	std::unique_ptr< VideoEncodingInterface> VideoEncoder;
 	std::chrono::high_resolution_clock::time_point LastImageCap;
+
+	std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
 
 	uint32_t ProcessID = 0;
 	std::vector<uint8_t> ImageData;
@@ -86,10 +97,15 @@ public:
 	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer, true)
 	{
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
-
+		
 		if (!InAppPath.empty())
 		{
-			ProcessID = CreateChildProcess(InAppPath.c_str(), AppCommandline.c_str());
+			auto MemShareID = std::generate_hex(3);
+			std::string WithMemShare = AppCommandline + std::string_format(" --MEMSHARE=%s", MemShareID.c_str());
+
+			//IPC TO SHARE WITH SOFA
+			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState), true);
+			ProcessID = CreateChildProcess(InAppPath.c_str(), WithMemShare.c_str());
 		}
 	}
 
@@ -188,6 +204,73 @@ public:
 
 				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
 #endif
+			}
+			//BT message
+			else if (msgType == BTMessage)
+			{
+				std::string JsonMessage;
+				DataView >> JsonMessage;
+
+				SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived JSON %s", JsonMessage.c_str());
+
+				Json::Value jsonMessageParsed;
+				if (StringToJson(JsonMessage, jsonMessageParsed))
+				{
+					Json::Value dataValue = jsonMessageParsed.get("data", Json::Value::nullSingleton());
+					if (!dataValue.isNull())
+					{
+						std::string DataSet = dataValue.asCString();
+						auto SplitData = std::str_split(DataSet, ',');
+
+						if (SplitData.size() >= 8)
+						{
+							IPCMotionState newMessage;
+							newMessage.buttonState[0] = std::atoi(SplitData[0].c_str());
+							newMessage.buttonState[1] = std::atoi(SplitData[1].c_str());
+
+							newMessage.motionXY[0] = std::atof(SplitData[2].c_str());
+							newMessage.motionXY[1] = std::atof(SplitData[3].c_str());
+
+							newMessage.orientationQuaternion[0] = std::atof(SplitData[4].c_str());
+							newMessage.orientationQuaternion[1] = std::atof(SplitData[5].c_str());
+							newMessage.orientationQuaternion[2] = std::atof(SplitData[6].c_str());
+							newMessage.orientationQuaternion[3] = std::atof(SplitData[7].c_str());
+
+							_mappedSofaMem->WriteMemory(&newMessage, sizeof(IPCMotionState));
+						}
+
+						/* SOFA TIPS EXAMPLE CODE:
+
+						struct IPCMotionState
+						{
+							int32_t buttonState[2];
+							float motionXY[2];
+							float orientationQuaternion[4];
+						};
+
+						//parsed from -MEMSHARE= commandline argument
+						std::string MemShareID;
+						std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
+						std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
+						_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
+						_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(uint32_t));
+
+						// get all BT messages, and it will auto clear them
+						auto Messages = _msgQueue->GetMessages();
+						for (auto& curMessage : Messages)
+						{
+							//curMessage.buttonState[0]
+							//curMessage.motionXY[0]
+							//curMessage.orientationQuaternion[0]
+						}
+
+						// send buzz back
+						static uint32_t buzzCounter = 1;
+						_mappedSofaMem->WriteMemory(&buzzCounter, sizeof(buzzCounter));
+						buzzCounter++;
+						*/
+					}
+				}
 			}
 		}
 	}

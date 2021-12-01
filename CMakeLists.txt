@@ -71,6 +71,10 @@ if(OS_WINDOWS)
 	GET_FILENAME_COMPONENT(WIN10_SDK_VER "[${WIN_SDK_REG};ProductVersion]" ABSOLUTE CACHE)
 	message(STATUS "WIN10_SDK = ${WIN10_SDK}")
 	message(STATUS "WIN10_SDK_VER = ${WIN10_SDK_VER}")
+
+	if(USE_WINRT)
+		add_definitions(-DHAS_WINRT=1)
+	endif()
 endif()
 
 if(USE_OBJECTS)

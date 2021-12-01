@@ -38,6 +38,10 @@
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 
+#if PLATFORM_WINDOWS && HAS_WINRT
+	#include "SPPWinRTBTE.h"
+#endif
+
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace SPP;
@@ -60,6 +64,93 @@ struct RemoteClient
 };
 
 class VideoConnection;
+
+static std::vector<uint8_t> startMessage = { 0, 1, 2, 3 };
+static std::vector<uint8_t> endMessage = { 3, 2, 1, 0 };
+
+class SimpleJSONPeerReader
+{
+protected:
+	std::vector<uint8_t> streamData;
+	std::vector<uint8_t> recvBuffer;
+	std::shared_ptr< Interface_PeerConnection > _peerLink;
+	std::function<void(const std::string&)> _handler;
+public:
+	SimpleJSONPeerReader(std::shared_ptr< Interface_PeerConnection > InPeer,
+		std::function<void(const std::string&)> InMsgHandler) : _peerLink(InPeer), _handler(InMsgHandler)
+	{
+	}
+
+	bool IsValid()
+	{
+		if (_peerLink)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	void Tick()
+	{
+		if (_peerLink)
+		{
+			if (_peerLink->IsBroken())
+			{
+				SPP_LOG(LOG_APP, LOG_INFO, "PEER LINK BROKEN");
+				_peerLink.reset();
+				return;
+			}
+		}
+		else
+		{
+			return;
+		}
+
+		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
+		auto DataRecv = _peerLink->Receive(recvBuffer.data(), recvBuffer.size());
+		if (DataRecv > 0)
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, "GOT BT DATA: %d", DataRecv);
+
+			streamData.insert(streamData.end(), recvBuffer.begin(), recvBuffer.begin() + DataRecv);
+
+			auto FindStart = std::search(streamData.begin(), streamData.end(), startMessage.begin(), startMessage.end());
+
+			if (FindStart != streamData.end())
+			{
+				auto FindEnd = std::search(FindStart, streamData.end(), endMessage.begin(), endMessage.end());
+
+				if (FindEnd != streamData.end())
+				{
+					std::string messageString(FindStart + startMessage.size(), FindEnd);
+					MessageReceived(messageString);
+					streamData.erase(streamData.begin(), FindEnd + endMessage.size());
+				}
+			}
+
+			// just in case it gets stupid big
+			if (streamData.size() > 500)
+			{
+				streamData.clear();
+			}
+		}
+	}
+
+	void MessageReceived(const std::string& InMessage)
+	{
+		SPP_LOG(LOG_APP, LOG_INFO, "MessageReceived: %s", InMessage.c_str());
+		if (_handler)
+		{
+			_handler(InMessage);
+		}
+	}
+
+	void SendMessage(const void* buffer, uint16_t sendSize)
+	{
+		_peerLink->Send(buffer, sendSize);
+	}
+};
+
 
 /// <summary>
 /// 
@@ -924,6 +1015,7 @@ void SPPApp(int argc, char* argv[])
 	//
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
 
+	auto LastBTTime = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
 
@@ -934,6 +1026,39 @@ void SPPApp(int argc, char* argv[])
 	std::shared_ptr< VideoConnection > videoConnection;
 
 	using namespace std::chrono_literals;
+
+	//BLUTETOOTH STUFFS
+	std::shared_ptr< SimpleJSONPeerReader > JSONParserConnection;
+	//START UP RFCOMM BT
+	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
+	listenSocket->Listen();
+	//START UP BTE
+#if PLATFORM_WINDOWS && HAS_WINRT
+	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
+	{
+		LastBTTime = std::chrono::steady_clock::now();
+
+		if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
+		{
+			BinaryBlobSerializer thisMessage;
+			thisMessage << (uint8_t)2;
+			thisMessage << InMessage;
+			videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+		}
+	};
+
+	auto dataOne = [&sendBTDataTOManager](uint8_t* InData, size_t DataSize)
+	{
+		std::string strConv(InData, InData + DataSize);
+		sendBTDataTOManager(strConv);
+	};
+
+	BTEWatcher watcher;
+	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
+		{
+			{ "366DEE95-85A3-41C1-A507-8C3E02342001", dataOne }
+		});
+#endif
 
 	std::vector<uint8_t> BufferRead;
 	BufferRead.resize(1024);
@@ -988,11 +1113,35 @@ void SPPApp(int argc, char* argv[])
 		coordinator->Update();
 		auto CurrentTime = std::chrono::steady_clock::now();
 
+		//BLUETOOTH SYSTEM
+		if (JSONParserConnection)
+		{
+			if (JSONParserConnection->IsValid())
+			{
+				JSONParserConnection->Tick();
+			}
+			else
+			{
+				JSONParserConnection.reset();
+			}
+		}
+		else
+		{
+			auto newBTConnection = listenSocket->Accept();
+			if (newBTConnection)
+			{
+				JSONParserConnection = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
+				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
+			}
+		}
+		//
+		 
 		//write status
 		{
 			Json::Value JsonMessage;
 			JsonMessage["COORD"] = coordinator->IsConnected();
 			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
+			JsonMessage["BLUETOOTH"] = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime - LastBTTime).count() < 1000;
 
 			if (!videoConnection)
 			{

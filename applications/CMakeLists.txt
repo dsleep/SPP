@@ -65,18 +65,22 @@ endif()
 ####################
 # remoteviewer
 ####################
-add_executable( remoteviewer "")
-add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo )
-target_sources( remoteviewer
-    PRIVATE
-        "${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )
-target_link_libraries( remoteviewer
-    PRIVATE
-        SPPNetworking
-        SPPEngine
-        SPPVideo )
-        
+if(OS_WINDOWS)
+
+    add_executable( remoteviewer "")
+    add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo SPPWinRTBTE )
+    target_sources( remoteviewer
+        PRIVATE
+            "${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
+            "${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )
+    target_link_libraries( remoteviewer
+        PRIVATE
+            SPPNetworking
+            SPPEngine
+            SPPVideo 
+            SPPWinRTBTE )        
+endif()
+
 set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")

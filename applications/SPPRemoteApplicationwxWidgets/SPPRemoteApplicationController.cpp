@@ -79,6 +79,13 @@ private:
 	wxListBox* _serverList = nullptr;
 	std::vector< HostFromCoord> _hostList;
 
+	
+	wxStaticText* _WorkerStatus = nullptr;
+	wxStaticText* _BTStatus = nullptr;
+	wxStaticText* _ConnectionStatus = nullptr;
+	wxStaticText* _CoordStatus = nullptr;
+	wxStaticText* _StunStatus = nullptr;
+
 	void OnButton_Connect(wxCommandEvent& event);
 	void OnButton_Disconnect(wxCommandEvent& event);
 
@@ -86,11 +93,12 @@ private:
 	bool _bCoord = false;
 	bool _bStun = false;
 	uint8_t _connectStatus = 0;
+	bool _bBT = false;
 
 	wxDECLARE_EVENT_TABLE();
 
 public:
-	void UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN);
+	void UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN, bool BT);
 	void SetHosts(const std::vector< HostFromCoord >& InHosts);
 };
 enum
@@ -119,7 +127,7 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	SetIcon(wxICON(sppapp));
 #endif
 	CreateStatusBar();
-	SetStatusText("Worker not started...");
+	SetStatusText("TIPS Remote Application Controller v2.0");
 
 	auto vertSizer = new wxBoxSizer(wxVERTICAL);	
 
@@ -144,44 +152,51 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 		
 	vertSizer->Add(buttonSizer,0, wxALL, 5);
 
+	_WorkerStatus = new wxStaticText(this, wxID_ANY, "Worker: NOT OK");
+	_BTStatus = new wxStaticText(this, wxID_ANY, "BT: NOT OK");
+	_ConnectionStatus = new wxStaticText(this, wxID_ANY, "Connection: NOT OK");
+	_CoordStatus = new wxStaticText(this, wxID_ANY, "Coordinator: NOT OK");
+	_StunStatus = new wxStaticText(this, wxID_ANY, "STUN: NOT OK");
+
+	vertSizer->Add(_WorkerStatus, 0, wxALL, 5);
+	vertSizer->Add(_BTStatus, 0, wxALL, 5);
+	vertSizer->Add(_ConnectionStatus, 0, wxALL, 5);
+	vertSizer->Add(_CoordStatus, 0, wxALL, 5);
+	vertSizer->Add(_StunStatus, 0, wxALL, 5);
+
 	vertSizer->SetMinSize(640, 100);
 
 	SetSizerAndFit(vertSizer);
 }
 
-void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN)
+void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN, bool BT)
 {
 	bool bDoUpdate = false;
 
 	if (Worker != _bWorker)
 	{
 		_bWorker = Worker;
-		bDoUpdate = true;
+		_WorkerStatus->SetLabelText(_bWorker ? "Worker: OK" : "Worker: NOT OK");
 	}
 	if (Coordinator != _bCoord)
 	{
 		_bCoord = Coordinator;
-		bDoUpdate = true;
+		_CoordStatus->SetLabelText(_bCoord ? "Coordinator: OK" : "Coordinator: NOT OK");
 	}
 	if (STUN != _bStun)
 	{
 		_bStun = STUN;
-		bDoUpdate = true;
+		_StunStatus->SetLabelText(_bStun ? "STUN: OK" : "STUN: NOT OK");
 	}
 	if (ConnectionStatus != _connectStatus)
 	{
 		_connectStatus = ConnectionStatus;
-		bDoUpdate = true;
+		_ConnectionStatus->SetLabelText(_connectStatus ? "Connection: OK" : "Connection: NOT OK");
 	}
-	if (bDoUpdate)
+	if (BT != _bBT)
 	{
-		std::string ArgString = std::string_format("Worker: %s, Coordinator: %s, STUN: %s, Connection: %s",
-			_bWorker ? "GOOD" : "BAD",
-			_bCoord ? "GOOD" : "NOT CONNECTED",
-			_bStun ? "GOOD" : "NOT CONNECTED",
-			_connectStatus ? "GOOD" : "NOT CONNECTED");
-
-		SetStatusText(ArgString.c_str());
+		_bBT = BT;
+		_BTStatus->SetLabelText(_bBT ? "BT: OK" : "BT: NOT OK");
 	}
 }
 
@@ -228,7 +243,7 @@ void WorkerThread()
 			{
 				appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance]()
 					{
-						appInstance->GetFrame()->UpdateStatus(0, false, false, false);
+						appInstance->GetFrame()->UpdateStatus(0, false, false, false, false);
 					});
 			}
 			break;
@@ -248,12 +263,14 @@ void WorkerThread()
 				{
 					auto hasCoord = outRoot["COORD"].asUInt();
 					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
+					auto btConn = outRoot["BLUETOOTH"].asUInt();
+					
 					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
 										
 					auto appInstance = (MyApp*)wxApp::GetInstance();
-					appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun]()
+					appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun, btConn]()
 						{
-							appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun);
+							appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun, btConn);
 						});
 					
 
