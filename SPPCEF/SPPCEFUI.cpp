@@ -33,6 +33,47 @@ using namespace client;
 
 namespace SPP
 {
+    struct CEFMessageList::ListImpl
+    {
+        CefRefPtr<CefListValue> cefList;
+
+        ListImpl()
+        {
+            cefList = CefListValue::Create();
+        }
+    };
+
+
+    CEFMessageList::CEFMessageList() : _impl(new ListImpl())
+    {
+    }
+
+    CEFMessageList::~CEFMessageList()
+    {
+    }
+
+    bool CEFMessageList::SetBool(size_t index, bool value)
+    {
+        return _impl->cefList->SetBool(index, value);
+    }
+    bool CEFMessageList::SetInt(size_t index, int value)
+    {
+        return _impl->cefList->SetInt(index, value);
+    }
+    bool CEFMessageList::SetDouble(size_t index, double value)
+    {
+        return _impl->cefList->SetDouble(index, value);
+    }
+    bool CEFMessageList::SetString(size_t index, const std::string& value)
+    {
+        return _impl->cefList->SetString(index, value);
+    }
+    bool CEFMessageList::SetList(size_t index, const CEFMessageList& value)
+    {        
+        return _impl->cefList->SetList(index, value._impl->cefList);
+    }
+
+
     struct CEFMessage::CEFMessageImpl
     {
         CefRefPtr<CefProcessMessage> msg;
@@ -45,31 +86,15 @@ namespace SPP
         }
     };
 
-    CEFMessage::CEFMessage(const char* MessageName) : _impl(new CEFMessageImpl(MessageName))
+    CEFMessage::CEFMessage(const char* MessageName) : _implMsg(new CEFMessageImpl(MessageName))
     {
+        // kinda wasteful it deallocates other but simple
+        _impl->cefList = _implMsg->args;
     }
 
     CEFMessage::~CEFMessage()
     {
     }
-
-    bool CEFMessage::SetBool(size_t index, bool value)
-    {
-        return _impl->args->SetBool(index, value);
-    }
-    bool CEFMessage::SetInt(size_t index, int value)
-    {
-        return _impl->args->SetInt(index, value);
-    }
-    bool CEFMessage::SetDouble(size_t index, double value)
-    {
-        return _impl->args->SetDouble(index, value);
-    }
-    bool CEFMessage::SetString(size_t index, const std::string& value)
-    {
-        return _impl->args->SetString(index, value);
-    }
-
     bool CEFMessage::Send()
     {
         if (client::MainContextImpl::Get() &&
@@ -77,7 +102,7 @@ namespace SPP
             client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser() &&
             client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser()->GetMainFrame())
         {
-            client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, _impl->msg);
+            client::MainContextImpl::Get()->GetRootWindowManager()->GetActiveBrowser()->GetMainFrame()->SendProcessMessage(PID_RENDERER, _implMsg->msg);
             return true;
         }
         return false;

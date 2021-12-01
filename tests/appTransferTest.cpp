@@ -12,7 +12,7 @@
 #include "SPPMemory.h"
 #include "SPPNetworkConnection.h"
 #include "SPPNetworkMessenger.h"
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 
 #include "SPPFileSystem.h"
 

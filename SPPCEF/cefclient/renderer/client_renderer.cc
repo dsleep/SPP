@@ -112,6 +112,9 @@ CefRefPtr<CefV8Value> GetListIndexAsValue(int index, CefRefPtr<CefListValue> val
 	case VTYPE_STRING:
 		new_value = CefV8Value::CreateString(value->GetString(index));
 		break;
+	//case VTYPE_BINARY:
+	//	new_value = CefV8Value::CreateArrayBuffer 
+	//	break;
 	default:
 		break;
 	}

@@ -79,7 +79,7 @@ namespace SPP
 	
 	bool Mesh::LoadMesh(const char *FileName)
 	{
-		SPP_LOG(LOG_MESH, LOG_INFO, "Loading Mesh: %s", *FileName);
+		SPP_LOG(LOG_MESH, LOG_INFO, "Loading Mesh: %s", FileName);
 
 		std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob;// = false;// GetCachedAsset(FileName);
 

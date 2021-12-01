@@ -6,7 +6,7 @@
 #include "SPPString.h"
 #include "SPPSTLUtils.h"
 #include "SPPLogging.h"
-#include "SPPWin32Core.h"
+#include "SPPPlatformCore.h"
 #include "SPPMemory.h"
 #include <thread>
 #include <chrono>

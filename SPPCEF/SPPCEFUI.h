@@ -29,20 +29,21 @@ namespace SPP
 		std::function< void() > Shutdown;
 	};
 
-	class SPP_CEFUI_API CEFMessage
+	class SPP_CEFUI_API CEFMessageList
 	{
-	private:
-		struct CEFMessageImpl;
-		std::unique_ptr<CEFMessageImpl> _impl;
+	protected:
+		struct ListImpl;
+		std::unique_ptr<ListImpl> _impl;
 
 	public:
-		CEFMessage(const char* MessageName);
-		~CEFMessage();
+		CEFMessageList();
+		virtual ~CEFMessageList();
 
 		bool SetBool(size_t index, bool value);
 		bool SetInt(size_t index, int value);
 		bool SetDouble(size_t index, double value);
 		bool SetString(size_t index, const  std::string& value);
+		bool SetList(size_t index, const CEFMessageList& value);
 
 		inline bool SetValue(size_t Idx, const bool& InValue)
 		{
@@ -60,6 +61,32 @@ namespace SPP
 		{
 			return SetString(Idx, InValue);
 		}
+		inline bool SetValue(size_t Idx, const CEFMessageList& InList)
+		{
+			return SetList(Idx, InList);
+		}
+
+		template<typename ValueType>
+		inline bool SetValue(size_t Idx, const std::vector<ValueType>& InValue)
+		{
+			CEFMessageList newList;
+			for (size_t Iter = 0; Iter < InValue.size(); Iter++)
+			{
+				newList.SetValue(Iter, InValue[Iter]);
+			}
+			return SetValue(Idx, newList);
+		}
+	};
+
+	class SPP_CEFUI_API CEFMessage : public CEFMessageList
+	{
+	private:
+		struct CEFMessageImpl;
+		std::unique_ptr<CEFMessageImpl> _implMsg;
+
+	public:
+		CEFMessage(const char* MessageName);
+		virtual ~CEFMessage();
 
 		bool Send();
 	};

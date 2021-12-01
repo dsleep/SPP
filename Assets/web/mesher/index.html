@@ -15,9 +15,6 @@
 		</style>
 	</head>
 	<body>
-		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - cameras<br/>
-		<b>O</b> orthographic <b>P</b> perspective
-		</div>
 
 		<script type="module">
 
@@ -35,17 +32,23 @@
 				document.body.appendChild( container );
 
 				scene = new THREE.Scene();
-				scene.background = new THREE.Color( 0x0000cc );
+				scene.background = new THREE.Color( 0x333333 );
 
 				renderer = new THREE.WebGLRenderer( { antialias: false } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				document.body.appendChild( renderer.domElement );
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
-				camera.position.set( 400, 200, 0 );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.set( 15, 12, 12 );
 
 				// controls
+				
+				scene.add( new THREE.AxesHelper( 15 ) );
+				
+				 // Grid Helper
+				scene.add(new THREE.GridHelper(10, 10, "#666666", "#222222"));
+
 
 				controls = new THREE.OrbitControls( camera, renderer.domElement );
 				controls.listenToKeyEvents( window ); // optional
@@ -57,7 +60,7 @@
 
 				controls.screenSpacePanning = false;
 
-				controls.minDistance = 100;
+				controls.minDistance = 10;
 				controls.maxDistance = 500;
 
 				controls.maxPolarAngle = Math.PI / 2;
@@ -67,13 +70,6 @@
 				const geometry = new THREE.CylinderGeometry( 0, 10, 30, 4, 1 );
 				const material = new THREE.MeshPhongMaterial( { color: 0xffffff, flatShading: true } );
 
-				const mesh = new THREE.Mesh( geometry, material );
-					mesh.position.x = 0;
-					mesh.position.y = 0;
-					mesh.position.z = 0;
-					mesh.updateMatrix();
-					mesh.matrixAutoUpdate = false;
-					scene.add( mesh );
 
 				// lights
 
@@ -89,6 +85,10 @@
 				scene.add( ambientLight );
 				
 				window.addEventListener( 'resize', onWindowResize );
+								
+				if(window.CallNativeWithJSON != null) {
+					window.CallNativeWithJSON(JSON.stringify({ func: "HTMLReady" }));
+				}
 			}
 
 			
@@ -115,6 +115,14 @@
 
 				renderer.render( scene, camera );
 
+			}
+			
+			function SetMeshData(VertexData, IndexData) { 
+				console.log("SetMeshData");
+			}
+			
+			if(window.RegisterJSFunction != null) {			
+				window.RegisterJSFunction("SetMeshData", SetMeshData);				
 			}
 
 
