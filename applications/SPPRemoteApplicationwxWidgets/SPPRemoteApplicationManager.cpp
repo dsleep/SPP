@@ -303,9 +303,9 @@ void WorkerThread(const std::string &AppPath, const std::string &Args)
 		Args.c_str());
 
 #if _DEBUG
-	GProcessID = CreateChildProcess("applicationhostd.exe",
+	GProcessID = CreateChildProcess("applicationhostd",
 #else
-	GProcessID = CreateChildProcess("applicationhost.exe",
+	GProcessID = CreateChildProcess("applicationhost",
 #endif
 		ArgString.c_str(),
 		false);
@@ -413,8 +413,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		ourApp->CallOnInit();
 
 #if _DEBUG
-		CreateChildProcess("SPPRemoteApplicationControllerd.exe", "", true);
-		CreateChildProcess("simpleconnectioncoordinatord.exe", "", true);
+		CreateChildProcess("SPPRemoteApplicationControllerd", "", true);
+		CreateChildProcess("simpleconnectioncoordinatord", "", true);
 #endif
 
 		ourApp->OnRun();
