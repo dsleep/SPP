@@ -74,7 +74,12 @@ namespace SPP
 	uint32_t CreateChildProcess(const char* _ProcessPath, const char* Commandline, bool bStartVisible)
 	{
 		std::string stringProcessPath = _ProcessPath;
-		stringProcessPath += ".exe";
+
+		stdfs::path asPath(_ProcessPath);
+		if (!asPath.has_extension())
+		{
+			stringProcessPath += ".exe";
+		}
 		const char* ProcessPath = stringProcessPath.c_str();
 
 		SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: %s %s", ProcessPath, Commandline);

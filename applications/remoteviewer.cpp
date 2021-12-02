@@ -1118,6 +1118,7 @@ void SPPApp(int argc, char* argv[])
 		{
 			if (JSONParserConnection->IsValid())
 			{
+				LastBTTime = std::chrono::steady_clock::now();
 				JSONParserConnection->Tick();
 			}
 			else
