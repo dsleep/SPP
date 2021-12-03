@@ -105,16 +105,24 @@ int main(int argc, char* argv[])
 	// START OS NETWORKING
 	GetOSNetwork();
 
-	auto dataOne = [](uint8_t* InData, size_t DataSize)
+	struct LocalBTEWatcher : public IBTEWatcher
 	{
-		std::string strConv(InData, InData + DataSize);
-		SPP_LOG(LOG_APP, LOG_INFO, "BTE data: %s, %d", strConv.c_str(), DataSize);
+		virtual void IncomingData(uint8_t* InData, size_t DataSize) override
+		{
+			std::string strConv(InData, InData + DataSize);
+			SPP_LOG(LOG_APP, LOG_INFO, "BTE data: %s, %d", strConv.c_str(), DataSize);
+		}
+		virtual void StateChange(EBTEState InState) override
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, "StateChange: %d", (uint8_t)InState);
+		}
 	};
 
+	LocalBTEWatcher oWatcher;
 	BTEWatcher watcher;
 	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
 		{ 
-			{ "366DEE95-85A3-41C1-A507-8C3E02342001", dataOne }
+			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
 		});
 
 	while (true)

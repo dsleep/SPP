@@ -27,6 +27,18 @@ namespace SPP
 {	
 	SPP_WINRTBTE_API uint32_t GetWinRTBTWVersion();
 
+	enum class EBTEState
+	{
+		Connected,
+		Disconnected
+	};
+
+	struct IBTEWatcher
+	{
+		virtual void IncomingData(uint8_t*, size_t) = 0;
+		virtual void StateChange(EBTEState) = 0;
+	};
+
 	class SPP_WINRTBTE_API BTEWatcher
 	{
 	private:
@@ -36,6 +48,6 @@ namespace SPP
 	public:
 		BTEWatcher();
 		~BTEWatcher();
-		void WatchForData(const std::string& DeviceData, const std::map< std::string, std::function<void(uint8_t*, size_t)> >& CharacterFunMap);
+		void WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap);
 	};
 }

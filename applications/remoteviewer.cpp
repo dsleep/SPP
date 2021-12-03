@@ -963,6 +963,25 @@ bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string
 	return false;
 }
 
+template<typename T, typename S>
+struct LocalBTEWatcher : public IBTEWatcher
+{
+private:
+	T& funcAdd;
+	S& funcState;
+public:
+	LocalBTEWatcher(T& inT, S& inS) : funcAdd(inT), funcState(inS) { }
+	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
+	{
+		std::string strConv(InData, InData + DataSize);
+		funcAdd(strConv);
+	}
+	virtual void StateChange(EBTEState InState) override
+	{
+		funcState(InState);
+	}
+};
+
 void SPPApp(int argc, char* argv[])
 {
 	{
@@ -1028,6 +1047,7 @@ void SPPApp(int argc, char* argv[])
 	using namespace std::chrono_literals;
 
 	//BLUTETOOTH STUFFS
+	bool bBTEConnected = false;
 	std::shared_ptr< SimpleJSONPeerReader > JSONParserConnection;
 	//START UP RFCOMM BT
 	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
@@ -1036,27 +1056,25 @@ void SPPApp(int argc, char* argv[])
 #if PLATFORM_WINDOWS && HAS_WINRT
 	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
 	{
-		LastBTTime = std::chrono::steady_clock::now();
-
 		if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
 		{
 			BinaryBlobSerializer thisMessage;
-			thisMessage << (uint8_t)2;
+			thisMessage << (uint8_t)4;
 			thisMessage << InMessage;
 			videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
 		}
-	};
+	};	
 
-	auto dataOne = [&sendBTDataTOManager](uint8_t* InData, size_t DataSize)
+	auto inStateChange = [&bBTEConnected](EBTEState InState)
 	{
-		std::string strConv(InData, InData + DataSize);
-		sendBTDataTOManager(strConv);
+		bBTEConnected = (InState == EBTEState::Connected ? true : false);
 	};
 
+	LocalBTEWatcher oWatcher(sendBTDataTOManager, inStateChange);
 	BTEWatcher watcher;
 	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
 		{
-			{ "366DEE95-85A3-41C1-A507-8C3E02342001", dataOne }
+			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
 		});
 #endif
 
@@ -1134,6 +1152,10 @@ void SPPApp(int argc, char* argv[])
 				JSONParserConnection = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
 				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
 			}
+		}
+		if (bBTEConnected)
+		{
+			LastBTTime = std::chrono::steady_clock::now();
 		}
 		//
 		 

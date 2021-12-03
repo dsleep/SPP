@@ -66,7 +66,7 @@ namespace SPP
 	{
 		return 1;
 	}
-		
+				
 	struct INTERNAL_BTEWatcher : winrt::implements<INTERNAL_BTEWatcher, IInspectable>
 	{
 	private:
@@ -74,7 +74,7 @@ namespace SPP
 		winrt::Windows::Devices::Bluetooth::BluetoothLEDevice _bluetoothLeDevice{ nullptr };
 
 		winrt::guid RequestedServiceGUID;
-		std::map<winrt::guid, std::function<void(uint8_t*, size_t)> > CharToFuncMap;
+		std::map<winrt::guid, IBTEWatcher* > CharToFuncMap;
 		std::vector<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic> registeredCharacteristic;
 
 	public:
@@ -100,7 +100,7 @@ namespace SPP
 			auto deviceWatcherStoppedToken = _deviceWatcher.Stopped({ get_weak(), &INTERNAL_BTEWatcher::DeviceWatcher_Stopped });
 		}
 
-		void StartWatching(const std::string& DeviceData, const std::map< std::string, std::function<void(uint8_t*, size_t)> >& CharacterFunMap)
+		void StartWatching(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
 		{
 			CLSIDFromString(utf8_to_wstring(std::string_format("{%s}", DeviceData.c_str())).c_str(), (LPCLSID)&RequestedServiceGUID);
 				
@@ -125,7 +125,7 @@ namespace SPP
 			if (foundIt != CharToFuncMap.end())
 			{
 				auto iBuffer = args.CharacteristicValue();				
-				foundIt->second(iBuffer.data(), iBuffer.Length());
+				foundIt->second->IncomingData(iBuffer.data(), iBuffer.Length());
 			}
 		}
 
@@ -231,7 +231,7 @@ namespace SPP
 								{
 									continue;
 								}
-
+								
 								registeredCharacteristic.push_back(c);
 
 								GattClientCharacteristicConfigurationDescriptorValue cccdValue = GattClientCharacteristicConfigurationDescriptorValue::None;
@@ -253,6 +253,12 @@ namespace SPP
 
 									if (status == GattCommunicationStatus::Success)
 									{
+										auto foundIt = CharToFuncMap.find(uuid);
+										if (foundIt != CharToFuncMap.end())
+										{
+											foundIt->second->StateChange(EBTEState::Connected);
+										}
+
 										c.ValueChanged({ get_weak(), &INTERNAL_BTEWatcher::Characteristic_ValueChanged });
 
 										//AddValueChangedHandler();
@@ -354,7 +360,7 @@ namespace SPP
 
 	}
 
-	void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, std::function<void(uint8_t*, size_t)> >& CharacterFunMap)
+	void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
 	{
 		_impl->_watcher->StartWatching(DeviceData, CharacterFunMap);
 	}
