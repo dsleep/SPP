@@ -80,9 +80,11 @@ class VideoConnection : public NetworkConnection
 {
 protected:
 	std::unique_ptr< VideoEncodingInterface> VideoEncoder;
-	std::chrono::high_resolution_clock::time_point LastImageCap;
 
 	std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
+	std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
+
+	std::chrono::high_resolution_clock::time_point LastImageCap;
 
 	uint32_t ProcessID = 0;
 	std::vector<uint8_t> ImageData;
@@ -92,6 +94,9 @@ protected:
 
 	std::string AppPath;
 	std::string AppCommandline;
+
+	uint32_t _lastBuzzCnt = 0;
+	uint32_t _currentBuzzCnt = 0;
 
 public:
 	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer, true)
@@ -104,7 +109,8 @@ public:
 			std::string WithMemShare = AppCommandline + std::string_format(" --MEMSHARE=%s", MemShareID.c_str());
 
 			//IPC TO SHARE WITH SOFA
-			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState), true);
+			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, true);
+			_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
 			ProcessID = CreateChildProcess(InAppPath.c_str(), WithMemShare.c_str());
 		}
 	}
@@ -236,7 +242,7 @@ public:
 							newMessage.orientationQuaternion[2] = std::atof(SplitData[6].c_str());
 							newMessage.orientationQuaternion[3] = std::atof(SplitData[7].c_str());
 
-							_mappedSofaMem->WriteMemory(&newMessage, sizeof(IPCMotionState));
+							_msgQueue->PushMessage(newMessage);
 						}
 
 						/* SOFA TIPS EXAMPLE CODE:
@@ -275,6 +281,19 @@ public:
 		}
 	}
 
+	void CheckFeedbackFromSofa()
+	{
+		_mappedSofaMem->ReadMemory(&_currentBuzzCnt, sizeof(_currentBuzzCnt));
+		if (_lastBuzzCnt != _currentBuzzCnt)
+		{
+			// buzz is 2
+			BinaryBlobSerializer thisFrame;
+			thisFrame << (uint8_t)2;
+			SendMessage(thisFrame.GetData(), thisFrame.Size(), EMessageMask::IS_RELIABLE);
+			_lastBuzzCnt = _currentBuzzCnt;
+		}
+	}
+
 	virtual void Tick() override
 	{
 		auto recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size());
@@ -285,6 +304,7 @@ public:
 
 		NetworkConnection::Tick();
 
+		CheckFeedbackFromSofa();
 		CheckSendImage();
 	}
 

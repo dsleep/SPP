@@ -437,7 +437,7 @@ namespace SPP
 			_SendState();
 
 			// DC'd
-			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 15)
+			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 10)
 			{
 				CloseDown("time out while trying to connect");
 				return;
@@ -448,7 +448,7 @@ namespace SPP
 			_PingTimer.Poll();
 
 			// DC'd
-			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 10)
+			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _lastKeepAlive).count() > 5)
 			{
 				CloseDown("time out during active connection");
 				return;
