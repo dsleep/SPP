@@ -802,8 +802,11 @@ protected:
 
 	std::vector<uint8_t> recvBuffer;
 
+	std::function<void(const void*, uint16_t)> _btSendMessage;
+	using BtSendFunc = decltype(_btSendMessage);
+
 public:
-	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer, false) 
+	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, BtSendFunc InSendBTMessage) : NetworkConnection(InPeer, false), _btSendMessage(InSendBTMessage)
 	{ 
 		//app = std::make_unique< SimpleGlutApp>(this);
 		//hWnd = app->CreateOpenGLWindow("Viewer", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
@@ -855,45 +858,62 @@ public:
 	virtual void MessageReceived(const void* Data, int32_t DataLength)
 	{
 		MemoryView DataView(Data, DataLength);
-		uint16_t VidWidth;
-		uint16_t VidHeight;
-		DataView >> VidWidth;
-		DataView >> VidHeight;
 
-		//if (VidWidth == 0xFFFF)
-		//{
-		//	SPP_LOG(LOG_APP, LOG_INFO, "MessageReceived: ID %d", VidHeight);
-		//	return;
-		//}
+		uint8_t MessageType = 0;
 
-		//SPP_LOG(LOG_APP, LOG_INFO, "RemoteViewer::Recv Frame %u x %u", VidWidth, VidHeight);
+		DataView >> MessageType;
 
-		// gotta reset this bad boy if ratios change
-		if (VideoDecoder)
+		if (MessageType == 1)
 		{
-			const auto& vidSettings = VideoDecoder->GetVideoSettings();
-			if (vidSettings.width != VidWidth || vidSettings.height != VidHeight)
+			uint16_t VidWidth;
+			uint16_t VidHeight;
+			DataView >> VidWidth;
+			DataView >> VidHeight;
+
+			//if (VidWidth == 0xFFFF)
+			//{
+			//	SPP_LOG(LOG_APP, LOG_INFO, "MessageReceived: ID %d", VidHeight);
+			//	return;
+			//}
+
+			//SPP_LOG(LOG_APP, LOG_INFO, "RemoteViewer::Recv Frame %u x %u", VidWidth, VidHeight);
+
+			// gotta reset this bad boy if ratios change
+			if (VideoDecoder)
 			{
-				VideoDecoder->Finalize();
-				VideoDecoder.reset();
+				const auto& vidSettings = VideoDecoder->GetVideoSettings();
+				if (vidSettings.width != VidWidth || vidSettings.height != VidHeight)
+				{
+					VideoDecoder->Finalize();
+					VideoDecoder.reset();
+				}
+			}
+
+			if (!VideoDecoder)
+			{
+				SPP_LOG(LOG_APP, LOG_INFO, "RemoteViewer::VideoDecoder created %u x %u", VidWidth, VidHeight);
+
+				CreatedWidth = VidWidth;
+				CreatedHeight = VidHeight;
+				VideoDecoder = CreateVideoDecoder([&](const void* InData, int32_t InDataSize)
+					{
+						//SPP_LOG(LOG_APP, LOG_INFO, "DECODED FRAME: %d", InDataSize);
+						GGLPane->THREADSAFE_IncomingVideoImageData(CreatedWidth, CreatedHeight, InData);
+					}, VideoSettings{ VidWidth, VidHeight, 4, 3, 32 });
+			}
+
+			DataView.RebuildViewFromCurrent();
+			VideoDecoder->Decode(DataView.GetData(), DataView.Size());
+		}
+		else if (MessageType == 2)
+		{
+			if (_btSendMessage)
+			{
+				BinaryBlobSerializer thisMessage;
+				thisMessage << (uint8_t)1;
+				_btSendMessage(thisMessage.GetData(), thisMessage.Size());
 			}
 		}
-
-		if (!VideoDecoder)
-		{
-			SPP_LOG(LOG_APP, LOG_INFO, "RemoteViewer::VideoDecoder created %u x %u", VidWidth, VidHeight);
-
-			CreatedWidth = VidWidth;
-			CreatedHeight = VidHeight;
-			VideoDecoder = CreateVideoDecoder([&](const void* InData, int32_t InDataSize)
-				{
-					//SPP_LOG(LOG_APP, LOG_INFO, "DECODED FRAME: %d", InDataSize);
-					GGLPane->THREADSAFE_IncomingVideoImageData(CreatedWidth, CreatedHeight, InData);
-				}, VideoSettings{ VidWidth, VidHeight, 4, 3, 32 } );
-		}
-
-		DataView.RebuildViewFromCurrent();
-		VideoDecoder->Decode(DataView.GetData(), DataView.Size());
 	}
 };
 
@@ -1303,7 +1323,13 @@ void SPPApp(int argc, char* argv[])
 			}
 			else if (juiceSocket->IsConnected())
 			{
-				videoConnection = std::make_shared< VideoConnection >(juiceSocket);
+				videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&JSONParserConnection](const void* buf, uint16_t BufferSize)
+				{
+					if (JSONParserConnection && JSONParserConnection->IsValid())
+					{
+						JSONParserConnection->SendMessage(buf, BufferSize);
+					}
+				});
 				videoConnection->CreateTranscoderStack(
 					// allow reliability to UDP
 					std::make_shared< ReliabilityTranscoder >(),

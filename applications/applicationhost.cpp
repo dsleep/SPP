@@ -327,6 +327,7 @@ public:
 			VideoEncoder = CreateVideoEncoder([CreatedWidth = Width,CreatedHeight= Height,this](const void* InData, int32_t InDataSize)
 				{					
 					BinaryBlobSerializer thisFrame;
+					thisFrame << (uint8_t)1;
 					thisFrame << (uint16_t)CreatedWidth;
 					thisFrame << (uint16_t)CreatedHeight;
 					thisFrame.Write(InData, InDataSize);
