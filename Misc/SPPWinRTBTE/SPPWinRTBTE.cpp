@@ -60,7 +60,7 @@ namespace std
 
 namespace SPP
 {
-	LogEntry LOG_BTW("BTE");
+	LogEntry LOG_BTE("BTE");
 
 	uint32_t GetWinRTBTWVersion()
 	{
@@ -72,6 +72,9 @@ namespace SPP
 	private:
 		winrt::Windows::Devices::Enumeration::DeviceWatcher _deviceWatcher{ nullptr };
 		winrt::Windows::Devices::Bluetooth::BluetoothLEDevice _bluetoothLeDevice{ nullptr };
+
+		std::atomic_bool bDeviceFound{ 0 };
+		std::atomic_bool bStarted{ 0 };
 
 		winrt::guid RequestedServiceGUID;
 		std::map<winrt::guid, IBTEWatcher* > CharToFuncMap;
@@ -103,6 +106,8 @@ namespace SPP
 		void StartWatching(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
 		{
 			CLSIDFromString(utf8_to_wstring(std::string_format("{%s}", DeviceData.c_str())).c_str(), (LPCLSID)&RequestedServiceGUID);
+
+			SPP_LOG(LOG_BTE, LOG_INFO, "BTEWatcher::StartWatching %s", DeviceData.c_str());
 				
 			//winrt::guid newCharToWatch;
 			//CLSIDFromString(L"{366DEE95-85A3-41C1-A507-8C3E02342001}", (LPCLSID)&newCharToWatch);
@@ -114,12 +119,35 @@ namespace SPP
 				CharToFuncMap[newCharToWatch] = Value;
 			}
 
+			bStarted = true;
 			_deviceWatcher.Start();
+		}
+
+		void Stop()
+		{
+			_deviceWatcher.Stop();
+		}
+
+		void Update()
+		{
+			if (bStarted)
+			{
+				auto curStatus = _deviceWatcher.Status();
+
+				if (curStatus == DeviceWatcherStatus::EnumerationCompleted && !bDeviceFound)
+				{
+					_deviceWatcher.Stop();
+				}
+				else if (curStatus == DeviceWatcherStatus::Stopped)
+				{
+					_deviceWatcher.Start();
+				}
+			}			
 		}
 
 		void Characteristic_ValueChanged(GattCharacteristic const& changed, GattValueChangedEventArgs args)
 		{
-			std::wcout << L"Characteristic_ValueChanged: " << std::endl;
+			//std::wcout << L"Characteristic_ValueChanged: " << std::endl;
 
 			auto foundIt = CharToFuncMap.find(changed.Uuid());
 			if (foundIt != CharToFuncMap.end())
@@ -135,7 +163,7 @@ namespace SPP
 			auto lifetime = get_strong();
 			//co_await resume_foreground(Dispatcher());
 
-			std::wcout << (L"DeviceWatcher_Added " + deviceInfo.Id() + deviceInfo.Name()).c_str() << std::endl;
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s", std::wstring_to_utf8(std::wstring(deviceInfo.Id() + deviceInfo.Name())).c_str());
 
 			try
 			{
@@ -144,7 +172,7 @@ namespace SPP
 
 				if (_bluetoothLeDevice == nullptr)
 				{
-					std::wcout << L"Failed to connect to device" << std::endl;
+					SPP_LOG(LOG_BTE, LOG_INFO, "Failed to connect to device");
 				}
 			}
 			catch (hresult_error& ex)
@@ -175,14 +203,15 @@ namespace SPP
 					{
 						guid uuid = service.Uuid();
 						auto UUIStrign = to_hstring(uuid);
-						std::wcout << L"Service" << UUIStrign.c_str() << std::endl;
+						SPP_LOG(LOG_BTE, LOG_INFO, " - Service: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
 
 						if (RequestedServiceGUID != uuid)
 						{
 							continue;
 						}
 
-						std::wcout << L"FOUND Service!" << std::endl;
+						bDeviceFound = true;
+						SPP_LOG(LOG_BTE, LOG_INFO, " *** FOUND Service *** DEVICE: %s", std::wstring_to_utf8(std::wstring(deviceInfo.Id())).c_str());
 
 						IVectorView<GattCharacteristic> characteristics{ nullptr };
 						try
@@ -220,8 +249,8 @@ namespace SPP
 							{
 								guid uuid = c.Uuid();
 								auto UUIStrign = to_hstring(uuid);
-								std::wcout << L" - Characteristic: " << UUIStrign.c_str() << std::endl;
-																
+								SPP_LOG(LOG_BTE, LOG_INFO, " - Characteristic: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
+
 								if (CharToFuncMap.find(uuid) == CharToFuncMap.end())
 								{
 									continue;
@@ -320,25 +349,22 @@ namespace SPP
 
 		void DeviceWatcher_Updated(DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate)
 		{
-			std::wcout << (L"DeviceWatcher_Updated" + deviceInfoUpdate.Id()).c_str() << std::endl;
-
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Updated %s", std::wstring_to_utf8(std::wstring(deviceInfoUpdate.Id())).c_str());
 		}
 
 		void DeviceWatcher_Removed(DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate)
 		{
-			std::wcout << (L"DeviceWatcher_Removed " + deviceInfoUpdate.Id()).c_str() << std::endl;
-
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Updated %s", std::wstring_to_utf8(std::wstring(deviceInfoUpdate.Id())).c_str());
 		}
 
 		void DeviceWatcher_EnumerationCompleted(DeviceWatcher sender, IInspectable const&)
 		{
-			std::wcout << "DeviceWatcher_EnumerationCompleted" << std::endl;
-
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_EnumerationCompleted");
 		}
 
 		void DeviceWatcher_Stopped(DeviceWatcher sender, IInspectable const&)
 		{
-			std::wcout << "DeviceWatcher_Stopped" << std::endl;
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Stopped");
 		}
 	};
 
@@ -351,17 +377,25 @@ namespace SPP
 	BTEWatcher::BTEWatcher() : _impl(new PlatImpl())
 	{
 		ValidWinRT();
-
 		_impl->_watcher = winrt::make_self<INTERNAL_BTEWatcher>();
 	}
 
 	BTEWatcher::~BTEWatcher()
 	{
-
 	}
 
 	void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
 	{
 		_impl->_watcher->StartWatching(DeviceData, CharacterFunMap);
+	}
+
+	void BTEWatcher::Update() 
+	{
+		_impl->_watcher->Update();
+	}
+
+	void BTEWatcher::Stop()
+	{
+		_impl->_watcher->Stop();
 	}
 }

@@ -47,7 +47,9 @@ namespace SPP
 
 	public:
 		BTEWatcher();
-		~BTEWatcher();
+		~BTEWatcher();		
 		void WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap);
+		void Update();
+		void Stop();
 	};
 }

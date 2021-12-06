@@ -1151,6 +1151,7 @@ void SPPApp(int argc, char* argv[])
 		coordinator->Update();
 		auto CurrentTime = std::chrono::steady_clock::now();
 
+
 		//BLUETOOTH SYSTEM
 		if (JSONParserConnection)
 		{
@@ -1173,10 +1174,16 @@ void SPPApp(int argc, char* argv[])
 				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
 			}
 		}
+
+		// check on BTE
+#if PLATFORM_WINDOWS && HAS_WINRT
+		watcher.Update();
+
 		if (bBTEConnected)
 		{
 			LastBTTime = std::chrono::steady_clock::now();
 		}
+#endif
 		//
 		 
 		//write status
