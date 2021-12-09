@@ -28,6 +28,7 @@
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace winrt;
+using namespace winrt::Windows::Storage::Streams;
 using namespace winrt::Windows::Devices;
 using namespace winrt::Windows::Devices::Bluetooth;
 using namespace winrt::Windows::Foundation;
@@ -78,7 +79,8 @@ namespace SPP
 
 		winrt::guid RequestedServiceGUID;
 		std::map<winrt::guid, IBTEWatcher* > CharToFuncMap;
-		std::vector<winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic> registeredCharacteristic;
+		std::vector<GattCharacteristic> registeredCharacteristic;
+		std::vector<GattCharacteristic> writeCharacteristics;
 
 	public:
 		INTERNAL_BTEWatcher()
@@ -123,6 +125,26 @@ namespace SPP
 			_deviceWatcher.Start();
 		}
 
+		IAsyncAction ProcessWrite(GattCharacteristic curChar, Buffer InBuffer)
+		{
+			GattWriteResult result = co_await curChar.WriteValueWithResultAsync(InBuffer);
+			//if (result ?)
+			//{
+
+			//}
+		}
+
+		void WriteData(const std::string& InChar, const void* buf, uint16_t BufferSize)
+		{
+			if(!writeCharacteristics.empty())
+			{
+				Buffer dataBuff{ (uint32_t)BufferSize };
+				memcpy(dataBuff.data(), buf, BufferSize);
+
+				auto processOp{ ProcessWrite(writeCharacteristics.front(), dataBuff) };
+			}
+		}
+
 		void Stop()
 		{
 			_deviceWatcher.Stop();
@@ -156,7 +178,7 @@ namespace SPP
 				foundIt->second->IncomingData(iBuffer.data(), iBuffer.Length());
 			}
 		}
-
+				
 		fire_and_forget DeviceWatcher_Added(DeviceWatcher sender, DeviceInformation deviceInfo)
 		{
 			// We must update the collection on the UI thread because the collection is databound to a UI element.
@@ -250,6 +272,13 @@ namespace SPP
 								guid uuid = c.Uuid();
 								auto UUIStrign = to_hstring(uuid);
 								SPP_LOG(LOG_BTE, LOG_INFO, " - Characteristic: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
+
+								auto curProperties = c.CharacteristicProperties();
+								if ( ((uint32_t)curProperties & (uint32_t)GattCharacteristicProperties::Write) != 0)
+								{
+									SPP_LOG(LOG_BTE, LOG_INFO, " - Write Prop");
+									writeCharacteristics.push_back(c);
+								}
 
 								if (CharToFuncMap.find(uuid) == CharToFuncMap.end())
 								{
@@ -387,6 +416,11 @@ namespace SPP
 	void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
 	{
 		_impl->_watcher->StartWatching(DeviceData, CharacterFunMap);
+	}
+
+	void BTEWatcher::WriteData(const std::string& InChar, const void* buf, uint16_t BufferSize)
+	{
+		_impl->_watcher->WriteData(InChar, buf, BufferSize);
 	}
 
 	void BTEWatcher::Update() 

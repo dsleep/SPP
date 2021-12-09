@@ -1068,7 +1068,7 @@ void SPPApp(int argc, char* argv[])
 
 	//BLUTETOOTH STUFFS
 	bool bBTEConnected = false;
-	std::shared_ptr< SimpleJSONPeerReader > JSONParserConnection;
+	std::shared_ptr< SimpleJSONPeerReader > BTRFComm;
 	//START UP RFCOMM BT
 	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
 	listenSocket->Listen();
@@ -1096,6 +1096,13 @@ void SPPApp(int argc, char* argv[])
 		{
 			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
 		});
+#else
+	struct DummyBTEWatcher
+	{
+		void Update() { };
+		void WriteData(const std::string& InChar, const void* buf, uint16_t BufferSize) {}
+	};
+	DummyBTEWatcher watcher;
 #endif
 
 	std::vector<uint8_t> BufferRead;
@@ -1151,18 +1158,17 @@ void SPPApp(int argc, char* argv[])
 		coordinator->Update();
 		auto CurrentTime = std::chrono::steady_clock::now();
 
-
 		//BLUETOOTH SYSTEM
-		if (JSONParserConnection)
+		if (BTRFComm)
 		{
-			if (JSONParserConnection->IsValid())
+			if (BTRFComm->IsValid())
 			{
 				LastBTTime = std::chrono::steady_clock::now();
-				JSONParserConnection->Tick();
+				BTRFComm->Tick();
 			}
 			else
 			{
-				JSONParserConnection.reset();
+				BTRFComm.reset();
 			}
 		}
 		else
@@ -1170,20 +1176,18 @@ void SPPApp(int argc, char* argv[])
 			auto newBTConnection = listenSocket->Accept();
 			if (newBTConnection)
 			{
-				JSONParserConnection = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
+				BTRFComm = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
 				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
 			}
 		}
 
 		// check on BTE
-#if PLATFORM_WINDOWS && HAS_WINRT
 		watcher.Update();
 
 		if (bBTEConnected)
 		{
 			LastBTTime = std::chrono::steady_clock::now();
 		}
-#endif
 		//
 		 
 		//write status
@@ -1330,12 +1334,13 @@ void SPPApp(int argc, char* argv[])
 			}
 			else if (juiceSocket->IsConnected())
 			{
-				videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&JSONParserConnection](const void* buf, uint16_t BufferSize)
+				videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&BTRFComm, &watcher](const void* buf, uint16_t BufferSize)
 				{
-					if (JSONParserConnection && JSONParserConnection->IsValid())
+					if (BTRFComm && BTRFComm->IsValid())
 					{
-						JSONParserConnection->SendMessage(buf, BufferSize);
+						BTRFComm->SendMessage(buf, BufferSize);
 					}
+					watcher.WriteData("366DEE95-85A3-41C1-A507-8C3E02342002", buf, BufferSize);
 				});
 				videoConnection->CreateTranscoderStack(
 					// allow reliability to UDP
