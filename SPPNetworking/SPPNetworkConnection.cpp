@@ -397,6 +397,7 @@ namespace SPP
 
 		if (Encrypted)
 		{
+#if SPP_NETCONN_CRYPTO			
 			std::vector<uint8_t> oData;
 			DecryptData(ControlMsg.data(), ControlMsg.size(), oData);
 			if (MemoryToJson(oData.data(), oData.size(), jsonMessage) == false)
@@ -404,6 +405,9 @@ namespace SPP
 				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");
 				return;
 			}
+#else	
+			SE_ASSERT(0);//can't decrypt
+#endif
 		}
 		else
 		{
