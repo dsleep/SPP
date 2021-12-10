@@ -20,7 +20,7 @@ namespace SPP
 	//todo speed up
 	GUID::GUID(const char* InString)
 	{
-		auto stringSize = std::strlen(InString);
+		auto stringSize = ::strlen(InString);
 		if (stringSize == (8 * 4))
 		{	
 			for(uint8_t Iter = 0; Iter<4; Iter++)
