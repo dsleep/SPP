@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <cstring>
 
 namespace SPP
 {
