@@ -6,6 +6,7 @@
 
 #include "SPPCore.h"
 #include "SPPString.h"
+#include <string.h>
 
 namespace std
 {
