@@ -197,7 +197,13 @@ endif()
 
 message( STATUS "SPP GDI LIST: ${SPPGDI}" )
 
-list(APPEND SPPProjects "applications" "tests" ) 
+list(APPEND SPPProjects "applications" ) 
+
+if(OS_WINDOWS)
+	list(APPEND SPPProjects "tests" ) 
+endif()
+
+
 #"tests" "assets" )
 
 # swapped to wxwidgets	
