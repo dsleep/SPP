@@ -12,7 +12,7 @@
 #include "SPPSTLUtils.h"
 #include "SPPJsonUtils.h"
 
-#ifdef SPP_NETCONN_CRYPTO
+#if SPP_NETCONN_CRYPTO
 	#include "SPPCrypto.h"
 #endif
 
@@ -102,7 +102,7 @@ namespace SPP
 
 	protected:
 
-#ifdef SPP_NETCONN_CRYPTO
+#if SPP_NETCONN_CRYPTO
 		RSA_Cipher _rsaCipherLocal;
 		RSA_Cipher _rsaCipherRemote;
 
@@ -242,7 +242,7 @@ namespace SPP
 		virtual int32_t GetBufferedMessageCount() const override;
 
 
-#ifdef SPP_NETCONN_CRYPTO
+#if SPP_NETCONN_CRYPTO
 		void EncryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData);
 		void DecryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData);
 #endif

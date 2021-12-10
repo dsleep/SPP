@@ -73,7 +73,7 @@ namespace SPP
 		_localGUID = std::generate_hex(16);
 		_lastKeepAlive = std::chrono::steady_clock::now();
 
-#ifdef SPP_NETCONN_CRYPTO
+#if SPP_NETCONN_CRYPTO
 		_rsaCipherLocal.GenerateKeyPair(1024);
 
 		if (!_bIsServer)
@@ -179,7 +179,7 @@ namespace SPP
 		JsonMessage["State"] = (uint8_t)_networkState;
 		JsonMessage["GUID"] = _localGUID;
 
-#ifdef SPP_NETCONN_CRYPTO
+#if SPP_NETCONN_CRYPTO
 		if (_networkState < EConnectionState::AUTHENTICATE_PASSWORD)
 		{
 			JsonMessage["RSA"] = _rsaCipherLocal.GetPublicKey();
@@ -205,7 +205,7 @@ namespace SPP
 
 		std::vector<uint8_t> oData;
 
-#ifdef SPP_NETCONN_CRYPTO		
+#if SPP_NETCONN_CRYPTO		
 		if (_networkState == EConnectionState::AUTHENTICATE_PASSWORD ||
 			_networkState == EConnectionState::CONNECTED)
 		{
@@ -248,6 +248,7 @@ namespace SPP
 		// using our state we should know the exact flow
 		switch (_networkState)
 		{
+#if SPP_NETCONN_CRYPTO
 		case EConnectionState::C_SAYING_HI:
 			if (!RSAValue.isNull())
 			{
@@ -269,6 +270,14 @@ namespace SPP
 				_SetState(EConnectionState::CONNECTED);
 			}
 			break;
+#else
+		case EConnectionState::C_SAYING_HI:
+			if (msgState == EConnectionState::CONNECTED)
+			{
+				_SetState(EConnectionState::CONNECTED);
+			}
+			break;
+#endif
 		case EConnectionState::CONNECTED:
 			if (MessageString == "Ping")
 			{
@@ -308,6 +317,7 @@ namespace SPP
 		// using our state we should know the exact flow
 		switch (_networkState)
 		{
+#if SPP_NETCONN_CRYPTO
 		case EConnectionState::S_WAITING:
 			if (!RSAValue.isNull())
 			{
@@ -345,6 +355,14 @@ namespace SPP
 				}
 			}
 			break;
+#else
+		case EConnectionState::S_WAITING:
+			if (MessageString == "C_SAYING_HI")
+			{
+				_SetState(EConnectionState::CONNECTED);
+			}
+			break;
+#endif
 		case EConnectionState::CONNECTED:
 			if (MessageString == "Ping")
 			{
@@ -358,7 +376,7 @@ namespace SPP
 		}
 	}
 
-#ifdef SPP_NETCONN_CRYPTO
+#if SPP_NETCONN_CRYPTO
 	void NetworkConnection::EncryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData)
 	{
 		_aesCipherShared.EncryptData(InData, DataLength, oData);
