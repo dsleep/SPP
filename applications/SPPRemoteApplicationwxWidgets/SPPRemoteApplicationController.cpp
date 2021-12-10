@@ -9,6 +9,8 @@
 #include "SPPSerialization.h"
 #include "SPPJsonUtils.h"
 #include "SPPLogging.h"
+#include "SPPFileSystem.h"
+
 
 #include "SPPPlatformCore.h"
 
@@ -153,10 +155,15 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	vertSizer->Add(buttonSizer,0, wxALL, 5);
 
 	_WorkerStatus = new wxStaticText(this, wxID_ANY, "Worker: NOT OK");
+	_WorkerStatus->SetForegroundColour(wxColour("#ff0000"));
 	_BTStatus = new wxStaticText(this, wxID_ANY, "BT: NOT OK");
+	_BTStatus->SetForegroundColour(wxColour("#ff0000"));
 	_ConnectionStatus = new wxStaticText(this, wxID_ANY, "Connection: NOT OK");
+	_ConnectionStatus->SetForegroundColour(wxColour("#ff0000"));
 	_CoordStatus = new wxStaticText(this, wxID_ANY, "Coordinator: NOT OK");
+	_CoordStatus->SetForegroundColour(wxColour("#ff0000"));
 	_StunStatus = new wxStaticText(this, wxID_ANY, "STUN: NOT OK");
+	_StunStatus->SetForegroundColour(wxColour("#ff0000"));
 
 	vertSizer->Add(_WorkerStatus, 0, wxALL, 5);
 	vertSizer->Add(_BTStatus, 0, wxALL, 5);
@@ -177,26 +184,31 @@ void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinat
 	{
 		_bWorker = Worker;
 		_WorkerStatus->SetLabelText(_bWorker ? "Worker: OK" : "Worker: NOT OK");
+		_WorkerStatus->SetForegroundColour(_bWorker ? wxColour("#00ff00") : wxColour("#ff0000") );
 	}
 	if (Coordinator != _bCoord)
 	{
 		_bCoord = Coordinator;
 		_CoordStatus->SetLabelText(_bCoord ? "Coordinator: OK" : "Coordinator: NOT OK");
+		_CoordStatus->SetForegroundColour(_bCoord ? wxColour("#00ff00") : wxColour("#ff0000"));
 	}
 	if (STUN != _bStun)
 	{
 		_bStun = STUN;
 		_StunStatus->SetLabelText(_bStun ? "STUN: OK" : "STUN: NOT OK");
+		_StunStatus->SetForegroundColour(_bStun ? wxColour("#00ff00") : wxColour("#ff0000"));
 	}
 	if (ConnectionStatus != _connectStatus)
 	{
 		_connectStatus = ConnectionStatus;
 		_ConnectionStatus->SetLabelText(_connectStatus ? "Connection: OK" : "Connection: NOT OK");
+		_ConnectionStatus->SetForegroundColour(_connectStatus ? wxColour("#00ff00") : wxColour("#ff0000"));
 	}
 	if (BT != _bBT)
 	{
 		_bBT = BT;
 		_BTStatus->SetLabelText(_bBT ? "BT: OK" : "BT: NOT OK");
+		_BTStatus->SetForegroundColour(_bBT ? wxColour("#00ff00") : wxColour("#ff0000"));
 	}
 }
 
@@ -208,10 +220,17 @@ void MyFrame::SetHosts(const std::vector< HostFromCoord >& InHosts)
 	wxArrayString strings;
 	for (auto& curHost : InHosts)
 	{
-		std::string ArgString = std::string_format("PC=%s, Application=%s, CommandLine=%s",
+		stdfs::path pathString(curHost.APPCL.c_str());
+		std::string APPCL = curHost.APPCL;
+		if (pathString.has_filename())
+		{
+			APPCL = pathString.filename().generic_string();
+		}
+
+		std::string ArgString = std::string_format("(%s):%s=%s",
 			curHost.NAME.c_str(),
 			curHost.APPNAME.c_str(),
-			curHost.APPCL.c_str());
+			APPCL.c_str());
 
 		strings.push_back(ArgString.c_str());
 	}
