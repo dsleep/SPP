@@ -317,6 +317,8 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 	int32_t curButton = event.GetButton();
 	uint8_t ActualButton = event.GetButton();
 	uint8_t bDown = 0;
+	int32_t wheelDelta = event.GetWheelRotation();
+	int8_t mouseWheel = (int8_t)std::clamp< int32_t>(wheelDelta, std::numeric_limits< int8_t>::min(), std::numeric_limits<int8_t>::max());
 
 	if (event.ButtonDown())
 	{
@@ -348,7 +350,8 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 		thisMessage << DownState;
 		thisMessage << (uint16_t)RemappedPosition[0];
 		thisMessage << (uint16_t)RemappedPosition[1];
-
+		thisMessage << mouseWheel;
+		
 		GInputHandler.PushEvent(thisMessage.GetArray());
 	}
 }

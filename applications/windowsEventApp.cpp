@@ -265,18 +265,34 @@ public:
     {
         static PAINTSTRUCT ps;
 
-        if (uMsg >= WM_KEYDOWN && uMsg <= WM_KEYUP)
+        if (uMsg == 0x020A || uMsg == 0x020E)
         {
+            auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+            SPP_LOG(LOG_APP, LOG_INFO, "MOUSE WHEEL: %d", zDelta);
+
+            if (CurrentLinkedApp)
+            {
+                PostMessage(CurrentLinkedApp, WM_MOUSEWHEEL, MAKELONG(0,zDelta), 0);
+            }
+        }
+        else if (uMsg >= WM_KEYDOWN && uMsg <= WM_KEYUP)
+        {
+            //VK_SHIFT          0x10
+            //VK_CONTROL        0x11
+            //VK_LSHIFT         0xA0    
+            //VK_RSHIFT         0xA1    
+            //VK_LCONTROL       0xA2    
+            //VK_RCONTROL       0xA3    
+            
             if (CurrentLinkedApp)
             {
                 PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
             }
 
             //return SendMessage(message, wParam, lParam)
-            SPP_LOG(LOG_APP, LOG_INFO, "%u : %u : %u", uMsg, wParam, lParam);
-
+            SPP_LOG(LOG_APP, LOG_INFO, "%u : 0x%X : %u", uMsg, wParam, lParam);
         }
-        else if (uMsg >= WM_LBUTTONDOWN && uMsg <= WM_MOUSELAST)
+        else if (uMsg >= WM_MOUSEMOVE && uMsg <= WM_MOUSELAST)
         {
             uint16_t X = (uint16_t)(lParam & 0xFFFFF);
             uint16_t Y = (uint16_t)((lParam >> 16) & 0xFFFFF);

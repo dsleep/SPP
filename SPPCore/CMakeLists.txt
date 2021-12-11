@@ -90,6 +90,13 @@ target_link_libraries(SPPCore
 	PUBLIC
         debug jsoncppd optimized jsoncpp
 		)
+		
+if(OS_LINUX)
+   target_link_libraries(SPPCore 
+	PUBLIC
+        rt
+		)
+endif()
 
 install(TARGETS SPPCore DESTINATION "${SPP_ROOT}/INSTALL")
 

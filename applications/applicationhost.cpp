@@ -151,6 +151,22 @@ public:
 				
 #if _WIN32
 				UINT uMsg = bDown ? WM_KEYDOWN : WM_KEYUP;
+
+				//NK_LSHIFT 306
+				//NK_RSHIFT 306
+				//NK_LCTRL 308
+				//NK_RCTRL 308
+
+				switch (keyCode)
+				{
+				case 306:
+					keyCode = VK_SHIFT;
+					break;
+				case 308:					
+					keyCode = VK_CONTROL;
+					break;
+				}
+
 				WPARAM wParam = keyCode;
 				LPARAM lParam = 0;
 
@@ -168,29 +184,17 @@ public:
 
 				uint16_t posX = 0;
 				uint16_t posy = 0;
+
+				int8_t MouseWheel = 0;
 				
 				DataView >> ActualButton;
 				DataView >> bDown;
 				DataView >> DownState;
 				DataView >> posX;
 				DataView >> posy;
+				DataView >> MouseWheel;
 
 #if _WIN32
-				UINT uMsg = WM_MOUSEMOVE;
-       				
-				switch (ActualButton)
-				{
-				case 1:
-					uMsg = bDown ? WM_LBUTTONDOWN : WM_LBUTTONUP;
-					break;
-				case 2:
-					uMsg = bDown ? WM_MBUTTONDOWN : WM_MBUTTONUP;
-					break;
-				case 3:
-					uMsg = bDown ? WM_RBUTTONDOWN : WM_RBUTTONUP;
-					break;
-				}
-
 				WPARAM wParam = 0;
 
 				if (DownState & 0x01)
@@ -206,9 +210,35 @@ public:
 					wParam |= MK_RBUTTON;
 				}
 
+				UINT uMsg = 0;
 				LPARAM lParam = posX | ((LPARAM)posy << 16);
 
-				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+				if (MouseWheel != 0)
+				{
+					uMsg = WM_MOUSEWHEEL;
+					wParam |= ((LPARAM)MouseWheel << 16);
+					PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+				}
+				else
+				{
+					switch (ActualButton)
+					{
+					case 1:
+						uMsg = bDown ? WM_LBUTTONDOWN : WM_LBUTTONUP;
+						break;
+					case 2:
+						uMsg = bDown ? WM_MBUTTONDOWN : WM_MBUTTONUP;
+						break;
+					case 3:
+						uMsg = bDown ? WM_RBUTTONDOWN : WM_RBUTTONUP;
+						break;
+					default:
+						uMsg = WM_MOUSEMOVE;
+						break;
+					}
+				}
+
+				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);				
 #endif
 			}
 			//BT message
