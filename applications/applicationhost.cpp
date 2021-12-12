@@ -165,6 +165,20 @@ public:
 				case 308:					
 					keyCode = VK_CONTROL;
 					break;
+				case 340: //F1
+				case 341:
+				case 342:
+				case 343:
+				case 344:
+				case 345:
+				case 346:
+				case 347:
+				case 348:
+				case 349: 
+				case 350:
+				case 351: //F12				
+					keyCode = (keyCode - 340) + VK_F1;
+					break;
 				}
 
 				WPARAM wParam = keyCode;
@@ -217,7 +231,6 @@ public:
 				{
 					uMsg = WM_MOUSEWHEEL;
 					wParam |= ((LPARAM)MouseWheel << 16);
-					PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
 				}
 				else
 				{
