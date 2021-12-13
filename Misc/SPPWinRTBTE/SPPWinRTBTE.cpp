@@ -72,7 +72,6 @@ namespace SPP
 	{
 	private:
 		winrt::Windows::Devices::Enumeration::DeviceWatcher _deviceWatcher{ nullptr };
-		winrt::Windows::Devices::Bluetooth::BluetoothLEDevice _bluetoothLeDevice{ nullptr };
 
 		std::atomic_bool bDeviceFound{ 0 };
 		std::atomic_bool bStarted{ 0 };
@@ -187,12 +186,14 @@ namespace SPP
 
 			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s", std::wstring_to_utf8(std::wstring(deviceInfo.Id() + deviceInfo.Name())).c_str());
 
+			winrt::Windows::Devices::Bluetooth::BluetoothLEDevice addedDevice{ nullptr };
+
 			try
 			{
 				// BT_Code: BluetoothLEDevice.FromIdAsync must be called from a UI thread because it may prompt for consent.
-				_bluetoothLeDevice = co_await BluetoothLEDevice::FromIdAsync(deviceInfo.Id());
+				addedDevice = co_await BluetoothLEDevice::FromIdAsync(deviceInfo.Id());
 
-				if (_bluetoothLeDevice == nullptr)
+				if (addedDevice == nullptr)
 				{
 					SPP_LOG(LOG_BTE, LOG_INFO, "Failed to connect to device");
 				}
@@ -210,12 +211,12 @@ namespace SPP
 				//}
 			}
 
-			if (_bluetoothLeDevice != nullptr)
+			if (addedDevice != nullptr)
 			{
 				// Note: BluetoothLEDevice.GattServices property will return an empty list for unpaired devices. For all uses we recommend using the GetGattServicesAsync method.
 				// BT_Code: GetGattServicesAsync returns a list of all the supported services of the device (even if it's not paired to the system).
 				// If the services supported by the device are expected to change during BT usage, subscribe to the GattServicesChanged event.
-				GattDeviceServicesResult result = co_await _bluetoothLeDevice.GetGattServicesAsync(BluetoothCacheMode::Uncached);
+				GattDeviceServicesResult result = co_await addedDevice.GetGattServicesAsync(BluetoothCacheMode::Uncached);
 
 				if (result.Status() == GattCommunicationStatus::Success)
 				{
