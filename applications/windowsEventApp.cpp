@@ -265,6 +265,8 @@ public:
     {
         static PAINTSTRUCT ps;
 
+        SPP_LOG(LOG_APP, LOG_INFO, " 0x%8X : 0x%8X : 0x%8X", uMsg, wParam, lParam);
+
         if (uMsg == 0x020A || uMsg == 0x020E)
         {
             auto zDelta = GET_WHEEL_DELTA_WPARAM(wParam);

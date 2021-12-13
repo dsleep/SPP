@@ -242,12 +242,8 @@ public:
 	void render(wxPaintEvent& evt);
 
 	// events
-	void mouseMoved(wxMouseEvent& event);
-	void mouseDown(wxMouseEvent& event);
-	void mouseWheelMoved(wxMouseEvent& event);
-	void mouseReleased(wxMouseEvent& event);
-	void rightClick(wxMouseEvent& event);
-	void mouseLeftWindow(wxMouseEvent& event);
+	void mouseEvent(wxMouseEvent& event);
+
 	void keyPressed(wxKeyEvent& event);
 	void keyReleased(wxKeyEvent& event);
 
@@ -279,20 +275,30 @@ public:
 BasicGLPane* GGLPane = nullptr;
 
 BEGIN_EVENT_TABLE(BasicGLPane, wxGLCanvas)
-EVT_MOTION(BasicGLPane::mouseMoved)
-EVT_LEFT_DOWN(BasicGLPane::mouseDown)
-EVT_LEFT_UP(BasicGLPane::mouseReleased)
-EVT_RIGHT_DOWN(BasicGLPane::rightClick)
-EVT_LEAVE_WINDOW(BasicGLPane::mouseLeftWindow)
+EVT_MOTION(BasicGLPane::mouseEvent)
+
+EVT_LEFT_DOWN(BasicGLPane::mouseEvent)
+EVT_LEFT_UP(BasicGLPane::mouseEvent)
+EVT_RIGHT_DOWN(BasicGLPane::mouseEvent)
+EVT_RIGHT_UP(BasicGLPane::mouseEvent)
+EVT_MIDDLE_DOWN(BasicGLPane::mouseEvent)
+EVT_MIDDLE_UP(BasicGLPane::mouseEvent)
+
+EVT_ENTER_WINDOW(BasicGLPane::mouseEvent)
+EVT_LEAVE_WINDOW(BasicGLPane::mouseEvent)
+EVT_MOUSEWHEEL(BasicGLPane::mouseEvent)
+
 EVT_SIZE(BasicGLPane::resized)
 EVT_KEY_DOWN(BasicGLPane::keyPressed)
 EVT_KEY_UP(BasicGLPane::keyReleased)
-EVT_MOUSEWHEEL(BasicGLPane::mouseWheelMoved)
 EVT_PAINT(BasicGLPane::render)
 END_EVENT_TABLE()
 
 const uint8_t KeyBoardMessage = 0x02;
 const uint8_t MouseMessage = 0x03;
+
+const uint8_t MS_ButtonOrMove = 0x01;
+const uint8_t MS_Window = 0x02;
 
 void BasicGLPane::_KeyboardEvent(wxKeyEvent& event, bool bKeyDown)
 {
@@ -314,73 +320,84 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 	//wxMOUSE_BTN_MIDDLE = 2,
 	//wxMOUSE_BTN_RIGHT = 3
 
-	int32_t curButton = event.GetButton();
-	uint8_t ActualButton = event.GetButton();
-	uint8_t bDown = 0;
-	int32_t wheelDelta = event.GetWheelRotation();
-	int8_t mouseWheel = (int8_t)std::clamp< int32_t>(wheelDelta, std::numeric_limits< int8_t>::min(), std::numeric_limits<int8_t>::max());
+	auto eventType = event.GetEventType();
+	bool bIsButtonEvent = event.IsButton() || (eventType == wxEVT_MOUSEWHEEL);
+	bool bIsMoveEvent = (eventType == wxEVT_MOTION);
+	bool bWindowEvent = (eventType == wxEVT_ENTER_WINDOW || eventType == wxEVT_LEAVE_WINDOW);
 
-	if (event.ButtonDown())
-	{
-		ActualButton = (uint8_t)curButton;
-		bDown = 1;
-	}
-	else if (event.ButtonUp())
-	{
-		ActualButton = (uint8_t)curButton;
-	}
-
-	uint8_t DownState = 0;
-	DownState |= event.LeftIsDown() ? 0x01 : 0;
-	DownState |= event.MiddleIsDown() ? 0x02 : 0;
-	DownState |= event.RightIsDown() ? 0x04 : 0;
-
-	int32_t xPos = event.GetX();
-	int32_t yPos = event.GetY();
+	//SPP_LOG(LOG_APP, LOG_INFO, "_MouseEvent: %d", eventType);
 	
-	Vector3 remap(xPos, yPos, 1);
-	Vector3 RemappedPosition = remap * virtualToReal;
-
-	if (RemappedPosition[0] >= 0 && RemappedPosition[1] >= 0)
-	{		
+	if (bWindowEvent)
+	{
 		BinaryBlobSerializer thisMessage;
 		thisMessage << MouseMessage;
-		thisMessage << ActualButton;
-		thisMessage << bDown;
-		thisMessage << DownState;
+		thisMessage << MS_Window;
+
+		int32_t xPos = event.GetX();
+		int32_t yPos = event.GetY();
+		Vector3 remap(xPos, yPos, 1);
+		Vector3 RemappedPosition = remap * virtualToReal;
+
+		uint8_t EnterState = (eventType == wxEVT_ENTER_WINDOW) ? 1 : 0;
+		thisMessage << EnterState;
 		thisMessage << (uint16_t)RemappedPosition[0];
 		thisMessage << (uint16_t)RemappedPosition[1];
-		thisMessage << mouseWheel;
-		
+
 		GInputHandler.PushEvent(thisMessage.GetArray());
+	}
+	else if (bIsButtonEvent || bIsMoveEvent)
+	{
+		int32_t curButton = event.GetButton();			
+		int32_t wheelDelta = event.GetWheelRotation();
+		int8_t mouseWheel = (int8_t)std::clamp< int32_t>(wheelDelta, std::numeric_limits< int8_t>::min(), std::numeric_limits<int8_t>::max());
+
+		uint8_t bDown = 0;
+		uint8_t ActualButton = 0;
+		if (event.ButtonDown())
+		{
+			ActualButton = (uint8_t)curButton;
+			bDown = 1;
+		}
+		else if (event.ButtonUp())
+		{
+			ActualButton = (uint8_t)curButton;
+		}
+
+		uint8_t DownState = 0;
+		DownState |= event.LeftIsDown() ? 0x01 : 0;
+		DownState |= event.MiddleIsDown() ? 0x02 : 0;
+		DownState |= event.RightIsDown() ? 0x04 : 0;
+
+		int32_t xPos = event.GetX();
+		int32_t yPos = event.GetY();
+
+		Vector3 remap(xPos, yPos, 1);
+		Vector3 RemappedPosition = remap * virtualToReal;
+
+		if (RemappedPosition[0] >= 0 && RemappedPosition[1] >= 0)
+		{
+			BinaryBlobSerializer thisMessage;
+			thisMessage << MouseMessage;
+			thisMessage << MS_ButtonOrMove;
+
+			thisMessage << ActualButton;
+			thisMessage << bDown;
+			thisMessage << DownState;
+			thisMessage << (uint16_t)RemappedPosition[0];
+			thisMessage << (uint16_t)RemappedPosition[1];
+			thisMessage << mouseWheel;
+
+			GInputHandler.PushEvent(thisMessage.GetArray());
+		}
 	}
 }
 
 // some useful events to use
-void BasicGLPane::mouseMoved(wxMouseEvent& event) 
+void BasicGLPane::mouseEvent(wxMouseEvent& event) 
 {
 	_MouseEvent(event);
 }
-void BasicGLPane::mouseDown(wxMouseEvent& event) 
-{
-	_MouseEvent(event);
-}
-void BasicGLPane::mouseWheelMoved(wxMouseEvent& event) 
-{
-	_MouseEvent(event);
-}
-void BasicGLPane::mouseReleased(wxMouseEvent& event) 
-{
-	_MouseEvent(event);
-}
-void BasicGLPane::rightClick(wxMouseEvent& event) 
-{
-	_MouseEvent(event);
-}
-void BasicGLPane::mouseLeftWindow(wxMouseEvent& event) 
-{
-	_MouseEvent(event);
-}
+
 void BasicGLPane::keyPressed(wxKeyEvent& event) 
 {
 	_KeyboardEvent(event,true);
