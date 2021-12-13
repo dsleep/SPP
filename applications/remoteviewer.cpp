@@ -67,6 +67,8 @@ class VideoConnection;
 
 static std::vector<uint8_t> startMessage = { 0, 1, 2, 3 };
 static std::vector<uint8_t> endMessage = { 3, 2, 1, 0 };
+static std::atomic_bool bDCRequest{ 0 };
+
 
 class SimpleJSONPeerReader
 {
@@ -226,6 +228,13 @@ private:
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		_lockImage.exchange(false);
+		
+		auto oParent = GetParent();
+
+		if (!oParent->IsShown())
+		{
+			oParent->Show();
+		}
 
 		wxWindow::Refresh();
 	}
@@ -522,14 +531,49 @@ void BasicGLPane::render(wxPaintEvent& evt)
 
 }
 
+
+class MyFrame : public wxFrame
+{
+private:
+
+public:
+	/*  The class constructor takes as parameters: the Display Manager used in
+	 *  the application (declared in MyApp), the Environment which contains
+	 *  the support and graphs already loaded and the name of the file containing
+	 *  the graph to be edited. */
+	MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size) : wxFrame(NULL, wxID_ANY, title, pos, size)
+	{
+		
+
+	}
+	~MyFrame()
+	{
+	}
+	void OnClose(wxCloseEvent& event)
+	{
+		bDCRequest = true;
+		Show(false);
+		event.Veto();
+	}
+	DECLARE_EVENT_TABLE()
+};
+
+BEGIN_EVENT_TABLE(MyFrame, wxFrame)
+EVT_CLOSE(MyFrame::OnClose)
+END_EVENT_TABLE()
+
 class MyApp : public wxApp
 {
 private:
 	bool OnInit();
-	wxFrame* _frame = nullptr;
+	MyFrame* _frame = nullptr;
 	BasicGLPane* _glPane = nullptr;
 
 public:
+	wxFrame* GetFrame()
+	{
+		return _frame;
+	}
 	BasicGLPane* GetGLPane()
 	{
 		return _glPane;
@@ -539,7 +583,7 @@ public:
 bool MyApp::OnInit()
 {
 	wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
-	_frame = new wxFrame(nullptr, -1, wxT("Remote Viewer"), wxPoint(50, 50), wxSize(400, 200));
+	_frame = new MyFrame(wxT("Remote Viewer"), wxPoint(50, 50), wxSize(1280, 720));
 #if PLATFORM_WINDOWS
 	_frame->SetIcon(wxICON(sppapp));
 #endif
@@ -551,14 +595,9 @@ bool MyApp::OnInit()
 	_frame->SetSizer(sizer);
 	_frame->SetAutoLayout(true);
 
+	_frame->Show(false);
 	_frame->Show(true);
-
-#if PLATFORM_WINDOWS
-	auto hWnd = _frame->GetHandle();
-	ShowWindow(hWnd, SW_SHOWDEFAULT);
-	ShowWindow(hWnd, SW_SHOWDEFAULT);
-	ShowWindow(hWnd, SW_SHOWNORMAL);
-#endif
+	_frame->Show(false);
 
 	return true;
 }
@@ -851,6 +890,15 @@ public:
 
 	virtual void Tick() override
 	{
+		auto doDC = bDCRequest.exchange(false);
+
+		if (doDC)
+		{
+			CloseDown("Clicked Close");
+			NetworkConnection::Tick();
+			return;
+		}
+
 		auto recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size());
 		if (recvAmmount > 0)
 		{
