@@ -369,10 +369,21 @@ public:
 			ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
 		}
 
+		if (ProcessID)
+		{
+			if (IsChildRunning(ProcessID) == false)
+			{
+				CloseDown("Process Closed!");
+			}
+		}
+				
 		NetworkConnection::Tick();
 
-		CheckFeedbackFromSofa();
-		CheckSendImage();
+		if (_networkState == EConnectionState::CONNECTED)
+		{
+			CheckFeedbackFromSofa();
+			CheckSendImage();
+		}
 	}
 
 	void ValidateEncoder(int32_t Width, int32_t Height)
@@ -411,7 +422,7 @@ public:
 	{
 		if(GetBufferedAmount() > 1 * 1024 * 1024)
 		{
-			SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::Drop Frame");
+			//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::Drop Frame");
 			return;
 		}
 
