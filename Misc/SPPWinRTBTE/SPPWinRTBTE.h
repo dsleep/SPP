@@ -49,7 +49,7 @@ namespace SPP
 		BTEWatcher();
 		~BTEWatcher();		
 		void WatchForData(const std::string& DeviceID, const std::map< std::string, IBTEWatcher* >& CharacterFunMap);
-		void WriteData(const std::string& DeviceID, const void* buf, uint16_t BufferSize);
+		void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize);
 		void Update();
 		void Stop();
 	};

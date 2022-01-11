@@ -107,7 +107,7 @@ namespace SPP
 			winrt::Windows::Devices::Bluetooth::BluetoothLEDevice device{ nullptr };
 			
 			std::vector<GattCharacteristic> readCharacteristic;
-			std::vector<GattCharacteristic> writeCharacteristics;
+			std::map<std::string, GattCharacteristic> writeCharacteristics;
 
 			bool Valid() const
 			{
@@ -246,7 +246,9 @@ namespace SPP
 			co_await curChar.WriteValueWithResultAsync(InBuffer);
 		}
 
-		void WriteData(const std::string& DeviceID, const void* buf, uint16_t BufferSize)
+		void WriteData(const std::string& DeviceID, 
+			const std::string& WriteID,
+			const void* buf, uint16_t BufferSize)
 		{
 			auto sDeviceID = std::utf8_to_wstring(DeviceID);
 			hstring asHString(sDeviceID);
@@ -257,8 +259,11 @@ namespace SPP
 				auto foundDevice = _devices.find(asHString);
 				if (foundDevice != _devices.end())
 				{
-					//TODO just front aint great
-					writeChar = foundDevice->second->writeCharacteristics.front();
+					auto foundChar = foundDevice->second->writeCharacteristics.find(WriteID);
+					if (foundChar != foundDevice->second->writeCharacteristics.end())
+					{
+						writeChar = foundChar->second;
+					}
 				}
 			}
 
@@ -341,8 +346,8 @@ namespace SPP
 
 		IAsyncAction UpdateDevice(std::shared_ptr<BTEData> InDevice)
 		{
-			auto bCanUpdate = InDevice->bIsUpdating.exchange(true);
-			if (bCanUpdate)
+			auto bCantUpdate = InDevice->bIsUpdating.exchange(true);
+			if (bCantUpdate)
 			{
 				co_return;
 			}
@@ -438,17 +443,17 @@ namespace SPP
 							{
 								guid uuid = c.Uuid();
 								auto UUIStrign = to_hstring(uuid);
-								SPP_LOG(LOG_BTE, LOG_INFO, " - Characteristic: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
-
+								std::string CString = std::wstring_to_utf8(std::wstring(UUIStrign));
+								
 								auto curProperties = c.CharacteristicProperties();
 								if (((uint32_t)curProperties & (uint32_t)GattCharacteristicProperties::Write) != 0)
 								{
-									SPP_LOG(LOG_BTE, LOG_INFO, " - Write Prop");
-									InDevice->writeCharacteristics.push_back(c);
+									SPP_LOG(LOG_BTE, LOG_INFO, " - Write Prop: %s", CString.c_str());
+									InDevice->writeCharacteristics.emplace(CString, c);
 								}
 								else
 								{
-									SPP_LOG(LOG_BTE, LOG_INFO, " - Read Prop");
+									SPP_LOG(LOG_BTE, LOG_INFO, " - Read Prop: %s", CString.c_str());
 									InDevice->readCharacteristic.push_back(c);
 								}
 
@@ -562,9 +567,9 @@ namespace SPP
 		_impl->_watcher->StartWatching(DeviceData, CharacterFunMap);
 	}
 
-	void BTEWatcher::WriteData(const std::string& DeviceData, const void* buf, uint16_t BufferSize)
+	void BTEWatcher::WriteData(const std::string& DeviceData, const std::string& WriteID, const void* buf, uint16_t BufferSize)
 	{
-		_impl->_watcher->WriteData(DeviceData, buf, BufferSize);
+		_impl->_watcher->WriteData(DeviceData, WriteID, buf, BufferSize);
 	}
 
 	void BTEWatcher::Update() 
