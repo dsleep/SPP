@@ -116,7 +116,7 @@ namespace SPP
 		};
 
 		std::mutex _devicesMutex;
-		std::map< hstring, std::shared_ptr<BTEData> > _devices;
+		std::map< std::string, std::shared_ptr<BTEData> > _devices;
 
 	public:
 		INTERNAL_BTEWatcher()
@@ -197,7 +197,7 @@ namespace SPP
 				}
 
 				{
-					std::map< hstring, std::shared_ptr<BTEData> > devicesCopy;
+					std::map< std::string, std::shared_ptr<BTEData> > devicesCopy;
 					
 					{
 						std::unique_lock<std::mutex> lock(_devicesMutex);
@@ -251,16 +251,15 @@ namespace SPP
 			const void* buf, uint16_t BufferSize)
 		{
 			auto sDeviceID = std::utf8_to_wstring(DeviceID);
-			hstring asHString(sDeviceID);
 
 			GattCharacteristic writeChar{ nullptr };
 			{
 				std::unique_lock<std::mutex> lock(_devicesMutex);
-				auto foundDevice = _devices.find(asHString);
-				if (foundDevice != _devices.end())
+
+				for (auto& [key, value] : _devices)
 				{
-					auto foundChar = foundDevice->second->writeCharacteristics.find(WriteID);
-					if (foundChar != foundDevice->second->writeCharacteristics.end())
+					auto foundChar = value->writeCharacteristics.find(WriteID);
+					if (foundChar != value->writeCharacteristics.end())
 					{
 						writeChar = foundChar->second;
 					}
@@ -308,15 +307,15 @@ namespace SPP
 			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s", std::wstring_to_utf8(std::wstring(deviceInfo.Id() + deviceInfo.Name())).c_str());
 
 			auto DeviceName = deviceInfo.Name();
-			auto sDeviceName = std::wstring_to_utf8(std::wstring(DeviceName));
+			auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(deviceInfo.Id())));
 			{
 				std::unique_lock<std::mutex> lock(_devicesMutex);
 
-				if (_devices.find(deviceInfo.Id()) == _devices.end())
+				if (_devices.find(sDeviceID) == _devices.end())
 				{
 					std::shared_ptr< BTEData > newData;
 					newData.reset(new BTEData{ deviceInfo.Id(), DeviceName });
-					_devices[deviceInfo.Id()] = newData;
+					_devices[sDeviceID] = newData;
 				}
 			}
 		}
@@ -327,14 +326,13 @@ namespace SPP
 
 			if (inDevice)
 			{
-				std::unique_lock<std::mutex> lock(_devicesMutex);
-				for (auto& [key, value] : _devices)
+				auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(inDevice.DeviceId())));
+				std::unique_lock<std::mutex> lock(_devicesMutex);		
+
+				auto foundDevice = _devices.find(sDeviceID);
+				if (foundDevice == _devices.end())
 				{
-					if (value->GUID == inDevice.DeviceId())
-					{
-						value->bNeedsUpdate = true;
-						return;
-					}
+					foundDevice->second->bNeedsUpdate = true;
 				}
 			}
 		}
@@ -443,7 +441,7 @@ namespace SPP
 							{
 								guid uuid = c.Uuid();
 								auto UUIStrign = to_hstring(uuid);
-								std::string CString = std::wstring_to_utf8(std::wstring(UUIStrign));
+								std::string CString = std::str_to_upper(std::wstring_to_utf8(std::wstring(UUIStrign)));
 								
 								auto curProperties = c.CharacteristicProperties();
 								if (((uint32_t)curProperties & (uint32_t)GattCharacteristicProperties::Write) != 0)
@@ -520,7 +518,10 @@ namespace SPP
 
 			{
 				std::unique_lock<std::mutex> lock(_devicesMutex);
-				auto foundDevice = _devices.find(deviceInfo.Id());
+
+				auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(deviceInfo.Id())));
+
+				auto foundDevice = _devices.find(sDeviceID);
 				if (foundDevice == _devices.end() || !foundDevice->second->Valid())
 				{
 					return;

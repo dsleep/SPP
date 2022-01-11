@@ -18,6 +18,17 @@ namespace std
 	{
 		std::transform(InData.begin(), InData.end(), InData.begin(), [](unsigned char c) { return std::tolower(c); });
 	}
+	void inlineToUpper(std::string& InData)
+	{
+		std::transform(InData.begin(), InData.end(), InData.begin(), [](unsigned char c) { return std::toupper(c); });
+	}
+
+	std::string str_to_upper(std::string& InData)
+	{
+		std::string oString = InData;
+		inlineToUpper(oString);
+		return oString;
+	}
 
 	unsigned int random_char()
 	{
