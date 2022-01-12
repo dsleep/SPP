@@ -48,6 +48,7 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
+std::string CoordPWD;
 IPv4_SocketAddress RemoteCoordAddres;
 std::string StunURL;
 uint16_t StunPort;
@@ -1079,14 +1080,17 @@ void SPPApp(int argc, char* argv[])
 		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
 		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
 		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
-
+		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
+		
 		SE_ASSERT(!STUN_URL.isNull());
 		SE_ASSERT(!STUN_PORT.isNull());
 		SE_ASSERT(!COORDINATOR_IP.isNull());
+		SE_ASSERT(!COORD_PASS.isNull());
 
 		StunURL = STUN_URL.asCString();
 		StunPort = STUN_PORT.asUInt();
 		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());
+		CoordPWD = COORD_PASS.asCString();
 	}
 
 	auto ThisRUNGUID = std::generate_hex(3);
@@ -1126,6 +1130,7 @@ void SPPApp(int argc, char* argv[])
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
 
+	coordinator->SetPassword(CoordPWD);
 	coordinator->SetKeyPair("GUID", ThisRUNGUID);
 	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");

@@ -54,6 +54,8 @@ int main()
 				{ "LASTUPDATETIME", ESQLFieldType::Direct}
 		}));
 
+	coordinator->SetPassword(Password);
+
 
 	SimplePolledRepeatingTimer< std::chrono::seconds > clearOldOnes;
 

@@ -377,6 +377,11 @@ namespace SPP
 		_impl->Update();		
 	}
 
+	void UDP_SQL_Coordinator::SetPassword(const std::string& InPWD)
+	{
+		_impl->Password = InPWD;
+	}
+
 	////////////////////////////////
 	//UDPJuiceSocket
 	////////////////////////////////
