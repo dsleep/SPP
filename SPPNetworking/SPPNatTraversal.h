@@ -9,7 +9,7 @@
 #include "SPPDatabase.h"
 
 namespace SPP
-{
+{	
 	class SPP_NETWORKING_API UDP_SQL_Coordinator 
 	{
 	private:

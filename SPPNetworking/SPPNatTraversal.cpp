@@ -7,7 +7,8 @@
 #include "SPPSerialization.h"
 #include "SPPDatabase.h"
 #include "SPPTiming.h"
-
+#include "SPPNetworkConnection.h"
+#include "SPPNetworkMessenger.h"
 
 #include "json/json.h"
 #include "juice/juice.h"
@@ -29,42 +30,264 @@ namespace SPP
 	////////////////////////////////
 	//UDP_SQL_Coordinator
 	////////////////////////////////
-	
-	struct UDP_SQL_Coordinator::PlatImpl
+
+	struct UDP_SQL_CoordinatorData
 	{
-		bool IsHost = false;
+		bool IsServer = false;
 
 		IPv4_SocketAddress RemoteAddr;
 		std::unique_ptr< SQLLiteDatabase > DBConnection;
-		std::unique_ptr< UDPSocket > CoordinatorSocket;
-
-		std::vector<uint8_t> BufferRead;
-		SystemClock::time_point LastSendTime;
+		std::vector<uint8_t> recvBuffer;
 		SystemClock::time_point LastRecvUpdateFromRemote;
+
+		std::shared_ptr<UDPSocket> _recvSocket;
+		std::shared_ptr< class SQLCoordinatorConnection > _server;
+		std::map< IPv4_SocketAddress, std::shared_ptr< class SQLCoordinatorConnection > > _clients;
+
+		std::string Password;
 
 		std::map<std::string, std::string> KeyMapping;
 		std::function<void(const std::string&)> ResponseFunc;
-
 		std::map<std::string, ESQLFieldType> FieldMap;
 
-		PlatImpl()
+		UDP_SQL_CoordinatorData()
 		{
-			BufferRead.resize(10 * 1024);
-			LastSendTime = SystemClock::now() + std::chrono::seconds(1);
+			recvBuffer.resize(std::numeric_limits<uint16_t>::max());
+		}
+	};
+	
+	class SQLCoordinatorConnection : public NetworkConnection
+	{
+	private:
+		SystemClock::time_point LastSendTime;
+
+		UDP_SQL_CoordinatorData& SQLData;
+
+	public:
+		SQLCoordinatorConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool IsServer, UDP_SQL_CoordinatorData& InData) : 
+			NetworkConnection(InPeer, IsServer), SQLData(InData)
+		{
+		}
+
+		virtual void Tick() override
+		{
+			auto CurrentTime = SystemClock::now();
+
+			NetworkConnection::Tick();
+
+			// if its not the host send who we are
+			if (!_bIsServer)
+			{
+				if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSendTime).count() > 2)
+				{
+					Json::Value JsonMessage;
+
+					for (auto& [key, value] : SQLData.KeyMapping)
+					{
+						JsonMessage[key] = value;
+					}
+
+					Json::StreamWriterBuilder wbuilder;
+					std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
+					SendMessage(StrMessage.c_str(), StrMessage.size(), EMessageMask::IS_RELIABLE);
+					LastSendTime = CurrentTime;
+				}
+			}
+		}
+
+		virtual void MessageReceived(const void* Data, int32_t DataLength)
+		{
+			auto CurrentTime = SystemClock::now();
+
+			Json::Value root;
+			Json::CharReaderBuilder Builder;
+			Json::CharReader* reader = Builder.newCharReader();
+			std::string Errors;
+
+			bool parsingSuccessful = reader->parse((char*)Data, (char*)((uint8_t*)Data + DataLength), &root, &Errors);
+			delete reader;
+			if (parsingSuccessful)
+			{
+				if (_bIsServer)
+				{
+					//SPP_LOG(LOG_COORD, LOG_INFO, "Client ping at %s", currentAddress.ToString().c_str());
+
+					Json::Value HasSQLRequest = root.get("SQL", Json::Value::nullSingleton());
+					Json::Value SQLResults;
+
+					// if not SQL it always a push
+					if (HasSQLRequest.isNull())
+					{
+						std::string ColumnNames;
+						std::string ColumnValues;
+
+						for (Json::Value::const_iterator itr = root.begin(); itr != root.end(); itr++)
+						{
+							std::string ColumnName = itr.memberName();
+							std::string ColumnValue = root[ColumnName.c_str()].asCString();
+
+							if (!ColumnNames.empty())ColumnNames += ", ";
+							ColumnNames += std::string_format("%s", ColumnName.c_str());
+
+							if (!ColumnValues.empty())ColumnValues += ", ";
+
+							auto fieldType = SQLData.FieldMap[ColumnName];
+							if (fieldType == ESQLFieldType::Direct)
+							{
+								ColumnValues += std::string_format("%s", ColumnValue.c_str());
+							}
+							else
+							{
+								ColumnValues += std::string_format("'%s'", ColumnValue.c_str());
+							}
+						}
+
+						std::string SQLCommand = std::string_format("REPLACE INTO clients(%s) VALUES(%s);", ColumnNames.c_str(), ColumnValues.c_str());
+						SQLData.DBConnection->RunSQL(SQLCommand.c_str());
+					}
+					else
+					{
+						char sqlDecode[1024] = { 0 };
+						juice_base64_decode(HasSQLRequest.asCString(), sqlDecode, sizeof(sqlDecode));
+
+						SQLData.DBConnection->RunSQL(sqlDecode, [&SQLResults](int argc, char** argv, char** azColName) -> int
+							{
+								Json::Value SQLResult;
+								for (int32_t Iter = 0; Iter < argc; Iter++)
+								{
+									if (argv[Iter])
+									{
+										SQLResult[azColName[Iter]] = argv[Iter];
+									}
+								}
+								SQLResults.append(SQLResult);
+								return 0;
+							});
+					}
+
+					//send a message back about time
+					Json::Value JsonMessage;
+					JsonMessage["SERVERTIME"] = TimePointToString<SystemClock>(CurrentTime, "UTC: %Y-%m-%d %H:%M:%S");
+					if (!SQLResults.isNull())
+					{
+						JsonMessage["SQLRESULT"] = SQLResults;
+					}
+					Json::StreamWriterBuilder wbuilder;
+					std::string StrMessage = Json::writeString(wbuilder, JsonMessage);				
+					SendMessage(StrMessage.c_str(), StrMessage.size(), EMessageMask::IS_RELIABLE);
+				}
+				else
+				{
+					Json::Value ServerTime = root.get("SERVERTIME", Json::Value::nullSingleton());
+					if (ServerTime.isNull() == false)
+					{
+						SQLData.LastRecvUpdateFromRemote = SystemClock::now();
+					}
+
+					Json::Value SQLResultValue = root.get("SQLRESULT", Json::Value::nullSingleton());
+					if (SQLResultValue.isNull() == false)
+					{
+						if (SQLData.ResponseFunc)
+						{
+							Json::StreamWriterBuilder wbuilder;
+							std::string StrMessage = Json::writeString(wbuilder, SQLResultValue);
+							SQLData.ResponseFunc(StrMessage);
+						}
+					}
+				}
+			}
+		}
+	};
+
+	struct UDP_SQL_Coordinator::PlatImpl : public UDP_SQL_CoordinatorData
+	{		
+		void Update()
+		{
+			if (!_recvSocket)
+			{
+				_recvSocket = std::make_shared<UDPSocket>(IsServer ? RemoteAddr.Port : 0);				
+			}
+
+			IPv4_SocketAddress recvAddr;
+			int32_t DataRecv = 0;
+			while ((DataRecv = _recvSocket->ReceiveFrom(recvAddr, recvBuffer.data(), recvBuffer.size())) > 0)
+			{
+				if (IsServer)
+				{
+					auto foundClient = _clients.find(recvAddr);
+					std::shared_ptr< SQLCoordinatorConnection > currentClient;
+
+					if (foundClient == _clients.end())
+					{
+						currentClient = std::make_shared<SQLCoordinatorConnection>(std::make_shared<UDPSendWrapped>(_recvSocket, recvAddr), true, *this);
+						currentClient->CreateTranscoderStack(
+							// allow reliability to UDP
+							std::make_shared< ReliabilityTranscoder >(),
+							// push on the splitter so we can ignore sizes
+							std::make_shared< MessageSplitTranscoder >());
+						currentClient->SetPassword(Password);
+						_clients[recvAddr] = currentClient;
+					}
+					else
+					{
+						currentClient = foundClient->second;
+					}
+
+					currentClient->ReceivedRawData(recvBuffer.data(), DataRecv, 0);
+				}
+				else if(_server && recvAddr == RemoteAddr)
+				{
+					_server->ReceivedRawData(recvBuffer.data(), DataRecv, 0);
+				}
+			}
+
+			if (IsServer)
+			{
+				for (auto iter = _clients.begin(); iter != _clients.end(); )
+				{
+					auto& [Addr, Connection] = *iter;
+
+					if (Connection->IsValid() == false)
+					{						
+						iter = _clients.erase(iter);
+					}
+					else
+					{
+						Connection->Tick();
+						++iter;
+					}
+				}				
+			}
+			else
+			{
+				if (_server && _server->IsValid())
+				{
+					_server->Tick();
+				}
+				else
+				{
+					_server = std::make_shared<SQLCoordinatorConnection>(std::make_shared<UDPSendWrapped>(_recvSocket, RemoteAddr), false, *this);
+					_server->CreateTranscoderStack(
+						// allow reliability to UDP
+						std::make_shared< ReliabilityTranscoder >(),
+						// push on the splitter so we can ignore sizes
+						std::make_shared< MessageSplitTranscoder >());
+					_server->SetPassword(Password);
+					_server->Connect();
+				}
+			}
 		}
 	};
 
 	UDP_SQL_Coordinator::UDP_SQL_Coordinator(const IPv4_SocketAddress &InRemoteAddr) : _impl(new PlatImpl())
 	{
-		_impl->CoordinatorSocket = std::make_unique < UDPSocket >();
 		_impl->RemoteAddr = InRemoteAddr;
 	}
 
 	UDP_SQL_Coordinator::UDP_SQL_Coordinator(uint16_t InPort, const std::vector<TableField>& InFields) : _impl(new PlatImpl())
 	{
-		_impl->IsHost = true;		
-		_impl->CoordinatorSocket = std::make_unique < UDPSocket >(InPort);
-
+		_impl->IsServer = true;
+		_impl->RemoteAddr.Port = InPort;
 		_impl->DBConnection = std::make_unique< SQLLiteDatabase >();
 		_impl->DBConnection->Connect("coordDB.db");
 		_impl->DBConnection->GenerateTable("clients", InFields);
@@ -105,7 +328,7 @@ namespace SPP
 
 	void UDP_SQL_Coordinator::SQLRequest(const std::string& InSQL)
 	{
-		if (_impl->IsHost)
+		if (_impl->IsServer)
 		{
 			Json::Value SQLResults;
 
@@ -137,7 +360,10 @@ namespace SPP
 
 			Json::StreamWriterBuilder wbuilder;
 			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-			_impl->CoordinatorSocket->SendTo(_impl->RemoteAddr, StrMessage.c_str(), StrMessage.size());
+			if (_impl->_server)
+			{
+				_impl->_server->SendMessage(StrMessage.c_str(), StrMessage.size(), EMessageMask::IS_RELIABLE);
+			}
 		}
 	}
 
@@ -148,133 +374,7 @@ namespace SPP
 
 	void UDP_SQL_Coordinator::Update()
 	{
-		auto CurrentTime = SystemClock::now();
-
-		//RECEIVING DATA
-		{
-			IPv4_SocketAddress currentAddress;
-			auto packetSize = _impl->CoordinatorSocket->ReceiveFrom(currentAddress, _impl->BufferRead.data(), _impl->BufferRead.size());
-
-			if (packetSize > 0)
-			{
-				Json::Value root;
-				Json::CharReaderBuilder Builder;
-				Json::CharReader* reader = Builder.newCharReader();
-				std::string Errors;
-
-				bool parsingSuccessful = reader->parse((char*)_impl->BufferRead.data(), (char*)(_impl->BufferRead.data() + packetSize), &root, &Errors);
-				delete reader;
-				if (parsingSuccessful)
-				{		
-					if (_impl->IsHost)
-					{
-						SPP_LOG(LOG_COORD, LOG_INFO, "Client ping at %s", currentAddress.ToString().c_str());
-							
-						Json::Value HasSQLRequest = root.get("SQL", Json::Value::nullSingleton());
-						Json::Value SQLResults;
-
-						// if not SQL it always a push
-						if (HasSQLRequest.isNull())
-						{
-							std::string ColumnNames;
-							std::string ColumnValues;
-
-							for (Json::Value::const_iterator itr = root.begin(); itr != root.end(); itr++)
-							{
-								std::string ColumnName = itr.memberName();
-								std::string ColumnValue = root[ColumnName.c_str()].asCString();
-
-								if (!ColumnNames.empty())ColumnNames += ", ";
-								ColumnNames += std::string_format("%s", ColumnName.c_str());
-
-								if (!ColumnValues.empty())ColumnValues += ", ";
-
-								auto fieldType = _impl->FieldMap[ColumnName];
-								if (fieldType == ESQLFieldType::Direct)
-								{
-									ColumnValues += std::string_format("%s", ColumnValue.c_str());
-								}
-								else
-								{
-									ColumnValues += std::string_format("'%s'", ColumnValue.c_str());
-								}
-							}
-
-							std::string SQLCommand = std::string_format("REPLACE INTO clients(%s) VALUES(%s);", ColumnNames.c_str(), ColumnValues.c_str() );							
-							_impl->DBConnection->RunSQL(SQLCommand.c_str());
-						}
-						else
-						{							
-							char sqlDecode[1024] = { 0 };
-							juice_base64_decode(HasSQLRequest.asCString(), sqlDecode, sizeof(sqlDecode));
-
-							_impl->DBConnection->RunSQL(sqlDecode, [&SQLResults](int argc, char** argv, char** azColName) -> int
-								{
-									Json::Value SQLResult;
-									for (int32_t Iter = 0; Iter < argc; Iter++)
-									{
-										if (argv[Iter])
-										{
-											SQLResult[azColName[Iter]] = argv[Iter];
-										}
-									}
-									SQLResults.append(SQLResult);
-									return 0;
-								});
-						}
-
-						//send a message back about time
-						Json::Value JsonMessage;
-						JsonMessage["SERVERTIME"] = TimePointToString<SystemClock>(CurrentTime, "UTC: %Y-%m-%d %H:%M:%S");
-						if (!SQLResults.isNull())
-						{
-							JsonMessage["SQLRESULT"] = SQLResults;
-						}
-						Json::StreamWriterBuilder wbuilder;
-						std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-						_impl->CoordinatorSocket->SendTo(currentAddress, StrMessage.c_str(), StrMessage.size());
-					}
-					else
-					{
-						Json::Value ServerTime = root.get("SERVERTIME", Json::Value::nullSingleton());
-						if (ServerTime.isNull() == false)
-						{
-							_impl->LastRecvUpdateFromRemote = SystemClock::now();
-						}
-
-						Json::Value SQLResultValue = root.get("SQLRESULT", Json::Value::nullSingleton());
-						if (SQLResultValue.isNull() == false)
-						{
-							if (_impl->ResponseFunc)
-							{
-								Json::StreamWriterBuilder wbuilder;
-								std::string StrMessage = Json::writeString(wbuilder, SQLResultValue);
-								_impl->ResponseFunc(StrMessage);
-							}							
-						}
-					}
-				}
-			}
-		}
-
-		// if its not the host send who we are
-		if (!_impl->IsHost)
-		{
-			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - _impl->LastSendTime).count() > 2)
-			{
-				Json::Value JsonMessage;
-
-				for (auto& [key, value] : _impl->KeyMapping)
-				{
-					JsonMessage[key] = value;
-				}
-
-				Json::StreamWriterBuilder wbuilder;
-				std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-				_impl->CoordinatorSocket->SendTo(_impl->RemoteAddr, StrMessage.c_str(), StrMessage.size());
-				_impl->LastSendTime = CurrentTime;
-			}
-		}
+		_impl->Update();		
 	}
 
 	////////////////////////////////
@@ -293,6 +393,10 @@ namespace SPP
 
 		std::mutex incDataMutex;
 		BinaryBlobSerializer incData;
+
+		std::map<std::string, std::string> KeyMapping;
+		std::function<void(const std::string&)> ResponseFunc;
+		std::map<std::string, ESQLFieldType> FieldMap;
 
 		SystemClock::time_point ConnectedStartTime;
 	};

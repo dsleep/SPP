@@ -8,7 +8,7 @@
 #include "SPPLogging.h"
 #include "SPPTiming.h"
 #include "SPPJsonUtils.h"
-
+#include "SPPNetworkConnection.h"
 #include "SPPFileSystem.h"
 
 #include <iomanip>
@@ -19,6 +19,8 @@ using namespace SPP;
 using namespace std::chrono_literals;
 
 IPv4_SocketAddress RemoteCoordAddres;
+std::string Password;
+
 LogEntry LOG_COORD("APPCOORD");
 int main()
 {
@@ -29,7 +31,12 @@ int main()
 		SE_ASSERT(FileToJson("config.txt", JsonConfig));
 		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
 		SE_ASSERT(!COORDINATOR_IP.isNull());
+
+		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
+		SE_ASSERT(!COORD_PASS.isNull());
+
 		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());
+		Password = COORD_PASS.asCString();
 	}
 
 	GetOSNetwork();

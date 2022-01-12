@@ -30,7 +30,7 @@ namespace SPP
 
 		std::string ToString()
 		{
-			return std::string_format("NUM: %u Control: %u MessageLength: %u", MAGIC_Num, IsControl, MessageLength);
+			return std::string_format("NUM: 0x%X Control: %u MessageLength: %u", MAGIC_Num, IsControl, MessageLength);
 		}
 	};
 
@@ -411,6 +411,14 @@ namespace SPP
 		}
 		else
 		{
+#if SPP_NETCONN_CRYPTO		
+			if (_networkState == EConnectionState::CONNECTED)
+			{
+				SPP_LOG(LOG_NETCON, LOG_INFO, "HAS NON Encrypted CONTROL?!");
+				return;
+			}
+#endif
+
 			if (MemoryToJson(ControlMsg.data(), ControlMsg.size(), jsonMessage) == false)
 			{
 				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");

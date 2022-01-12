@@ -2,5 +2,6 @@
 	"STUN_URL" : "stun.l.google.com",
 	"STUN_PORT" : 19302,
 	"COORDINATOR_IP" : "127.0.0.1:12021",
+	"COORDINATOR_PASSWORD" : "test",
 	"DEBUG_MODE" : false	
 }
