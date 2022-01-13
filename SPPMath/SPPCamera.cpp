@@ -45,7 +45,7 @@ namespace SPP
 	{
 		_projectionMatrix = Matrix4x4::Identity();
 
-		float xscale = 1.0f / (float)std::tanf(DegToRad(FoV) * 0.5f);
+		float xscale = 1.0f / (float)std::tan(DegToRad(FoV) * 0.5f);
 		float yscale = xscale * AspectRatio;
 
 		float fnDelta = FarClippingZ - NearClippingZ;
