@@ -136,6 +136,7 @@ namespace SPP
 		HighResClock::time_point _degradeStartTime;
 
 		bool bIsSaturated = false;
+		bool bReportStatus = false;
 
 		//internal
 		void _UpdateNetworkFlow();

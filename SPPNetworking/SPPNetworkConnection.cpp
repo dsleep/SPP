@@ -590,20 +590,22 @@ namespace SPP
 			_stats.LastCalcTime = CurrentTime;
 			_stats.LastCalcTimeFromAppStart = TimeSinceAppStarted();
 
-			SPP_LOG(LOG_NETCON, LOG_INFO, "**STATUS REPORT:**");// , _remoteAddr.ToString().c_str());
-			SPP_LOG(LOG_NETCON, LOG_INFO, " - State %s Total Packets Recv: %llu Total Packets Recv: %llu", 
-				NetStateStrings[(uint8_t)_networkState],
-				_stats.TotalPKtsRcv,
-				_stats.TotalPktsSnd);
-			SPP_LOG(LOG_NETCON, LOG_INFO, " - outgoing %4.2f KB/s incoming %4.2f KB/s",
-				_stats.LastKBsOutgoing, 
-				_stats.LastKBsIncoming);
-
-			for (auto &coder : _Transcoders)
+			if (bReportStatus)
 			{
-				coder->Report();
-			}		
+				SPP_LOG(LOG_NETCON, LOG_INFO, "**STATUS REPORT:**");// , _remoteAddr.ToString().c_str());
+				SPP_LOG(LOG_NETCON, LOG_INFO, " - State %s Total Packets Recv: %llu Total Packets Recv: %llu",
+					NetStateStrings[(uint8_t)_networkState],
+					_stats.TotalPKtsRcv,
+					_stats.TotalPktsSnd);
+				SPP_LOG(LOG_NETCON, LOG_INFO, " - outgoing %4.2f KB/s incoming %4.2f KB/s",
+					_stats.LastKBsOutgoing,
+					_stats.LastKBsIncoming);
 
+				for (auto& coder : _Transcoders)
+				{
+					coder->Report();
+				}
+			}
 			//_SocketLink->Report();
 		}
 
