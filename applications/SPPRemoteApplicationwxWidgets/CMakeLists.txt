@@ -62,6 +62,8 @@ if(OS_WINDOWS)
 install(DIRECTORY "${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll/" #trailing / matters to flatten it
 	DESTINATION "${SPP_ROOT}/INSTALL"
 	FILES_MATCHING 
-	PATTERN "*.dll")
+		PATTERN "*.dll"
+		PATTERN mswu EXCLUDE 
+		PATTERN mswud EXCLUDE)
 
 endif()
