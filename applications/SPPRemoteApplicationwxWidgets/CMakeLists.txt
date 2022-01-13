@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(SPPApplicationsGroup_API VERSION 1.0.0 LANGUAGES CXX)
 
+
+
 ###################################################
 ## SPPRemoteApplicationManager
 ###################################################
@@ -20,6 +22,8 @@ set_property(TARGET SPPRemoteApplicationManager PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET SPPRemoteApplicationManager PROPERTY VS_DPI_AWARE "PerMonitor")
 
 TargetWxWidgetsSetup( SPPRemoteApplicationManager )
+
+install(TARGETS SPPRemoteApplicationManager DESTINATION "${SPP_ROOT}/INSTALL")
 
 ###################################################
 ## SPPRemoteApplicationController
@@ -48,3 +52,16 @@ set_property(TARGET SPPRemoteApplicationController PROPERTY VS_DPI_AWARE "PerMon
 
 TargetWxWidgetsSetup( SPPRemoteApplicationController )
 
+install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
+
+
+install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
+
+if(OS_WINDOWS)
+
+install(DIRECTORY "${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll/" #trailing / matters to flatten it
+	DESTINATION "${SPP_ROOT}/INSTALL"
+	FILES_MATCHING 
+	PATTERN "*.dll")
+
+endif()

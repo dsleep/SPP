@@ -44,3 +44,6 @@ target_link_libraries(SPPReflection
 
 install(TARGETS SPPReflection DESTINATION "${SPP_ROOT}/INSTALL")
 
+if(OS_WINDOWS)
+	install(FILES "${THIRD_PARTY}/rttr/bin/rttr_core.dll" DESTINATION "${SPP_ROOT}/INSTALL")
+endif()

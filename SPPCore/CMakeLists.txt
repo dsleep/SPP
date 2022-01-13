@@ -100,5 +100,7 @@ endif()
 
 install(TARGETS SPPCore DESTINATION "${SPP_ROOT}/INSTALL")
 
-
+if(OS_WINDOWS)
+	install(FILES "${THIRD_PARTY}/jsoncpp/bin/win64/vc16/jsoncpp.dll" DESTINATION "${SPP_ROOT}/INSTALL")
+endif()
 

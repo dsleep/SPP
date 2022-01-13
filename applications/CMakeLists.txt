@@ -16,6 +16,8 @@ set_target_properties( simpleconnectioncoordinator PROPERTIES DEBUG_POSTFIX ${CM
 set_property(TARGET simpleconnectioncoordinator PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonitor")
 
+install(TARGETS simpleconnectioncoordinator DESTINATION "${SPP_ROOT}/INSTALL")
+
 if(OS_WINDOWS)
 
 message( STATUS "Adding Application: SPPSDFSimpleEditor" )
@@ -44,6 +46,8 @@ set_property(TARGET applicationhost PROPERTY VS_DPI_AWARE "PerMonitor")
 set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo_CUDA.dll" )
 set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo_CUDA.dll" )
 set_target_properties(applicationhost PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideo_CUDAd.dll" )
+
+install(TARGETS applicationhost DESTINATION "${SPP_ROOT}/INSTALL")
 
 ####################
 # windows only event app test
@@ -80,7 +84,6 @@ target_link_libraries( remoteviewer
 		SPPVideo 
 		SPPWinRTBTE )        
 		
-
 set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")
@@ -90,6 +93,8 @@ set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPP
 set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
 
 TargetWxWidgetsSetup( remoteviewer )
+
+install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
 
 endif()
 
