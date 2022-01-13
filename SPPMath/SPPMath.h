@@ -10,6 +10,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include <cmath>
+
 #include <Eigen/Geometry> 
 
 #if _WIN32 && !defined(SPP_MATH_STATIC)
