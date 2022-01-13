@@ -135,7 +135,7 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	auto vertSizer = new wxBoxSizer(wxVERTICAL);	
 
 	auto staticText = new wxStaticText(this, wxID_ANY, "Available Servers:");
-	auto staticText2 = new wxStaticText(this, wxID_ANY, "Password:");
+	
 	
 	wxArrayString strings;
 
@@ -145,15 +145,17 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	vertSizer->Add(staticText, 0, wxLEFT | wxTOP, 5);
 	vertSizer->Add(_serverList, 0, wxEXPAND | wxALL, 5);
 
-	vertSizer->Add(staticText2, 0, wxLEFT, 5);
-	
-	_passwordTB = new wxTextCtrl(this, wxID_ANY,
-		L"",
-		wxDefaultPosition, 
-		wxDefaultSize, 
-		wxTE_PASSWORD);
+	//TODO
+	//auto staticText2 = new wxStaticText(this, wxID_ANY, "Password:");
+	//vertSizer->Add(staticText2, 0, wxLEFT, 5);
+	//
+	//_passwordTB = new wxTextCtrl(this, wxID_ANY,
+	//	L"",
+	//	wxDefaultPosition, 
+	//	wxDefaultSize, 
+	//	wxTE_PASSWORD);
 
-	vertSizer->Add(_passwordTB, 0, wxEXPAND | wxALL, 5);
+	//vertSizer->Add(_passwordTB, 0, wxEXPAND | wxALL, 5);
 
 	vertSizer->SetSizeHints(this);
 
