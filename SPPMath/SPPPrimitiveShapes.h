@@ -401,7 +401,7 @@ namespace SPP
 
             if (distSq > radiusSq)
             {
-                float dist = std::sqrtf(distSq);
+                float dist = std::sqrt(distSq);
                 float k = (radius / dist) * 0.5f + 0.5f;
 
                 center = center * k + point * (1.0f - k);

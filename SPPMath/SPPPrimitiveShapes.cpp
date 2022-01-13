@@ -45,7 +45,7 @@ namespace SPP
             if (discr < 0.0f) return false;
 
             // Ray now found to intersect sphere, compute smallest t value of intersection
-            auto t = -b - std::sqrtf(discr);
+            auto t = -b - std::sqrt(discr);
 
             // If t is negative, ray started inside sphere so clamp t to zero 
             if (t < 0.0f) t = 0.0f;
