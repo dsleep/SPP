@@ -144,10 +144,14 @@ if(USE_CRYPTOCPP)
 endif()
 
 list(APPEND SPPProjects
-			"SPPEngine" 			
-			"SPPCapture" 
-			"SPPVideo" )
-			
+			"SPPEngine" )
+
+if(OS_WINDOWS)
+	list(APPEND SPPProjects			
+				"SPPCapture" 
+				"SPPVideo" )
+endif()		
+
 if(USE_OBJECTS)
 	list(APPEND SPPProjects								
 			"SPPReflection"

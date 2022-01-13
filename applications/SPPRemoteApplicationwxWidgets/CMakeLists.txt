@@ -54,9 +54,6 @@ TargetWxWidgetsSetup( SPPRemoteApplicationController )
 
 install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
 
-
-install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
-
 if(OS_WINDOWS)
 
 install(DIRECTORY "${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll/" #trailing / matters to flatten it

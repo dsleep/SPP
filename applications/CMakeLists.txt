@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(SPPApplications_API VERSION 1.0.0 LANGUAGES CXX)
 
-
 #message( STATUS "Adding Application: SPPMesher" )
 #add_subdirectory("SPPMesher")
 
@@ -106,3 +105,4 @@ if(OS_MAC)
 	TargetWxWidgetsSetup( remoteviewer )
 endif()
 
+install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
