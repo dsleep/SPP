@@ -20,6 +20,7 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 #include "SPPJsonUtils.h"
+#include "SPPHandledTimers.h"
 
 #include <set>
 
@@ -1226,210 +1227,231 @@ void SPPApp(int argc, char* argv[])
 			}
 		});
 
-	while (true)
-	{
-		coordinator->Update();
-		auto CurrentTime = std::chrono::steady_clock::now();
 
-		//BLUETOOTH SYSTEM
-		if (BTRFComm)
-		{
-			if (BTRFComm->IsValid())
-			{
-				LastBTTime = std::chrono::steady_clock::now();
-				BTRFComm->Tick();
-			}
-			else
-			{
-				BTRFComm.reset();
-			}
-		}
-		else
-		{
-			auto newBTConnection = listenSocket->Accept();
-			if (newBTConnection)
-			{
-				BTRFComm = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
-				SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
-			}
-		}
+	TimerController mainController(16ms);
 
-		// check on BTE
-		watcher.Update();
-
-		if (bBTEConnected)
+	// COORDINATOR UPDATES
+	mainController.AddTimer(500ms, true, [&]()
 		{
-			LastBTTime = std::chrono::steady_clock::now();
-		}
-		//
-		 
-		//write status
-		{
-			Json::Value JsonMessage;
-			JsonMessage["COORD"] = coordinator->IsConnected();
-			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
-			JsonMessage["BLUETOOTH"] = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime - LastBTTime).count() < 1000;
+			coordinator->Update();
+		});
 
-			if (!videoConnection)
+	//BT UPDATES
+	mainController.AddTimer(16ms, true, [&]()
+		{
+			if (BTRFComm)
 			{
-				std::string ConnectKey;
-				coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
-				JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
-			}
-			else
-			{
-				if (videoConnection->IsConnected())
+				if (BTRFComm->IsValid())
 				{
-					JsonMessage["CONNSTATUS"] = 2;
+					LastBTTime = std::chrono::steady_clock::now();
+					BTRFComm->Tick();
 				}
 				else
 				{
-					JsonMessage["CONNSTATUS"] = 1;
+					BTRFComm.reset();
+				}
+			}
+			else
+			{
+				auto newBTConnection = listenSocket->Accept();
+				if (newBTConnection)
+				{
+					BTRFComm = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
+					SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
 				}
 			}
 
-			if (Hosts.empty() == false)
+			// check on BTE
+			watcher.Update();
+
+			if (bBTEConnected)
 			{
-				Json::Value HostValues;
-				for (auto& [key, value] : Hosts)
+				LastBTTime = std::chrono::steady_clock::now();
+			}
+		});
+
+
+	//IPC UPDATES
+	mainController.AddTimer(100ms, true, [&]()
+		{
+			auto CurrentTime = std::chrono::high_resolution_clock::now();
+			//write status
+			{
+				Json::Value JsonMessage;
+				JsonMessage["COORD"] = coordinator->IsConnected();
+				JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
+				JsonMessage["BLUETOOTH"] = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime - LastBTTime).count() < 1000;
+
+				if (!videoConnection)
 				{
-					if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
+					std::string ConnectKey;
+					coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
+					JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
+				}
+				else
+				{
+					if (videoConnection->IsConnected())
 					{
-						auto appCLArgs = std::str_split(value.AppCL, ';');
-						if (appCLArgs.empty()) appCLArgs.push_back("");
-						for (auto& appCL : appCLArgs)
-						{
-							Json::Value SingleHost;
-							SingleHost["NAME"] = value.Name;
-							SingleHost["APPNAME"] = value.AppName;
-							SingleHost["APPCL"] = appCL;
-							SingleHost["GUID"] = key;
-							HostValues.append(SingleHost);
-						}						
+						JsonMessage["CONNSTATUS"] = 2;
+					}
+					else
+					{
+						JsonMessage["CONNSTATUS"] = 1;
 					}
 				}
-				JsonMessage["HOSTS"] = HostValues;
-			}
 
-			Json::StreamWriterBuilder wbuilder;
-			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-
-			// our status
-			{
-				BinaryBlobSerializer outData;
-				outData << (uint32_t)StrMessage.length();
-				outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-				ipcMem.WriteMemory(outData.GetData(), outData.Size());
-			}
-
-			//BinaryBlobSerializer outData;
-			//outData << (uint32_t)StrMessage.length();
-			//outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-			//ipcMem.WriteMemory(outData.GetData(), outData.Size());
-
-			// app wants to connect
-			auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
-
-			MemoryView inMem(memLock, 1 * 1024 * 1024);
-			uint8_t hasData = 0;
-			inMem >> hasData;
-
-			if (hasData)
-			{
-				std::string GUIDStr;
-				std::string AppCLStr;
-
-				inMem >> GUIDStr;
-				inMem >> AppCLStr;
-
-				SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", GUIDStr.c_str(), AppCLStr.c_str());
-
-				for (auto& [key, value] : Hosts)
+				if (Hosts.empty() == false)
 				{
-					if (key == GUIDStr)
+					Json::Value HostValues;
+					for (auto& [key, value] : Hosts)
 					{
-						if (juiceSocket->HasRemoteSDP() == false)
+						if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
 						{
-							coordinator->SetKeyPair("GUIDCONNECTTO", key);
-							// set the string we want them to run
-							coordinator->SetKeyPair("APPCL", AppCLStr);
+							auto appCLArgs = std::str_split(value.AppCL, ';');
+							if (appCLArgs.empty()) appCLArgs.push_back("");
+							for (auto& appCL : appCLArgs)
+							{
+								Json::Value SingleHost;
+								SingleHost["NAME"] = value.Name;
+								SingleHost["APPNAME"] = value.AppName;
+								SingleHost["APPCL"] = appCL;
+								SingleHost["GUID"] = key;
+								HostValues.append(SingleHost);
+							}
 						}
 					}
+					JsonMessage["HOSTS"] = HostValues;
 				}
 
-				memLock[0] = 0;
-			}
-			
-			ipcMem.Release();
-		}
+				Json::StreamWriterBuilder wbuilder;
+				std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
 
-		if (juiceSocket->IsReady())
-		{
-			coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
-
-			if (!videoConnection &&
-				std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
-			{
+				// our status
 				{
-					auto SQLRequest = std::string_format("SELECT GUID, NAME, APPNAME, APPCL FROM clients WHERE APPNAME != ''");
-					coordinator->SQLRequest(SQLRequest.c_str());
+					BinaryBlobSerializer outData;
+					outData << (uint32_t)StrMessage.length();
+					outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
+					ipcMem.WriteMemory(outData.GetData(), outData.Size());
 				}
-				{
-					auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
-					coordinator->SQLRequest(SQLRequest.c_str());
-				}
-				LastRequestJoins = CurrentTime;
-			}
-		}
 
-		// if we have a connection it handles it all
-		if (videoConnection)
-		{
-			videoConnection->Tick();
+				//BinaryBlobSerializer outData;
+				//outData << (uint32_t)StrMessage.length();
+				//outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
+				//ipcMem.WriteMemory(outData.GetData(), outData.Size());
 
-			if (videoConnection->IsValid() == false)
-			{
-				videoConnection.reset();
-				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-				SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
-			}
-			else if (videoConnection->IsConnected())
-			{
-				coordinator->SetKeyPair("GUIDCONNECTTO", "");
-			}
-		}
-		else
-		{
-			if (juiceSocket->HasProblem())
-			{
-				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-				SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
-			}
-			else if (juiceSocket->IsConnected())
-			{
-				videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&BTRFComm, &watcher](const void* buf, uint16_t BufferSize)
+				// app wants to connect
+				auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
+
+				MemoryView inMem(memLock, 1 * 1024 * 1024);
+				uint8_t hasData = 0;
+				inMem >> hasData;
+
+				if (hasData)
 				{
-					if (BTRFComm && BTRFComm->IsValid())
+					std::string GUIDStr;
+					std::string AppCLStr;
+
+					inMem >> GUIDStr;
+					inMem >> AppCLStr;
+
+					SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", GUIDStr.c_str(), AppCLStr.c_str());
+
+					for (auto& [key, value] : Hosts)
 					{
-						BTRFComm->SendMessage(buf, BufferSize);
+						if (key == GUIDStr)
+						{
+							if (juiceSocket->HasRemoteSDP() == false)
+							{
+								coordinator->SetKeyPair("GUIDCONNECTTO", key);
+								// set the string we want them to run
+								coordinator->SetKeyPair("APPCL", AppCLStr);
+							}
+						}
 					}
-					watcher.WriteData(
-						"{366DEE95-85A3-41C1-A507-8C3E02342000}",
-						"{366DEE95-85A3-41C1-A507-8C3E02342002}", 
-						buf, BufferSize);
-				});
-				videoConnection->CreateTranscoderStack(
-					// allow reliability to UDP
-					std::make_shared< ReliabilityTranscoder >(),
-					// push on the splitter so we can ignore sizes
-					std::make_shared< MessageSplitTranscoder >());
-				// we are the client
-				videoConnection->Connect();
-			}
-		}
 
-		std::this_thread::sleep_for(1ms);
-	}
+					memLock[0] = 0;
+				}
+
+				ipcMem.Release();
+			}
+		});
+
+	//JUICE UPDATES
+	mainController.AddTimer(33ms, true, [&]()
+		{
+			auto CurrentTime = std::chrono::high_resolution_clock::now();
+			if (juiceSocket->IsReady())
+			{
+				coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
+
+				if (!videoConnection &&
+					std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
+				{
+					{
+						auto SQLRequest = std::string_format("SELECT GUID, NAME, APPNAME, APPCL FROM clients WHERE APPNAME != ''");
+						coordinator->SQLRequest(SQLRequest.c_str());
+					}
+					{
+						auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
+						coordinator->SQLRequest(SQLRequest.c_str());
+					}
+					LastRequestJoins = CurrentTime;
+				}
+			}
+		});
+
+	//VIDEO UPDATES
+	mainController.AddTimer(41.6ms, true, [&]()
+		{
+			auto CurrentTime = std::chrono::high_resolution_clock::now();
+			// if we have a connection it handles it all
+			if (videoConnection)
+			{
+				videoConnection->Tick();
+
+				if (videoConnection->IsValid() == false)
+				{
+					videoConnection.reset();
+					juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+					SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
+				}
+				else if (videoConnection->IsConnected())
+				{
+					coordinator->SetKeyPair("GUIDCONNECTTO", "");
+				}
+			}
+			else
+			{
+				if (juiceSocket->HasProblem())
+				{
+					juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+					SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
+				}
+				else if (juiceSocket->IsConnected())
+				{
+					videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&BTRFComm, &watcher](const void* buf, uint16_t BufferSize)
+						{
+							if (BTRFComm && BTRFComm->IsValid())
+							{
+								BTRFComm->SendMessage(buf, BufferSize);
+							}
+							watcher.WriteData(
+								"{366DEE95-85A3-41C1-A507-8C3E02342000}",
+								"{366DEE95-85A3-41C1-A507-8C3E02342002}",
+								buf, BufferSize);
+						});
+					videoConnection->CreateTranscoderStack(
+						// allow reliability to UDP
+						std::make_shared< ReliabilityTranscoder >(),
+						// push on the splitter so we can ignore sizes
+						std::make_shared< MessageSplitTranscoder >());
+					// we are the client
+					videoConnection->Connect();
+				}
+			}
+		});
+
+	mainController.Run();
 }
 
 int main(int argc, char* argv[])

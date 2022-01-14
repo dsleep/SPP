@@ -57,6 +57,10 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/ThreadPool.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/ThreadPool.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPTiming.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/SPPHandledTimers.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPHandledTimers.h"		
+
 		"${CMAKE_CURRENT_LIST_DIR}/SPPArrayResource.h"
         "${CMAKE_CURRENT_LIST_DIR}/SPPPlatformCore.h"
 		

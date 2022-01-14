@@ -519,36 +519,6 @@ namespace SPP
 				}					
 			}
 
-			// if its not empty
-			//if (!_incomingReliableMessages.empty())
-			//{
-			//	FMessageHeaderReliability AckMessageOut;
-			//	AckMessageOut.Data._ackMessage.Default();
-			//	AckMessageOut.Data._ackMessage.bRequest = true;
-			//	AckMessageOut.Data._ackMessage.Index = _incomingIndices.Reliable;
-			//	BinaryBlobSerializer MessageData;
-			//	MessageData << AckMessageOut;
-			//	
-			//	uint16_t RequestIndex = _incomingIndices.Reliable + 1;
-			//	for (auto it = _incomingReliableMessages.begin(); it != _incomingReliableMessages.end();)
-			//	{
-			//		while (true)
-			//		{
-			//			if (RequestIndex != (*it)->Index)
-			//			{
-			//				MessageData << RequestIndex;
-			//			}
-			//			else
-			//			{
-			//				break;
-			//			}
-			//		}
-			//		RequestIndex++;
-			//	}
-
-			//	Parent->Send(InConnection, MessageData, (int32_t)MessageData.Size(), 0);
-			//}
-
 			FMessageHeaderReliability AckMessageOut;
 			AckMessageOut.Data._ackMessage.Default();
 			AckMessageOut.Data._ackMessage.bHaveMsg = true;

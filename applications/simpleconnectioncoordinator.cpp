@@ -10,6 +10,7 @@
 #include "SPPJsonUtils.h"
 #include "SPPNetworkConnection.h"
 #include "SPPFileSystem.h"
+#include "SPPHandledTimers.h"
 
 #include <iomanip>
 
@@ -30,9 +31,9 @@ int main()
 		Json::Value JsonConfig;
 		SE_ASSERT(FileToJson("config.txt", JsonConfig));
 		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
-		SE_ASSERT(!COORDINATOR_IP.isNull());
-
 		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
+		
+		SE_ASSERT(!COORDINATOR_IP.isNull());
 		SE_ASSERT(!COORD_PASS.isNull());
 
 		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());
@@ -56,22 +57,22 @@ int main()
 
 	coordinator->SetPassword(Password);
 
+	TimerController mainController(16ms);
 
-	SimplePolledRepeatingTimer< std::chrono::seconds > clearOldOnes;
+	// COORDINATOR UPDATES
+	mainController.AddTimer(500ms, true, [&]()
+		{
+			coordinator->Update();
+		});
 
-	clearOldOnes.Initialize([localCoord = coordinator.get()]()
-	{
-		std::string sql = "DELETE FROM clients WHERE LASTUPDATETIME <= datetime('now','-10 second')";
-		localCoord->SQLRequest(sql.c_str());
-	}, 10);
+	// Clear out oldies
+	mainController.AddTimer(2.5s, true, [&]()
+		{
+			std::string sql = "DELETE FROM clients WHERE LASTUPDATETIME <= datetime('now','-5 second')";
+			coordinator->SQLRequest(sql.c_str());
+		});
 
-	while (true)
-	{
-		coordinator->Update();
-		clearOldOnes.Poll();
-
-		std::this_thread::sleep_for(1ms);
-	}
+	mainController.Run();
 
 	return 0;
 }
