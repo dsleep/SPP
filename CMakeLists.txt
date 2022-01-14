@@ -25,6 +25,12 @@ message( STATUS "BUILD SYSTEM PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}" )
 
 include(wxWidgetsHelper)
 
+SET(pre_configure_dir "${CMAKE_CURRENT_SOURCE_DIR}/CONFIGURE" )
+SET(post_configure_dir "${CMAKE_CURRENT_SOURCE_DIR}/CONFIGURE" )
+
+include(CheckGit)
+CheckGitSetup()
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
 	set(OS_MAC ON)
 	message(STATUS "MACOS FOUND")	

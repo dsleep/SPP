@@ -21,8 +21,12 @@ target_compile_definitions(SPPCore
 		ONLY_MSPACES=1
 		NO_MALLINFO=1)		
 
+add_dependencies(SPPCore AlwaysCheckGit)
+
 target_sources(SPPCore
 	PRIVATE	
+		"${post_configure_file}"
+
 		"${CMAKE_CURRENT_LIST_DIR}/SPPCore.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPCore.h"
 

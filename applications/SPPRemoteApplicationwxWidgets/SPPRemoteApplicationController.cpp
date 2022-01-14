@@ -130,7 +130,9 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	SetIcon(wxICON(sppapp));
 #endif
 	CreateStatusBar();
-	SetStatusText("TIPS Remote Application Controller v2.0");
+		
+	auto StatusString = std::string_format("TIPS Remote Application Controller : V%s(%s)", SPP::GetGitTag(), SPP::GetGitHash() );
+	SetStatusText(StatusString.c_str());
 
 	auto vertSizer = new wxBoxSizer(wxVERTICAL);	
 

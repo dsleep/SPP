@@ -11,6 +11,9 @@
 
 SPP_OVERLOAD_ALLOCATORS
 
+extern const char* kGitHash;
+extern const char* kGitTag;
+
 namespace SPP
 {
 	LogEntry LOG_CORE("CORE");
@@ -23,6 +26,15 @@ namespace SPP
 	void SPP_FREE(void* ptr)
 	{
 		free(ptr);
+	}
+
+	const char* GetGitHash()
+	{		
+		return kGitHash;
+	}
+	const char* GetGitTag()
+	{		
+		return kGitTag;
 	}
 
 	SPP_CORE_API std::unique_ptr<class ThreadPool> CPUThreaPool;
@@ -48,7 +60,10 @@ namespace SPP
 		SPP_LOGGER.Attach<FileLogger>(ProcessNameAsLog.c_str());
 #endif
 		
-		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %", Commandline ? Commandline : "NULL");
+		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %s GIT HASH: %s GIT TAG: %s", 
+			Commandline ? Commandline : "NULL", 
+			GetGitHash(),
+			GetGitTag());
 				
 		unsigned int nthreads = std::max<uint32_t>( std::thread::hardware_concurrency(), 2);
 
