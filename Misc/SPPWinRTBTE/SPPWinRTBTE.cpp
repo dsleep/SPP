@@ -99,8 +99,8 @@ namespace SPP
 		
 		struct BTEData
 		{
-			hstring GUID;
-			hstring name;
+			std::string GUID;
+			std::string Name;
 			bool bNeedsUpdate{ true };
 			std::atomic_bool bIsUpdating{ false };
 
@@ -111,7 +111,7 @@ namespace SPP
 
 			bool Valid() const
 			{
-				return !name.empty();
+				return !Name.empty();
 			}
 		};
 
@@ -143,7 +143,7 @@ namespace SPP
 
 		IAsyncAction BTEControllerAction()
 		{
-			SPP_LOG(LOG_BTE, LOG_INFO, "BTEWatcher WatcherAction");
+			SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: started");
 
 			_deviceWatcher.Start();
 
@@ -208,12 +208,14 @@ namespace SPP
 					{
 						if (value->Valid() && value->bNeedsUpdate)
 						{
+							SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: device requesting update: %s", key.c_str());
 							co_await UpdateDevice(value);
 						}
 					}
-				}
-			
+				}			
 			}
+
+			SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: ended");
 		}
 
 		void StartWatching(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
@@ -303,36 +305,45 @@ namespace SPP
 		}
 				
 		void DeviceWatcher_Added(DeviceWatcher sender, DeviceInformation deviceInfo)
-		{
-			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s", std::wstring_to_utf8(std::wstring(deviceInfo.Id() + deviceInfo.Name())).c_str());
+		{			
+			auto sDeviceID = std::wstring_to_utf8(std::wstring(deviceInfo.Id()));
+			auto sDeviceIDU = std::str_to_upper(sDeviceID);
+			auto sDeviceName = std::wstring_to_utf8(std::wstring(deviceInfo.Name()));
 
-			auto DeviceName = deviceInfo.Name();
-			auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(deviceInfo.Id())));
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s(%s)", sDeviceName.c_str(), sDeviceID.c_str());
+
 			{
 				std::unique_lock<std::mutex> lock(_devicesMutex);
 
-				if (_devices.find(sDeviceID) == _devices.end())
+				if (_devices.find(sDeviceIDU) == _devices.end())
 				{
 					std::shared_ptr< BTEData > newData;
-					newData.reset(new BTEData{ deviceInfo.Id(), DeviceName });
-					_devices[sDeviceID] = newData;
+					newData.reset(new BTEData{ sDeviceID, sDeviceName });
+					_devices[sDeviceIDU] = newData;
 				}
 			}
 		}
 
 		void BTEDevice_ServicesChanged(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice inDevice, winrt::Windows::Foundation::IInspectable deviceInfo)
 		{
-			SPP_LOG(LOG_BTE, LOG_INFO, "BTEDevice_StatusChanged");
+			SPP_LOG(LOG_BTE, LOG_VERBOSE, "BTEDevice_StatusChanged");
 
 			if (inDevice)
 			{
-				auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(inDevice.DeviceId())));
+				auto sDeviceID = std::wstring_to_utf8(std::wstring(inDevice.DeviceId()));
+				auto sDeviceIDU = std::str_to_upper(sDeviceID);
+
 				std::unique_lock<std::mutex> lock(_devicesMutex);		
 
-				auto foundDevice = _devices.find(sDeviceID);
-				if (foundDevice == _devices.end())
+				auto foundDevice = _devices.find(sDeviceIDU);
+				if (foundDevice != _devices.end())
 				{
+					SPP_LOG(LOG_BTE, LOG_INFO, "BTEDevice_StatusChanged: wants update %s", sDeviceID.c_str());
 					foundDevice->second->bNeedsUpdate = true;
+				}
+				else
+				{
+					SPP_LOG(LOG_BTE, LOG_INFO, "BTEDevice_StatusChanged: no device found %s", sDeviceID.c_str());
 				}
 			}
 		}
@@ -352,7 +363,7 @@ namespace SPP
 
 			//co_await winrt::resume_foreground(controller.DispatcherQueue());
 
-			auto deviceID = InDevice->GUID;
+			auto deviceID = std::utf8_to_wstring(InDevice->GUID);
 
 			if (!InDevice->device)
 			{
@@ -363,7 +374,7 @@ namespace SPP
 
 					if (InDevice->device == nullptr)
 					{
-						SPP_LOG(LOG_BTE, LOG_INFO, "Failed to connect to device");
+						SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Failed to connect to device");
 					}
 					else
 					{
@@ -373,13 +384,17 @@ namespace SPP
 				}
 				catch (hresult_error& ex)
 				{
-					SPP_LOG(LOG_BTE, LOG_INFO, "Bluetooth radio is not on.");
+					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Bluetooth radio is not on.");
 
 				}
 			}
 			
 			if (InDevice->device)
 			{
+				InDevice->Name = std::wstring_to_utf8(std::wstring(InDevice->device.Name()));
+
+				SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: GetGattServicesAsync %s (%s)", InDevice->GUID.c_str(), InDevice->Name.c_str());
+
 				// Note: BluetoothLEDevice.GattServices property will return an empty list for unpaired devices. For all uses we recommend using the GetGattServicesAsync method.
 				// BT_Code: GetGattServicesAsync returns a list of all the supported services of the device (even if it's not paired to the system).
 				// If the services supported by the device are expected to change during BT usage, subscribe to the GattServicesChanged event.
@@ -388,19 +403,21 @@ namespace SPP
 				if (result.Status() == GattCommunicationStatus::Success)
 				{
 					IVectorView<GattDeviceService> services = result.Services();
+					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: GetGattServicesAsync found %d services", services.Size());
+
 					//rootPage.NotifyUser(L"Found " + to_hstring(services.Size()) + L" services", NotifyType::StatusMessage);
 					for (auto&& service : services)
 					{
 						guid uuid = service.Uuid();
 						auto UUIStrign = to_hstring(uuid);
-						SPP_LOG(LOG_BTE, LOG_INFO, " - Service: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
+						SPP_LOG(LOG_BTE, LOG_VERBOSE, "UpdateDevice: - Service: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
 
 						if (RequestedServiceGUID != uuid)
 						{
 							continue;
 						}
 
-						SPP_LOG(LOG_BTE, LOG_INFO, " *** FOUND Service *** DEVICE: %s", std::wstring_to_utf8(std::wstring(deviceID)).c_str());
+						SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: *** FOUND Requested Service *** DEVICE: %s", std::wstring_to_utf8(std::wstring(deviceID)).c_str());
 
 						IVectorView<GattCharacteristic> characteristics{ nullptr };
 						try
@@ -418,17 +435,17 @@ namespace SPP
 								}
 								else
 								{
-									SPP_LOG(LOG_BTE, LOG_INFO, "Error accessing service: Gatt Failure");
+									SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error accessing service: Gatt Failure");
 								}
 							}
 							else
 							{
-								SPP_LOG(LOG_BTE, LOG_INFO, "Error accessing service");
+								SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error accessing service");
 							}
 						}
 						catch (hresult_error& ex)
 						{
-							SPP_LOG(LOG_BTE, LOG_INFO, "Restricted service. Cant read characteristics:");
+							SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Restricted service. Cant read characteristics:");
 						}
 
 						if (characteristics)
@@ -446,12 +463,12 @@ namespace SPP
 								auto curProperties = c.CharacteristicProperties();
 								if (((uint32_t)curProperties & (uint32_t)GattCharacteristicProperties::Write) != 0)
 								{
-									SPP_LOG(LOG_BTE, LOG_INFO, " - Write Prop: %s", CString.c_str());
+									SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: - Write Prop: %s", CString.c_str());
 									InDevice->writeCharacteristics.emplace(CString, c);
 								}
 								else
 								{
-									SPP_LOG(LOG_BTE, LOG_INFO, " - Read Prop: %s", CString.c_str());
+									SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: - Read Prop: %s", CString.c_str());
 									InDevice->readCharacteristic.push_back(c);
 								}
 
@@ -486,16 +503,16 @@ namespace SPP
 
 										c.ValueChanged({ get_weak(), &INTERNAL_BTEWatcher::Characteristic_ValueChanged });
 
-										SPP_LOG(LOG_BTE, LOG_INFO, "Successfully subscribed for value change");
+										SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Successfully subscribed for value change");
 									}
 									else
 									{
-										SPP_LOG(LOG_BTE, LOG_INFO, "Error registering for value changes");
+										SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error registering for value changes");
 									}
 								}
 								catch (hresult_access_denied& ex)
 								{
-									SPP_LOG(LOG_BTE, LOG_INFO, "Error registering for value changes: hresult_access_denied");
+									SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error registering for value changes: hresult_access_denied");
 								}
 							}
 						}
@@ -503,7 +520,7 @@ namespace SPP
 				}
 				else
 				{
-					SPP_LOG(LOG_BTE, LOG_INFO, "Device unreachable");
+					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Device unreachable");
 				}
 			}
 
@@ -514,12 +531,12 @@ namespace SPP
 
 		void DeviceWatcher_Updated(DeviceWatcher sender, DeviceInformationUpdate deviceInfo)
 		{
-			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Updated %s", std::wstring_to_utf8(std::wstring(deviceInfo.Id())).c_str());
+			auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(deviceInfo.Id())));
+
+			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Updated: %s", sDeviceID.c_str());
 
 			{
 				std::unique_lock<std::mutex> lock(_devicesMutex);
-
-				auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(deviceInfo.Id())));
 
 				auto foundDevice = _devices.find(sDeviceID);
 				if (foundDevice == _devices.end() || !foundDevice->second->Valid())
