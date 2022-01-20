@@ -9,7 +9,9 @@ SPP_OVERLOAD_ALLOCATORS
 
 namespace SPP
 {
+	SPP_ENGINE_API std::string GRootPath;
 	SPP_ENGINE_API std::string GAssetPath;
+	SPP_ENGINE_API std::string GBinaryPath;
 
 	AssetPath::AssetPath(const char* InRelPath) : _relPath(InRelPath)
 	{

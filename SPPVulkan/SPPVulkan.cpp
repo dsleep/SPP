@@ -28,7 +28,9 @@ namespace SPP
 {
 	LogEntry LOG_VULKAN("Vulkan");
 
-	class VulkanGraphicsDevice
+	VkDevice GGlobalVulkanDevice = nullptr;
+
+	class VulkanGraphicsDevice : public GraphicsDevice
 	{
 	private:
 
@@ -214,6 +216,134 @@ namespace SPP
 			return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
 		}
 
+		bool DeviceInitialize()
+		{
+			VkResult err;
+
+#if _DEBUG
+			settings.validation = true;
+#endif
+
+			// Vulkan instance
+			err = createInstance(settings.validation);
+			if (err) {
+				vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), err);
+				return false;
+			}
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+			vks::android::loadVulkanFunctions(instance);
+#endif
+
+			// If requested, we enable the default validation layers for debugging
+			if (settings.validation)
+			{
+				// The report flags determine what type of messages for the layers will be displayed
+				// For validating (debugging) an application the error and warning bits should suffice
+				VkDebugReportFlagsEXT debugReportFlags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+				// Additional flags include performance info, loader and layer debug messages, etc.
+				vks::debug::setupDebugging(instance, debugReportFlags, VK_NULL_HANDLE);
+			}
+
+			// Physical device
+			uint32_t gpuCount = 0;
+			// Get number of available physical devices
+			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
+			if (gpuCount == 0) {
+				vks::tools::exitFatal("No device with Vulkan support found", -1);
+				return false;
+			}
+			// Enumerate devices
+			std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
+			err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
+			if (err) {
+				vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), err);
+				return false;
+			}
+
+			// GPU selection
+
+			// Select physical device to be used for the Vulkan example
+			// Defaults to the first device unless specified by command line
+			uint32_t selectedDevice = 0;
+
+#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
+			// GPU selection via command line argument
+			//if (commandLineParser.isSet("gpuselection")) {
+			//	uint32_t index = commandLineParser.getValueAsInt("gpuselection", 0);
+			//	if (index > gpuCount - 1) {
+			//		std::cerr << "Selected device index " << index << " is out of range, reverting to device 0 (use -listgpus to show available Vulkan devices)" << "\n";
+			//	}
+			//	else {
+			//		selectedDevice = index;
+			//	}
+			//}
+			//if (commandLineParser.isSet("gpulist")) {
+				std::cout << "Available Vulkan devices" << "\n";
+				for (uint32_t i = 0; i < gpuCount; i++) {
+					VkPhysicalDeviceProperties deviceProperties;
+					vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
+					std::cout << "Device [" << i << "] : " << deviceProperties.deviceName << std::endl;
+					std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << "\n";
+					std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << "\n";
+				}
+			//}
+#endif
+
+			physicalDevice = physicalDevices[selectedDevice];
+
+			// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
+			vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+			vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
+
+			// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
+			//getEnabledFeatures();
+
+			// Vulkan device creation
+			// This is handled by a separate class that gets a logical device representation
+			// and encapsulates functions related to a device
+			vulkanDevice = new vks::VulkanDevice(physicalDevice);
+			VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
+			if (res != VK_SUCCESS) {
+				vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), res);
+				return false;
+			}
+			device = vulkanDevice->logicalDevice;
+
+			GGlobalVulkanDevice = device;
+
+			// Get a graphics queue from the device
+			vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
+
+			// Find a suitable depth format
+			VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
+			assert(validDepthFormat);
+
+			swapChain.connect(instance, physicalDevice, device);
+
+			// Create synchronization objects
+			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
+			// Create a semaphore used to synchronize image presentation
+			// Ensures that the image is displayed before we start submitting new commands to the queue
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
+			// Create a semaphore used to synchronize command submission
+			// Ensures that the image is not presented until all commands have been submitted and executed
+			VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
+
+			// Set up submit info structure
+			// Semaphores will stay the same during application lifetime
+			// Command buffer submission info is set by each example
+			submitInfo = vks::initializers::submitInfo();
+			submitInfo.pWaitDstStageMask = &submitPipelineStages;
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+
+			return true;
+		}
+
 		void nextFrame();
 		void updateOverlay();
 		
@@ -288,7 +418,51 @@ namespace SPP
 
 	public:
 
+
+		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
+		{
+			DeviceInitialize();
+			
+			//initSwapchain();
+			width = InitialWidth;
+			height = InitialHeight;
+			//setupSwapChain();
+			//createCommandBuffers();
+
+		}
+		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
+		{
+
+		}
+
+		virtual int32_t GetDeviceWidth() const
+		{
+			return width;
+		}
+		virtual int32_t GetDeviceHeight() const
+		{
+			return height;
+		}
+
+		virtual void BeginFrame()
+		{
+
+		}
+		virtual void EndFrame()
+		{
+
+		}
+		virtual void MoveToNextFrame() 
+		{
+		};
 	};
+
+	std::shared_ptr< GraphicsDevice > Vulkan_CreateGraphicsDevice()
+	{
+		return std::make_shared< VulkanGraphicsDevice>();
+	}
+
+	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
 
 	struct VulkanGraphicInterface : public IGraphicsInterface
 	{
@@ -300,7 +474,7 @@ namespace SPP
 
 		virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) override
 		{			
-			return nullptr;
+			return Vulkan_CreateShader(InType);
 		}
 		virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override
 		{
@@ -322,7 +496,7 @@ namespace SPP
 		}
 		virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() override
 		{
-			return nullptr;
+			return Vulkan_CreateGraphicsDevice();
 		}
 		virtual std::shared_ptr< ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
 		{

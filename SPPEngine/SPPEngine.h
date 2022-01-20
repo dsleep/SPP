@@ -25,7 +25,9 @@
 
 namespace SPP
 {
+	SPP_ENGINE_API extern std::string GRootPath;
 	SPP_ENGINE_API extern std::string GAssetPath;
+	SPP_ENGINE_API extern std::string GBinaryPath;
 
 	class SPP_ENGINE_API AssetPath
 	{

@@ -46,9 +46,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 
 #ifdef _DEBUG
-	LoadLibraryA("SPPDX12d.dll");
+	LoadLibraryA("SPPVulkand.dll");
 #else
-	LoadLibraryA("SPPDX12.dll");
+	LoadLibraryA("SPPVulkan.dll");
 #endif
 
 	//Alloc Console
@@ -67,7 +67,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	IntializeGraphics();	
 
 	// setup global asset path
-	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
+	SPP::GRootPath = stdfs::absolute(stdfs::current_path() / "..\\").generic_string();
+	SPP::GBinaryPath = SPP::GRootPath + "Binaries\\";
+	SPP::GAssetPath = SPP::GRootPath + "Assets\\";
 
 	//SPP::CallPython();
 	int ErrorCode = 0;		
@@ -78,6 +80,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		auto dx12Device = GGI()->CreateGraphicsDevice();
 		dx12Device->Initialize(1280, 720, app->GetOSWindow());
+
+		auto curShader = GGI()->CreateShader(EShaderType::Vertex);
+		curShader->CompileShaderFromFile("shaders/fullScreenVS.hlsl", "main_vs");
 
 		auto mainScene = GGI()->CreateRenderScene();
 		auto& cam = mainScene->GetCamera();

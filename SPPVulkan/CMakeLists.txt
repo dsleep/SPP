@@ -19,6 +19,9 @@ target_sources(SPPVulkan
 	PRIVATE			
 		"${CMAKE_CURRENT_LIST_DIR}/SPPVulkan.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPVulkan.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"

@@ -41,6 +41,28 @@ namespace SPP
 	SPP_CORE_API void AddDLLSearchPath(const char* InPath);
 
 	SPP_CORE_API void GetMonitorInfo(std::vector<MonitorInfo> &oInfos);
+
+	class PlatformProcess
+	{
+	protected:
+		std::string _processPath;
+		std::string _commandline;
+		bool _bStartVisible = false;
+		bool _bOutputToString = false;
+	public:
+
+		PlatformProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible, bool bInPutToString) :
+			_processPath(ProcessPath), _commandline(Commandline), _bStartVisible(bStartVisible), _bOutputToString(bInPutToString) { }
+
+		virtual ~PlatformProcess() {} 
+
+		virtual bool IsValid() = 0;
+		virtual bool IsRunning() = 0;
+
+		virtual std::string GetOutput() = 0;
+	};
+
+	SPP_CORE_API std::shared_ptr< PlatformProcess> CreatePlatformProcess(const char* ProcessPath, const char* Commandline = nullptr, bool bStartVisible = false, bool bInPutToString = false);
 }
 
 extern "C" SPP_CORE_API uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible);
