@@ -89,6 +89,7 @@ private:
 
 	wxTextCtrl* _passwordTB = nullptr;
 
+	wxButton* _startButton = nullptr;
 	void OnButton_Connect(wxCommandEvent& event);
 	void OnButton_Disconnect(wxCommandEvent& event);
 
@@ -162,10 +163,10 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	vertSizer->SetSizeHints(this);
 
 	auto buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-	auto startButton = new wxButton(this, BTN_Connect, "Connect", wxDefaultPosition, wxDefaultSize, 0);
+	_startButton = new wxButton(this, BTN_Connect, "Connect", wxDefaultPosition, wxDefaultSize, 0);
 	auto stopButton = new wxButton(this, BTN_Disconnect, "Disconnect", wxDefaultPosition, wxDefaultSize, 0);
 
-	buttonSizer->Add(startButton);
+	buttonSizer->Add(_startButton);
 	buttonSizer->Add(stopButton, 0, wxLEFT, 5);
 	buttonSizer->SetSizeHints(this);
 		
@@ -357,9 +358,11 @@ void StopThread()
 void MyFrame::OnButton_Connect(wxCommandEvent& event)
 {
 	auto selection = _serverList->GetSelection();
-	
 	if (selection >= 0 && selection < _hostList.size())
 	{
+		_startButton->SetLabel("Connecting...");
+		_startButton->Enable(false);
+
 		uint8_t hasData = ~(uint8_t)0;
 
 		BinaryBlobSerializer outData;
@@ -368,6 +371,7 @@ void MyFrame::OnButton_Connect(wxCommandEvent& event)
 		outData << _hostList[selection].APPCL;
 		GIPCMem->WriteMemory(outData.GetData(), outData.Size(), 1 * 1024 * 1024);
 	}
+
 }
 
 void MyFrame::OnButton_Disconnect(wxCommandEvent& event)
