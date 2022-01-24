@@ -92,6 +92,12 @@ namespace SPP
 		} semaphores;
 		std::vector<VkFence> waitFences;
 
+		struct {
+			VkImage image;
+			VkDeviceMemory mem;
+			VkImageView view;
+		} depthStencil;
+
 		/** @brief Encapsulated physical and logical vulkan device */
 		vks::VulkanDevice* vulkanDevice;
 
@@ -416,20 +422,91 @@ namespace SPP
 			vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
 		}
 
-	public:
+		void setupDepthStencil()
+		{
+			VkImageCreateInfo imageCI{};
+			imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageCI.imageType = VK_IMAGE_TYPE_2D;
+			imageCI.format = depthFormat;
+			imageCI.extent = { width, height, 1 };
+			imageCI.mipLevels = 1;
+			imageCI.arrayLayers = 1;
+			imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
+			VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &depthStencil.image));
+			VkMemoryRequirements memReqs{};
+			vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
+
+			VkMemoryAllocateInfo memAllloc{};
+			memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			memAllloc.allocationSize = memReqs.size;
+			memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			VK_CHECK_RESULT(vkAllocateMemory(device, &memAllloc, nullptr, &depthStencil.mem));
+			VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0));
+
+			VkImageViewCreateInfo imageViewCI{};
+			imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageViewCI.image = depthStencil.image;
+			imageViewCI.format = depthFormat;
+			imageViewCI.subresourceRange.baseMipLevel = 0;
+			imageViewCI.subresourceRange.levelCount = 1;
+			imageViewCI.subresourceRange.baseArrayLayer = 0;
+			imageViewCI.subresourceRange.layerCount = 1;
+			imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			// Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+			if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+				imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+			VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &depthStencil.view));
+		}
+
+
+		void setupFrameBuffer()
+		{
+			VkImageView attachments[2];
+
+			// Depth/Stencil attachment is the same for all frame buffers
+			attachments[1] = depthStencil.view;
+
+			VkFramebufferCreateInfo frameBufferCreateInfo = {};
+			frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			frameBufferCreateInfo.pNext = NULL;
+			frameBufferCreateInfo.renderPass = renderPass;
+			frameBufferCreateInfo.attachmentCount = 2;
+			frameBufferCreateInfo.pAttachments = attachments;
+			frameBufferCreateInfo.width = width;
+			frameBufferCreateInfo.height = height;
+			frameBufferCreateInfo.layers = 1;
+
+			// Create frame buffers for every swap chain image
+			frameBuffers.resize(swapChain.imageCount);
+			for (uint32_t i = 0; i < frameBuffers.size(); i++)
+			{
+				attachments[0] = swapChain.buffers[i].view;
+				VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+			}
+		}
+
+	public:
 
 		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
 		{
-			DeviceInitialize();
-			
-			//initSwapchain();
+			DeviceInitialize();			
+			initSwapchain();
 			width = InitialWidth;
 			height = InitialHeight;
-			//setupSwapChain();
-			//createCommandBuffers();
 
+			cmdPool = vulkanDevice->createCommandPool(swapChain.queueNodeIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+			setupSwapChain();
+			createCommandBuffers();
+
+			setupDepthStencil();
+			setupFrameBuffer();
 		}
+
 		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
 		{
 
@@ -463,6 +540,7 @@ namespace SPP
 	}
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
+	extern GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
 	struct VulkanGraphicInterface : public IGraphicsInterface
 	{
@@ -471,7 +549,6 @@ namespace SPP
 		{
 			SET_GGI(this);
 		}
-
 		virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) override
 		{			
 			return Vulkan_CreateShader(InType);
@@ -484,11 +561,13 @@ namespace SPP
 		{
 			return nullptr;
 		}
-		virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format,
+		virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, 
+			int32_t Height, 
+			TextureFormat Format,
 			std::shared_ptr< ArrayResource > RawData = nullptr,
 			std::shared_ptr< ImageMeta > InMetaInfo = nullptr) override
 		{
-			return nullptr;
+			return Vulkan_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
 		}
 		virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) override
 		{
@@ -506,17 +585,14 @@ namespace SPP
 		{
 			return nullptr;
 		}
-
 		virtual std::shared_ptr<RenderableMesh> CreateRenderableMesh() override
 		{
 			return nullptr;
 		}
-
 		virtual std::shared_ptr<RenderableSignedDistanceField> CreateRenderableSDF() override
 		{
 			return nullptr;
 		}
-
 		virtual void BeginResourceCopies() override
 		{
 			
@@ -525,7 +601,6 @@ namespace SPP
 		{
 			
 		}
-
 		virtual bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement)
 		{
 			return true;

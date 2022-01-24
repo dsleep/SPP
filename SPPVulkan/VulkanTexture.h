@@ -1,12 +1,13 @@
-/*
-* Vulkan texture loader
-*
-* Copyright(C) by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license(MIT) (http://opensource.org/licenses/MIT)
-*/
+// Copyright(c) David Sleeper(Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
+//
+// Modified original code from Sascha Willems - www.saschawillems.de
 
 #pragma once
+
+#include "VulkanDevice.h"
+
 
 #include <fstream>
 #include <stdlib.h>
@@ -26,72 +27,81 @@
 #	include <android/asset_manager.h>
 #endif
 
-namespace vks
+namespace SPP
 {
-class Texture
-{
-  public:
-	vks::VulkanDevice *   device;
-	VkImage               image;
-	VkImageLayout         imageLayout;
-	VkDeviceMemory        deviceMemory;
-	VkImageView           view;
-	uint32_t              width, height;
-	uint32_t              mipLevels;
-	uint32_t              layerCount;
-	VkDescriptorImageInfo descriptor;
-	VkSampler             sampler;
+	ktxResult loadKTXFile(std::string filename, ktxTexture** target);
 
-	void      updateDescriptor();
-	void      destroy();
-	ktxResult loadKTXFile(std::string filename, ktxTexture **target);
-};
+	class VulkanTextureBase
+	{
+	protected:
+		//vks::VulkanDevice *   device;
+		VkImage               image;
+		VkImageLayout         imageLayout;
+		VkDeviceMemory        deviceMemory;
+		VkImageView           view;
+		uint32_t              width, height;
+		uint32_t              mipLevels;
+		uint32_t              layerCount;
+		VkDescriptorImageInfo descriptor;
+		VkSampler             sampler;
 
-class Texture2D : public Texture
-{
-  public:
-	void loadFromFile(
-	    std::string        filename,
-	    VkFormat           format,
-	    vks::VulkanDevice *device,
-	    VkQueue            copyQueue,
-	    VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-	    VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    bool               forceLinear     = false);
-	void fromBuffer(
-	    void *             buffer,
-	    VkDeviceSize       bufferSize,
-	    VkFormat           format,
-	    uint32_t           texWidth,
-	    uint32_t           texHeight,
-	    vks::VulkanDevice *device,
-	    VkQueue            copyQueue,
-	    VkFilter           filter          = VK_FILTER_LINEAR,
-	    VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-	    VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-};
+		void updateDescriptor();
+		void destroy();	
+	};
 
-class Texture2DArray : public Texture
-{
-  public:
-	void loadFromFile(
-	    std::string        filename,
-	    VkFormat           format,
-	    vks::VulkanDevice *device,
-	    VkQueue            copyQueue,
-	    VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-	    VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-};
+	class VulkanTexture : public VulkanTextureBase, public GPUTexture
+	{
+	public:
+		void loadFromFile(
+			std::string        filename,
+			VkFormat           format,
+			vks::VulkanDevice* device,
+			VkQueue            copyQueue,
+			VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			bool               forceLinear = false);
+		void fromBuffer(
+			void* buffer,
+			VkDeviceSize       bufferSize,
+			VkFormat           format,
+			uint32_t           texWidth,
+			uint32_t           texHeight,
+			vks::VulkanDevice* device,
+			VkQueue            copyQueue,
+			VkFilter           filter = VK_FILTER_LINEAR,
+			VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-class TextureCubeMap : public Texture
-{
-  public:
-	void loadFromFile(
-	    std::string        filename,
-	    VkFormat           format,
-	    vks::VulkanDevice *device,
-	    VkQueue            copyQueue,
-	    VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-	    VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-};
-}        // namespace vks
+		VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+
+		virtual void UploadToGpu() override { }
+		virtual ~VulkanTexture() 
+		{ 
+			destroy();
+		}
+	};
+
+	//class Texture2DArray : public Texture
+	//{
+	//  public:
+	//	void loadFromFile(
+	//		std::string        filename,
+	//		VkFormat           format,
+	//		vks::VulkanDevice *device,
+	//		VkQueue            copyQueue,
+	//		VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+	//		VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	//};
+
+	//class TextureCubeMap : public Texture
+	//{
+	//  public:
+	//	void loadFromFile(
+	//		std::string        filename,
+	//		VkFormat           format,
+	//		vks::VulkanDevice *device,
+	//		VkQueue            copyQueue,
+	//		VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+	//		VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	//};
+}
