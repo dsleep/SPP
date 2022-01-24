@@ -135,7 +135,7 @@ namespace SPP
 				hJob = CreateJobObject(NULL, NULL);
 				if (hJob == NULL)
 				{
-					SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateJobObject failed : error % d", GetLastError());
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateJobObject failed : error 0x%X", GetLastError());
 					return;
 				}
 
@@ -144,7 +144,7 @@ namespace SPP
 				bSuccess = SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
 				if (bSuccess == 0) 
 				{
-					printf("SetInformationJobObject failed: error %d\n", GetLastError());
+					printf("SetInformationJobObject failed: error 0x%X\n", GetLastError());
 					return;
 				}
 			}
@@ -390,11 +390,11 @@ namespace SPP
 		dwCreationFlags |= CREATE_NEW_CONSOLE;
 		bSuccess = CreateProcessA(ProcessPath, (LPSTR)OutputCommandline.c_str(),
 			NULL, NULL, FALSE,
-			dwCreationFlags, NULL, WorkingDir.c_str(), &si, pi.get());
+			dwCreationFlags, NULL, WorkingDir.empty() ? nullptr : WorkingDir.c_str(), &si, pi.get());
 		if (bSuccess == 0) 
 		{
 			auto LastError = GetLastError();
-			SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateProcess failed : error(%d)0x%X", LastError, LastError);
+			SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateProcess failed : error 0x%X : %d", LastError, LastError);
 			return 0;
 		}
 
