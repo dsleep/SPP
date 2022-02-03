@@ -1,0 +1,33 @@
+{
+	"urlroot": "https://github.com/dsleep/SPP/releases/download/v2.0/",
+	"modules": [
+		{
+			"Path": "jsoncpp",
+			"Version": 1
+		},
+		{
+			"Path": "libav",
+			"Version": 1
+		},
+		{
+			"Path": "libjuice",
+			"Version": 1
+		},
+		{
+			"Path": "eigen",
+			"Version": 1
+		},
+		{
+			"Path": "cryptopp",
+			"Version": 1
+		},
+		{
+			"Path": "rttr",
+			"Version": 1
+		},
+		{
+			"Path": "wxWidgets",
+			"Version": 1
+		}
+	]
+}
