@@ -158,6 +158,11 @@ if(OS_WINDOWS)
 				"SPPVideo" )
 endif()		
 
+if(OS_MAC)
+	list(APPEND SPPProjects	
+				"SPPVideo" )
+endif()		
+
 if(USE_OBJECTS)
 	list(APPEND SPPProjects								
 			"SPPReflection"

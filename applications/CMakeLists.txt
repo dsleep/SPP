@@ -65,13 +65,25 @@ set_property(TARGET windowsEventApp PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET windowsEventApp PROPERTY VS_DPI_AWARE "PerMonitor")
 
 
+endif()
+
+if(OS_MAC)
+	message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
+	add_subdirectory("SPPRemoteApplicationwxWidgets")
+endif()
+
 ####################
 # remoteviewer
 ####################
 
+set(SPP_BTE_PROJECT "")
+
+if(OS_WINDOWS)
+	set(SPP_BTE_PROJECT "SPPWinRTBTE")
+endif()
 
 add_executable( remoteviewer "")
-add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo SPPWinRTBTE )
+add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo ${SPP_BTE_PROJECT} )
 target_sources( remoteviewer
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
@@ -81,7 +93,7 @@ target_link_libraries( remoteviewer
 		SPPNetworking
 		SPPEngine
 		SPPVideo 
-		SPPWinRTBTE )        
+		${SPP_BTE_PROJECT} )        
 		
 set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
@@ -95,7 +107,6 @@ TargetWxWidgetsSetup( remoteviewer )
 
 install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
 
-endif()
 
 if(OS_MAC)
    target_link_libraries( remoteviewer

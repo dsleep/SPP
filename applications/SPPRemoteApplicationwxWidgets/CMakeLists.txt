@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(SPPApplicationsGroup_API VERSION 1.0.0 LANGUAGES CXX)
 
 
+if(OS_WINDOWS)
 
 ###################################################
 ## SPPRemoteApplicationManager
@@ -24,6 +25,8 @@ set_property(TARGET SPPRemoteApplicationManager PROPERTY VS_DPI_AWARE "PerMonito
 TargetWxWidgetsSetup( SPPRemoteApplicationManager )
 
 install(TARGETS SPPRemoteApplicationManager DESTINATION "${SPP_ROOT}/INSTALL")
+
+endif()
 
 ###################################################
 ## SPPRemoteApplicationController
