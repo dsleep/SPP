@@ -12,9 +12,18 @@ import platform
 def GetJSONName():
 	SystemName = platform.system()
 	MachineType = platform.machine()	
+	ReleaseValue = platform.release()
+	VersionValue = platform.version()
+
+	print("SystemName: " + SystemName)	
+	print("MachineType: " + MachineType)	
+	print("Release: " + ReleaseValue)	
+	print("Version: " + VersionValue)	
 	
 	if SystemName == 'Windows':
 		return 'Prereqs_VS2019.json'
+	elif SystemName == 'Darwin' and ReleaseValue.startswith( '21' ) :
+		return 'Prereqs_MAC_12.json'
 	elif SystemName == 'Linux':	
 		if MachineType == 'aarch64':		
 			return 'unknown'
@@ -24,24 +33,27 @@ def GetJSONName():
 		return 'unknown'
 
 def CreateArchives():
-
-	SevenZipExec = '7z'
-
+	
 	SystemName = platform.system()
-	if SystemName == 'Windows':
-		print(DownloadUtils.RunAndWait("rmdir /s /q DISTRIBUTION"))
-		SevenZipExec = os.environ.get('7ZIPEXEC')
-		
-	print("Building 3rd Party... " + SevenZipExec)	
+
+	print("Building 3rd Party... ")	
 	
 	print(os.getcwd())
 	os.chdir("./3rdParty")
 	print(os.getcwd())
-	
+		
+	if SystemName == 'Windows':
+		print(DownloadUtils.RunAndWait("rmdir /s /q DISTRIBUTION"))
+	else:
+		print(DownloadUtils.RunAndWait("rm -r DISTRIBUTION"))
+
+	try:  
+		os.mkdir("DISTRIBUTION") 
+	except OSError as error:  
+		print('making DISTRIBUTION')
+
 	JSONFileName = GetJSONName()
 	with open(JSONFileName) as json_file:
-
-		os.chdir("./binaries")
 
 		data = json.load(json_file)	
 
@@ -53,15 +65,13 @@ def CreateArchives():
 			RequiredVersion = curModule['Version']
 			ActiveZip = "./DISTRIBUTION/{0}_V{1}.7z".format(curModule['Path'], RequiredVersion)
 			
-			print("ZIPPING WITH 7zip!!!")				
-			
-			print(DownloadUtils.RunAndWait('"{0}" a "{1}" {2}'.format(SevenZipExec, ActiveZip, curModule['Path']) ))
+			print("ZIPPING WITH 7zip!!!" + ActiveZip)
 
-		os.chdir("../")
+			with py7zr.SevenZipFile(ActiveZip, 'w') as z:
+				z.writeall(curModule['Path'])
 			
 	os.chdir("../")
-			
-				
+
 def CheckPrereqs():
 	SystemName = platform.system()
 
@@ -70,6 +80,11 @@ def CheckPrereqs():
 	
 	os.chdir("./3rdParty")	
 		
+	if SystemName == 'Windows':
+		print(DownloadUtils.RunAndWait("rmdir /s /q TEMP_3RDPARTY"))
+	else:
+		print(DownloadUtils.RunAndWait("rm -r TEMP_3RDPARTY"))
+
 	with open(JSONFileName) as json_file:
 		data = json.load(json_file)	
 		
@@ -115,7 +130,6 @@ def CheckPrereqs():
 				
 				with py7zr.SevenZipFile(ActiveZipPath, mode='r') as z:
 					z.extractall(path='./TEMP_3RDPARTY')
-
 							
 				if SystemName == 'Windows':
 					print(DownloadUtils.RunAndWait("Robocopy ./TEMP_3RDPARTY/{0} ./{0} /MIR".format(curModule['Path'])))
