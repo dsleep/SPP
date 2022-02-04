@@ -405,6 +405,8 @@ namespace SPP
 					IVectorView<GattDeviceService> services = result.Services();
 					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: GetGattServicesAsync found %d services", services.Size());
 
+					InDevice->bNeedsUpdate = false;
+
 					//rootPage.NotifyUser(L"Found " + to_hstring(services.Size()) + L" services", NotifyType::StatusMessage);
 					for (auto&& service : services)
 					{
@@ -436,23 +438,25 @@ namespace SPP
 								else
 								{
 									SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error accessing service: Gatt Failure");
+									InDevice->bNeedsUpdate = true;
 								}
 							}
 							else
 							{
 								SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error accessing service");
+								InDevice->bNeedsUpdate = true;
 							}
 						}
 						catch (hresult_error& ex)
 						{
 							SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Restricted service. Cant read characteristics:");
+							InDevice->bNeedsUpdate = true;
 						}
 
 						if (characteristics)
 						{
 							InDevice->readCharacteristic.clear();
 							InDevice->writeCharacteristics.clear();
-							InDevice->bNeedsUpdate = false;
 
 							for (GattCharacteristic&& c : characteristics)
 							{
