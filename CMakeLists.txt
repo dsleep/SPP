@@ -160,7 +160,8 @@ endif()
 
 if(OS_MAC)
 	list(APPEND SPPProjects	
-				"SPPVideo" )
+				"SPPVideo" 
+				"Misc/SPPMacBT" )
 endif()		
 
 if(USE_OBJECTS)

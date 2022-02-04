@@ -81,6 +81,10 @@ set(SPP_BTE_PROJECT "")
 if(OS_WINDOWS)
 	set(SPP_BTE_PROJECT "SPPWinRTBTE")
 endif()
+if(OS_MAC)
+	set(SPP_BTE_PROJECT "SPPMacBT")	
+endif()
+
 
 add_executable( remoteviewer "")
 add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo ${SPP_BTE_PROJECT} )
