@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
-project(SPPMacBT_API VERSION 1.0.0 LANGUAGES CXX OBJC OBJCXX)
+project(SPPMacBT_API VERSION 1.0.0 LANGUAGES CXX OBJCXX)
 
-enable_language(OBJC)
 enable_language(OBJCXX)
 
 add_library(SPPMacBT SHARED "")
@@ -23,7 +22,7 @@ target_compile_definitions(SPPMacBT
 
 target_sources(SPPMacBT
 	PRIVATE					
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMacBT.m"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPMacBT.mm"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPMacBT.h" 
 		)		
 

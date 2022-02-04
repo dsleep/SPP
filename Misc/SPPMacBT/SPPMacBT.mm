@@ -342,3 +342,43 @@
 }
 
 @end
+
+#include "SPPMacBT.h"
+
+namespace SPP
+{
+    struct BTEWatcher::PlatImpl
+    {
+        //std::shared_ptrt::com_ptr<INTERNAL_BTEWatcher> _watcher;
+    };
+
+    BTEWatcher::BTEWatcher() : _impl(new PlatImpl())
+    {
+//        ValidWinRT();
+//        _impl->_watcher = winrt::make_self<INTERNAL_BTEWatcher>();
+    }
+
+    BTEWatcher::~BTEWatcher()
+    {
+    }
+
+    void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
+    {
+  //      _impl->_watcher->StartWatching(DeviceData, CharacterFunMap);
+    }
+
+    void BTEWatcher::WriteData(const std::string& DeviceData, const std::string& WriteID, const void* buf, uint16_t BufferSize)
+    {
+    ///    _impl->_watcher->WriteData(DeviceData, WriteID, buf, BufferSize);
+    }
+
+    void BTEWatcher::Update()
+    {
+       // _impl->_watcher->Update();
+    }
+
+    void BTEWatcher::Stop()
+    {
+//        _impl->_watcher->Stop();
+    }
+}
