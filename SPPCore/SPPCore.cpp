@@ -54,11 +54,9 @@ namespace SPP
 		SPP_LOGGER.Attach<ConsoleLog>();
 		SPP_LOGGER.SetLogLevel(LOG_INFO);
 
-#if _WIN32
 		auto ProcessName = GetProcessName();
 		std::string ProcessNameAsLog = stdfs::path(ProcessName).stem().generic_string() + "_LOG.txt";
 		SPP_LOGGER.Attach<FileLogger>(ProcessNameAsLog.c_str());
-#endif
 		
 		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %s GIT HASH: %s GIT TAG: %s", 
 			Commandline ? Commandline : "NULL", 
@@ -69,17 +67,14 @@ namespace SPP
 
 		CPUThreaPool = std::make_unique< ThreadPool >(nthreads - 1);
 
-#if _WIN32
 		auto Info = GetPlatformInfo();
 
 		SPP_LOG(LOG_CORE, LOG_INFO, " - core count %u", nthreads);
 		SPP_LOG(LOG_CORE, LOG_INFO, " - page size %u", Info.PageSize);
-#endif
 
 		srand((unsigned int)time(NULL));
 	}
 }
-
 
 void C_IntializeCore()
 {

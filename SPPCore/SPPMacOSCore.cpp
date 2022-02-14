@@ -32,7 +32,6 @@ namespace SPP
 
 	PlatformInfo GetPlatformInfo()	
 	{
-
         PlatformInfo oInfo = { (uint32_t) getpagesize(), std::thread::hardware_concurrency() };
 		return oInfo;
 	}

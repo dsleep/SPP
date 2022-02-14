@@ -43,6 +43,10 @@
 	#include "SPPWinRTBTE.h"
 #endif
 
+#if PLATFORM_MAC
+    #include "SPPMacBT.h"
+#endif
+
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace SPP;
@@ -1144,10 +1148,13 @@ void SPPApp(int argc, char* argv[])
 	bool bBTEConnected = false;
 	std::shared_ptr< SimpleJSONPeerReader > BTRFComm;
 	//START UP RFCOMM BT
+#if PLATFORM_WINDOWS
 	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
 	listenSocket->Listen();
+#endif
+    
 	//START UP BTE
-#if PLATFORM_WINDOWS && HAS_WINRT
+#if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
 	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
 	{
 		if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
@@ -1251,6 +1258,7 @@ void SPPApp(int argc, char* argv[])
 					BTRFComm.reset();
 				}
 			}
+#if PLATFORM_WINDOWS
 			else
 			{
 				auto newBTConnection = listenSocket->Accept();
@@ -1260,6 +1268,7 @@ void SPPApp(int argc, char* argv[])
 					SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
 				}
 			}
+#endif
 
 			// check on BTE
 			watcher.Update();

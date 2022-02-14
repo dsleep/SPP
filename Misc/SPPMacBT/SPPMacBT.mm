@@ -27,13 +27,9 @@
 
 @end
 
-
 @implementation BTEMonitor
 
 @synthesize peripheralList;
-
-#define PULSESCALE 1.2
-#define PULSEDURATION 0.2
 
 - (void)initialize
 {
@@ -91,9 +87,10 @@
 /*
  Request CBCentralManager to scan for heart rate peripherals using service UUID 0x180D
  */
-- (void) startScan 
+- (void) startScan:(NSString *)InUUID
 {
-    [manager scanForPeripheralsWithServices:[NSArray arrayWithObject:[CBUUID UUIDWithString:@"180D"]] options:nil];
+    NSLog(@"starting scan");
+    [manager scanForPeripheralsWithServices:[NSArray arrayWithObject:[CBUUID UUIDWithString:InUUID]] options:nil];
 }
 
 /*
@@ -344,32 +341,47 @@
 @end
 
 #include "SPPMacBT.h"
+#include "SPPLogging.h"
+#include <string>
 
 namespace SPP
 {
+    SPP_CORE_API LogEntry LOG_MACBT("MACBT");
+
+    uint32_t GetMacBTWVersion()
+    {
+        return 1;
+    }
+
     struct BTEWatcher::PlatImpl
     {
-        //std::shared_ptrt::com_ptr<INTERNAL_BTEWatcher> _watcher;
+        BTEMonitor *_watcher = nullptr;
     };
 
     BTEWatcher::BTEWatcher() : _impl(new PlatImpl())
     {
-//        ValidWinRT();
-//        _impl->_watcher = winrt::make_self<INTERNAL_BTEWatcher>();
+        _impl->_watcher = [[BTEMonitor alloc] init];
     }
 
     BTEWatcher::~BTEWatcher()
     {
+        if(_impl->_watcher)
+        {
+            [_impl->_watcher release];
+            _impl->_watcher = nullptr;
+        }
     }
 
     void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
     {
-  //      _impl->_watcher->StartWatching(DeviceData, CharacterFunMap);
+        SPP_LOG(LOG_MACBT, LOG_INFO, "BTEWatcher::WatchForData: %s", DeviceData.c_str());
+        NSString *nsDevice = [NSString stringWithUTF8String:DeviceData.c_str()];
+        [_impl->_watcher startScan:nsDevice];
     }
 
     void BTEWatcher::WriteData(const std::string& DeviceData, const std::string& WriteID, const void* buf, uint16_t BufferSize)
     {
-    ///    _impl->_watcher->WriteData(DeviceData, WriteID, buf, BufferSize);
+    //    _impl->_watcher->WriteData(DeviceData, WriteID, buf, BufferSize);
     }
 
     void BTEWatcher::Update()
@@ -379,6 +391,6 @@ namespace SPP
 
     void BTEWatcher::Stop()
     {
-//        _impl->_watcher->Stop();
+        [_impl->_watcher stopScan];
     }
 }

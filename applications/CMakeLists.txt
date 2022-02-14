@@ -103,9 +103,11 @@ set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTF
 set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")
 
-set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo.dll" )
-set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo.dll" )
-set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
+if(OS_WINDOWS)
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo.dll" )
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo.dll" )
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
+endif()
 
 TargetWxWidgetsSetup( remoteviewer )
 

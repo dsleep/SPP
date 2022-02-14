@@ -4,7 +4,7 @@
 
 namespace SPP
 {
-    uint32_t GetWinRTBTWVersion();
+    uint32_t GetMacBTWVersion();
 
     enum class EBTEState
     {
