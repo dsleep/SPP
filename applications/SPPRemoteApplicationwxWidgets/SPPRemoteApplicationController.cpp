@@ -137,7 +137,7 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 
 	auto vertSizer = new wxBoxSizer(wxVERTICAL);	
 
-	auto staticText = new wxStaticText(this, wxID_ANY, "Available Servers:");
+	auto staticText = new wxStaticText(this, wxID_ANY, "Select Procedure from Available Servers:");
 	
 	
 	wxArrayString strings;
@@ -228,6 +228,12 @@ void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinat
 		_BTStatus->SetLabelText(_bBT ? "BT: OK" : "BT: NOT OK");
 		_BTStatus->SetForegroundColour(_bBT ? wxColour("#00ff00") : wxColour("#ff0000"));
 	}
+
+	//update status for the button "Connect"
+	if(_bWorker && _bCoord && _bStun && _serverList->GetSelection() >= 0 && _startButton->GetLabel()!="Connecting...")
+		_startButton->Enable(true);
+	else
+		_startButton->Enable(false);
 }
 
 void MyFrame::SetHosts(const std::vector< HostFromCoord >& InHosts)
@@ -376,7 +382,7 @@ void MyFrame::OnButton_Connect(wxCommandEvent& event)
 
 void MyFrame::OnButton_Disconnect(wxCommandEvent& event)
 {
-	
+	exit(0);
 }
 
 #if PLATFORM_WINDOWS
