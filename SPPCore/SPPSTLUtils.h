@@ -95,4 +95,32 @@ namespace SPP
 			return std::dynamic_pointer_cast<Down>(MultipleInheritableEnableSharedFromThis::shared_from_this());
 		}
 	};
+
+	template <typename T>
+	struct IteratorWithNumeric
+	{
+		T& list;
+		typedef decltype(list.begin()) I;
+
+		struct InnerIterator
+		{
+			size_t curIdx = 0;
+			I i;
+			InnerIterator(I i) : i(i) {}
+			std::tuple<I, size_t> operator * ()
+			{
+				return std::tuple< I, size_t>{i, curIdx};
+			}
+			I operator ++ ()
+			{
+				curIdx++;
+				return ++i;
+			}
+			bool operator != (const InnerIterator& o) { return i != o.i; }
+		};
+
+		IteratorWithNumeric(T& list) : list(list) {}
+		InnerIterator begin() { return InnerIterator(list.begin()); }
+		InnerIterator end() { return InnerIterator(list.end()); }
+	};
 }
