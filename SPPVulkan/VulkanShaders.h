@@ -16,6 +16,10 @@ namespace SPP
 	public:
 		VulkanShader(EShaderType InType);
 
+		VkShaderModule GetModule() const {
+			return _shader;
+		}
+
 		virtual void UploadToGpu() override { };
 		virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
 		virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
