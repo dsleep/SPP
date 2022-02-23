@@ -101,6 +101,7 @@ namespace SPP
 		{
 			std::string GUID;
 			std::string Name;
+			int32_t ServiceFails = 0;
 			bool bNeedsUpdate{ true };
 			bool bFoundServiceWeWant{ false };
 			std::atomic_bool bIsUpdating{ false };
@@ -408,10 +409,12 @@ namespace SPP
 					InDevice->bNeedsUpdate = false;
 					InDevice->readCharacteristic.clear();
 					InDevice->writeCharacteristics.clear();
+					InDevice->ServiceFails = 0;
 
 					//rootPage.NotifyUser(L"Found " + to_hstring(services.Size()) + L" services", NotifyType::StatusMessage);
-					for (auto&& service : services)
+					for (int32_t ServiceIter = 0; ServiceIter < services.Size(); ServiceIter++)
 					{
+						auto& service = services.GetAt(ServiceIter);
 						guid uuid = service.Uuid();
 						auto UUIStrign = to_hstring(uuid);
 						SPP_LOG(LOG_BTE, LOG_VERBOSE, "UpdateDevice: - Service: %s", std::wstring_to_utf8(std::wstring(UUIStrign)).c_str());
@@ -444,6 +447,12 @@ namespace SPP
 								{
 									SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Error accessing service: Gatt Failure");
 									InDevice->bNeedsUpdate = true;
+									InDevice->ServiceFails++;
+									if (InDevice->ServiceFails < 2)
+									{
+										ServiceIter--;
+										continue;
+									}
 								}
 							}
 							else
