@@ -123,13 +123,19 @@ namespace SPP
 		INTERNAL_BTEWatcher()
 		{				
 			auto requestedProperties = single_threaded_vector<hstring>({
+				L"System.Devices.DevObjectType",
 				L"System.Devices.Aep.DeviceAddress",
 				L"System.Devices.Aep.IsConnected",
+				L"System.Devices.Aep.IsPaired",
 				L"System.Devices.Aep.Bluetooth.Le.IsConnectable" });
 
 			//this would return pairs
 			std::wstring BLE_DeviceSelector(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice::GetDeviceSelector());			
 			// BT_Code: Example showing paired and non-paired in a single query.
+			// 
+			// 
+			//System.Devices.DevObjectType:=5 AND System.Devices.Aep.ProtocolId:="{BB7BB05E-5972-42B5-94FC-76EAA7084D49}" AND (System.Devices.Aep.IsPaired:=System.StructuredQueryType.Boolean#True OR System.Devices.Aep.Bluetooth.IssueInquiry:=System.StructuredQueryType.Boolean#False)
+			// 
 			//std::wstring BLE_DeviceSelector = L"(System.Devices.Aep.ProtocolId:=\"{bb7bb05e-5972-42b5-94fc-76eaa7084d49}\")";
 
 			_deviceWatcher = winrt::Windows::Devices::Enumeration::DeviceInformation::CreateWatcher(
