@@ -1,31 +1,12 @@
-/*
- Copyright (C) 2018 Apple Inc. All Rights Reserved.
- See LICENSE.txt for this sample’s licensing information
- 
- Abstract:
- Implementatin of Heart Rate Monitor app using Bluetooth Low Energy (LE) Heart Rate Service. This app demonstrats the use of CoreBluetooth APIs for LE devices.
- */
+// Copyright (c) David Sleeper (Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
 
 
-#import <Cocoa/Cocoa.h>
-#import <CoreBluetooth/CoreBluetooth.h>
-#import <QuartzCore/QuartzCore.h>
 
-@interface BTEMonitor : NSObject <CBCentralManagerDelegate, CBPeripheralDelegate>
-{
-    NSMutableArray *peripheralList;
-    CBCentralManager *manager;
-    CBPeripheral *peripheral;
-}
+#include "SPPMacBTDelegate.h"
 
-@property (retain) NSMutableArray *peripheralList;
 
-- (void) initialize;
-- (void) startScan;
-- (void) stopScan;
-- (BOOL) isLECapableHardware;
-
-@end
 
 @implementation BTEMonitor
 
@@ -33,10 +14,21 @@
 
 - (void)initialize
 {
+    NSLog(@"BTEMonitor: initialize");
+    
     peripheralList = [NSMutableArray array];
     manager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
-    [self startScan];
 }
+
+/*
+- (void) applicationWillTerminate:(NSNotification *)notification
+{
+    if(peripheral)
+    {
+        [manager cancelPeripheralConnection:peripheral];
+    }
+}
+ */
 
 - (void) dealloc
 {
@@ -89,8 +81,8 @@
  */
 - (void) startScan:(NSString *)InUUID
 {
-    NSLog(@"starting scan");
-    [manager scanForPeripheralsWithServices:[NSArray arrayWithObject:[CBUUID UUIDWithString:InUUID]] options:nil];
+    NSLog(@"starting scan: %d", [self isLECapableHardware] );
+    //[manager scanForPeripheralsWithServices:nil options:nil];
 }
 
 /*
@@ -107,14 +99,16 @@
  */
 - (void) centralManagerDidUpdateState:(CBCentralManager *)central 
 {
-    [self isLECapableHardware];
+    bool ISCapable = [self isLECapableHardware];    
+    NSLog(@"centralManagerDidUpdateState %d", ISCapable);
 }
     
 /*
  Invoked when the central discovers heart rate peripheral while scanning.
  */
 - (void) centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)aPeripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI 
-{    
+{
+    NSLog(@"found peripheral %@", aPeripheral.name );
     NSMutableArray *peripherals = [self mutableArrayValueForKey:@"peripheralList"];
     if( ![self.peripheralList containsObject:aPeripheral] )
         [peripherals addObject:aPeripheral];
@@ -361,6 +355,7 @@ namespace SPP
     BTEWatcher::BTEWatcher() : _impl(new PlatImpl())
     {
         _impl->_watcher = [[BTEMonitor alloc] init];
+        [_impl->_watcher initialize];
     }
 
     BTEWatcher::~BTEWatcher()
@@ -368,15 +363,15 @@ namespace SPP
         if(_impl->_watcher)
         {
             [_impl->_watcher release];
-            _impl->_watcher = nullptr;
+            //_impl->_watcher = nil;
         }
     }
 
     void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
     {
-        SPP_LOG(LOG_MACBT, LOG_INFO, "BTEWatcher::WatchForData: %s", DeviceData.c_str());
-        NSString *nsDevice = [NSString stringWithUTF8String:DeviceData.c_str()];
-        [_impl->_watcher startScan:nsDevice];
+//        SPP_LOG(LOG_MACBT, LOG_INFO, "BTEWatcher::WatchForData: %s", DeviceData.c_str());
+//        NSString *nsDevice = [NSString stringWithUTF8String:DeviceData.c_str()];
+//        [_impl->_watcher startScan:nsDevice];
     }
 
     void BTEWatcher::WriteData(const std::string& DeviceData, const std::string& WriteID, const void* buf, uint16_t BufferSize)
@@ -391,6 +386,6 @@ namespace SPP
 
     void BTEWatcher::Stop()
     {
-        [_impl->_watcher stopScan];
+//        [_impl->_watcher stopScan];
     }
 }

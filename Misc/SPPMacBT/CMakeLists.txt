@@ -23,7 +23,8 @@ target_compile_definitions(SPPMacBT
 target_sources(SPPMacBT
 	PRIVATE					
 		"${CMAKE_CURRENT_LIST_DIR}/SPPMacBT.mm"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMacBT.h" 
+		"${CMAKE_CURRENT_LIST_DIR}/SPPMacBT.h"
+        "${CMAKE_CURRENT_LIST_DIR}/SPPMacBTDelegate.h" 
 		)		
 
 target_include_directories(SPPMacBT 
@@ -33,7 +34,7 @@ target_include_directories(SPPMacBT
 target_link_libraries( SPPMacBT 
 	PUBLIC
 		SPPCore
-        "-framework CoreBluetooth"      )
+        "-framework CoreBluetooth" )
 		
 # target_link_libraries(SPPMacBT 
 	# PUBLIC

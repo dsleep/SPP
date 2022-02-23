@@ -54,3 +54,4 @@ Binaries/
 
 #MAC
 *.DS_Store
+CONFIGURE/git_version.cpp

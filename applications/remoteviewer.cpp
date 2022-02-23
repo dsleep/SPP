@@ -568,6 +568,11 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 EVT_CLOSE(MyFrame::OnClose)
 END_EVENT_TABLE()
 
+//START UP BTE
+#if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
+std::unique_ptr<BTEWatcher> GBLE_Watcher;
+#endif
+
 class MyApp : public wxApp
 {
 private:
@@ -584,6 +589,16 @@ public:
 	{
 		return _glPane;
 	}
+    
+#if wxOSX_USE_COCOA_OR_IPHONE
+    // immediately before the native event loop launches
+    virtual void OSXOnWillFinishLaunching() override
+    {
+        wxApp::OSXOnWillFinishLaunching();
+        
+        GBLE_Watcher = std::make_unique<BTEWatcher>();
+    }
+#endif
 };
 
 bool MyApp::OnInit()
@@ -1076,6 +1091,12 @@ public:
 	}
 };
 
+struct DummyBTEWatcher
+{
+    void Update() { };
+    void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize) {}
+};
+
 void SPPApp(int argc, char* argv[])
 {
 	{
@@ -1153,6 +1174,8 @@ void SPPApp(int argc, char* argv[])
 	listenSocket->Listen();
 #endif
     
+    
+    
 	//START UP BTE
 #if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
 	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
@@ -1170,19 +1193,16 @@ void SPPApp(int argc, char* argv[])
 	{
 		bBTEConnected = (InState == EBTEState::Connected ? true : false);
 	};
-
-	LocalBTEWatcher oWatcher(sendBTDataTOManager, inStateChange);
-	BTEWatcher watcher;
-	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
-		{
-			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
-		});
+    DummyBTEWatcher watcher;
+    
+	//LocalBTEWatcher oWatcher(sendBTDataTOManager, inStateChange);
+//	BTEWatcher watcher;
+	//watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
+		//{
+			//{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
+//		});
 #else
-	struct DummyBTEWatcher
-	{
-		void Update() { };
-		void WriteData(const std::string& InChar, const void* buf, uint16_t BufferSize) {}
-	};
+	
 	DummyBTEWatcher watcher;
 #endif
 
@@ -1463,7 +1483,7 @@ void SPPApp(int argc, char* argv[])
 	mainController.Run();
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 	IntializeCore(nullptr);
 	
@@ -1479,8 +1499,8 @@ int main(int argc, char* argv[])
 
 	std::thread ourApp(SPPApp, argc, argv);
 
-	GApp->OnRun();	
-	//GApp->ExitMainLoop();
+	GApp->OnRun();
+    
 	GApp->OnExit();
 	delete GApp;
 	wxEntryCleanup();

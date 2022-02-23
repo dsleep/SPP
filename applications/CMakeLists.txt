@@ -82,7 +82,7 @@ if(OS_WINDOWS)
 	set(SPP_BTE_PROJECT "SPPWinRTBTE")
 endif()
 if(OS_MAC)
-	set(SPP_BTE_PROJECT "SPPMacBT")	
+	set(SPP_BTE_PROJECT "SPPMacBT")
 endif()
 
 
@@ -113,8 +113,15 @@ TargetWxWidgetsSetup( remoteviewer )
 
 install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
 
-
 if(OS_MAC)
+    set_target_properties(remoteviewer PROPERTIES
+      MACOSX_BUNDLE TRUE
+      MACOSX_BUNDLE_INFO_PLIST "${SPP_ROOT}/Misc/Mac/Info.plist"
+      RESOURCE "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"
+    )
+   target_sources( remoteviewer
+        PRIVATE
+            "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"  )
    target_link_libraries( remoteviewer
         PRIVATE
             "-framework OpenGL" )
