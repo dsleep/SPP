@@ -102,6 +102,7 @@ namespace SPP
 			std::string GUID;
 			std::string Name;
 			bool bNeedsUpdate{ true };
+			bool bFoundServiceWeWant{ false };
 			std::atomic_bool bIsUpdating{ false };
 
 			winrt::Windows::Devices::Bluetooth::BluetoothLEDevice device{ nullptr };
@@ -111,7 +112,7 @@ namespace SPP
 
 			bool Valid() const
 			{
-				return !Name.empty();
+				return !GUID.empty();
 			}
 		};
 
@@ -126,11 +127,13 @@ namespace SPP
 				L"System.Devices.Aep.IsConnected",
 				L"System.Devices.Aep.Bluetooth.Le.IsConnectable" });
 
+			//this would return pairs
+			std::wstring BLE_DeviceSelector(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice::GetDeviceSelector());			
 			// BT_Code: Example showing paired and non-paired in a single query.
-			std::wstring aqsAllBluetoothLEDevices = L"(System.Devices.Aep.ProtocolId:=\"{bb7bb05e-5972-42b5-94fc-76eaa7084d49}\")";
+			//std::wstring BLE_DeviceSelector = L"(System.Devices.Aep.ProtocolId:=\"{bb7bb05e-5972-42b5-94fc-76eaa7084d49}\")";
 
 			_deviceWatcher = winrt::Windows::Devices::Enumeration::DeviceInformation::CreateWatcher(
-				aqsAllBluetoothLEDevices,
+				BLE_DeviceSelector,
 				requestedProperties,
 				DeviceInformationKind::AssociationEndpoint);
 			
@@ -147,58 +150,27 @@ namespace SPP
 
 			_deviceWatcher.Start();
 
+			co_await 3s;
+
 			while (!_stopWatcherAction)
-			{		
-				co_await 2s;
-
-				bool bAnyValid = false;
-				{
-					std::unique_lock<std::mutex> lock(_devicesMutex);
-					for (auto& [key, value] : _devices)
-					{
-						if (value->Valid())
-						{
-							bAnyValid = true;
-							break;
-						}
-					}
-				}
-
+			{	
 				auto curStatus = _deviceWatcher.Status();
 
-				if (bAnyValid)
+				if (curStatus == DeviceWatcherStatus::EnumerationCompleted)
 				{
-					if (curStatus == DeviceWatcherStatus::Started)
+					_deviceWatcher.Stop();
+
+					while (curStatus != DeviceWatcherStatus::Stopped)
 					{
-						_deviceWatcher.Stop();
-
-						while (curStatus != DeviceWatcherStatus::Stopped)
-						{
-							curStatus = _deviceWatcher.Status();
-							co_await 16ms;
-						}
-					}
-				}
-				else
-				{
-					if (curStatus == DeviceWatcherStatus::EnumerationCompleted)
-					{
-						_deviceWatcher.Stop();
-
-						while (curStatus != DeviceWatcherStatus::Stopped)
-						{
-							curStatus = _deviceWatcher.Status();
-							co_await 16ms;
-						}
-
-						_deviceWatcher.Start();
-						continue;
+						curStatus = _deviceWatcher.Status();
+						co_await 16ms;
 					}
 				}
 
+				if (curStatus == DeviceWatcherStatus::Stopped)
 				{
 					std::map< std::string, std::shared_ptr<BTEData> > devicesCopy;
-					
+
 					{
 						std::unique_lock<std::mutex> lock(_devicesMutex);
 						devicesCopy = _devices;
@@ -206,13 +178,32 @@ namespace SPP
 
 					for (auto& [key, value] : devicesCopy)
 					{
-						if (value->Valid() && value->bNeedsUpdate)
+						if (value->bNeedsUpdate)
 						{
 							SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: device requesting update: %s", key.c_str());
 							co_await UpdateDevice(value);
 						}
 					}
-				}			
+
+					bool bHaveActiveDevice = false;
+					{
+						std::unique_lock<std::mutex> lock(_devicesMutex);
+
+						for (auto& [key, value] : _devices)
+						{
+							if (value->bFoundServiceWeWant && !value->bNeedsUpdate)
+							{
+								bHaveActiveDevice = true;
+								break;
+							}
+						}
+					}
+					if (bHaveActiveDevice == false)
+					{
+						_deviceWatcher.Start();
+						co_await 3s;
+					}
+				}
 			}
 
 			SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: ended");
@@ -309,6 +300,8 @@ namespace SPP
 			auto sDeviceID = std::wstring_to_utf8(std::wstring(deviceInfo.Id()));
 			auto sDeviceIDU = std::str_to_upper(sDeviceID);
 			auto sDeviceName = std::wstring_to_utf8(std::wstring(deviceInfo.Name()));
+						
+			auto deviceKind = deviceInfo.Kind();
 
 			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s(%s)", sDeviceName.c_str(), sDeviceID.c_str());
 
@@ -405,7 +398,10 @@ namespace SPP
 					IVectorView<GattDeviceService> services = result.Services();
 					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: GetGattServicesAsync found %d services", services.Size());
 
+					InDevice->bFoundServiceWeWant = false;
 					InDevice->bNeedsUpdate = false;
+					InDevice->readCharacteristic.clear();
+					InDevice->writeCharacteristics.clear();
 
 					//rootPage.NotifyUser(L"Found " + to_hstring(services.Size()) + L" services", NotifyType::StatusMessage);
 					for (auto&& service : services)
@@ -419,7 +415,10 @@ namespace SPP
 							continue;
 						}
 
-						SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: *** FOUND Requested Service *** DEVICE: %s", std::wstring_to_utf8(std::wstring(deviceID)).c_str());
+						InDevice->bFoundServiceWeWant = true;
+
+						SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: *** FOUND Requested Service *** DEVICE: %s", 
+							std::wstring_to_utf8(std::wstring(deviceID)).c_str());
 
 						IVectorView<GattCharacteristic> characteristics{ nullptr };
 						try
@@ -455,9 +454,6 @@ namespace SPP
 
 						if (characteristics)
 						{
-							InDevice->readCharacteristic.clear();
-							InDevice->writeCharacteristics.clear();
-
 							for (GattCharacteristic&& c : characteristics)
 							{
 								guid uuid = c.Uuid();
@@ -522,9 +518,18 @@ namespace SPP
 						}
 					}
 				}
+				else if (result.Status() == GattCommunicationStatus::Unreachable)
+				{
+					InDevice->bFoundServiceWeWant = false;
+					InDevice->bNeedsUpdate = false;
+					InDevice->readCharacteristic.clear();
+					InDevice->writeCharacteristics.clear();
+
+					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Unreachable...");
+				}
 				else
 				{
-					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Device unreachable");
+					SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Failed to get GAT...");
 				}
 			}
 

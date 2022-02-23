@@ -109,8 +109,8 @@ int main(int argc, char* argv[])
 	{
 		virtual void IncomingData(uint8_t* InData, size_t DataSize) override
 		{
-			std::string strConv(InData, InData + DataSize);
-			SPP_LOG(LOG_APP, LOG_INFO, "BTE data: %s, %d", strConv.c_str(), DataSize);
+			//std::string strConv(InData, InData + DataSize);
+			SPP_LOG(LOG_APP, LOG_INFO, "BTE data: %d", DataSize);
 		}
 		virtual void StateChange(EBTEState InState) override
 		{

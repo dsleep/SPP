@@ -25,6 +25,7 @@ set_target_properties( bluetoothTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POST
 set_property(TARGET bluetoothTest PROPERTY FOLDER "TESTS")
 set_property(TARGET bluetoothTest PROPERTY VS_DPI_AWARE "PerMonitor")
 
+install(TARGETS bluetoothTest DESTINATION "${SPP_ROOT}/INSTALL")
 
 ##########
 add_executable( networkTest "")
