@@ -102,6 +102,7 @@ namespace SPP
 			std::string GUID;
 			std::string Name;
 			int32_t ServiceFails = 0;
+			bool bConnectable{ false };
 			bool bNeedsUpdate{ true };
 			bool bFoundServiceWeWant{ false };
 			std::atomic_bool bIsUpdating{ false };
@@ -115,6 +116,22 @@ namespace SPP
 			{
 				return !GUID.empty();
 			}
+
+			bool UpdateFromWinBLEProperties(winrt::Windows::Foundation::Collections::IMapView<hstring, winrt::Windows::Foundation::IInspectable>& InProp)
+			{
+				for (auto const& el : InProp)
+				{
+					auto ThisKey = std::wstring(el.Key());
+					SPP_LOG(LOG_BTE, LOG_INFO, "KEY: %s", std::wstring_to_utf8(std::wstring(el.Key())).c_str());
+					if (ThisKey == L"System.Devices.Aep.Bluetooth.Le.IsConnectable")
+					{
+						bConnectable = winrt::unbox_value_or<bool>(el.Value(), false);
+						break;
+					}
+				}
+
+				return bConnectable;
+			}
 		};
 
 		std::mutex _devicesMutex;
@@ -124,20 +141,16 @@ namespace SPP
 		INTERNAL_BTEWatcher()
 		{				
 			auto requestedProperties = single_threaded_vector<hstring>({
-				L"System.Devices.DevObjectType",
 				L"System.Devices.Aep.DeviceAddress",
 				L"System.Devices.Aep.IsConnected",
 				L"System.Devices.Aep.IsPaired",
 				L"System.Devices.Aep.Bluetooth.Le.IsConnectable" });
 
 			//this would return pairs
-			std::wstring BLE_DeviceSelector(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice::GetDeviceSelector());			
+			//std::wstring BLE_DeviceSelector(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice::GetDeviceSelectorFromPairingState(true));			
 			// BT_Code: Example showing paired and non-paired in a single query.
-			// 
-			// 
 			//System.Devices.DevObjectType:=5 AND System.Devices.Aep.ProtocolId:="{BB7BB05E-5972-42B5-94FC-76EAA7084D49}" AND (System.Devices.Aep.IsPaired:=System.StructuredQueryType.Boolean#True OR System.Devices.Aep.Bluetooth.IssueInquiry:=System.StructuredQueryType.Boolean#False)
-			// 
-			//std::wstring BLE_DeviceSelector = L"(System.Devices.Aep.ProtocolId:=\"{bb7bb05e-5972-42b5-94fc-76eaa7084d49}\")";
+			std::wstring BLE_DeviceSelector = L"(System.Devices.DevObjectType:=5 AND System.Devices.Aep.ProtocolId:=\"{bb7bb05e-5972-42b5-94fc-76eaa7084d49}\" AND System.Devices.Aep.IsPaired:=System.StructuredQueryType.Boolean#True AND System.Devices.Aep.Bluetooth.Le.IsConnectable:=System.StructuredQueryType.Boolean#True)";
 
 			_deviceWatcher = winrt::Windows::Devices::Enumeration::DeviceInformation::CreateWatcher(
 				BLE_DeviceSelector,
@@ -157,60 +170,72 @@ namespace SPP
 
 			_deviceWatcher.Start();
 
-			co_await 3s;
-
 			while (!_stopWatcherAction)
 			{	
 				auto curStatus = _deviceWatcher.Status();
 
-				if (curStatus == DeviceWatcherStatus::EnumerationCompleted)
+				bool bHaveActiveDevice = false;
 				{
-					_deviceWatcher.Stop();
+					std::unique_lock<std::mutex> lock(_devicesMutex);
 
-					while (curStatus != DeviceWatcherStatus::Stopped)
+					for (auto& [key, value] : _devices)
 					{
-						curStatus = _deviceWatcher.Status();
-						co_await 16ms;
+						if (value->bFoundServiceWeWant && !value->bNeedsUpdate)
+						{
+							bHaveActiveDevice = true;
+							break;
+						}
 					}
 				}
 
-				if (curStatus == DeviceWatcherStatus::Stopped)
+				if (bHaveActiveDevice)
 				{
-					std::map< std::string, std::shared_ptr<BTEData> > devicesCopy;
+					if(curStatus != DeviceWatcherStatus::Stopped)
+					{
+						_deviceWatcher.Stop();
 
+						while (curStatus != DeviceWatcherStatus::Stopped)
+						{
+							curStatus = _deviceWatcher.Status();
+							co_await 16ms;
+						}
+					}
+				}
+				else
+				{
+					if (curStatus == DeviceWatcherStatus::EnumerationCompleted)
+					{
+						_deviceWatcher.Stop();
+
+						while (curStatus != DeviceWatcherStatus::Stopped)
+						{
+							curStatus = _deviceWatcher.Status();
+							co_await 16ms;
+						}
+					}
+
+					std::map< std::string, std::shared_ptr<BTEData> > devicesCopy;
 					{
 						std::unique_lock<std::mutex> lock(_devicesMutex);
 						devicesCopy = _devices;
 					}
-
 					for (auto& [key, value] : devicesCopy)
 					{
-						if (value->bNeedsUpdate)
+						if (value->bNeedsUpdate && 
+							value->bConnectable)
 						{
-							SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: device requesting update: %s", key.c_str());
+							//SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: device requesting update: %s", key.c_str());
 							co_await UpdateDevice(value);
 						}
 					}
-
-					bool bHaveActiveDevice = false;
-					{
-						std::unique_lock<std::mutex> lock(_devicesMutex);
-
-						for (auto& [key, value] : _devices)
-						{
-							if (value->bFoundServiceWeWant && !value->bNeedsUpdate)
-							{
-								bHaveActiveDevice = true;
-								break;
-							}
-						}
-					}
-					if (bHaveActiveDevice == false)
-					{
-						_deviceWatcher.Start();
-						co_await 3s;
-					}
 				}
+
+				if (!bHaveActiveDevice && curStatus == DeviceWatcherStatus::Stopped)
+				{
+					_deviceWatcher.Start();
+				}
+
+				co_await 16ms;
 			}
 
 			SPP_LOG(LOG_BTE, LOG_INFO, "BTEControllerAction: ended");
@@ -274,6 +299,20 @@ namespace SPP
 			}
 		}
 
+		bool IsConnected()
+		{
+			std::unique_lock<std::mutex> lock(_devicesMutex);
+
+			for (auto& [key, value] : _devices)
+			{
+				if (value->bFoundServiceWeWant && !value->bNeedsUpdate)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		void Stop()
 		{
 			if (_watcherAction)
@@ -306,10 +345,8 @@ namespace SPP
 		{			
 			auto sDeviceID = std::wstring_to_utf8(std::wstring(deviceInfo.Id()));
 			auto sDeviceIDU = std::str_to_upper(sDeviceID);
-			auto sDeviceName = std::wstring_to_utf8(std::wstring(deviceInfo.Name()));
-						
-			auto deviceKind = deviceInfo.Kind();
-
+			auto sDeviceName = std::wstring_to_utf8(std::wstring(deviceInfo.Name()));						
+			
 			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Added: %s(%s)", sDeviceName.c_str(), sDeviceID.c_str());
 
 			{
@@ -318,16 +355,18 @@ namespace SPP
 				if (_devices.find(sDeviceIDU) == _devices.end())
 				{
 					std::shared_ptr< BTEData > newData;
-					newData.reset(new BTEData{ sDeviceID, sDeviceName });
+					newData.reset(new BTEData{ sDeviceID, sDeviceName });	
+					newData->UpdateFromWinBLEProperties(deviceInfo.Properties());
 					_devices[sDeviceIDU] = newData;
 				}
 			}
 		}
 
-		void BTEDevice_ServicesChanged(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice inDevice, winrt::Windows::Foundation::IInspectable deviceInfo)
+		void BTEDevice_ServicesChanged(winrt::Windows::Devices::Bluetooth::BluetoothLEDevice inDevice, 
+			winrt::Windows::Foundation::IInspectable deviceInfo)
 		{
-			SPP_LOG(LOG_BTE, LOG_VERBOSE, "BTEDevice_StatusChanged");
-
+			SPP_LOG(LOG_BTE, LOG_INFO, "BTEDevice_ServicesChanged");
+			
 			if (inDevice)
 			{
 				auto sDeviceID = std::wstring_to_utf8(std::wstring(inDevice.DeviceId()));
@@ -362,6 +401,8 @@ namespace SPP
 			}
 
 			//co_await winrt::resume_foreground(controller.DispatcherQueue());
+
+			SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: (%s):%s", InDevice->Name.c_str(), InDevice->GUID.c_str());
 
 			auto deviceID = std::utf8_to_wstring(InDevice->GUID);
 
@@ -510,12 +551,6 @@ namespace SPP
 
 									if (status == GattCommunicationStatus::Success)
 									{
-										auto foundIt = CharToFuncMap.find(uuid);
-										if (foundIt != CharToFuncMap.end())
-										{
-											foundIt->second->StateChange(EBTEState::Connected);
-										}
-
 										c.ValueChanged({ get_weak(), &INTERNAL_BTEWatcher::Characteristic_ValueChanged });
 
 										SPP_LOG(LOG_BTE, LOG_INFO, "UpdateDevice: Successfully subscribed for value change");
@@ -558,6 +593,7 @@ namespace SPP
 			auto sDeviceID = std::str_to_upper(std::wstring_to_utf8(std::wstring(deviceInfo.Id())));
 
 			SPP_LOG(LOG_BTE, LOG_INFO, "DeviceWatcher_Updated: %s", sDeviceID.c_str());
+						
 
 			{
 				std::unique_lock<std::mutex> lock(_devicesMutex);
@@ -568,6 +604,7 @@ namespace SPP
 					return;
 				}
 
+				foundDevice->second->UpdateFromWinBLEProperties(deviceInfo.Properties());
 				foundDevice->second->bNeedsUpdate = true;
 			}	
 		}
@@ -617,6 +654,11 @@ namespace SPP
 	void BTEWatcher::Update() 
 	{
 		_impl->_watcher->Update();
+	}
+
+	bool BTEWatcher::IsConnected() const
+	{
+		return _impl->_watcher->IsConnected();
 	}
 
 	void BTEWatcher::Stop()

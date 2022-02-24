@@ -112,10 +112,6 @@ int main(int argc, char* argv[])
 			//std::string strConv(InData, InData + DataSize);
 			SPP_LOG(LOG_APP, LOG_INFO, "BTE data: %d", DataSize);
 		}
-		virtual void StateChange(EBTEState InState) override
-		{
-			SPP_LOG(LOG_APP, LOG_INFO, "StateChange: %d", (uint8_t)InState);
-		}
 	};
 
 	LocalBTEWatcher oWatcher;

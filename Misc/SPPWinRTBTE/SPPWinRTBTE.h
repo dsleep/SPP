@@ -36,7 +36,6 @@ namespace SPP
 	struct IBTEWatcher
 	{
 		virtual void IncomingData(uint8_t*, size_t) = 0;
-		virtual void StateChange(EBTEState) = 0;
 	};
 
 	class SPP_WINRTBTE_API BTEWatcher
@@ -50,6 +49,7 @@ namespace SPP
 		~BTEWatcher();		
 		void WatchForData(const std::string& DeviceID, const std::map< std::string, IBTEWatcher* >& CharacterFunMap);
 		void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize);
+		bool IsConnected() const;
 		void Update();
 		void Stop();
 	};

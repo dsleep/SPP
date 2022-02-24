@@ -1072,22 +1072,17 @@ bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string
 	return false;
 }
 
-template<typename T, typename S>
+template<typename T>
 struct LocalBTEWatcher : public IBTEWatcher
 {
 private:
 	T& funcAdd;
-	S& funcState;
 public:
-	LocalBTEWatcher(T& inT, S& inS) : funcAdd(inT), funcState(inS) { }
+	LocalBTEWatcher(T& inT) : funcAdd(inT) { }
 	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
 	{
 		std::string strConv(InData, InData + DataSize);
 		funcAdd(strConv);
-	}
-	virtual void StateChange(EBTEState InState) override
-	{
-		funcState(InState);
 	}
 };
 
@@ -1188,14 +1183,9 @@ void SPPApp(int argc, char* argv[])
 			videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
 		}
 	};	
-
-	auto inStateChange = [&bBTEConnected](EBTEState InState)
-	{
-		bBTEConnected = (InState == EBTEState::Connected ? true : false);
-	};
     //DummyBTEWatcher watcher;
     
-	LocalBTEWatcher oWatcher(sendBTDataTOManager, inStateChange);
+	LocalBTEWatcher oWatcher(sendBTDataTOManager);
 	BTEWatcher watcher;
 	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
 		{
@@ -1292,6 +1282,7 @@ void SPPApp(int argc, char* argv[])
 
 			// check on BTE
 			watcher.Update();
+			bBTEConnected = watcher.IsConnected();
 
 			if (bBTEConnected)
 			{
