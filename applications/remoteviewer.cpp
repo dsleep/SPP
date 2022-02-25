@@ -22,6 +22,8 @@
 #include "SPPJsonUtils.h"
 #include "SPPHandledTimers.h"
 
+#include "SPPStackUtils.h"
+
 #include <set>
 
 #include "SPPMath.h"
@@ -1474,9 +1476,11 @@ void SPPApp(int argc, char* argv[])
 	mainController.Run();
 }
 
-int main(int argc, char *argv[])
+int try_main(int argc, char *argv[])
 {
 	IntializeCore(nullptr);
+
+	
 	
 #if PLATFORM_WINDOWS
 	_CrtSetDbgFlag(0);
@@ -1488,7 +1492,14 @@ int main(int argc, char *argv[])
 	wxEntryStart(argc, argv);
 	GApp->CallOnInit();
 
-	std::thread ourApp(SPPApp, argc, argv);
+	std::thread ourApp([argc, argv]()
+		{
+			PLATFORM_TRY
+			{
+			SPPApp(argc, argv);
+			}
+			PLATFORM_CATCH_AND_DUMP_TRACE
+		});
 
 	GApp->OnRun();
     
@@ -1502,4 +1513,14 @@ int main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+
+int main(int argc, char* argv[])
+{
+	PLATFORM_TRY
+	{
+	auto ret = try_main(argc, argv);
+	}
+	PLATFORM_CATCH_AND_DUMP_TRACE
 }
