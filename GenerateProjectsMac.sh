@@ -1,0 +1,1 @@
+cmake . -BCMAKEBUILD -G "Xcode"
