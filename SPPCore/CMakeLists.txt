@@ -85,6 +85,10 @@ elseif(OS_MAC)
    target_sources(SPPCore
         PRIVATE
             "${CMAKE_CURRENT_LIST_DIR}/SPPMacOSCore.cpp" )
+elseif(OS_LINUX)
+   target_sources(SPPCore
+        PRIVATE
+            "${CMAKE_CURRENT_LIST_DIR}/SPPLinuxCore.cpp" )
 endif()
 
 target_include_directories(SPPCore 
