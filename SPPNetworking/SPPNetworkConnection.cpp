@@ -400,6 +400,13 @@ namespace SPP
 #if SPP_NETCONN_CRYPTO			
 			std::vector<uint8_t> oData;
 			DecryptData(ControlMsg.data(), ControlMsg.size(), oData);
+
+			if(oData.empty())
+			{
+				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO DecryptData");
+				return;
+			}
+
 			if (MemoryToJson(oData.data(), oData.size(), jsonMessage) == false)
 			{
 				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");

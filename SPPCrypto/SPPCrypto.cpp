@@ -165,25 +165,31 @@ namespace SPP
 
 	void AES_Cipher::EncryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData)
 	{
-		CryptoPP::AES::Encryption aesEncryption(*_impl->key, CryptoPP::AES::DEFAULT_KEYLENGTH);
-		CryptoPP::CBC_Mode_ExternalCipher::Encryption cbcEncryption(aesEncryption, *_impl->iv);
+		if (_impl && _impl->key && _impl->iv)
+		{
+			CryptoPP::AES::Encryption aesEncryption(*_impl->key, CryptoPP::AES::DEFAULT_KEYLENGTH);
+			CryptoPP::CBC_Mode_ExternalCipher::Encryption cbcEncryption(aesEncryption, *_impl->iv);
 
-		CryptoPP::ArraySource s((const CryptoPP::byte * )InData, DataLength, true,
-			new CryptoPP::StreamTransformationFilter(cbcEncryption,
-				new CryptoPP::VectorSink(oData)
-			) // StreamTransformationFilter
-		); // StringSource
+			CryptoPP::ArraySource s((const CryptoPP::byte*)InData, DataLength, true,
+				new CryptoPP::StreamTransformationFilter(cbcEncryption,
+					new CryptoPP::VectorSink(oData)
+				) // StreamTransformationFilter
+			); // StringSource
+		}
 	}
 
 	void AES_Cipher::DecryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData)
 	{
-		CryptoPP::AES::Decryption aesDecryption(*_impl->key, CryptoPP::AES::DEFAULT_KEYLENGTH);
-		CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption, *_impl->iv);
+		if (_impl && _impl->key && _impl->iv)
+		{
+			CryptoPP::AES::Decryption aesDecryption(*_impl->key, CryptoPP::AES::DEFAULT_KEYLENGTH);
+			CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption, *_impl->iv);
 
-		CryptoPP::ArraySource sa((const CryptoPP::byte*)InData, DataLength, true,
-			new CryptoPP::StreamTransformationFilter(cbcDecryption,
-				new CryptoPP::VectorSink(oData)
-			) // StreamTransformationFilter
-		); // StringSource
+			CryptoPP::ArraySource sa((const CryptoPP::byte*)InData, DataLength, true,
+				new CryptoPP::StreamTransformationFilter(cbcDecryption,
+					new CryptoPP::VectorSink(oData)
+				) // StreamTransformationFilter
+			); // StringSource
+		}
 	}
 }
