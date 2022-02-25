@@ -71,6 +71,9 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/SPPDLMalloc.c"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPDLMalloc.h"
 		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPStackUtils.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPStackUtils.h"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSTLAllocator.h"
         )	
 	
