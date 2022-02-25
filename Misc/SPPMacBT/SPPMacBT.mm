@@ -347,7 +347,7 @@ namespace SPP
         return 1;
     }
 
-    struct BTEWatcher::PlatImpl
+    struct BTEWatcher::PlatImpl	
     {
         BTEMonitor *_watcher = nullptr;
     };
@@ -387,5 +387,10 @@ namespace SPP
     void BTEWatcher::Stop()
     {
 //        [_impl->_watcher stopScan];
+    }
+
+    bool BTEWatcher::IsConnected()
+    {
+        
     }
 }

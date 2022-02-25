@@ -38,7 +38,7 @@ else()
     add_executable( SPPRemoteApplicationController "")
 endif()
 
-add_dependencies( SPPRemoteApplicationController SPPCore SPPReflection )			
+add_dependencies( SPPRemoteApplicationController SPPCore SPPReflection remoteviewer )			
 target_sources( SPPRemoteApplicationController 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationController.cpp"

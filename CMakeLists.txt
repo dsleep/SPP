@@ -49,7 +49,19 @@ endif()
 	
 set(SPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" )
 set(THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/3rdParty" )	
-set(CMAKE_DEBUG_POSTFIX "d" )	
+set(CMAKE_DEBUG_POSTFIX "d" )
+set(CMAKE_INSTALL_PREFIX "${SPP_ROOT}/INSTALL")
+    
+message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+        
+# MAC AND LINUX RPATHS
+if(OS_LINUX OR OS_MAC)
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}")
+    # add the automatically determined parts of the RPATH
+    # which point to directories outside the build tree to the install RPATH
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+#
 	
 if(OS_WINDOWS)
 	set(LIB_PATH_POSTFIX "/win64/vc16" )	

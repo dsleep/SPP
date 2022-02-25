@@ -20,7 +20,6 @@ namespace SPP
     struct IBTEWatcher
     {
         virtual void IncomingData(uint8_t*, size_t) = 0;
-        virtual void StateChange(EBTEState) = 0;
     };
 
     class BTEWatcher
@@ -36,5 +35,6 @@ namespace SPP
         void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize);
         void Update();
         void Stop();
+        bool IsConnected();
     };
 }
