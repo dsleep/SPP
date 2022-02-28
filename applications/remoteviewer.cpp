@@ -36,6 +36,7 @@
 
 #include "SPPPlatformCore.h"
 
+#include <iostream>
 #include <mutex>
 
 #include <wx/wx.h>
@@ -1096,6 +1097,17 @@ struct DummyBTEWatcher
 
 void SPPApp(int argc, char* argv[])
 {
+#if PLATFORM_LINUX || PLATFORM_MAC
+    std::thread ChildDestroy([]()
+    {
+        char c;
+        while (std::cin.get(c))
+        {
+        }
+        exit(0);
+    });
+#endif
+    
 	{
 		Json::Value JsonConfig;
 		SE_ASSERT(FileToJson("config.txt", JsonConfig));

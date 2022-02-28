@@ -8,8 +8,10 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 
-#include <unistd.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <spawn.h>
 
 #include <signal.h>
@@ -76,12 +78,42 @@ namespace SPP
             bCreatedSig = true;
         }
         
+
         std::string ProcessCleaned = stdfs::path(ProcessPath).filename().generic_string();
         
+        //#define     STDIN_FILENO    0    /* standard input file descriptor */
+        //#define    STDOUT_FILENO    1    /* standard output file descriptor */
+        //#define    STDERR_FILENO    2    /* standard error file descriptor */
+        
         pid_t pid { 0 };
+
+#if 1
+        int pipes[2];
+        if (pipe(pipes) == -1)
+        {
+            SPP_LOG(LOG_MACOSCORE, LOG_INFO, "FAILED TO CREATE PIPES");
+            return 0;
+        }
+        
+        pid = fork();
+        
+        if (pid == 0)
+        {
+            close(pipes[1]); /* Close the writer end in the child*/
+            dup2(pipes[0], STDIN_FILENO);
+            
+            const char *argv[] = {ProcessCleaned.c_str(), Commandline, NULL};
+            execv(ProcessPath, (char * const *) argv);
+            // no more exectuion should be in child
+        }
+        // close reader end of parent
+        close(pipes[0]);
+#else
+        
         const char *argv[] = {ProcessCleaned.c_str(), Commandline, NULL};
         const char *environ[] = {NULL};
         auto status = posix_spawn(&pid, ProcessPath, NULL, NULL, (char *const*)argv, (char *const*)environ);
+                
         
         if (status == 0)
         {
@@ -92,6 +124,9 @@ namespace SPP
             printf("posix_spawn: %s\n", strerror(status));
             return 0;
         }
+        
+        posix_spawn_file_actions_destroy(&as);
+#endif
         
         std::shared_ptr<ProcessInformation> newChild;
         newChild.reset( new ProcessInformation{ProcessPath, Commandline} );
