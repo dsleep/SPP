@@ -141,5 +141,5 @@ namespace SPP
 	#define SPP_LOG(...) 	
 #else
 	#define SPP_QL(F,...) SPP::INSTANCE().Log(SPP::LOG_SPP_GENERIC, SPP::LOG_INFO, __LINE__, __FILE__, F, ##__VA_ARGS__); 
-	#define SPP_LOG(C,L,F,...) SPP::INSTANCE().Log(C, L, __LINE__, __FILE__, F, ##__VA_ARGS__); 	
+	#define SPP_LOG(C,L,F,...) SPP::INSTANCE().Log(C, SPP::L, __LINE__, __FILE__, F, ##__VA_ARGS__); 	
 #endif

@@ -124,8 +124,6 @@ namespace SPP
             printf("posix_spawn: %s\n", strerror(status));
             return 0;
         }
-        
-        posix_spawn_file_actions_destroy(&as);
 #endif
         
         std::shared_ptr<ProcessInformation> newChild;

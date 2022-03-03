@@ -3,20 +3,63 @@
 // recognized in your jurisdiction.
 
 
+#include "SPPMacBT.h"
+#include "SPPLogging.h"
+#include <string>
 
 #include "SPPMacBTDelegate.h"
 
+#import <dispatch/dispatch.h>
+
+SPP::LogEntry LOG_MACBLE("MACBLE");
+
+struct CharMap : public CWrapper
+{
+    std::map< std::string, SPP::IBTEWatcher* > data;
+    virtual ~CharMap() {}
+};
+
+@implementation GenericCWrapper
+-(void)dealloc {
+    
+    CWrapper* CData = (CWrapper*)[_data pointerValue];
+    if(CData)
+    {
+        delete CData;
+        CData = 0;
+    }
+    [_data release];
+    _data = nil;
+    [super dealloc];
+}
+-(instancetype)initCPtr:(NSValue*)InPtr
+{
+    _data = InPtr;
+    return self;
+}
+-(NSValue *)getData
+{
+    return _data;
+}
+@end
 
 
 @implementation BTEMonitor
 
+@synthesize repeatingTimer;
 @synthesize peripheralList;
+@synthesize scanningUUID;
+@synthesize charMapWrapper;
 
 - (void)initialize
 {
     NSLog(@"BTEMonitor: initialize");
     
-    peripheralList = [NSMutableArray array];
+    _stopWatcherAction = false;
+    _BLECapable = false;
+    scanningUUID = nil;
+    
+    peripheralList = [[NSMutableArray alloc] init];// [NSMutableArray array];
     manager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
 }
 
@@ -76,21 +119,63 @@
     return FALSE;
 }
 
+-(void) BLEUpdate_Timer
+{
+    bool isScanning = [manager isScanning];
+    bool bHaveActiveDevice = (peripheral != nil);
+    
+    if (bHaveActiveDevice)
+    {
+        if(isScanning)
+        {
+            [manager stopScan];
+        }
+    }
+
+    if (scanningUUID != nil &&
+        !bHaveActiveDevice &&
+        !isScanning &&
+        [self isLECapableHardware])
+    {
+        [manager scanForPeripheralsWithServices:@[scanningUUID] options:nil ];
+    }
+}
+
+@class GenericCWrapper;
 /*
  Request CBCentralManager to scan for heart rate peripherals using service UUID 0x180D
  */
-- (void) startScan:(NSString *)InUUID
+- (void) startScan:(NSString *)InUUID CharMap:(GenericCWrapper*)InCharMap
 {
-    NSLog(@"starting scan: %d", [self isLECapableHardware] );
-    //[manager scanForPeripheralsWithServices:nil options:nil];
+    NSLog(@"starting scan");
+    scanningUUID = [CBUUID UUIDWithString:InUUID];
+    charMapWrapper = InCharMap;
+    
+    [scanningUUID retain];
+    [charMapWrapper retain];
+    
+    // Cancel a preexisting timer.
+    [self.repeatingTimer invalidate];
+    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:0.5
+                              target:self
+                              selector:@selector(BLEUpdate_Timer)
+                              userInfo: nil
+                              repeats:YES];
+    self.repeatingTimer = timer;
 }
 
 /*
  Request CBCentralManager to stop scanning for heart rate peripherals
  */
-- (void) stopScan 
+- (void) stopScan
 {
+    [self.repeatingTimer invalidate];
     [manager stopScan];
+}
+
+- (bool) IsConnected
+{
+    return (peripheral != nil);
 }
 
 #pragma mark - CBCentralManager delegate methods
@@ -99,8 +184,8 @@
  */
 - (void) centralManagerDidUpdateState:(CBCentralManager *)central 
 {
-    bool ISCapable = [self isLECapableHardware];    
-    NSLog(@"centralManagerDidUpdateState %d", ISCapable);
+    _BLECapable = [self isLECapableHardware];
+    NSLog(@"centralManagerDidUpdateState %d", _BLECapable);
 }
     
 /*
@@ -108,13 +193,23 @@
  */
 - (void) centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)aPeripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI 
 {
-    NSLog(@"found peripheral %@", aPeripheral.name );
-    NSMutableArray *peripherals = [self mutableArrayValueForKey:@"peripheralList"];
-    if( ![self.peripheralList containsObject:aPeripheral] )
-        [peripherals addObject:aPeripheral];
+    NSLog(@"Found peripheral: %@ (%@)(%@)", aPeripheral.name, aPeripheral.identifier.UUIDString, aPeripheral.identifier.description);
+    
+    if( ![peripheralList containsObject:aPeripheral] )
+    {
+        [peripheralList addObject:aPeripheral];
+    }
+    
+    if([peripheralList count] >=1)
+    {
+        [manager stopScan];
+        peripheral = [peripheralList objectAtIndex:0];
+        [peripheral retain];
+        [manager connectPeripheral:peripheral options:[NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:CBConnectPeripheralOptionNotifyOnDisconnectionKey]];
+    }
     
     /* Retreive already known devices */
-    [manager retrievePeripheralsWithIdentifiers:[NSArray arrayWithObject:(id)aPeripheral.identifier]];
+    //[manager retrievePeripheralsWithIdentifiers:[NSArray arrayWithObject:(id)aPeripheral.identifier]];
 }
 
 /*
@@ -125,7 +220,7 @@
 {
     NSLog(@"Retrieved peripheral: %lu - %@", [peripherals count], peripherals);
     
-    [self stopScan];
+    [manager stopScan];
     
     /* If there are any known devices, automatically connect to it.*/
     if([peripherals count] >=1)
@@ -183,22 +278,9 @@
 {
     for (CBService *aService in aPeripheral.services) 
     {
-        NSLog(@"Service found with UUID: %@", aService.UUID);
-        
-        /* Heart Rate Service */
-        if ([aService.UUID isEqual:[CBUUID UUIDWithString:@"180D"]]) 
-        {
-            [aPeripheral discoverCharacteristics:nil forService:aService];
-        }
-        
-        /* Device Information Service */
-        if ([aService.UUID isEqual:[CBUUID UUIDWithString:@"180A"]]) 
-        {
-            [aPeripheral discoverCharacteristics:nil forService:aService];
-        }
-        
-        /* GAP (Generic Access Profile) for Device Name */
-        if ( [aService.UUID isEqual:[CBUUID UUIDWithString:@"1800"]] )
+        NSLog(@"Found Service with UUID: %@", aService.UUID);
+        // our initial requested service
+        if ([aService.UUID isEqual:scanningUUID])
         {
             [aPeripheral discoverCharacteristics:nil forService:aService];
         }
@@ -211,56 +293,26 @@
  */
 - (void) peripheral:(CBPeripheral *)aPeripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error 
 {    
-    if ([service.UUID isEqual:[CBUUID UUIDWithString:@"180D"]]) 
+    for (CBCharacteristic *aChar in service.characteristics)
     {
-        for (CBCharacteristic *aChar in service.characteristics) 
+        NSLog(@"Found Characteristic: %@", aChar.UUID);
+        std::string CharUUID = std::string([aChar.UUID.UUIDString UTF8String]);
+        
+        
+        NSValue *charMap = [charMapWrapper getData];
+        CharMap* CData = (CharMap*)[charMap pointerValue];
+        
+        if(CData)
         {
-            /* Set notification on heart rate measurement */
-            if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"2A37"]]) 
-            {
-                [peripheral setNotifyValue:YES forCharacteristic:aChar];
-                NSLog(@"Found a Heart Rate Measurement Characteristic");
-            }
-            /* Read body sensor location */
-            if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"2A38"]]) 
-            {
-                [aPeripheral readValueForCharacteristic:aChar];
-                NSLog(@"Found a Body Sensor Location Characteristic");
-            } 
+            std::map< std::string, SPP::IBTEWatcher* > &CharToFuncMap = CData->data;
             
-            /* Write heart rate control point */
-            if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"2A39"]])
+            if (CharToFuncMap.find(CharUUID) == CharToFuncMap.end())
             {
-                uint8_t val = 1;
-                NSData* valData = [NSData dataWithBytes:(void*)&val length:sizeof(val)];
-                [aPeripheral writeValue:valData forCharacteristic:aChar type:CBCharacteristicWriteWithResponse];
+                continue;
             }
-        }
-    }
-    
-    if ( [service.UUID isEqual:[CBUUID UUIDWithString:@"1800"]] )
-    {
-        for (CBCharacteristic *aChar in service.characteristics) 
-        {
-            /* Read device name */
-            if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"2A00"]])
-            {
-                [aPeripheral readValueForCharacteristic:aChar];
-                NSLog(@"Found a Device Name Characteristic");
-            }
-        }
-    }
-    
-    if ([service.UUID isEqual:[CBUUID UUIDWithString:@"180A"]]) 
-    {
-        for (CBCharacteristic *aChar in service.characteristics) 
-        {
-            /* Read manufacturer name */
-            if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"2A29"]]) 
-            {
-                [aPeripheral readValueForCharacteristic:aChar];
-                NSLog(@"Found a Device Manufacturer Name Characteristic");
-            }
+            
+            NSLog(@"FOUND A WATCH!!!");
+            [peripheral setNotifyValue:YES forCharacteristic:aChar];
         }
     }
 }
@@ -270,77 +322,50 @@
  */
 - (void) peripheral:(CBPeripheral *)aPeripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error 
 {
-    /* Updated value for heart rate measurement received */
-    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"2A37"]]) 
+    std::string CharUUID = std::string([characteristic.UUID.UUIDString UTF8String]);
+   
+    NSValue *charMap = [charMapWrapper getData];
+    CharMap* CData = (CharMap*)[charMap pointerValue];
+    
+    if(CData)
     {
-        if( (characteristic.value)  || !error )
+        std::map< std::string, SPP::IBTEWatcher* > &CharToFuncMap = CData->data;
+        auto foundValue = CharToFuncMap.find(CharUUID);
+        
+        if (foundValue != CharToFuncMap.end())
         {
-            /* Update UI with heart rate data */
-            //[self updateWithHRMData:characteristic.value];
-        }
-    } 
-    /* Value for body sensor location received */
-    else  if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"2A38"]]) 
-    {
-        NSData * updatedValue = characteristic.value;        
-        uint8_t* dataPointer = (uint8_t*)[updatedValue bytes];
-        if(dataPointer)
-        {
-            uint8_t location = dataPointer[0];
-            NSString*  locationString;
-            switch (location)
-            {
-                case 0:
-                    locationString = @"Other";
-                    break;
-                case 1:
-                    locationString = @"Chest";
-                    break;
-                case 2:
-                    locationString = @"Wrist";
-                    break;
-                case 3:
-                    locationString = @"Finger";
-                    break;
-                case 4:
-                    locationString = @"Hand";
-                    break;
-                case 5:
-                    locationString = @"Ear Lobe";
-                    break;
-                case 6: 
-                    locationString = @"Foot";
-                    break;
-                default:
-                    locationString = @"Reserved";
-                    break;
-            }
-            NSLog(@"Body Sensor Location = %@ (%d)", locationString, location);
+            NSData * updatedValue = characteristic.value;
+            uint8_t* dataPointer = (uint8_t*)[updatedValue bytes];
+            
+            foundValue->second->IncomingData(dataPointer, updatedValue.length);
         }
     }
-    /* Value for device Name received */
-    //else if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"2A00"]])
-//    {
-  //      NSString * deviceName = [[[NSString alloc] initWithData:characteristic.value encoding:NSUTF8StringEncoding] autorelease];
-//        NSLog(@"Device Name = %@", deviceName);
-//    }
-    /* Value for manufacturer name received */
-  //  else if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"2A29"]])
-//    {
-  //      self.manufacturer = [[[NSString alloc] initWithData:characteristic.value encoding:NSUTF8StringEncoding] autorelease];
-//        NSLog(@"Manufacturer Name = %@", self.manufacturer);
-//    }
 }
+
+- (void) peripheral:(CBPeripheral *)peripheral didModifyServices:(NSArray<CBService *> *)invalidatedServices
+{
+    if( peripheral )
+    {
+        [peripheral setDelegate:nil];
+        
+        [manager cancelPeripheralConnection:peripheral];
+        
+        [peripheral release];
+        peripheral = nil;
+    }
+}
+
 
 @end
 
-#include "SPPMacBT.h"
-#include "SPPLogging.h"
-#include <string>
+
 
 namespace SPP
 {
     SPP_CORE_API LogEntry LOG_MACBT("MACBT");
+
+   
+
 
     uint32_t GetMacBTWVersion()
     {
@@ -354,8 +379,10 @@ namespace SPP
 
     BTEWatcher::BTEWatcher() : _impl(new PlatImpl())
     {
-        _impl->_watcher = [[BTEMonitor alloc] init];
-        [_impl->_watcher initialize];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            _impl->_watcher = [[BTEMonitor alloc] init];
+            [_impl->_watcher initialize];
+        });
     }
 
     BTEWatcher::~BTEWatcher()
@@ -363,15 +390,30 @@ namespace SPP
         if(_impl->_watcher)
         {
             [_impl->_watcher release];
-            //_impl->_watcher = nil;
+            _impl->_watcher = nil;
         }
     }
 
+    struct __attribute__((objc_boxable)) B_CharactersticMap
+    {
+        std::map< std::string, IBTEWatcher* >  dataChunk;        
+    };
+
+    typedef struct __attribute__((objc_boxable)) std::map< std::string, IBTEWatcher* > _boxInterfaceMap;
+
     void BTEWatcher::WatchForData(const std::string& DeviceData, const std::map< std::string, IBTEWatcher* >& CharacterFunMap)
     {
-//        SPP_LOG(LOG_MACBT, LOG_INFO, "BTEWatcher::WatchForData: %s", DeviceData.c_str());
-//        NSString *nsDevice = [NSString stringWithUTF8String:DeviceData.c_str()];
-//        [_impl->_watcher startScan:nsDevice];
+        SPP_LOG(LOG_MACBT, LOG_INFO, "BTEWatcher::WatchForData: %s", DeviceData.c_str());
+        NSString *nsDevice = [NSString stringWithUTF8String:DeviceData.c_str()];
+       
+        CharMap *newMap = new CharMap();
+        newMap->data = CharacterFunMap;
+        NSValue* value = [NSValue valueWithPointer: newMap];
+        GenericCWrapper *InWrapper = [[GenericCWrapper alloc] initCPtr:value];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [_impl->_watcher startScan:nsDevice CharMap:InWrapper];
+        });
     }
 
     void BTEWatcher::WriteData(const std::string& DeviceData, const std::string& WriteID, const void* buf, uint16_t BufferSize)
@@ -386,11 +428,13 @@ namespace SPP
 
     void BTEWatcher::Stop()
     {
-//        [_impl->_watcher stopScan];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [_impl->_watcher stopScan];
+        });
     }
 
     bool BTEWatcher::IsConnected()
     {
-        
+        return [_impl->_watcher IsConnected];
     }
 }

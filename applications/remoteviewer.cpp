@@ -572,11 +572,6 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 EVT_CLOSE(MyFrame::OnClose)
 END_EVENT_TABLE()
 
-//START UP BTE
-#if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
-//std::unique_ptr<BTEWatcher> GBLE_Watcher;
-#endif
-
 class MyApp : public wxApp
 {
 private:
@@ -593,16 +588,6 @@ public:
 	{
 		return _glPane;
 	}
-    
-#if wxOSX_USE_COCOA_OR_IPHONE
-    // immediately before the native event loop launches
-    virtual void OSXOnWillFinishLaunching() override
-    {
-        wxApp::OSXOnWillFinishLaunching();
-        
-        //GBLE_Watcher = std::make_unique<BTEWatcher>();
-    }
-#endif
 };
 
 bool MyApp::OnInit()
@@ -885,8 +870,6 @@ void SPPApp(int argc, char* argv[])
 	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
 	listenSocket->Listen();
 #endif
-    
-    
     
 	//START UP BTE
 #if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
