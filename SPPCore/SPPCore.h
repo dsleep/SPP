@@ -64,6 +64,8 @@ namespace SPP
 	SPP_CORE_API void* SPP_MALLOC(std::size_t size);
 	SPP_CORE_API void SPP_FREE(void* ptr);
 
+    SPP_CORE_API const char* GetBinaryDirectory();
+
 	SPP_CORE_API const char* GetGitHash();
 	SPP_CORE_API const char* GetGitTag();
 }

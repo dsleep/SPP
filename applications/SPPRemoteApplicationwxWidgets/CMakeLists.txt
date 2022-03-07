@@ -55,9 +55,83 @@ set_property(TARGET SPPRemoteApplicationController PROPERTY VS_DPI_AWARE "PerMon
 
 TargetWxWidgetsSetup( SPPRemoteApplicationController )
 
-install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
+if(OS_MAC)
+    set_target_properties(SPPRemoteApplicationController PROPERTIES
+      MACOSX_BUNDLE TRUE
+      MACOSX_BUNDLE_INFO_PLIST "${SPP_ROOT}/Misc/Mac/Info.plist"
+      MACOSX_BUNDLE_BUNDLE_NAME "SPPRemoteApplicationController"
+      MACOSX_BUNDLE_BUNDLE_GUI_IDENTIFIER "tech.sleepingrobot.SPPRemoteApplicationController"
+      RESOURCE "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"
+    )
+    target_sources( SPPRemoteApplicationController
+        PRIVATE
+            "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"  )
+    
+    install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
+    install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
+
+    install(CODE "set(SPP_ROOT \"${SPP_ROOT}\")")
+    install(CODE "set(THIRD_PARTY \"${THIRD_PARTY}\")")
+        
+    install(CODE [[
+        list(APPEND LIB_DIRS "${THIRD_PARTY}")
+        ]])
+    install(CODE [[
+        list(APPEND LIB_DIRS "${THIRD_PARTY}/wxWidgets/lib")
+        ]])
+    install(CODE [[
+        list(APPEND LIB_DIRS "${THIRD_PARTY}/rttr/lib")
+        ]])
+    install(CODE [[
+        list(APPEND LIB_DIRS "${THIRD_PARTY}/jsoncpp/lib")
+        ]])
+    install(CODE [[
+        list(APPEND LIB_DIRS "${THIRD_PARTY}/cryptopp/lib")
+        ]])
+    install(CODE [[
+        list(APPEND LIB_DIRS "${THIRD_PARTY}/libjuice/lib")
+        ]])
+            
+    install(CODE [[
+        include(BundleUtilities)
+        fixup_bundle("${CMAKE_INSTALL_PREFIX}/SPPRemoteApplicationController.app" "" "${LIB_DIRS}")
+    ]] COMPONENT Runtime)
+    
+if(false)
+    # Transfer the value of ${MY_DEPENDENCY_PATHS} into the install script
+  
+        
+    install(CODE [[
+  file(GET_RUNTIME_DEPENDENCIES
+    EXECUTABLES "${SPP_ROOT}/Binaries/remoteviewerd"
+    RESOLVED_DEPENDENCIES_VAR _r_deps
+    UNRESOLVED_DEPENDENCIES_VAR _u_deps
+  )
+  foreach(_file ${_r_deps})
+      message(WARNING "TTTT ${_file}")
+    file(INSTALL
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+      TYPE SHARED_LIBRARY
+      FOLLOW_SYMLINK_CHAIN
+      FILES "${_file}"
+    )
+  endforeach()
+  list(LENGTH _u_deps _u_length)
+  if("${_u_length}" GREATER 0)
+    message(WARNING "Unresolved dependencies detected!")
+  endif()
+]])
+
+endif()
+
+endif()
+
+
+
 
 if(OS_WINDOWS)
+
+install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
 
 install(DIRECTORY "${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll/" #trailing / matters to flatten it
 	DESTINATION "${SPP_ROOT}/INSTALL"
@@ -67,3 +141,4 @@ install(DIRECTORY "${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll/" #trailing / matters
 		PATTERN mswud EXCLUDE)
 
 endif()
+

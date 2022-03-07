@@ -9,6 +9,10 @@
 #include "SPPFileSystem.h"
 #include "SPPPlatformCore.h"
 
+#if PLATFORM_MAC
+#include <mach-o/dyld.h>
+#endif
+
 SPP_OVERLOAD_ALLOCATORS
 
 extern const char* kGitHash;
@@ -17,6 +21,7 @@ extern const char* kGitTag;
 namespace SPP
 {
 	LogEntry LOG_CORE("CORE");
+    static std::string GBinaryPath;
 
 	void* SPP_MALLOC(std::size_t size)
 	{
@@ -36,7 +41,11 @@ namespace SPP
 	{		
 		return kGitTag;
 	}
-
+    const char* GetBinaryDirectory()
+    {
+        return GBinaryPath.c_str();
+    }
+    
 	SPP_CORE_API std::unique_ptr<class ThreadPool> CPUThreaPool;
 
 	static SystemClock::time_point appStarted;
@@ -55,11 +64,29 @@ namespace SPP
 		SPP_LOGGER.SetLogLevel(LOG_INFO);
 
 		auto ProcessName = GetProcessName();
+        
+#if PLATFORM_MAC
+        {
+            char path[2048];
+            uint32_t size = sizeof(path);
+            if (_NSGetExecutablePath(path, &size) == 0)
+            {
+                GBinaryPath = stdfs::path(path).remove_filename();
+            }
+        }
+#else
+        GBinaryPath = stdfs::current_path().generic_string();
+#endif
+
+        auto LoggingDirectory =   stdfs::weakly_canonical(stdfs::path(GBinaryPath) / "../Logging");
+        stdfs::create_directories(LoggingDirectory);
+        
 		std::string ProcessNameAsLog = stdfs::path(ProcessName).stem().generic_string() + "_LOG.txt";
-		SPP_LOGGER.Attach<FileLogger>(ProcessNameAsLog.c_str());
+		SPP_LOGGER.Attach<FileLogger>( (LoggingDirectory / ProcessNameAsLog).generic_string().c_str() );
 		
-		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %s GIT HASH: %s GIT TAG: %s", 
-			Commandline ? Commandline : "NULL", 
+		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %s PWD: %s GIT HASH: %s GIT TAG: %s",
+			Commandline ? Commandline : "NULL",
+            GBinaryPath.c_str(),
 			GetGitHash(),
 			GetGitTag());
 				

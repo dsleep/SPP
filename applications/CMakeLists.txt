@@ -85,7 +85,6 @@ if(OS_MAC)
 	set(SPP_BTE_PROJECT "SPPMacBT")
 endif()
 
-
 add_executable( remoteviewer "")
 add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo ${SPP_BTE_PROJECT} )
 target_sources( remoteviewer
@@ -111,22 +110,15 @@ endif()
 
 TargetWxWidgetsSetup( remoteviewer )
 
-install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
-
 if(OS_MAC)
-    set_target_properties(remoteviewer PROPERTIES
-      MACOSX_BUNDLE TRUE
-      MACOSX_BUNDLE_INFO_PLIST "${SPP_ROOT}/Misc/Mac/Info.plist"
-      RESOURCE "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"
-    )
-   target_sources( remoteviewer
-        PRIVATE
-            "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"  )
    target_link_libraries( remoteviewer
         PRIVATE
             "-framework OpenGL" )
-	
-	TargetWxWidgetsSetup( remoteviewer )
+            
+        install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
 endif()
 
+install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
 install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
+
+    

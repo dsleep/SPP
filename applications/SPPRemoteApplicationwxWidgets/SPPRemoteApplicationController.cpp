@@ -268,15 +268,12 @@ void WorkerThread()
 	std::string ArgString = std::string_format("-MEM=%s",
 		GIPMemoryID.c_str());
 
-#if PLATFORM_MAC
-    GProcessID = CreateChildProcess("remoteviewer.app/Contents/MacOS/remoteviewer",
-#else
     #if _DEBUG
         GProcessID = CreateChildProcess("remoteviewerd",
     #else
         GProcessID = CreateChildProcess("remoteviewer",
     #endif
-#endif
+
 		ArgString.c_str(),false);
 
 	while (true)

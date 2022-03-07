@@ -78,8 +78,10 @@ namespace SPP
             bCreatedSig = true;
         }
         
-
+        std::string FullPath = std::string_format("%s/%s", GetBinaryDirectory(), ProcessPath);
         std::string ProcessCleaned = stdfs::path(ProcessPath).filename().generic_string();
+        
+        SPP_LOG(LOG_MACOSCORE, LOG_INFO, " - %s", FullPath.c_str());
         
         //#define     STDIN_FILENO    0    /* standard input file descriptor */
         //#define    STDOUT_FILENO    1    /* standard output file descriptor */
@@ -103,7 +105,7 @@ namespace SPP
             dup2(pipes[0], STDIN_FILENO);
             
             const char *argv[] = {ProcessCleaned.c_str(), Commandline, NULL};
-            execv(ProcessPath, (char * const *) argv);
+            execv(FullPath.c_str(), (char * const *) argv);
             // no more exectuion should be in child
         }
         // close reader end of parent
