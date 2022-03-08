@@ -4,6 +4,92 @@
 
 #include "SPPStackUtils.h"
 
+#if PLATFORM_MAC || PLATFORM_LINUX
+
+#include "SPPLogging.h"
+#include "SPPFileSystem.h"
+
+/* Paste this on the file you want to debug. */
+#include <stdio.h>
+#include <execinfo.h>
+#include <setjmp.h>
+#include <signal.h>
+
+namespace SPP
+{
+    LogEntry LOG_STACK("STACK");
+
+    uint32_t DumpStackTrace()
+    {
+        char **strings;
+        size_t i, size;
+        enum Constexpr { MAX_SIZE = 1024 };
+        void *array[MAX_SIZE];
+        size = backtrace(array, MAX_SIZE);
+        strings = backtrace_symbols(array, size);
+        for (i = 0; i < size; i++)
+        {
+            SPP_LOG(LOG_STACK, LOG_INFO, strings[i]);
+        }
+        free(strings);
+        
+        throw(std::logic_error("DumpTraceReport"));
+    }
+
+    void signal_handler(int signal, siginfo_t *info, void *reserved)
+    {
+        void *trace[16];
+      char **messages = (char **)NULL;
+      int i, trace_size = 0;
+
+      if (signal == SIGSEGV)
+      {
+        printf("Got signal %d, faulty address is %p\n", signal, info->si_addr);
+      }
+      else
+        printf("Got signal %d\n", signal);
+
+      trace_size = backtrace(trace, 16);
+      messages = backtrace_symbols(trace, trace_size);
+      /* skip first stack frame (points here) */
+      printf("[bt] Execution path:\n");
+      for (i=1; i<trace_size; ++i)
+      {
+        printf("[bt] #%d %s\n", i, messages[i]);
+
+        /* find first occurence of '(' or ' ' in message[i] and assume
+         * everything before that is the file name. (Don't go beyond 0 though
+         * (string terminator)*/
+        size_t p = 0;
+        while(messages[i][p] != '(' && messages[i][p] != ' '
+                && messages[i][p] != 0)
+            ++p;
+
+        char syscom[256];
+        sprintf(syscom,"addr2line %p -e %.*s", trace[i], p, messages[i]);
+            //last parameter is the file name of the symbol
+        system(syscom);
+      }
+
+      exit(-1);
+    }
+
+    void SignalHandlerInit()
+    {
+        struct sigaction action_info;
+        memset(&action_info, 0, sizeof(action_info));
+        action_info.sa_sigaction = signal_handler;
+        action_info.sa_flags = SA_SIGINFO;
+        
+        sigaction(SIGSEGV, &action_info, nullptr);
+        sigaction(SIGFPE, &action_info, nullptr);
+        sigaction(SIGILL, &action_info, nullptr);
+        sigaction(SIGBUS, &action_info, nullptr);
+    }
+}
+
+#endif
+
 #if _WIN32
 
 #include "SPPLogging.h"

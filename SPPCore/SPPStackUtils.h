@@ -15,7 +15,15 @@ namespace SPP
 
 	#define PLATFORM_TRY __try	
 	#define PLATFORM_CATCH_AND_DUMP_TRACE __except (DumpStackTrace(GetExceptionInformation())) {}
-#else
-	#define PLATFORM_TRY 
-	#define PLATFORM_CATCH_AND_DUMP_TRACE 
+
+#elif PLATFORM_MAC || PLATFORM_LINUX
+
+namespace SPP
+{
+    SPP_CORE_API uint32_t DumpStackTrace();
+    SPP_CORE_API void SignalHandlerInit();
+}
+
+	#define PLATFORM_TRY try
+    #define PLATFORM_CATCH_AND_DUMP_TRACE catch(...) { DumpStackTrace(); }
 #endif

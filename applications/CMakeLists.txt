@@ -115,7 +115,7 @@ if(OS_MAC)
         PRIVATE
             "-framework OpenGL" )
             
-        install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
+    install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
 endif()
 
 install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")

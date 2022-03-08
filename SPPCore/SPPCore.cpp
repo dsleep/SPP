@@ -8,6 +8,12 @@
 #include "SPPTiming.h"
 #include "SPPFileSystem.h"
 #include "SPPPlatformCore.h"
+#include "SPPStackUtils.h"
+
+#if PLATFORM_MAC || PLATFORM_LINUX
+    #include <sys/param.h>
+    #include <unistd.h>
+#endif
 
 #if PLATFORM_MAC
 #include <mach-o/dyld.h>
@@ -22,6 +28,7 @@ namespace SPP
 {
 	LogEntry LOG_CORE("CORE");
     static std::string GBinaryPath;
+    static std::string GResourcePath;
 
 	void* SPP_MALLOC(std::size_t size)
 	{
@@ -45,6 +52,10 @@ namespace SPP
     {
         return GBinaryPath.c_str();
     }
+    const char* GetResourceDirectory()
+    {
+        return GResourcePath.c_str();
+    }
     
 	SPP_CORE_API std::unique_ptr<class ThreadPool> CPUThreaPool;
 
@@ -65,15 +76,24 @@ namespace SPP
 
 		auto ProcessName = GetProcessName();
         
+#if PLATFORM_MAC || PLATFORM_LINUX
+        SignalHandlerInit();
+#endif
+        
 #if PLATFORM_MAC
         {
             char path[2048];
             uint32_t size = sizeof(path);
             if (_NSGetExecutablePath(path, &size) == 0)
             {
-                GBinaryPath = stdfs::path(path).remove_filename();
+                GBinaryPath = stdfs::path(path).parent_path();
+                GResourcePath = stdfs::path(GBinaryPath).parent_path() / "Resources";
             }
         }
+        stdfs::current_path(GBinaryPath);
+        chdir(GBinaryPath.c_str());
+        
+        SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: making sure PWD is binary path %s", GBinaryPath.c_str());
 #else
         GBinaryPath = stdfs::current_path().generic_string();
 #endif

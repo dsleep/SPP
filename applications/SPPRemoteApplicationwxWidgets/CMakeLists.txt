@@ -68,7 +68,7 @@ if(OS_MAC)
             "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"  )
     
     install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
-    install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
+    install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/Resources")
 
     install(CODE "set(SPP_ROOT \"${SPP_ROOT}\")")
     install(CODE "set(THIRD_PARTY \"${THIRD_PARTY}\")")

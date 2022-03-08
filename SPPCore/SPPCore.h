@@ -9,6 +9,7 @@
 #include <memory>
 #include <cstdint>
 #include <cstddef>
+#include <stdexcept>
 
 #if _WIN32 && !defined(SPP_CORE_STATIC)
 
@@ -48,7 +49,8 @@ namespace SPP
 	ClassName(ClassName&&) = delete;					\
 	ClassName& operator=(ClassName&&) = delete;	
 
-#define SE_CRASH_BREAK *reinterpret_cast<int32_t*>(3) = 0xDEAD;
+    #define SE_CRASH_BREAK *reinterpret_cast<int32_t*>(3) = 0xDEAD;
+
 #define SE_SYNCHRONIZED(M)  if (std::unique_lock<std::mutex> lck(M); lck.owns_lock())
 #define SE_ASSERT(x) { if(!(x)) { SE_CRASH_BREAK } } 
 
@@ -65,6 +67,7 @@ namespace SPP
 	SPP_CORE_API void SPP_FREE(void* ptr);
 
     SPP_CORE_API const char* GetBinaryDirectory();
+    SPP_CORE_API const char* GetResourceDirectory();
 
 	SPP_CORE_API const char* GetGitHash();
 	SPP_CORE_API const char* GetGitTag();

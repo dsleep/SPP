@@ -797,8 +797,16 @@ void SPPApp(int argc, char* argv[])
 #endif
     
 	{
+#if PLATFORM_MAC
+        std::string ResourceDir = GetResourceDirectory();
 		Json::Value JsonConfig;
-		SE_ASSERT(FileToJson("config.txt", JsonConfig));
+		if(FileToJson((ResourceDir + "/config.txt").c_str(), JsonConfig) == false)
+#else
+        if(FileToJson("/config.txt", JsonConfig) == false)
+#endif
+        {
+            SPP_LOG(LOG_APP, LOG_INFO, "COULD NOT OPEN OR PARSE CONFIG");
+        }
 
 		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
 		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
@@ -837,7 +845,7 @@ void SPPApp(int argc, char* argv[])
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID.c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
-
+    
 	IPCMappedMemory ipcMem(IPMemoryID.c_str(), 2 * 1024 * 1024, false);
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
@@ -1177,9 +1185,7 @@ void SPPApp(int argc, char* argv[])
 int try_main(int argc, char *argv[])
 {
 	IntializeCore(nullptr);
-
-	
-	
+    
 #if PLATFORM_WINDOWS
 	_CrtSetDbgFlag(0);
 #endif
