@@ -797,12 +797,12 @@ void SPPApp(int argc, char* argv[])
 #endif
     
 	{
-#if PLATFORM_MAC
-        std::string ResourceDir = GetResourceDirectory();
 		Json::Value JsonConfig;
+#if PLATFORM_MAC
+        std::string ResourceDir = GetResourceDirectory();		
 		if(FileToJson((ResourceDir + "/config.txt").c_str(), JsonConfig) == false)
 #else
-        if(FileToJson("/config.txt", JsonConfig) == false)
+        if(FileToJson("config.txt", JsonConfig) == false)
 #endif
         {
             SPP_LOG(LOG_APP, LOG_INFO, "COULD NOT OPEN OR PARSE CONFIG");
