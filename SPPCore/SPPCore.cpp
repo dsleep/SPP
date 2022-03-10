@@ -76,9 +76,7 @@ namespace SPP
 
 		auto ProcessName = GetProcessName();
         
-#if PLATFORM_MAC || PLATFORM_LINUX
         SignalHandlerInit();
-#endif
         
 #if PLATFORM_MAC
         {

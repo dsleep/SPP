@@ -17,75 +17,75 @@
 
 namespace SPP
 {
-    LogEntry LOG_STACK("STACK");
+	LogEntry LOG_STACK("STACK");
 
-    uint32_t DumpStackTrace()
-    {
-        char **strings;
-        size_t i, size;
-        enum Constexpr { MAX_SIZE = 1024 };
-        void *array[MAX_SIZE];
-        size = backtrace(array, MAX_SIZE);
-        strings = backtrace_symbols(array, size);
-        for (i = 0; i < size; i++)
-        {
-            SPP_LOG(LOG_STACK, LOG_INFO, strings[i]);
-        }
-        free(strings);
-        
-        throw(std::logic_error("DumpTraceReport"));
-    }
+	uint32_t DumpStackTrace()
+	{
+		char** strings;
+		size_t i, size;
+		enum Constexpr { MAX_SIZE = 1024 };
+		void* array[MAX_SIZE];
+		size = backtrace(array, MAX_SIZE);
+		strings = backtrace_symbols(array, size);
+		for (i = 0; i < size; i++)
+		{
+			SPP_LOG(LOG_STACK, LOG_INFO, strings[i]);
+		}
+		free(strings);
 
-    void signal_handler(int signal, siginfo_t *info, void *reserved)
-    {
-        void *trace[16];
-      char **messages = (char **)NULL;
-      int i, trace_size = 0;
+		throw(std::logic_error("DumpTraceReport"));
+	}
 
-      if (signal == SIGSEGV)
-      {
-        printf("Got signal %d, faulty address is %p\n", signal, info->si_addr);
-      }
-      else
-        printf("Got signal %d\n", signal);
+	void signal_handler(int signal, siginfo_t* info, void* reserved)
+	{
+		void* trace[16];
+		char** messages = (char**)NULL;
+		int i, trace_size = 0;
 
-      trace_size = backtrace(trace, 16);
-      messages = backtrace_symbols(trace, trace_size);
-      /* skip first stack frame (points here) */
-      printf("[bt] Execution path:\n");
-      for (i=1; i<trace_size; ++i)
-      {
-        printf("[bt] #%d %s\n", i, messages[i]);
+		if (signal == SIGSEGV)
+		{
+			printf("Got signal %d, faulty address is %p\n", signal, info->si_addr);
+		}
+		else
+			printf("Got signal %d\n", signal);
 
-        /* find first occurence of '(' or ' ' in message[i] and assume
-         * everything before that is the file name. (Don't go beyond 0 though
-         * (string terminator)*/
-        size_t p = 0;
-        while(messages[i][p] != '(' && messages[i][p] != ' '
-                && messages[i][p] != 0)
-            ++p;
+		trace_size = backtrace(trace, 16);
+		messages = backtrace_symbols(trace, trace_size);
+		/* skip first stack frame (points here) */
+		printf("[bt] Execution path:\n");
+		for (i = 1; i < trace_size; ++i)
+		{
+			printf("[bt] #%d %s\n", i, messages[i]);
 
-        char syscom[256];
-        sprintf(syscom,"addr2line %p -e %.*s", trace[i], p, messages[i]);
-            //last parameter is the file name of the symbol
-        system(syscom);
-      }
+			/* find first occurence of '(' or ' ' in message[i] and assume
+			 * everything before that is the file name. (Don't go beyond 0 though
+			 * (string terminator)*/
+			size_t p = 0;
+			while (messages[i][p] != '(' && messages[i][p] != ' '
+				&& messages[i][p] != 0)
+				++p;
 
-      exit(-1);
-    }
+			char syscom[256];
+			sprintf(syscom, "addr2line %p -e %.*s", trace[i], p, messages[i]);
+			//last parameter is the file name of the symbol
+			system(syscom);
+		}
 
-    void SignalHandlerInit()
-    {
-        struct sigaction action_info;
-        memset(&action_info, 0, sizeof(action_info));
-        action_info.sa_sigaction = signal_handler;
-        action_info.sa_flags = SA_SIGINFO;
-        
-        sigaction(SIGSEGV, &action_info, nullptr);
-        sigaction(SIGFPE, &action_info, nullptr);
-        sigaction(SIGILL, &action_info, nullptr);
-        sigaction(SIGBUS, &action_info, nullptr);
-    }
+		exit(-1);
+	}
+
+	void SignalHandlerInit()
+	{
+		struct sigaction action_info;
+		memset(&action_info, 0, sizeof(action_info));
+		action_info.sa_sigaction = signal_handler;
+		action_info.sa_flags = SA_SIGINFO;
+
+		sigaction(SIGSEGV, &action_info, nullptr);
+		sigaction(SIGFPE, &action_info, nullptr);
+		sigaction(SIGILL, &action_info, nullptr);
+		sigaction(SIGBUS, &action_info, nullptr);
+	}
 }
 
 #endif
@@ -243,12 +243,14 @@ namespace SPP
 			if (frame.AddrPC.Offset != 0) {
 				std::string fnName = symbol(process, frame.AddrPC.Offset).undecorated_name();
 
-				auto FilePathStem = line.FileName ? stdfs::path(line.FileName).filename().generic_string() : std::string("UNKNOWN");
-				
-				builder << "CALLSTACK" << std::endl;
+
+				//builder << "CALLSTACK" << std::endl;
 
 				if (SymGetLineFromAddr64(process, frame.AddrPC.Offset, &offset_from_symbol, &line))
+				{
+					auto FilePathStem = line.FileName ? stdfs::path(line.FileName).filename().generic_string() : std::string("UNKNOWN");
 					builder << "(" << n << ")" << "File:" << FilePathStem << " Line#:" << line.LineNumber << " Func:" << fnName << std::endl;
+				}
 				else builder << "\n";
 				if (fnName == "main")
 					break;
@@ -270,19 +272,37 @@ namespace SPP
 		//return EXCEPTION_EXECUTE_HANDLER;
 		SymCleanup(process);
 
-		SPP_LOG(LOG_STACK, LOG_INFO, builder.str().c_str());
+		SPP_LOG(LOG_STACK, LOG_INFO, "CRASH!!!\n\n%s", builder.str().c_str());
 
-		//MessageBoxA(
-		//	nullptr,
-		//	builder.str().c_str(),
-		//	"CRASH",
-		//	MB_OK
-		//);
+		MessageBoxA(
+			nullptr,
+			builder.str().c_str(),
+			"CRASH",
+			MB_OK
+		);
 
-		std::cout << builder.str();
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
+	LONG WINAPI OurCrashHandler(EXCEPTION_POINTERS* ExceptionInfo)
+	{
+		static bool bWasDone = false;
+		if (bWasDone)
+		{
+			return EXCEPTION_EXECUTE_HANDLER;
+		}
+		else
+		{
+			bWasDone = true;
+			return DumpStackTrace(ExceptionInfo);
+		}
+	}
+
+
+	void SignalHandlerInit()
+	{
+		::SetUnhandledExceptionFilter(OurCrashHandler);
+	}
 }
 
 #endif

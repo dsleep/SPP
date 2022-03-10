@@ -1198,11 +1198,7 @@ int try_main(int argc, char *argv[])
 
 	std::thread ourApp([argc, argv]()
 		{
-			PLATFORM_TRY
-			{
 			SPPApp(argc, argv);
-			}
-			PLATFORM_CATCH_AND_DUMP_TRACE
 		});
 
 	GApp->OnRun();
@@ -1222,9 +1218,5 @@ int try_main(int argc, char *argv[])
 
 int main(int argc, char* argv[])
 {
-	PLATFORM_TRY
-	{
-	auto ret = try_main(argc, argv);
-	}
-	PLATFORM_CATCH_AND_DUMP_TRACE
+	return try_main(argc, argv);
 }
