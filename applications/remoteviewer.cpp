@@ -351,8 +351,8 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 		thisMessage << MouseMessage;
 		thisMessage << MS_Window;
 
-		int32_t xPos = event.GetX();
-		int32_t yPos = event.GetY();
+		int32_t xPos = event.GetX() * GetContentScaleFactor();
+		int32_t yPos = event.GetY() * GetContentScaleFactor();
 		Vector3 remap(xPos, yPos, 1);
 		Vector3 RemappedPosition = remap * virtualToReal;
 
@@ -386,8 +386,8 @@ void BasicGLPane::_MouseEvent(wxMouseEvent& event)
 		DownState |= event.MiddleIsDown() ? 0x02 : 0;
 		DownState |= event.RightIsDown() ? 0x04 : 0;
 
-		int32_t xPos = event.GetX();
-		int32_t yPos = event.GetY();
+		int32_t xPos = event.GetX() * GetContentScaleFactor();
+		int32_t yPos = event.GetY() * GetContentScaleFactor();
 
 		Vector3 remap(xPos, yPos, 1);
 		Vector3 RemappedPosition = remap * virtualToReal;
