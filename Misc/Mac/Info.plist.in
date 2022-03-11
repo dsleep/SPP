@@ -7,17 +7,17 @@
 	<key>NSMainNibFile</key>
 	<string>MainAppWindow</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>${MACOSX_DEVELOPMENT_LANGUAGE}</string>
 	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
+	<string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
 	<key>CFBundleIconFile</key>
-	<string></string>
+	<string>${MACOSX_BUNDLE_ICON_FILE}</string>
 	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -25,12 +25,12 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<string>${MACOSX_DEPLOYMENT_TARGET}</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Can this app use Bluetooth?</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Can this app communicate with Bluetooth peripherals?</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2022 Sleeping Robot LLC. All rights reserved.</string>
+	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
 </dict>
 </plist>

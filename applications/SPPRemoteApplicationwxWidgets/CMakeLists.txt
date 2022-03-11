@@ -8,7 +8,7 @@ if(OS_WINDOWS)
 ## SPPRemoteApplicationManager
 ###################################################
 add_executable( SPPRemoteApplicationManager WIN32 "")
-add_dependencies( SPPRemoteApplicationManager SPPCore SPPReflection )			
+add_dependencies( SPPRemoteApplicationManager SPPCore SPPReflection )
 target_sources( SPPRemoteApplicationManager 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationManager.cpp"					
@@ -38,7 +38,7 @@ else()
     add_executable( SPPRemoteApplicationController "")
 endif()
 
-add_dependencies( SPPRemoteApplicationController SPPCore SPPReflection remoteviewer )			
+add_dependencies( SPPRemoteApplicationController SPPCore SPPReflection remoteviewer )
 target_sources( SPPRemoteApplicationController 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationController.cpp"
@@ -56,19 +56,49 @@ set_property(TARGET SPPRemoteApplicationController PROPERTY VS_DPI_AWARE "PerMon
 TargetWxWidgetsSetup( SPPRemoteApplicationController )
 
 if(OS_MAC)
+
+    set(APP_NAME "SPPRemoteApplicationController" )
+    set(APP_BUNDLE_IDENTIFIER "tech.sleepingrobot.SPPRemoteApplicationController" )
+
     set_target_properties(SPPRemoteApplicationController PROPERTIES
-      MACOSX_BUNDLE TRUE
-      MACOSX_BUNDLE_INFO_PLIST "${SPP_ROOT}/Misc/Mac/Info.plist"
-      MACOSX_BUNDLE_BUNDLE_NAME "SPPRemoteApplicationController"
-      MACOSX_BUNDLE_BUNDLE_GUI_IDENTIFIER "tech.sleepingrobot.SPPRemoteApplicationController"
-      RESOURCE "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${SPP_ROOT}/Misc/Mac/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
+        
+        EXECUTABLE_NAME ${APP_NAME}
+        
+        MACOSX_BUNDLE_EXECUTABLE_NAME ${APP_NAME}
+        MACOSX_BUNDLE_INFO_STRING ${APP_BUNDLE_IDENTIFIER}
+        MACOSX_BUNDLE_GUI_IDENTIFIER ${APP_BUNDLE_IDENTIFIER}
+        MACOSX_BUNDLE_BUNDLE_NAME ${APP_BUNDLE_IDENTIFIER}
+        MACOSX_DEVELOPMENT_LANGUAGE "en"
+        MACOSX_BUNDLE_ICON_FILE ""
+        MACOSX_BUNDLE_LONG_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
+        MACOSX_BUNDLE_COPYRIGHT "Copyright ©2022 Sleeping Robot LLC. All rights reserved."
+        
+        RESOURCE "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"
+#        XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME YES
     )
     target_sources( SPPRemoteApplicationController
         PRIVATE
             "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"  )
-    
+            
+    add_custom_command(TARGET SPPRemoteApplicationController POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:remoteviewer> ${SPP_ROOT}/Binaries/SPPRemoteApplicationController.app/Contents/MacOS
+        COMMENT "Copied RemoteViewer Into RAC"
+        )
+        
+    add_custom_command(TARGET SPPRemoteApplicationController POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${SPP_ROOT}/Binaries/config.txt ${SPP_ROOT}/Binaries/SPPRemoteApplicationController.app/Contents/Resources
+        COMMENT "Copied RemoteViewer Into RAC"
+        )
+        
     install(TARGETS SPPRemoteApplicationController DESTINATION "${SPP_ROOT}/INSTALL")
     install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/Resources")
+            
+    install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
 
     install(CODE "set(SPP_ROOT \"${SPP_ROOT}\")")
     install(CODE "set(THIRD_PARTY \"${THIRD_PARTY}\")")

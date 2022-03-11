@@ -17,6 +17,58 @@ set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonito
 
 install(TARGETS simpleconnectioncoordinator DESTINATION "${SPP_ROOT}/INSTALL")
 
+####################
+# remoteviewer
+####################
+
+set(SPP_BTE_PROJECT "")
+
+if(OS_WINDOWS)
+    set(SPP_BTE_PROJECT "SPPWinRTBTE")
+endif()
+if(OS_MAC)
+    set(SPP_BTE_PROJECT "SPPMacBT")
+endif()
+
+add_executable( remoteviewer "")
+add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo ${SPP_BTE_PROJECT} )
+target_sources( remoteviewer
+    PRIVATE
+        "${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
+        "${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )
+target_link_libraries( remoteviewer
+    PRIVATE
+        SPPNetworking
+        SPPEngine
+        SPPVideo
+        ${SPP_BTE_PROJECT} )
+        
+set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")
+
+if(OS_WINDOWS)
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo.dll" )
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo.dll" )
+    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
+endif()
+
+TargetWxWidgetsSetup( remoteviewer )
+
+if(OS_MAC)
+   target_link_libraries( remoteviewer
+        PRIVATE
+            "-framework OpenGL" )
+endif()
+
+install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
+install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
+
+####################
+# END remoteviewer
+####################
+
+
 if(OS_WINDOWS)
 
 message( STATUS "Adding Application: SPPSDFSimpleEditor" )
@@ -72,53 +124,6 @@ if(OS_MAC)
 	add_subdirectory("SPPRemoteApplicationwxWidgets")
 endif()
 
-####################
-# remoteviewer
-####################
 
-set(SPP_BTE_PROJECT "")
-
-if(OS_WINDOWS)
-	set(SPP_BTE_PROJECT "SPPWinRTBTE")
-endif()
-if(OS_MAC)
-	set(SPP_BTE_PROJECT "SPPMacBT")
-endif()
-
-add_executable( remoteviewer "")
-add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo ${SPP_BTE_PROJECT} )
-target_sources( remoteviewer
-	PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )
-target_link_libraries( remoteviewer
-	PRIVATE
-		SPPNetworking
-		SPPEngine
-		SPPVideo 
-		${SPP_BTE_PROJECT} )        
-		
-set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
-set_property(TARGET remoteviewer PROPERTY VS_DPI_AWARE "PerMonitor")
-
-if(OS_WINDOWS)
-    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo.dll" )
-    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo.dll" )
-    set_target_properties(remoteviewer PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideod.dll" )
-endif()
-
-TargetWxWidgetsSetup( remoteviewer )
-
-if(OS_MAC)
-   target_link_libraries( remoteviewer
-        PRIVATE
-            "-framework OpenGL" )
-            
-    install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationController.app/Contents/MacOS")
-endif()
-
-install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
-install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
 
     

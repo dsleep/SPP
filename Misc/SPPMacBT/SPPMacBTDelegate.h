@@ -25,11 +25,17 @@ struct CWrapper
 
 @class GenericCWrapper;
 
+
+
 @interface BTEMonitor : NSObject <CBCentralManagerDelegate, CBPeripheralDelegate>
 {
     NSMutableArray *peripheralList;
     CBCentralManager *manager;
+    
+    // our active device
     CBPeripheral *peripheral;
+    NSMutableDictionary *writeChars;
+    
     bool _stopWatcherAction;// = false;
     bool _BLECapable;// = false;
     
@@ -44,6 +50,7 @@ struct CWrapper
 
 - (void) initialize;
 - (void) startScan:(NSString *)InUUID CharMap:(GenericCWrapper*)InCharMap;
+- (void) writeData:(NSString *)InUUID DeviceID:(NSString*)InDeviceID WriteData:(NSData*)InWriteData;
 - (bool) IsConnected;
 - (void) stopScan;
 - (BOOL) isLECapableHardware;

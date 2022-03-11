@@ -997,8 +997,7 @@ void SPPApp(int argc, char* argv[])
 				LastBTTime = std::chrono::steady_clock::now();
 			}
 		});
-
-
+                            
 	//IPC UPDATES
 	mainController.AddTimer(100ms, true, [&]()
 		{
@@ -1164,8 +1163,8 @@ void SPPApp(int argc, char* argv[])
 								BTRFComm->SendMessage(buf, BufferSize);
 							}
 							watcher.WriteData(
-								"{366DEE95-85A3-41C1-A507-8C3E02342000}",
-								"{366DEE95-85A3-41C1-A507-8C3E02342002}",
+								"366DEE95-85A3-41C1-A507-8C3E02342000",
+								"366DEE95-85A3-41C1-A507-8C3E02342002",
 								buf, BufferSize);
 						});
 					videoConnection->CreateTranscoderStack(
