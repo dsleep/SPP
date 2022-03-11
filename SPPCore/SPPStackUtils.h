@@ -11,6 +11,7 @@
 namespace SPP
 {
 	SPP_CORE_API uint32_t DumpStackTrace(_EXCEPTION_POINTERS* ep);
+	SPP_CORE_API void SignalHandlerInit();
 }
 
 	#define PLATFORM_TRY __try	

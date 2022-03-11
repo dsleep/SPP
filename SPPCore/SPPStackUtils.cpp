@@ -38,10 +38,6 @@ namespace SPP
 
     void signal_handler(int signal, siginfo_t *info, void *reserved)
     {
-        void *trace[16];
-        char **messages = (char **)NULL;
-        int i, trace_size = 0;
-        
         if (signal == SIGSEGV)
         {
             SPP_LOG(LOG_STACK, LOG_INFO, "Got signal %d, faulty address is %p", signal, info->si_addr);
@@ -68,6 +64,7 @@ namespace SPP
         sigaction(SIGILL, &action_info, nullptr);
         sigaction(SIGBUS, &action_info, nullptr);
     }
+
 }
 
 #endif
@@ -160,111 +157,131 @@ public:
 
 namespace SPP
 {
-    LogEntry LOG_STACK("STACK");
+	LogEntry LOG_STACK("STACK");
 
-    // if you use C++ exception handling: install a translator function
-    // with set_se_translator(). In the context of that function (but *not*
-    // afterwards), you can either do your stack dump, or save the CONTEXT
-    // record as a local copy. Note that you must do the stack dump at the
-    // earliest opportunity, to avoid the interesting stack-frames being gone
-    // by the time you do the dump.
-    uint32_t DumpStackTrace(_EXCEPTION_POINTERS* ep)
-    {
-        if (IsDebuggerPresent())return 0;
-        
-        HANDLE process = GetCurrentProcess();
-        HANDLE hThread = GetCurrentThread();
-        int frame_number = 0;
-        DWORD offset_from_symbol = 0;
-        IMAGEHLP_LINE64 line = { 0 };
-        std::vector<module_data> modules;
-        DWORD cbNeeded;
-        std::vector<HMODULE> module_handles(1);
-        
-        // Load the symbols:
-        // WARNING: You'll need to replace <pdb-search-path> with either NULL
-        // or some folder where your clients will be able to find the .pdb file.
-        if (!SymInitialize(process, nullptr, false))
-            throw(std::logic_error("Unable to initialize symbol handler"));
-        DWORD symOptions = SymGetOptions();
-        symOptions |= SYMOPT_LOAD_LINES | SYMOPT_UNDNAME;
-        SymSetOptions(symOptions);
-        EnumProcessModules(process, &module_handles[0], module_handles.size() * sizeof(HMODULE), &cbNeeded);
-        module_handles.resize(cbNeeded / sizeof(HMODULE));
-        EnumProcessModules(process, &module_handles[0], module_handles.size() * sizeof(HMODULE), &cbNeeded);
-        std::transform(module_handles.begin(), module_handles.end(), std::back_inserter(modules), get_mod_info(process));
-        void* base = modules[0].base_address;
-        
-        // Setup stuff:
-        CONTEXT* context = ep->ContextRecord;
-    #ifdef _M_X64
-        STACKFRAME64 frame;
-        frame.AddrPC.Offset = context->Rip;
-        frame.AddrPC.Mode = AddrModeFlat;
-        frame.AddrStack.Offset = context->Rsp;
-        frame.AddrStack.Mode = AddrModeFlat;
-        frame.AddrFrame.Offset = context->Rbp;
-        frame.AddrFrame.Mode = AddrModeFlat;
-    #else
-        STACKFRAME64 frame;
-        frame.AddrPC.Offset = context->Eip;
-        frame.AddrPC.Mode = AddrModeFlat;
-        frame.AddrStack.Offset = context->Esp;
-        frame.AddrStack.Mode = AddrModeFlat;
-        frame.AddrFrame.Offset = context->Ebp;
-        frame.AddrFrame.Mode = AddrModeFlat;
-    #endif
-        line.SizeOfStruct = sizeof line;
-        IMAGE_NT_HEADERS* h = ImageNtHeader(base);
-        DWORD image_type = h->FileHeader.Machine;
-        int n = 0;
-        
-        // Build the string:
-        std::ostringstream builder;
-        do {
-            if (frame.AddrPC.Offset != 0) {
-                std::string fnName = symbol(process, frame.AddrPC.Offset).undecorated_name();
-                
-                auto FilePathStem = line.FileName ? stdfs::path(line.FileName).filename().generic_string() : std::string("UNKNOWN");
-                
-                builder << "CALLSTACK" << std::endl;
-                
-                if (SymGetLineFromAddr64(process, frame.AddrPC.Offset, &offset_from_symbol, &line))
-                    builder << "(" << n << ")" << "File:" << FilePathStem << " Line#:" << line.LineNumber << " Func:" << fnName << std::endl;
-                else builder << "\n";
-                if (fnName == "main")
-                    break;
-                if (fnName == "RaiseException") {
-                    // This is what we get when compiled in Release mode:
-                    std::cout << "Crash" << std::endl;
-                    std::cout << "Your program has crashed" << std::endl;
-                    return EXCEPTION_CONTINUE_SEARCH;
-                }
-            }
-            else
-                builder << "(No Symbols: PC == 0)";
-            if (!StackWalk64(image_type, process, hThread, &frame, context, NULL,
-                             SymFunctionTableAccess64, SymGetModuleBase64, NULL))
-                break;
-            if (++n > 10)
-                break;
-        } while (frame.AddrReturn.Offset != 0);
-        //return EXCEPTION_EXECUTE_HANDLER;
-        SymCleanup(process);
-        
-        SPP_LOG(LOG_STACK, LOG_INFO, builder.str().c_str());
-        
-        //MessageBoxA(
-        //	nullptr,
-        //	builder.str().c_str(),
-        //	"CRASH",
-        //	MB_OK
-        //);
-        
-        std::cout << builder.str();
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
+	// if you use C++ exception handling: install a translator function
+	// with set_se_translator(). In the context of that function (but *not*
+	// afterwards), you can either do your stack dump, or save the CONTEXT
+	// record as a local copy. Note that you must do the stack dump at the
+	// earliest opportunity, to avoid the interesting stack-frames being gone
+	// by the time you do the dump.
+	uint32_t DumpStackTrace(_EXCEPTION_POINTERS* ep)
+	{
+		if (IsDebuggerPresent())return 0;
 
+		HANDLE process = GetCurrentProcess();
+		HANDLE hThread = GetCurrentThread();
+		int frame_number = 0;
+		DWORD offset_from_symbol = 0;
+		IMAGEHLP_LINE64 line = { 0 };
+		std::vector<module_data> modules;
+		DWORD cbNeeded;
+		std::vector<HMODULE> module_handles(1);
+
+		// Load the symbols:
+		// WARNING: You'll need to replace <pdb-search-path> with either NULL
+		// or some folder where your clients will be able to find the .pdb file.
+		if (!SymInitialize(process, nullptr, false))
+			throw(std::logic_error("Unable to initialize symbol handler"));
+		DWORD symOptions = SymGetOptions();
+		symOptions |= SYMOPT_LOAD_LINES | SYMOPT_UNDNAME;
+		SymSetOptions(symOptions);
+		EnumProcessModules(process, &module_handles[0], module_handles.size() * sizeof(HMODULE), &cbNeeded);
+		module_handles.resize(cbNeeded / sizeof(HMODULE));
+		EnumProcessModules(process, &module_handles[0], module_handles.size() * sizeof(HMODULE), &cbNeeded);
+		std::transform(module_handles.begin(), module_handles.end(), std::back_inserter(modules), get_mod_info(process));
+		void* base = modules[0].base_address;
+
+		// Setup stuff:
+		CONTEXT* context = ep->ContextRecord;
+#ifdef _M_X64
+		STACKFRAME64 frame;
+		frame.AddrPC.Offset = context->Rip;
+		frame.AddrPC.Mode = AddrModeFlat;
+		frame.AddrStack.Offset = context->Rsp;
+		frame.AddrStack.Mode = AddrModeFlat;
+		frame.AddrFrame.Offset = context->Rbp;
+		frame.AddrFrame.Mode = AddrModeFlat;
+#else
+		STACKFRAME64 frame;
+		frame.AddrPC.Offset = context->Eip;
+		frame.AddrPC.Mode = AddrModeFlat;
+		frame.AddrStack.Offset = context->Esp;
+		frame.AddrStack.Mode = AddrModeFlat;
+		frame.AddrFrame.Offset = context->Ebp;
+		frame.AddrFrame.Mode = AddrModeFlat;
+#endif
+		line.SizeOfStruct = sizeof line;
+		IMAGE_NT_HEADERS* h = ImageNtHeader(base);
+		DWORD image_type = h->FileHeader.Machine;
+		int n = 0;
+
+		// Build the string:
+		std::ostringstream builder;
+		do {
+			if (frame.AddrPC.Offset != 0) {
+				std::string fnName = symbol(process, frame.AddrPC.Offset).undecorated_name();
+
+
+				//builder << "CALLSTACK" << std::endl;
+
+				if (SymGetLineFromAddr64(process, frame.AddrPC.Offset, &offset_from_symbol, &line))
+				{
+					auto FilePathStem = line.FileName ? stdfs::path(line.FileName).filename().generic_string() : std::string("UNKNOWN");
+					builder << "(" << n << ")" << "File:" << FilePathStem << " Line#:" << line.LineNumber << " Func:" << fnName << std::endl;
+				}
+				else builder << "\n";
+				if (fnName == "main")
+					break;
+				if (fnName == "RaiseException") {
+					// This is what we get when compiled in Release mode:
+					std::cout << "Crash" << std::endl;
+					std::cout << "Your program has crashed" << std::endl;
+					return EXCEPTION_CONTINUE_SEARCH;
+				}
+			}
+			else
+				builder << "(No Symbols: PC == 0)";
+			if (!StackWalk64(image_type, process, hThread, &frame, context, NULL,
+				SymFunctionTableAccess64, SymGetModuleBase64, NULL))
+				break;
+			if (++n > 10)
+				break;
+		} while (frame.AddrReturn.Offset != 0);
+		//return EXCEPTION_EXECUTE_HANDLER;
+		SymCleanup(process);
+
+		SPP_LOG(LOG_STACK, LOG_INFO, "CRASH!!!\n\n%s", builder.str().c_str());
+
+		MessageBoxA(
+			nullptr,
+			builder.str().c_str(),
+			"CRASH",
+			MB_OK
+		);
+
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
+	LONG WINAPI OurCrashHandler(EXCEPTION_POINTERS* ExceptionInfo)
+	{
+		static bool bWasDone = false;
+		if (bWasDone)
+		{
+			return EXCEPTION_EXECUTE_HANDLER;
+		}
+		else
+		{
+			bWasDone = true;
+			return DumpStackTrace(ExceptionInfo);
+		}
+	}
+
+
+	void SignalHandlerInit()
+	{
+		::SetUnhandledExceptionFilter(OurCrashHandler);
+	}
 }
 
 #endif
