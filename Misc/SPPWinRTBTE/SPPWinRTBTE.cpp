@@ -515,6 +515,10 @@ namespace SPP
 								guid uuid = c.Uuid();
 								auto UUIStrign = to_hstring(uuid);
 								std::string CString = std::str_to_upper(std::wstring_to_utf8(std::wstring(UUIStrign)));
+								if (CString.length() > 2)
+								{
+									CString = CString.substr(1, CString.length() - 2);
+								}
 								
 								auto curProperties = c.CharacteristicProperties();
 								if (((uint32_t)curProperties & (uint32_t)GattCharacteristicProperties::Write) != 0)
