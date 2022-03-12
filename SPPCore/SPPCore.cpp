@@ -99,7 +99,13 @@ namespace SPP
         auto LoggingDirectory =   stdfs::weakly_canonical(stdfs::path(GBinaryPath) / "../Logging");
         stdfs::create_directories(LoggingDirectory);
         
-		std::string ProcessNameAsLog = stdfs::path(ProcessName).stem().generic_string() + "_LOG.txt";
+		std::string buffer(128, '\0');
+		auto timeTApp = std::chrono::system_clock::to_time_t(appStarted);
+		auto appLT = localtime(&timeTApp);
+
+		strftime(&buffer[0], buffer.size(), "_%Y-%m-%d@%H-%M_LOG.txt", appLT);
+
+		std::string ProcessNameAsLog = stdfs::path(ProcessName).stem().generic_string() + buffer;
 		SPP_LOGGER.Attach<FileLogger>( (LoggingDirectory / ProcessNameAsLog).generic_string().c_str() );
 		
 		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %s PWD: %s GIT HASH: %s GIT TAG: %s",
