@@ -26,6 +26,30 @@ TargetWxWidgetsSetup( SPPRemoteApplicationManager )
 
 install(TARGETS SPPRemoteApplicationManager DESTINATION "${SPP_ROOT}/INSTALL")
 
+###################################################
+## SPPRemoteDesktop
+###################################################
+add_executable( SPPRemoteDesktop WIN32 "")
+add_dependencies( SPPRemoteDesktop SPPCore SPPReflection SPPCEFUserInterface )
+target_sources( SPPRemoteDesktop 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteDesktop.cpp"					
+		"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
+target_link_libraries( SPPRemoteDesktop 
+	PRIVATE
+		SPPCore
+		SPPReflection
+        SPPCEFUserInterface
+	)
+set_target_properties( SPPRemoteDesktop PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET SPPRemoteDesktop PROPERTY FOLDER "APPLICATIONS")
+#set_property(TARGET SPPRemoteDesktop PROPERTY VS_DPI_AWARE "PerMonitor")
+
+TargetWxWidgetsSetup( SPPRemoteDesktop )
+
+install(TARGETS SPPRemoteDesktop DESTINATION "${SPP_ROOT}/INSTALL")
+
+
 endif()
 
 ###################################################

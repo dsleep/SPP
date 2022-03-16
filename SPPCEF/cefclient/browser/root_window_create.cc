@@ -7,8 +7,8 @@
 #include "cefclient/browser/root_window_views.h"
 
 #if defined(OS_WIN)
-//#include "cefclient/browser/root_window_win.h"
-#include "cefclient/browser/root_game_window_win.h"
+#include "cefclient/browser/root_window_win.h"
+//#include "cefclient/browser/root_game_window_win.h"
 #elif defined(OS_LINUX)
 #include "cefclient/browser/root_window_gtk.h"
 #elif defined(OS_MAC)
@@ -24,8 +24,8 @@ scoped_refptr<RootWindow> RootWindow::Create(bool use_views) {
   }
 
 #if defined(OS_WIN)
-  return new RootGameWindowWin();
-  //return new RootWindowWin();
+  //return new RootGameWindowWin();
+  return new RootWindowWin();
 #elif defined(OS_LINUX)
   return new RootWindowGtk();
 #elif defined(OS_MAC)

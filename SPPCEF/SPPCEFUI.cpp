@@ -185,7 +185,7 @@ namespace SPP
 
         RootWindowConfig window_config;
         window_config.always_on_top = false;// command_line->HasSwitch(switches::kAlwaysOnTop);
-        window_config.with_controls = true;//!command_line->HasSwitch(switches::kHideControls);
+        window_config.with_controls = false;//!command_line->HasSwitch(switches::kHideControls);
         window_config.with_osr = settings.windowless_rendering_enabled ? true : false;
         window_config.url = StartupURL;
 
@@ -193,16 +193,21 @@ namespace SPP
         context->GetRootWindowManager()->CreateRootWindow(window_config);
 
         ClientHandler* client_handler = nullptr;
-        RootGameWindowWin* mainGameWindow = nullptr;
 
+#if USING_GAME_WINDOW
+        RootGameWindowWin* mainGameWindow = nullptr;
+#endif
         {
             auto RootManager = context->GetRootWindowManager();
             auto RootWindow = RootManager->GetActiveRootWindow();
             auto client = RootManager->GetActiveBrowser()->GetHost()->GetClient();
             client_handler = static_cast<ClientHandler*>(client.get());
+#if USING_GAME_WINDOW
             mainGameWindow = static_cast<RootGameWindowWin*>(RootWindow.get());
+#endif
         }
 
+#if USING_GAME_WINDOW
         if (InCallbacks.Initialized)
         {
             InCallbacks.Initialized(mainGameWindow->GetHWND());
@@ -239,8 +244,9 @@ namespace SPP
                     mainGameWindow->OnGameRegionWindowSet(rect);
                 }
             });
-                
+
         client_handler->_JSONNativeFunc = std::bind(&JavascriptInterface::NativeFromJS_JSON_Callback, localInterface.get(), std::placeholders::_1);               
+#endif
 
         // Run the message loop. This will block until Quit() is called by the
         // RootWindowManager after all windows have been destroyed.
