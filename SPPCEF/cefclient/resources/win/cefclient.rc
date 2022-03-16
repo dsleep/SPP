@@ -1,6 +1,6 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "cefclient/browser/resource.h"
+#include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -9,56 +9,81 @@
 //
 #define APSTUDIO_HIDDEN_SYMBOLS
 #include "windows.h"
-#include "include/cef_version.h"
 #undef APSTUDIO_HIDDEN_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Binary
+// 256
 //
 
-IDS_BINDING_HTML BINARY "..\\binding.html"
-IDS_DIALOGS_HTML BINARY "..\\dialogs.html"
-IDS_DRAGGABLE_HTML BINARY "..\\draggable.html"
-IDS_DRM_HTML BINARY "..\\drm.html"
-IDS_LOCALSTORAGE_HTML BINARY "..\\localstorage.html"
-IDS_LOGO_PNG BINARY "..\\logo.png"
-IDS_MEDIA_ROUTER_HTML BINARY "..\\media_router.html"
-IDS_MENU_ICON_1X_PNG BINARY "..\\menu_icon.1x.png"
-IDS_MENU_ICON_2X_PNG BINARY "..\\menu_icon.2x.png"
-IDS_OSRTEST_HTML BINARY "..\\..\\..\\shared\\resources\\osr_test.html"
-IDS_OTHER_TESTS_HTML BINARY "..\\other_tests.html"
-IDS_PDF_HTML BINARY "..\\..\\..\\shared\\resources\\pdf.html"
-IDS_PDF_PDF BINARY "..\\..\\..\\shared\\resources\\pdf.pdf"
-IDS_PERFORMANCE_HTML BINARY "..\\performance.html"
-IDS_PERFORMANCE2_HTML BINARY "..\\performance2.html"
-IDS_PREFERENCES_HTML BINARY "..\\preferences.html"
-IDS_RESPONSE_FILTER_HTML BINARY "..\\response_filter.html"
-IDS_SERVER_HTML BINARY "..\\server.html"
-IDS_TRANSPARENCY_HTML BINARY "..\\transparency.html"
-IDS_URLREQUEST_HTML BINARY "..\\urlrequest.html"
-IDS_WEBSOCKET_HTML BINARY "..\\websocket.html"
-IDS_WINDOW_HTML BINARY "..\\window.html"
-IDS_WINDOW_ICON_1X_PNG BINARY "..\\..\\..\\shared\\resources\\window_icon.1x.png"
-IDS_WINDOW_ICON_2X_PNG BINARY "..\\..\\..\\shared\\resources\\window_icon.2x.png"
-IDS_XMLHTTPREQUEST_HTML BINARY "..\\xmlhttprequest.html"
+IDS_BINDING_HTML        256                     "..\\binding.html"
 
-IDS_EXTENSIONS_SET_PAGE_COLOR_ICON_PNG BINARY "..\\extensions\\set_page_color\\icon.png"
-IDS_EXTENSIONS_SET_PAGE_COLOR_MANIFEST_JSON BINARY "..\\extensions\\set_page_color\\manifest.json"
-IDS_EXTENSIONS_SET_PAGE_COLOR_POPUP_HTML BINARY "..\\extensions\\set_page_color\\popup.html"
-IDS_EXTENSIONS_SET_PAGE_COLOR_POPUP_JS BINARY "..\\extensions\\set_page_color\\popup.js"
+IDS_DIALOGS_HTML        256                     "..\\dialogs.html"
+
+IDS_DRAGGABLE_HTML      256                     "..\\draggable.html"
+
+IDS_DRM_HTML            256                     "..\\drm.html"
+
+IDS_LOCALSTORAGE_HTML   256                     "..\\localstorage.html"
+
+IDS_LOGO_PNG            256                     "..\\logo.png"
+
+IDS_MEDIA_ROUTER_HTML   256                     "..\\media_router.html"
+
+IDS_MENU_ICON_1X_PNG    256                     "..\\menu_icon.1x.png"
+
+IDS_MENU_ICON_2X_PNG    256                     "..\\menu_icon.2x.png"
+
+IDS_OSRTEST_HTML        256                     "..\\..\\..\\shared\\resources\\osr_test.html"
+
+IDS_OTHER_TESTS_HTML    256                     "..\\other_tests.html"
+
+IDS_PDF_HTML            256                     "..\\..\\..\\shared\\resources\\pdf.html"
+
+IDS_PDF_PDF             256                     "..\\..\\..\\shared\\resources\\pdf.pdf"
+
+IDS_PERFORMANCE_HTML    256                     "..\\performance.html"
+
+IDS_PERFORMANCE2_HTML   256                     "..\\performance2.html"
+
+IDS_PREFERENCES_HTML    256                     "..\\preferences.html"
+
+IDS_RESPONSE_FILTER_HTML 256                     "..\\response_filter.html"
+
+IDS_SERVER_HTML         256                     "..\\server.html"
+
+IDS_TRANSPARENCY_HTML   256                     "..\\transparency.html"
+
+IDS_URLREQUEST_HTML     256                     "..\\urlrequest.html"
+
+IDS_WEBSOCKET_HTML      256                     "..\\websocket.html"
+
+IDS_WINDOW_HTML         256                     "..\\window.html"
+
+IDS_WINDOW_ICON_1X_PNG  256                     "..\\..\\..\\shared\\resources\\window_icon.1x.png"
+
+IDS_WINDOW_ICON_2X_PNG  256                     "..\\..\\..\\shared\\resources\\window_icon.2x.png"
+
+IDS_XMLHTTPREQUEST_HTML 256                     "..\\xmlhttprequest.html"
+
+IDS_EXTENSIONS_SET_PAGE_COLOR_ICON_PNG 256                     "..\\extensions\\set_page_color\\icon.png"
+
+IDS_EXTENSIONS_SET_PAGE_COLOR_MANIFEST_JSON 256                     "..\\extensions\\set_page_color\\manifest.json"
+
+IDS_EXTENSIONS_SET_PAGE_COLOR_POPUP_HTML 256                     "..\\extensions\\set_page_color\\popup.html"
+
+IDS_EXTENSIONS_SET_PAGE_COLOR_POPUP_JS 256                     "..\\extensions\\set_page_color\\popup.js"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -67,8 +92,14 @@ IDS_EXTENSIONS_SET_PAGE_COLOR_POPUP_JS BINARY "..\\extensions\\set_page_color\\p
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_CEFCLIENT           ICON                    "cefclient.ico"
-IDI_SMALL               ICON                    "small.ico"
+IDI_CEFCLIENT           ICON                    "..\\..\\..\\..\\applications\\sppicon.ico"
+
+IDI_CEFCLIENT_OLD       ICON                    "cefclient.ico"
+
+IDI_SMALL               ICON                    "..\\..\\..\\..\\applications\\sppiconsmall.ico"
+
+IDI_SMALL_OLD           ICON                    "small.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -79,7 +110,7 @@ IDC_CEFCLIENT MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open",                    ID_FIND
+        MENUITEM "&Open",                       ID_FIND
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT
     END
@@ -107,7 +138,7 @@ BEGIN
         MENUITEM "Mute Audio",                  ID_TESTS_MUTE_AUDIO
         MENUITEM "Unmute Audio",                ID_TESTS_UNMUTE_AUDIO
         MENUITEM "Other Tests",                 ID_TESTS_OTHER_TESTS
-   END
+    END
 END
 
 
@@ -128,7 +159,7 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOG  22, 17, 230, 75
+IDD_ABOUTBOX DIALOG 22, 17, 230, 75
 STYLE DS_SETFONT | DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "System"
@@ -139,14 +170,15 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,195,6,30,11,WS_GROUP
 END
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION CEF_VERSION_MAJOR,CEF_VERSION_MINOR,CEF_VERSION_PATCH,0
- PRODUCTVERSION CEF_VERSION_MAJOR,CEF_VERSION_MINOR,CEF_VERSION_PATCH,0
+ FILEVERSION 90,5,3,0
+ PRODUCTVERSION 90,5,3,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -162,12 +194,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Chromium Embedded Framework (CEF) Client Application"
-            VALUE "FileVersion", CEF_VERSION
+            VALUE "FileVersion", "90.5.3+gaf0e862+chromium-90.0.4430.72"
             VALUE "InternalName", "cefclient"
-            VALUE "LegalCopyright", "Copyright (C) " MAKE_STRING(COPYRIGHT_YEAR) " The Chromium Embedded Framework Authors"
+            VALUE "LegalCopyright", "Copyright (C) 2021 The Chromium Embedded Framework Authors"
             VALUE "OriginalFilename", "cefclient.exe"
             VALUE "ProductName", "Chromium Embedded Framework (CEF) Client Application"
-            VALUE "ProductVersion", CEF_VERSION
+            VALUE "ProductVersion", "90.5.3+gaf0e862+chromium-90.0.4430.72"
         END
     END
     BLOCK "VarFileInfo"
@@ -176,18 +208,19 @@ BEGIN
     END
 END
 
+
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
     "#include ""windows.h""\r\n"
@@ -195,7 +228,7 @@ BEGIN
     "\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -215,7 +248,7 @@ BEGIN
     IDC_CEFCLIENT           "CEFCLIENT"
 END
 
-#endif    // English (U.S.) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

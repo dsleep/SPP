@@ -168,6 +168,7 @@ namespace SPP
         //DS
         settings.external_message_pump = true;
 
+
         // Create the main message loop object.
         scoped_ptr<MainMessageLoop> message_loop;
         if (settings.multi_threaded_message_loop)
@@ -188,6 +189,9 @@ namespace SPP
         window_config.with_controls = false;//!command_line->HasSwitch(switches::kHideControls);
         window_config.with_osr = settings.windowless_rendering_enabled ? true : false;
         window_config.url = StartupURL;
+
+        window_config.bounds.width = 512;
+        window_config.bounds.height = 512;
 
         // Create the first window.
         context->GetRootWindowManager()->CreateRootWindow(window_config);
