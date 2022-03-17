@@ -39,6 +39,25 @@ flex: 1 1 auto;
 	flex: 0 1 100px;
 }
 
+/* width */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #888;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #f1f1f1;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 
   </style>
     <meta charset="utf-8">
@@ -50,7 +69,13 @@ flex: 1 1 auto;
   </head>
   <body>
   <div id="mainArea">
-		<h1>Select server</h1>
+		<div style="color:white">	
+			<div>
+				File
+			</div>
+		</div>
+  
+		<h2>Select server:</h2>
 		
 		
 		<div id="desktopCorner" style="overflow-y: scroll;">
