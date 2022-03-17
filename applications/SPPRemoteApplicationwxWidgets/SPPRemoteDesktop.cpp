@@ -20,19 +20,15 @@
 #include "SPPString.h"
 #include "SPPEngine.h"
 #include "SPPApplication.h"
+#include "SPPSerialization.h"
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 
+#include "SPPMemory.h"
 #include "SPPReflection.h"
 
-#include "SPPOctree.h"
-
-#include "SPPPythonInterface.h"
-
 #include "ThreadPool.h"
-
 #include "SPPCEFUI.h"
-
 #include "SPPJsonUtils.h"
 
 #include "cefclient/JSCallbackInterface.h"
@@ -46,105 +42,6 @@ SPP_OVERLOAD_ALLOCATORS
 
 using namespace std::chrono_literals;
 using namespace SPP;
-
-struct SubTypeInfo
-{
-	Json::Value subTypes;
-	std::set< rttr::type > typeSet;
-};
-
-
-void GetObjectPropertiesAsJSON(Json::Value& rootValue, SubTypeInfo& subTypes, const rttr::instance& inValue)
-{
-	rttr::instance obj = inValue.get_type().get_raw_type().is_wrapper() ? inValue.get_wrapped_instance() : inValue;
-	auto curType = obj.get_derived_type();
-
-	//auto baseObjType = rttr::type::get<SPPObject>();
-	//if (baseObjType.is_base_of(curType))
-	//{
-	//	//curType = obj.get
-	//}
-
-	//SPP_QL("GetPropertiesAsJSON % s", curType.get_name().data());
-
-	auto prop_list = curType.get_properties();
-	for (auto prop : prop_list)
-	{
-		rttr::variant prop_value = prop.get_value(obj);
-		if (!prop_value)
-			continue; // cannot serialize, because we cannot retrieve the value
-
-		const auto name = prop.get_name().to_string();
-		//SPP_QL(" - prop %s", name.data());
-
-		const auto propType = prop_value.get_type();
-
-		//
-		if (propType.is_class())
-		{
-			// does this confirm its inline struct and part of class?!
-			//SE_ASSERT(propType.is_wrapper() == false);
-
-			Json::Value nestedInfo;
-			GetObjectPropertiesAsJSON(nestedInfo, subTypes, prop_value);
-
-			if (!nestedInfo.isNull())
-			{
-				if (subTypes.typeSet.count(propType) == 0)
-				{
-					Json::Value subType;
-					subType["type"] = "struct";
-					subTypes.subTypes[propType.get_name().data()] = subType;
-					subTypes.typeSet.insert(propType);
-				}
-
-				Json::Value propInfo;
-				propInfo["name"] = name.c_str();
-				propInfo["type"] = propType.get_name().data();
-				propInfo["value"] = nestedInfo;
-
-				rootValue.append(propInfo);
-			}
-		}
-		else if (propType.is_arithmetic() || propType.is_enumeration())
-		{
-			if (propType.is_enumeration() && subTypes.typeSet.count(propType) == 0)
-			{
-				rttr::enumeration enumType = propType.get_enumeration();
-				auto EnumValues = enumType.get_names();
-				Json::Value subType;
-				Json::Value enumValues;
-
-				for (auto& enumV : EnumValues)
-				{
-					enumValues.append(enumV.data());
-				}
-
-				subType["type"] = "enum";
-				subType["values"] = enumValues;
-
-				subTypes.subTypes[enumType.get_name().data()] = subType;
-				subTypes.typeSet.insert(propType);
-			}
-
-			Json::Value propInfo;
-
-			bool bok = false;
-			auto stringValue = prop_value.to_string(&bok);
-
-			SE_ASSERT(bok);
-
-			//SPP_QL("   - %s", stringValue.c_str());
-
-			propInfo["name"] = name.c_str();
-			propInfo["type"] = propType.get_name().data();
-			propInfo["value"] = stringValue;
-
-			rootValue.append(propInfo);
-		}
-	}
-}
-
 
 void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 {
@@ -195,6 +92,150 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 	}*/
 }
 
+///////////////////////////////////////
+//
+///////////////////////////////////////
+
+struct HostFromCoord
+{
+	std::string NAME;
+	std::string APPNAME;
+	std::string APPCL;
+	std::string GUID;
+};
+
+uint32_t GProcessID = 0;
+std::string GIPCMemoryID;
+std::unique_ptr< std::thread > GWorkerThread;
+std::unique_ptr< IPCMappedMemory > GIPCMem;
+const int32_t MemSize = 2 * 1024 * 1024;
+
+void WorkerThread()
+{
+	GIPCMemoryID = std::generate_hex(3);
+	GIPCMem.reset(new IPCMappedMemory(GIPCMemoryID.c_str(), MemSize, true));
+
+	std::string ArgString = std::string_format("-MEM=%s", GIPCMemoryID.c_str());
+
+#if _DEBUG
+	GProcessID = CreateChildProcess("remoteviewerd",
+#else
+	GProcessID = CreateChildProcess("remoteviewer",
+#endif
+
+		ArgString.c_str(), false);
+
+	while (true)
+	{
+		// do stuff...
+		if (!IsChildRunning(GProcessID))
+		{
+			//CHILD ISN'T RUNNING
+			
+			break;
+		}
+		else
+		{
+			auto memAccess = GIPCMem->Lock();
+
+			MemoryView inMem(memAccess, MemSize);
+			uint32_t dataSize = 0;
+			inMem >> dataSize;
+			if (dataSize)
+			{
+				inMem.RebuildViewFromCurrent();
+				Json::Value outRoot;
+				if (MemoryToJson(inMem.GetData(), dataSize, outRoot))
+				{
+					auto hasCoord = outRoot["COORD"].asUInt();
+					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
+					auto btConn = outRoot["BLUETOOTH"].asUInt();
+					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
+
+					static int32_t hasCoordV = 0;
+					static int32_t resolvedStunV = 0;
+
+					if (hasCoord != hasCoordV)
+					{
+						hasCoordV = hasCoord;
+						JavascriptInterface::CallJS("UpdateCoord", hasCoordV);
+					}
+					if (resolvedStun != resolvedStunV)
+					{
+						resolvedStunV = resolvedStun;
+						JavascriptInterface::CallJS("UpdateSTUN", resolvedStunV);
+					}
+
+					Json::Value hostList = outRoot.get("HOSTS", Json::Value::nullSingleton());
+					if (!hostList.isNull() && hostList.isArray())
+					{
+						static std::map< std::string, std::string > ActiveHosts;
+
+						std::map< std::string, std::string > NewlySetHosts;
+						for (int32_t Iter = 0; Iter < hostList.size(); Iter++)
+						{
+							auto currentHost = hostList[Iter];
+
+							std::string HostName = currentHost["NAME"].asCString();
+							std::string HostGUID = currentHost["GUID"].asCString();
+
+							NewlySetHosts[HostGUID] = HostName;
+						}
+
+						for (auto& [key, value] : NewlySetHosts)
+						{
+							auto foundHost = ActiveHosts.find(key);
+
+							if (foundHost == ActiveHosts.end())
+							{
+								JavascriptInterface::CallJS("AddHost", key, value);
+								ActiveHosts[key] = value;
+							}
+						}
+
+						if (NewlySetHosts.size() != ActiveHosts.size())
+						{
+							for (auto Iter = ActiveHosts.begin(); Iter != ActiveHosts.end();)
+							{
+								auto foundHost = NewlySetHosts.find(Iter->first);
+								if (foundHost == ActiveHosts.end())
+								{
+									JavascriptInterface::CallJS("RemoveHost", Iter->first);
+									Iter = ActiveHosts.erase(Iter);									
+								}
+								else
+								{
+									Iter++;
+								}
+							}
+						}
+
+					}
+				}
+			}
+
+			*(uint32_t*)memAccess = 0;
+			GIPCMem->Release();
+			std::this_thread::sleep_for(250ms);
+		}
+	}
+}
+
+void StopThread()
+{
+	if (GWorkerThread)
+	{
+		CloseChild(GProcessID);
+		if (GWorkerThread->joinable())
+		{
+			GWorkerThread->join();
+		}
+		GWorkerThread.reset();
+	}
+}
+
+
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -216,8 +257,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	SPP::IntializeCore(std::wstring_to_utf8(lpCmdLine).c_str());
 
+#if PLATFORM_WINDOWS
+	_CrtSetDbgFlag(0);
+#endif
+
 	// setup global asset path
 	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
+
+	// start thread
+	GWorkerThread.reset(new std::thread(WorkerThread));
 
 	{
 		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;
@@ -243,6 +291,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		});
 
 		runCEF.join();
+
+		//SHUTDOWN OUR APP
+		StopThread();
 	}
 
 	return 0;

@@ -68,14 +68,6 @@ hr {
 	margin: 0px;
 }
 
-a[href] {
-	color: #1e8ad6;
-}
-
-a[href]:hover {
-	color: #3ba0e6;
-}
-
 img {
 	max-width: 100%;
 }

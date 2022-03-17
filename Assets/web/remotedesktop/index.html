@@ -2,6 +2,9 @@
 <html>
   <head>
   <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+  
+	<link rel="stylesheet" href="darktheme.css">
+	
   <style>
   
   html,
@@ -23,20 +26,23 @@ body {
     padding: 5px;
 }
 
-#desktopCorner {
+.desktopCorner {
 flex: 1 1 auto;
   border: 2px solid #000;
-    padding: 5px
+    padding: 5px;
+	
+   
 }
 
 #currentDesktop {
   border: 2px solid #000;
     padding: 5px;
 	background-color: #1b1b1b;
+	text-decoration: none;
 }
 
 #bottomStatus {
-	flex: 0 1 100px;
+	flex: 0 1 50px;
 }
 
 /* width */
@@ -59,43 +65,146 @@ flex: 1 1 auto;
   background: #555;
 }
 
+
+.dropbtn {
+  background-color: #1b1b1b;
+  color: white;
+  padding: 4px;
+ 
+  border: none;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+   font-size: 12px;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #1b1b1b;
+  min-width: 120px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  color: white;
+}
+
+.dropdown-content a {
+  color: white;
+  padding: 4px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {background-color: #000;}
+.dropdown:hover .dropdown-content {display: block;}
+.dropdown:hover .dropbtn {background-color: #000;}
+
+a { color:white; text-decoration: none; }
+a:hover { color:white; }
+.nav a { color:white; }
+
+#menuArea {
+	display: inline-block;
+}
+
+.flex-container {
+    display: flex;
+}
+
+.flex-child {
+    flex: 1;
+}  
+
   </style>
     <meta charset="utf-8">
     <title>SPP Remote Desktop</title>
-	<link rel="stylesheet" href="darktheme.css">
 	 <link href="../fontawesome/css/fontawesome.css" rel="stylesheet">
   <link href="../fontawesome/css/brands.css" rel="stylesheet">
   <link href="../fontawesome/css/solid.css" rel="stylesheet">
   </head>
   <body>
   <div id="mainArea">
-		<div style="color:white">	
-			<div>
-				File
-			</div>
+		
+		 <div id="menuArea">
+		<div class="dropdown">
+		  <button class="dropbtn">File</button>
+		  <div class="dropdown-content">
+		    <a href="#">Configuration</a>
+			<a href="#">Exit</a>			
+		  </div>		  
 		</div>
-  
+		
+		<div class="dropdown">
+		  <button class="dropbtn">Help</button>
+		  <div class="dropdown-content">
+			<a href="#">GIT Repository</a>
+			<a href="#">About</a>
+		  </div>
+		</div>
+		</div>
+		  
 		<h2>Select server:</h2>
+
+		<div id="serverList" class="desktopCorner" style="overflow-y: scroll;">
 		
-		
-		<div id="desktopCorner" style="overflow-y: scroll;">
-		
+		<!--
 		<a href="#">
 		<div id="currentDesktop" >
-		 <i class="fa-solid fa-desktop" style="color:blue"></i> Dave's Desktop (127.0.0.1)
+		 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop (127.0.0.1)
 		</div>
 		</a>
+		-->
+		
 		</div>
 		
 		<br>
 		
 		
 		<div  id="bottomStatus">
-		<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red"></i> STUN</div>
-		<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red"></i> Coordinator</div>
+			<div class="flex-container">
+				<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div>								
+				<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red" id="CoordSignal"></i> Coordinator</div>			
+			</div>  		
 		</div>
 		
 	</div>
+	
+	<script>
+	
+	function AddHost(InGUID, InName)
+	{
+		console.log("ADD HOST" + InName);
+			document.getElementById("serverList").innerHTML += 
+			`<a href="#" id="GUID_` + InGUID + `"><div id="currentDesktop" ><i class="fa-solid fa-desktop" style="color:green"></i> ` + InName + `</div></a>`;
+	}
+	
+	function RemoveHost(InGUID)
+	{
+		var el = document.getElementById('GUID_' +InGUID );
+		el.remove();         
+	}
+	
+	function UpdateSTUN(InActive)
+	{
+		document.getElementById("StunSignal").style.color = InActive ? "green" : "red";	
+	}
+	
+	function UpdateCoord(InActive)
+	{
+		document.getElementById("CoordSignal").style.color = InActive ? "green" : "red";	
+	}
+		
+	if(window.RegisterJSFunction)
+	{	
+		window.RegisterJSFunction("UpdateSTUN", UpdateSTUN);
+		window.RegisterJSFunction("UpdateCoord", UpdateCoord);
+		window.RegisterJSFunction("AddHost", AddHost);
+		window.RegisterJSFunction("RemoveHost", RemoveHost);
+	}
+	
+	</script>
 	
   </body>
 </html>
