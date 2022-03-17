@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+  <style>
+  
+  html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+#mainArea {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  width: 100%;
+   padding: 0px 20px 0 20px;
+}
+
+  #activeCorner {
+    padding: 5px;
+}
+
+#desktopCorner {
+flex: 1 1 auto;
+  border: 2px solid #000;
+    padding: 5px
+}
+
+#currentDesktop {
+  border: 2px solid #000;
+    padding: 5px;
+	background-color: #1b1b1b;
+}
+
+#bottomStatus {
+	flex: 0 1 100px;
+}
+
+
+  </style>
+    <meta charset="utf-8">
+    <title>SPP Remote Desktop</title>
+	<link rel="stylesheet" href="darktheme.css">
+	 <link href="../fontawesome/css/fontawesome.css" rel="stylesheet">
+  <link href="../fontawesome/css/brands.css" rel="stylesheet">
+  <link href="../fontawesome/css/solid.css" rel="stylesheet">
+  </head>
+  <body>
+  <div id="mainArea">
+		<h1>Select server</h1>
+		
+		
+		<div id="desktopCorner" style="overflow-y: scroll;">
+		
+		<a href="#">
+		<div id="currentDesktop" >
+		 <i class="fa-solid fa-desktop" style="color:blue"></i> Dave's Desktop (127.0.0.1)
+		</div>
+		</a>
+		</div>
+		
+		<br>
+		
+		
+		<div  id="bottomStatus">
+		<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red"></i> STUN</div>
+		<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red"></i> Coordinator</div>
+		</div>
+		
+	</div>
+	
+  </body>
+</html>
