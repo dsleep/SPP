@@ -93,6 +93,10 @@ flex: 1 1 auto;
 
 .dropdown-content {
   display: none;
+  }
+
+.dropdown-content {
+  display: none;
   position: absolute;
   background-color: #1b1b1b;
   min-width: 120px;
@@ -173,6 +177,9 @@ a:hover { color:white; }
   <div id="mainArea">
 		
 		 <div id="menuArea">
+		
+		<i class="fa-solid fa-arrow-left"></i>
+		
 		<div class="dropdown">
 		  <button class="dropbtn">File</button>
 		  <div class="dropdown-content">
@@ -188,23 +195,31 @@ a:hover { color:white; }
 			<a href="javascript:ButtonClick('About');">About</a>
 		  </div>
 		</div>
+		
 		</div>
-		  
-		<h2>Select server:</h2>
-
-		<div id="serverList" class="desktopCorner" style="overflow-y: scroll;">
+		
 		
 	
-		<a href="#">
-		<div id="currentDesktop" >
-		 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop
+		  
+		<div id="serverBrowser" style="display: none;" > 
+		    <h2>Select server: </h2> 
+
+			<div id="serverList" class="desktopCorner" style="overflow-y: scroll;">
+		
+			<a href="#">
+			<div id="currentDesktop"  >
+			 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop
+			</div>
+			</a>			
+			</div>					
 		</div>
-		</a>
 		
-		</div>
-		
-		<br>
-		
+		<div id="serverStatus" style="display: none;" > 
+			<h2>Server Status:</h2>
+			<div id="serverList" class="desktopCorner">
+			<div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red" id="clientConnected"></i> <div id="serverText" style="display: inline-block;">NO CLIENT</div></div>	
+			</div>					
+		</div>		
 		
 		<div  id="bottomStatus">
 			<div class="flex-container">
@@ -224,6 +239,14 @@ a:hover { color:white; }
 		
 		var mainArea = document.getElementById("mainArea");
 		mainArea.style.display = "flex";
+		
+		var subArea = document.getElementById("serverStatus");
+		subArea.style.display = null;
+		
+		if(window.CallNativeWithJSON)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "StartupHost" }));
+		}	
 	}
 	
 	function IsClient()
@@ -233,6 +256,14 @@ a:hover { color:white; }
 		
 		var mainArea = document.getElementById("mainArea");
 		mainArea.style.display = "flex";
+		
+		var subArea = document.getElementById("serverBrowser");
+		subArea.style.display = null;
+		
+		if(window.CallNativeWithJSON)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "StartupClient" }));
+		}	
 	}
 	
 	function OpenConfig()

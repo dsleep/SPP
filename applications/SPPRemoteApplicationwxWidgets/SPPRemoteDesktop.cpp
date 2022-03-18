@@ -45,11 +45,13 @@ using namespace SPP;
 
 #include <shellapi.h>
 
+std::unique_ptr< std::thread > GWorkerThread;
+
 void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 {
 	uint32_t jsonParamCount = InValue.isNull() ? 0 : InValue.size();
 
-	if (jsonParamCount == 1)
+	if (InFunc == "ButtonClick" && jsonParamCount == 1)
 	{
 		auto jsonParamValue = InValue[0];
 		std::string SubCommandName = jsonParamValue.asCString();
@@ -62,6 +64,22 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 		{
 			ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
 		}
+	}
+
+	if (InFunc == "ResetState")
+	{
+		extern void StopThread();
+		StopThread();
+	}
+	else if (InFunc == "StartupHost")
+	{
+		extern void HostThread();
+		if (!GWorkerThread)GWorkerThread.reset(new std::thread(HostThread));
+	}
+	else if (InFunc == "StartupClient")
+	{
+		extern void ClientThread();
+		if (!GWorkerThread)GWorkerThread.reset(new std::thread(ClientThread));
 	}
 
 }
@@ -80,11 +98,83 @@ struct HostFromCoord
 
 uint32_t GProcessID = 0;
 std::string GIPCMemoryID;
-std::unique_ptr< std::thread > GWorkerThread;
 std::unique_ptr< IPCMappedMemory > GIPCMem;
 const int32_t MemSize = 2 * 1024 * 1024;
 
-void WorkerThread()
+void HostThread()
+{
+	GIPCMemoryID = std::generate_hex(3);
+	std::string ArgString = std::string_format("-MEM=%s",GIPCMemoryID.c_str());
+
+	const int32_t MemSize = 1 * 1024 * 1024;
+	GIPCMem.reset(new IPCMappedMemory(GIPCMemoryID.c_str(), MemSize, true));
+
+#if _DEBUG
+	GProcessID = CreateChildProcess("applicationhostd",
+#else
+	GProcessID = CreateChildProcess("applicationhost",
+#endif
+		ArgString.c_str(),
+		false);
+
+#if _DEBUG
+	CreateChildProcess("simpleconnectioncoordinatord", "", true);
+#endif
+
+	while (true)
+	{
+		// do stuff...
+		if (!IsChildRunning(GProcessID))
+		{			
+			break;
+		}
+		else
+		{
+			auto memAccess = GIPCMem->Lock();
+
+			MemoryView inMem(memAccess, MemSize);
+			uint32_t dataSize = 0;
+			inMem >> dataSize;
+			if (dataSize)
+			{
+				inMem.RebuildViewFromCurrent();
+				Json::Value outRoot;
+				if (MemoryToJson(inMem.GetData(), dataSize, outRoot))
+				{
+					auto hasCoord = outRoot["COORD"].asUInt();
+					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
+					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
+
+					static int32_t hasCoordV = 0;
+					static int32_t resolvedStunV = 0;
+
+					if (hasCoord != hasCoordV)
+					{
+						hasCoordV = hasCoord;
+						JavascriptInterface::CallJS("UpdateCoord", hasCoordV);
+					}
+					if (resolvedStun != resolvedStunV)
+					{
+						resolvedStunV = resolvedStun;
+						JavascriptInterface::CallJS("UpdateSTUN", resolvedStunV);
+					}
+
+					//auto appInstance = (MyApp*)wxApp::GetInstance();
+					//appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun]()
+					//	{
+					//		appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun);
+					//	});
+				}
+			}
+
+			*(uint32_t*)memAccess = 0;
+			GIPCMem->Release();
+			std::this_thread::sleep_for(250ms);
+		}
+	}
+}
+
+void ClientThread()
 {
 	GIPCMemoryID = std::generate_hex(3);
 	GIPCMem.reset(new IPCMappedMemory(GIPCMemoryID.c_str(), MemSize, true));
@@ -205,6 +295,7 @@ void StopThread()
 			GWorkerThread->join();
 		}
 		GWorkerThread.reset();
+		GIPCMem.reset();
 	}
 }
 
@@ -237,10 +328,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// setup global asset path
 	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
-
-	// start thread
-	GWorkerThread.reset(new std::thread(WorkerThread));
-
+	
 	{
 		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;
 

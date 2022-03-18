@@ -263,7 +263,7 @@ void MyFrame::SetHosts(const std::vector< HostFromCoord >& InHosts)
 }
 
 
-void WorkerThread()
+void ClientWorkerThread()
 {
 	std::string ArgString = std::string_format("-MEM=%s",
 		GIPMemoryID.c_str());
@@ -415,7 +415,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	ourApp->CallOnInit();
 
 	// start thread
-	GWorkerThread.reset(new std::thread(WorkerThread));
+	GWorkerThread.reset(new std::thread(ClientWorkerThread));
 
 	ourApp->OnRun();
 
