@@ -206,11 +206,13 @@ a:hover { color:white; }
 
 			<div id="serverList" class="desktopCorner" style="overflow-y: scroll;">
 		
+			<!--
 			<a href="#">
 			<div id="currentDesktop"  >
 			 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop
 			</div>
-			</a>			
+			</a>
+			 -->
 			</div>					
 		</div>
 		
@@ -293,23 +295,36 @@ a:hover { color:white; }
 	
 	function ClickHost(InGUID)
 	{
-		console.log("ADD HOST" + InGUID);
-	
+		console.log("ClickHost: " + InGUID);
+		if(window.CallNativeWithJSON)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "JoinHost", args: [ InGUID ] }));
+		}
 	}
 	
+	// First, checks if it isn't implemented yet.
+	if (!String.prototype.format) {
+	  String.prototype.format = function() {
+		var args = arguments;
+		return this.replace(/{(\d+)}/g, function(match, number) { 
+		  return typeof args[number] != 'undefined'
+			? args[number]
+			: match
+		  ;
+		});
+	  };
+	}
+
 	function AddHost(InGUID, InName)
 	{
-		let htmlText = `<a href="{0}">
-		<div id="{1}" >
-		<i class="fa-solid fa-desktop" style="color:green"></i> {2}
-		</div>
+		console.log("AddHost: " + InName);
+		
+		let htmlText = `<a href="javascript:ClickHost('{0}');" id="HOST_{0}">
+		<i class="fa-solid fa-desktop" style="color:green"></i> {1}
 		</a>`;
 		
-		/*
-		console.log("ADD HOST" + InName);
-		document.getElementById("serverList").innerHTML += 
-		`<a href="javascript:ClickHost("` + InGUID + `");"` + `id="GUID_` + InGUID + 
-		`"><div id="currentDesktop" ><i class="fa-solid fa-desktop" style="color:green"></i> ` + InName + `</div></a>`; */
+		let formattedText = htmlText.format( InGUID, InName);
+		document.getElementById("serverList").innerHTML += formattedText;
 	}
 	
 	function RemoveHost(InGUID)

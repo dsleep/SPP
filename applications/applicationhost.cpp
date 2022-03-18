@@ -424,14 +424,17 @@ public:
 
 	void CheckFeedbackFromSofa()
 	{
-		_mappedSofaMem->ReadMemory(&_currentBuzzCnt, sizeof(_currentBuzzCnt));
-		if (_lastBuzzCnt != _currentBuzzCnt)
+		if (_mappedSofaMem)
 		{
-			// buzz is 2
-			BinaryBlobSerializer thisFrame;
-			thisFrame << (uint8_t)2;
-			SendMessage(thisFrame.GetData(), thisFrame.Size(), EMessageMask::IS_RELIABLE);
-			_lastBuzzCnt = _currentBuzzCnt;
+			_mappedSofaMem->ReadMemory(&_currentBuzzCnt, sizeof(_currentBuzzCnt));
+			if (_lastBuzzCnt != _currentBuzzCnt)
+			{
+				// buzz is 2
+				BinaryBlobSerializer thisFrame;
+				thisFrame << (uint8_t)2;
+				SendMessage(thisFrame.GetData(), thisFrame.Size(), EMessageMask::IS_RELIABLE);
+				_lastBuzzCnt = _currentBuzzCnt;
+			}
 		}
 	}
 

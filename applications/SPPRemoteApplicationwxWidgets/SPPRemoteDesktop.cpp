@@ -46,6 +46,10 @@ using namespace SPP;
 #include <shellapi.h>
 
 std::unique_ptr< std::thread > GWorkerThread;
+uint32_t GProcessID = 0;
+std::string GIPCMemoryID;
+std::unique_ptr< IPCMappedMemory > GIPCMem;
+const int32_t MemSize = 2 * 1024 * 1024;
 
 void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 {
@@ -64,6 +68,20 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 		{
 			ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
 		}
+	}
+
+	if (InFunc == "JoinHost" && jsonParamCount == 1)
+	{
+		auto jsonParamValue = InValue[0];
+		std::string HostGUID = jsonParamValue.asCString();
+
+		uint8_t hasData = ~(uint8_t)0;
+
+		BinaryBlobSerializer outData;
+		outData << hasData;
+		outData << HostGUID;
+		outData << std::string("");
+		GIPCMem->WriteMemory(outData.GetData(), outData.Size(), 1 * 1024 * 1024);
 	}
 
 	if (InFunc == "ResetState")
@@ -96,17 +114,12 @@ struct HostFromCoord
 	std::string GUID;
 };
 
-uint32_t GProcessID = 0;
-std::string GIPCMemoryID;
-std::unique_ptr< IPCMappedMemory > GIPCMem;
-const int32_t MemSize = 2 * 1024 * 1024;
+
 
 void HostThread()
 {
 	GIPCMemoryID = std::generate_hex(3);
 	std::string ArgString = std::string_format("-MEM=%s",GIPCMemoryID.c_str());
-
-	const int32_t MemSize = 1 * 1024 * 1024;
 	GIPCMem.reset(new IPCMappedMemory(GIPCMemoryID.c_str(), MemSize, true));
 
 #if _DEBUG
