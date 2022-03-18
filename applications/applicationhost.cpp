@@ -154,41 +154,58 @@ public:
 				DataView >> keyCode;
 				
 #if _WIN32
-				UINT uMsg = bDown ? WM_KEYDOWN : WM_KEYUP;
-
-				//NK_LSHIFT 306
-				//NK_RSHIFT 306
-				//NK_LCTRL 308
-				//NK_RCTRL 308
-
-				switch (keyCode)
+				if (CurrentLinkedApp)
 				{
-				case 306:
-					keyCode = VK_SHIFT;
-					break;
-				case 308:					
-					keyCode = VK_CONTROL;
-					break;
-				case 340: //F1
-				case 341:
-				case 342:
-				case 343:
-				case 344:
-				case 345:
-				case 346:
-				case 347:
-				case 348:
-				case 349: 
-				case 350:
-				case 351: //F12				
-					keyCode = (keyCode - 340) + VK_F1;
-					break;
+
+					UINT uMsg = bDown ? WM_KEYDOWN : WM_KEYUP;
+
+					//NK_LSHIFT 306
+					//NK_RSHIFT 306
+					//NK_LCTRL 308
+					//NK_RCTRL 308
+
+					switch (keyCode)
+					{
+					case 306:
+						keyCode = VK_SHIFT;
+						break;
+					case 308:
+						keyCode = VK_CONTROL;
+						break;
+					case 340: //F1
+					case 341:
+					case 342:
+					case 343:
+					case 344:
+					case 345:
+					case 346:
+					case 347:
+					case 348:
+					case 349:
+					case 350:
+					case 351: //F12				
+						keyCode = (keyCode - 340) + VK_F1;
+						break;
+					}
+
+					WPARAM wParam = keyCode;
+					LPARAM lParam = 0;
+
+					PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
 				}
+				else
+				{
+					INPUT inputs[1] = {};
+					ZeroMemory(inputs, sizeof(inputs));
 
-				WPARAM wParam = keyCode;
-				LPARAM lParam = 0;
+					inputs[0].type = INPUT_KEYBOARD;
+					if (!bDown)
+					{
+						inputs[0].ki.dwFlags = KEYEVENTF_KEYUP;
+					}
 
-				PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+					SendInput(1,inputs,sizeof(INPUT));
+				}
 #endif
 
 				//SPP_LOG(LOG_APP, LOG_INFO, "KEYEVENT Down: %d, KC: %d", bDown, keyCode);
@@ -207,15 +224,20 @@ public:
 					DataView >> posX;
 					DataView >> posy;
 
-					if (EnterState)
+#if _WIN32
+					if (CurrentLinkedApp)
 					{
-						LPARAM lParam = posX | ((LPARAM)posy << 16);
-						PostMessage(CurrentLinkedApp, WM_NCMOUSEMOVE, 0, lParam);
+						if (EnterState)
+						{
+							LPARAM lParam = posX | ((LPARAM)posy << 16);
+							PostMessage(CurrentLinkedApp, WM_NCMOUSEMOVE, 0, lParam);
+						}
+						else
+						{
+							PostMessage(CurrentLinkedApp, WM_NCMOUSELEAVE, 0, 0);
+						}
 					}
-					else
-					{
-						PostMessage(CurrentLinkedApp, WM_NCMOUSELEAVE, 0, 0);
-					}
+#endif
 				}
 				else if (MouseMSGType == MS_ButtonOrMove)
 				{
@@ -232,49 +254,101 @@ public:
 					DataView >> MouseWheel;
 
 #if _WIN32
-					WPARAM wParam = 0;
+					if (CurrentLinkedApp)
+					{
+						WPARAM wParam = 0;
 
-					if (DownState & 0x01)
-					{
-						wParam |= MK_LBUTTON;
-					}
-					if (DownState & 0x02)
-					{
-						wParam |= MK_MBUTTON;
-					}
-					if (DownState & 0x04)
-					{
-						wParam |= MK_RBUTTON;
-					}
+						if (DownState & 0x01)
+						{
+							wParam |= MK_LBUTTON;
+						}
+						if (DownState & 0x02)
+						{
+							wParam |= MK_MBUTTON;
+						}
+						if (DownState & 0x04)
+						{
+							wParam |= MK_RBUTTON;
+						}
 
-					UINT uMsg = 0;
-					LPARAM lParam = posX | ((LPARAM)posy << 16);
+						UINT uMsg = 0;
+						LPARAM lParam = posX | ((LPARAM)posy << 16);
 
-					if (MouseWheel != 0)
-					{
-						uMsg = WM_MOUSEWHEEL;
-						wParam |= ((LPARAM)MouseWheel << 16);
+						if (MouseWheel != 0)
+						{
+							uMsg = WM_MOUSEWHEEL;
+							wParam |= ((LPARAM)MouseWheel << 16);
+						}
+						else
+						{
+							switch (ActualButton)
+							{
+							case 1:
+								uMsg = bDown ? WM_LBUTTONDOWN : WM_LBUTTONUP;
+								break;
+							case 2:
+								uMsg = bDown ? WM_MBUTTONDOWN : WM_MBUTTONUP;
+								break;
+							case 3:
+								uMsg = bDown ? WM_RBUTTONDOWN : WM_RBUTTONUP;
+								break;
+							default:
+								uMsg = WM_MOUSEMOVE;
+								break;
+							}
+						}
+
+						PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
 					}
 					else
 					{
-						switch (ActualButton)
-						{
-						case 1:
-							uMsg = bDown ? WM_LBUTTONDOWN : WM_LBUTTONUP;
-							break;
-						case 2:
-							uMsg = bDown ? WM_MBUTTONDOWN : WM_MBUTTONUP;
-							break;
-						case 3:
-							uMsg = bDown ? WM_RBUTTONDOWN : WM_RBUTTONUP;
-							break;
-						default:
-							uMsg = WM_MOUSEMOVE;
-							break;
-						}
-					}
+						INPUT inputs = {};
+						ZeroMemory(&inputs, sizeof(inputs));
 
-					PostMessage(CurrentLinkedApp, uMsg, wParam, lParam);
+						double fScreenWidth = ::GetSystemMetrics(SM_CXSCREEN) - 1;
+						double fScreenHeight = ::GetSystemMetrics(SM_CYSCREEN) - 1;
+						double fx = posX * (65535.0 / fScreenWidth);
+						double fy = posy * (65535.0 / fScreenHeight);
+
+						inputs.type = INPUT_MOUSE;
+						inputs.mi.mouseData = 0;
+						inputs.mi.dx = fx; 
+						inputs.mi.dy = fy;
+						inputs.mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
+
+						SendInput(1, &inputs, sizeof(INPUT));
+
+						DWORD mouseButtonFlags = 0;
+						if (MouseWheel != 0)
+						{
+						}
+						else
+						{
+							switch (ActualButton)
+							{
+							case 1:
+								mouseButtonFlags = bDown ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+								break;
+							case 2:
+								mouseButtonFlags = bDown ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP;
+								break;
+							case 3:
+								mouseButtonFlags = bDown ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
+								break;
+							default:
+								break;
+							}
+						}
+
+						if (mouseButtonFlags)
+						{
+							ZeroMemory(&inputs, sizeof(inputs));
+							inputs.type = INPUT_MOUSE;
+							inputs.mi.dwFlags = mouseButtonFlags;
+							SendInput(1, &inputs, sizeof(INPUT));
+						}
+
+					}
 #endif
 				}
 			}

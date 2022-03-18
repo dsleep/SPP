@@ -956,7 +956,7 @@ void SPPApp(int argc, char* argv[])
 	TimerController mainController(16ms);
 
 	// COORDINATOR UPDATES
-	mainController.AddTimer(500ms, true, [&]()
+	mainController.AddTimer(50ms, true, [&]()
 		{
 			coordinator->Update();
 		});

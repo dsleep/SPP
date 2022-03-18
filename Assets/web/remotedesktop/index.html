@@ -14,6 +14,14 @@ body {
   margin: 0;
 }
 
+.configuration-popup {
+  display: none;
+  height: 100%;
+  width: 100%;
+  z-index: 9;
+  position: fixed;
+}
+
 #mainArea {
   display: flex;
   flex-flow: column;
@@ -149,13 +157,12 @@ a:hover { color:white; }
 
 		<div id="serverList" class="desktopCorner" style="overflow-y: scroll;">
 		
-		<!--
+	
 		<a href="#">
 		<div id="currentDesktop" >
-		 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop (127.0.0.1)
+		 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop
 		</div>
 		</a>
-		-->
 		
 		</div>
 		
@@ -173,11 +180,25 @@ a:hover { color:white; }
 	
 	<script>
 	
+	function ClickHost(InGUID)
+	{
+	console.log("ADD HOST" + InGUID);
+	
+	}
+	
 	function AddHost(InGUID, InName)
 	{
+		let htmlText = `<a href="{0}">
+		<div id="{1}" >
+		<i class="fa-solid fa-desktop" style="color:green"></i> {2}
+		</div>
+		</a>`;
+		
+		/*
 		console.log("ADD HOST" + InName);
-			document.getElementById("serverList").innerHTML += 
-			`<a href="#" id="GUID_` + InGUID + `"><div id="currentDesktop" ><i class="fa-solid fa-desktop" style="color:green"></i> ` + InName + `</div></a>`;
+		document.getElementById("serverList").innerHTML += 
+		`<a href="javascript:ClickHost("` + InGUID + `");"` + `id="GUID_` + InGUID + 
+		`"><div id="currentDesktop" ><i class="fa-solid fa-desktop" style="color:green"></i> ` + InName + `</div></a>`; */
 	}
 	
 	function RemoveHost(InGUID)
