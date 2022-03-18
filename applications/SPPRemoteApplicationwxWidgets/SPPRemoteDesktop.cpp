@@ -43,53 +43,27 @@ SPP_OVERLOAD_ALLOCATORS
 using namespace std::chrono_literals;
 using namespace SPP;
 
+#include <shellapi.h>
+
 void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 {
-	/*auto EditorType = rttr::type::get<EditorEngine>();
+	uint32_t jsonParamCount = InValue.isNull() ? 0 : InValue.size();
 
-	rttr::method foundMethod = EditorType.get_method(InFunc);
-	if (foundMethod)
+	if (jsonParamCount == 1)
 	{
-		auto paramInfos = foundMethod.get_parameter_infos();
+		auto jsonParamValue = InValue[0];
+		std::string SubCommandName = jsonParamValue.asCString();
 
-		uint32_t jsonParamCount = InValue.isNull() ? 0 : InValue.size();
-
-		if (paramInfos.size() == jsonParamCount)
+		if (SubCommandName == "GIT")
 		{
-			if (!jsonParamCount)
-			{
-				foundMethod.invoke(*GEd);
-			}
-			else
-			{
-				std::list<rttr::variant> argRefs;
-				std::vector<rttr::argument> args;
-
-				int32_t Iter = 0;
-				for (auto& curParam : paramInfos)
-				{
-					auto curParamType = curParam.get_type();
-					auto jsonParamValue = InValue[Iter];
-					if (curParamType.is_arithmetic() && jsonParamValue.isNumeric())
-					{
-
-					}
-					else if (curParamType == rttr::type::get<std::string>() &&
-						jsonParamValue.isString())
-					{
-						argRefs.push_back(std::string(jsonParamValue.asCString()));
-						args.push_back(argRefs.back());
-					}
-					Iter++;
-				}
-
-				if (args.size() == paramInfos.size())
-				{
-					foundMethod.invoke_variadic(*GEd, args);
-				}
-			}
+			ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
 		}
-	}*/
+		else if (SubCommandName == "About")
+		{
+			ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
+		}
+	}
+
 }
 
 ///////////////////////////////////////
@@ -272,22 +246,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		std::thread runCEF([hInstance, &jsFuncRecv]()
 		{
-			SPP::RunBrowser(hInstance,
-				"http://spp/assets/web/remotedesktop/index.html",
-				{
-					nullptr,
-					nullptr,
-					nullptr,
-					nullptr,
-				},
-				{
-					nullptr,
-					nullptr,
-					nullptr,
-					nullptr,
-					nullptr,
-				},
-				& jsFuncRecv);
+			SPP::RunBrowser(hInstance, "http://spp/assets/web/remotedesktop/index.html", {}, {}, &jsFuncRecv);
 		});
 
 		runCEF.join();

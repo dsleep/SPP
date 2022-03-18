@@ -211,16 +211,6 @@ namespace SPP
 #endif
         }
 
-#if USING_GAME_WINDOW
-        if (InCallbacks.Initialized)
-        {
-            InCallbacks.Initialized(mainGameWindow->GetHWND());
-        }   
-
-        mainGameWindow->SetMouseMove(InInputEvents.mouseMove);
-        mainGameWindow->SetMouseDown(InInputEvents.mouseDown);
-        mainGameWindow->SetMouseUp(InInputEvents.mouseUp);
-        
         std::unique_ptr<JavascriptInterface>  localInterface;
 
         // interface map
@@ -232,6 +222,16 @@ namespace SPP
         {
             localInterface = std::make_unique< JavascriptInterface >();
         }
+
+#if USING_GAME_WINDOW
+        if (InCallbacks.Initialized)
+        {
+            InCallbacks.Initialized(mainGameWindow->GetHWND());
+        }   
+
+        mainGameWindow->SetMouseMove(InInputEvents.mouseMove);
+        mainGameWindow->SetMouseDown(InInputEvents.mouseDown);
+        mainGameWindow->SetMouseUp(InInputEvents.mouseUp);        
 
         localInterface->Add_JSToNativeFunctionHandler("UpdatedGameViewRegion", [mainGameWindow](Json::Value InArguments)
             {
@@ -247,10 +247,10 @@ namespace SPP
 
                     mainGameWindow->OnGameRegionWindowSet(rect);
                 }
-            });
-
-        client_handler->_JSONNativeFunc = std::bind(&JavascriptInterface::NativeFromJS_JSON_Callback, localInterface.get(), std::placeholders::_1);               
+            });        
 #endif
+
+        client_handler->_JSONNativeFunc = std::bind(&JavascriptInterface::NativeFromJS_JSON_Callback, localInterface.get(), std::placeholders::_1);
 
         // Run the message loop. This will block until Quit() is called by the
         // RootWindowManager after all windows have been destroyed.

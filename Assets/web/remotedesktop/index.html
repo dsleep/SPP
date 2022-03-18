@@ -14,17 +14,20 @@ body {
   margin: 0;
 }
 
-.configuration-popup {
+.hiddenOnTop {
   display: none;
   height: 100%;
   width: 100%;
   z-index: 9;
   position: fixed;
+  background-color: rgba(0,0,0,1);
+   padding: 0px 20px 0 20px;
 }
 
 #mainArea {
-  display: flex;
+  
   flex-flow: column;
+   display: none;
   height: 100%;
   width: 100%;
    padding: 0px 20px 0 20px;
@@ -133,22 +136,56 @@ a:hover { color:white; }
   <link href="../fontawesome/css/solid.css" rel="stylesheet">
   </head>
   <body>
+  
+	  <div id="initialArea">  
+			 <a href="javascript:IsHost();">
+		<div id="currentDesktop" >
+		  Host Connection
+		</div>
+		</a>
+		
+		<a href="javascript:IsClient();">
+		<div id="currentDesktop" >
+		Connect to Host
+		</div>
+		</a>
+		</div>
+	  
+  
+	 <div id="configArea" class="hiddenOnTop">  
+		 <form action="" class="form-container">
+			<h1>Configuration</h1>
+
+			<label for="stunaddr"><b>STUN Address</b></label>
+			<input type="text" placeholder="" name="stunaddr" required><br>
+
+			<label for="cordaddr"><b>Coordinator Address</b></label>
+			<input type="text" placeholder="" name="cordaddr" required><br>
+			
+			<label for="cordpwd"><b>Coordinator Password</b></label>
+			<input type="password" placeholder="" name="cordpwd" required><br>
+			
+			<button type="submit" class="btn" onclick="javascript:CloseConfig(true)">Accept</button>
+			<button type="button" class="btn cancel" onclick="javascript:CloseConfig(false)">Cancel</button>
+		  </form>  
+	</div>
+  
   <div id="mainArea">
 		
 		 <div id="menuArea">
 		<div class="dropdown">
 		  <button class="dropbtn">File</button>
 		  <div class="dropdown-content">
-		    <a href="#">Configuration</a>
-			<a href="#">Exit</a>			
+		    <a href="javascript:OpenConfig();">Configuration</a>
+			<a href="javascript:ButtonClick('Exit');">Exit</a>			
 		  </div>		  
 		</div>
 		
 		<div class="dropdown">
 		  <button class="dropbtn">Help</button>
 		  <div class="dropdown-content">
-			<a href="#">GIT Repository</a>
-			<a href="#">About</a>
+			<a href="javascript:ButtonClick('GIT');">GIT Repository</a>
+			<a href="javascript:ButtonClick('About');">About</a>
 		  </div>
 		</div>
 		</div>
@@ -180,9 +217,52 @@ a:hover { color:white; }
 	
 	<script>
 	
+	function IsHost()
+	{
+		var x = document.getElementById("initialArea");
+		x.style.display = "none";
+		
+		var mainArea = document.getElementById("mainArea");
+		mainArea.style.display = "flex";
+	}
+	
+	function IsClient()
+	{
+		var x = document.getElementById("initialArea");
+		x.style.display = "none";
+		
+		var mainArea = document.getElementById("mainArea");
+		mainArea.style.display = "flex";
+	}
+	
+	function OpenConfig()
+	{
+		var x = document.getElementById("configArea");
+		x.style.display = "block";
+	}
+	
+	
+	function CloseConfig(bWasAccept)
+	{
+		var x = document.getElementById("configArea");
+		x.style.display = "none";
+	}
+	
+	
+	function ButtonClick(InName)
+	{
+		console.log("ButtonClick" + InName);
+		
+		if(window.CallNativeWithJSON)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "ButtonClick", args: [ InName ] }));
+		}		
+	}
+	
+	
 	function ClickHost(InGUID)
 	{
-	console.log("ADD HOST" + InGUID);
+		console.log("ADD HOST" + InGUID);
 	
 	}
 	
