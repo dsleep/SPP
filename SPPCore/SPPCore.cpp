@@ -96,7 +96,7 @@ namespace SPP
         GBinaryPath = stdfs::current_path().generic_string();
 #endif
 
-        auto LoggingDirectory =   stdfs::weakly_canonical(stdfs::path(GBinaryPath) / "../Logging");
+        auto LoggingDirectory =   (stdfs::path(GBinaryPath) / "../Logging").lexically_normal();
         stdfs::create_directories(LoggingDirectory);
         
 		std::string buffer(128, '\0');
