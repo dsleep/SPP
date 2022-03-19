@@ -14,8 +14,13 @@
 	#include <filesystem>
 	namespace stdfs = std::filesystem;
 #elif defined(__linux__)
-	#include <experimental/filesystem>	
-	namespace stdfs = std::experimental::filesystem;
+	#if __GNUC__ > 7
+		#include <filesystem>
+		namespace stdfs = std::filesystem;
+	#else
+		#include <experimental/filesystem>	
+		namespace stdfs = std::experimental::filesystem;
+	#endif
 #elif __APPLE__
     #include <filesystem>
     namespace stdfs = std::filesystem;
