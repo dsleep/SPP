@@ -16,6 +16,7 @@ set_property(TARGET simpleconnectioncoordinator PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonitor")
 
 install(TARGETS simpleconnectioncoordinator DESTINATION "${SPP_ROOT}/INSTALL")
+install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
 
 if(OS_LINUX)
 return()
@@ -66,7 +67,6 @@ if(OS_MAC)
 endif()
 
 install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
-install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
 
 ####################
 # END remoteviewer
