@@ -138,7 +138,7 @@ public:
 	{
 		//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
 
-		if (CurrentLinkedApp)
+	
 		{
 			MemoryView DataView(Data, DataLength);
 			uint8_t msgType;
@@ -195,16 +195,42 @@ public:
 				}
 				else
 				{
-					INPUT inputs[1] = {};
-					ZeroMemory(inputs, sizeof(inputs));
+					INPUT inputs = {};
+					ZeroMemory(&inputs, sizeof(inputs));
 
-					inputs[0].type = INPUT_KEYBOARD;
+					inputs.type = INPUT_KEYBOARD;
 					if (!bDown)
 					{
-						inputs[0].ki.dwFlags = KEYEVENTF_KEYUP;
+						inputs.ki.dwFlags = KEYEVENTF_KEYUP;
 					}
 
-					SendInput(1,inputs,sizeof(INPUT));
+					switch (keyCode)
+					{
+					case 306:
+						keyCode = VK_SHIFT;
+						break;
+					case 308:
+						keyCode = VK_CONTROL;
+						break;
+					case 340: //F1
+					case 341:
+					case 342:
+					case 343:
+					case 344:
+					case 345:
+					case 346:
+					case 347:
+					case 348:
+					case 349:
+					case 350:
+					case 351: //F12				
+						keyCode = (keyCode - 340) + VK_F1;
+						break;
+					}
+
+					inputs.ki.wVk = keyCode;
+
+					SendInput(1,&inputs,sizeof(INPUT));
 				}
 #endif
 
@@ -318,12 +344,19 @@ public:
 
 						SendInput(1, &inputs, sizeof(INPUT));
 
-						DWORD mouseButtonFlags = 0;
+						
 						if (MouseWheel != 0)
 						{
+							ZeroMemory(&inputs, sizeof(inputs));
+							inputs.type = INPUT_MOUSE;
+							inputs.mi.dwFlags = MOUSEEVENTF_WHEEL;
+							inputs.mi.mouseData = (DWORD)MouseWheel; //A positive value indicates that the wheel was rotated forward, away from the user; a negative value indicates that the wheel was rotated backward, toward the user. One wheel click is defined as WHEEL_DELTA, which is 120.
+							SendInput(1, &inputs, sizeof(INPUT));
 						}
 						else
 						{
+							DWORD mouseButtonFlags = 0;
+
 							switch (ActualButton)
 							{
 							case 1:
@@ -338,15 +371,17 @@ public:
 							default:
 								break;
 							}
+
+							if (mouseButtonFlags)
+							{
+								ZeroMemory(&inputs, sizeof(inputs));
+								inputs.type = INPUT_MOUSE;
+								inputs.mi.dwFlags = mouseButtonFlags;
+								SendInput(1, &inputs, sizeof(INPUT));
+							}
 						}
 
-						if (mouseButtonFlags)
-						{
-							ZeroMemory(&inputs, sizeof(inputs));
-							inputs.type = INPUT_MOUSE;
-							inputs.mi.dwFlags = mouseButtonFlags;
-							SendInput(1, &inputs, sizeof(INPUT));
-						}
+						
 
 					}
 #endif
