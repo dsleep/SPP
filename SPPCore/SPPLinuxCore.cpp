@@ -8,8 +8,8 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 
+#include <cstring>
 #include <unistd.h>
-
 #include <spawn.h>
 
 #include <signal.h>
