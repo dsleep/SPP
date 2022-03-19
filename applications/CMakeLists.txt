@@ -17,6 +17,10 @@ set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonito
 
 install(TARGETS simpleconnectioncoordinator DESTINATION "${SPP_ROOT}/INSTALL")
 
+if(OS_LINUX)
+return()
+endif()
+
 ####################
 # remoteviewer
 ####################

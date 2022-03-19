@@ -14,6 +14,7 @@
 #include <execinfo.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <cstring>
 
 namespace SPP
 {

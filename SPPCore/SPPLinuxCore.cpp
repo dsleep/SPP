@@ -17,8 +17,11 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 
+#include <stdlib.h>
+
 #include <map>
 #include <thread>
+#include <mutex>
 
 namespace SPP
 {
