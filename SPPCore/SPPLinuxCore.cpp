@@ -25,11 +25,15 @@
 
 namespace SPP
 {
-	SPP_CORE_API LogEntry LOG_MACOSCORE("MACOSCORE");
+	SPP_CORE_API LogEntry LOG_LINUXCORE("LINUXCORE");
 
 	std::string GetProcessName()
 	{
+#if PLATFORM_LINUX
+        const char* appname = program_invocation_name();
+#else
         const char * appname = getprogname();
+#endif
 		return appname;
 	}
 
@@ -62,7 +66,7 @@ namespace SPP
         {
             std::unique_lock<std::mutex> lk(childMutex);
             hostedChildProcesses.erase(pid);
-            SPP_LOG(LOG_MACOSCORE, LOG_INFO, "Child Died: %d", pid);
+            SPP_LOG(LOG_LINUXCORE, LOG_INFO, "Child Died: %d", pid);
             //
             //unregister_child(pid, status);   // Or whatever you need to do with the PID
         }
@@ -70,7 +74,7 @@ namespace SPP
 
 	uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible)
 	{
-		SPP_LOG(LOG_MACOSCORE, LOG_INFO, "CreateChildProcess: %s %s", ProcessPath, Commandline);
+		SPP_LOG(LOG_LINUXCORE, LOG_INFO, "CreateChildProcess: %s %s", ProcessPath, Commandline);
         
         static bool bCreatedSig = false;
         if(bCreatedSig == false)
