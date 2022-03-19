@@ -119,3 +119,13 @@ if(OS_WINDOWS)
 	install(FILES "${THIRD_PARTY}/jsoncpp/bin/win64/vc16/jsoncpp.dll" DESTINATION "${SPP_ROOT}/INSTALL")
 endif()
 
+if(OS_LINUX)
+
+	install(DIRECTORY "${THIRD_PARTY}/jsoncpp/lib/" #trailing / matters to flatten it
+		DESTINATION "${SPP_ROOT}/INSTALL"
+		FILES_MATCHING 
+			PATTERN "*.so.*"
+			PATTERN mswu EXCLUDE 
+			PATTERN mswud EXCLUDE)
+
+endif()

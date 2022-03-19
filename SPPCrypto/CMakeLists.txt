@@ -51,14 +51,4 @@ endif()
 
 install(TARGETS SPPCrypto DESTINATION "${SPP_ROOT}/INSTALL")
 
-if(OS_LINUX)
-
-install(DIRECTORY "${THIRD_PARTY}/cryptopp/lib/" #trailing / matters to flatten it
-	DESTINATION "${SPP_ROOT}/INSTALL"
-	FILES_MATCHING 
-		PATTERN "*.so.*"
-		PATTERN mswu EXCLUDE 
-		PATTERN mswud EXCLUDE)
-
-endif()
 
