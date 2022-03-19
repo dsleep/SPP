@@ -30,7 +30,7 @@ namespace SPP
 	std::string GetProcessName()
 	{
 #if PLATFORM_LINUX
-        const char* appname = program_invocation_name();
+        const char* appname = program_invocation_name;
 #else
         const char * appname = getprogname();
 #endif
