@@ -6,6 +6,8 @@ add_executable(SPPWeb "")
 add_dependencies( SPPWeb SPPEngine )
 
 set_target_properties( SPPWeb PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET SPPWeb PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET SPPWeb PROPERTY VS_DPI_AWARE "PerMonitor")
 
 target_sources(SPPWeb
 	PRIVATE
