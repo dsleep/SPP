@@ -399,17 +399,34 @@ namespace SPP
 		{
 #if SPP_NETCONN_CRYPTO			
 			std::vector<uint8_t> oData;
-			DecryptData(ControlMsg.data(), ControlMsg.size(), oData);
+			try
+			{
+				DecryptData(ControlMsg.data(), ControlMsg.size(), oData);
+			}
+			catch (const std::exception& e)
+			{
+				SPP_LOG(LOG_NETCON, LOG_INFO, "DecryptData exception: %s", e.what());
+				CloseDown("DecryptionFailure");
+				return;
+			}
+			catch (...)
+			{
+				SPP_LOG(LOG_NETCON, LOG_INFO, "DecryptData exception");
+				CloseDown("DecryptionFailure");
+				return;
+			} // this execute
 
 			if(oData.empty())
 			{
-				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO DecryptData");
+				SPP_LOG(LOG_NETCON, LOG_INFO, "DecryptData failed");
+				CloseDown("DecryptionFailure");
 				return;
 			}
 
 			if (MemoryToJson(oData.data(), oData.size(), jsonMessage) == false)
 			{
 				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");
+				CloseDown("JsonParseFailure");
 				return;
 			}
 #else	
@@ -429,6 +446,7 @@ namespace SPP
 			if (MemoryToJson(ControlMsg.data(), ControlMsg.size(), jsonMessage) == false)
 			{
 				SPP_LOG(LOG_NETCON, LOG_INFO, "FAILED TO PARSE JSON");
+				CloseDown("JsonParseFailure");
 				return;
 			}
 		}
