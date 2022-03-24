@@ -41,4 +41,8 @@ namespace std
 		snprintf(buf.get(), size, format.c_str(), args ...);
 		return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 	}
+
+	SPP_CORE_API std::string ltrim(const std::string& s);
+	SPP_CORE_API std::string rtrim(const std::string& s);
+	SPP_CORE_API std::string trim(const std::string& s);
 }

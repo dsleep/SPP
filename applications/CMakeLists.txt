@@ -4,6 +4,8 @@ project(SPPApplications_API VERSION 1.0.0 LANGUAGES CXX)
 #message( STATUS "Adding Application: SPPMesher" )
 #add_subdirectory("SPPMesher")
 
+install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
+
 ##########
 add_executable( simpleconnectioncoordinator "")
 add_dependencies( simpleconnectioncoordinator SPPNetworking )			
@@ -16,7 +18,19 @@ set_property(TARGET simpleconnectioncoordinator PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET simpleconnectioncoordinator PROPERTY VS_DPI_AWARE "PerMonitor")
 
 install(TARGETS simpleconnectioncoordinator DESTINATION "${SPP_ROOT}/INSTALL")
-install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL")
+
+##########
+add_executable( SPPApplicationMonitor "")
+add_dependencies( SPPApplicationMonitor SPPCore )			
+target_sources( SPPApplicationMonitor 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/SPPApplicationMonitor.cpp" )		
+target_link_libraries( SPPApplicationMonitor SPPCore )
+set_target_properties( SPPApplicationMonitor PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET SPPApplicationMonitor PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET SPPApplicationMonitor PROPERTY VS_DPI_AWARE "PerMonitor")
+
+install(TARGETS SPPApplicationMonitor DESTINATION "${SPP_ROOT}/INSTALL")
 
 if(OS_LINUX)
 return()

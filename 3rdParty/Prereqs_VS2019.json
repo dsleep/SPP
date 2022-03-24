@@ -78,6 +78,10 @@
 		{
 			"Path": "ktx",
 			"Version": 1
+		},
+		{
+			"Path": "civetweb",
+			"Version": 1
 		}
 	]
 }

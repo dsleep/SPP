@@ -75,6 +75,9 @@ set(USE_DX12 OFF CACHE BOOL "Use DX12")
 set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
 set(USE_VULKAN OFF CACHE BOOL "Use Vulkan")
 
+
+set(INCLUE_WEBSERVER ON CACHE BOOL "Include a webserver")
+
 set(USE_CRYPTOCPP ON CACHE BOOL "Include lib Cryptopp")
 set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
 
@@ -168,6 +171,12 @@ if(OS_WINDOWS)
 	list(APPEND SPPProjects			
 				"SPPCapture" 
 				"SPPVideo" )
+				
+	if(INCLUE_WEBSERVER)
+		list(APPEND SPPProjects
+					"SPPWeb" )
+
+	endif()
 endif()		
 
 if(OS_MAC)
