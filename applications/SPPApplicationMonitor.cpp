@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
 
-	auto CCMap = BuildCCMap(argc, argv);
+	//auto CCMap = BuildCCMap(argc, argv);
 	
 	while (true)
 	{		

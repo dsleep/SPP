@@ -9,6 +9,7 @@
 #include "SPPFileSystem.h"
 #include "SPPPlatformCore.h"
 #include "SPPStackUtils.h"
+#include "SPPString.h"
 
 #if PLATFORM_MAC || PLATFORM_LINUX
     #include <sys/param.h>
@@ -67,6 +68,39 @@ namespace SPP
 		return (double)millis / 1000.0;
 	}
 
+	void CleanupOldLogs(const stdfs::path &LoggingDirectory)
+	{
+		try
+		{
+			//3 days ago
+			const auto DaysAgoTimeFS = stdfs::file_time_type::clock::now().time_since_epoch() - std::chrono::hours(24*3);
+			std::vector< stdfs::path > filesToDelete;
+			for (auto const& dir_entry : std::filesystem::directory_iterator{ LoggingDirectory })
+			{
+				if (stdfs::is_regular_file(dir_entry))
+				{
+					const std::string file_ext = dir_entry.path().extension().string();
+
+					if (std::str_equals(file_ext, ".txt"))
+					{
+						auto ftimeduration = stdfs::last_write_time(dir_entry).time_since_epoch();
+
+						if (ftimeduration < DaysAgoTimeFS)
+						{
+							filesToDelete.push_back(dir_entry);
+						}
+					}
+				}
+			}
+			SPP_LOG(LOG_CORE, LOG_INFO, "Deleting %d old logs...", filesToDelete.size());
+			for (auto const& fileIter : filesToDelete)
+			{
+				stdfs::remove(fileIter);
+			}
+		}
+		catch (std::exception&) {}
+	}
+
 	void IntializeCore(const char* Commandline)
 	{
 		appStarted = SystemClock::now();
@@ -113,6 +147,9 @@ namespace SPP
             GBinaryPath.c_str(),
 			GetGitHash(),
 			GetGitTag());
+
+		//delete old logs
+		CleanupOldLogs(LoggingDirectory);
 				
 		unsigned int nthreads = std::max<uint32_t>( std::thread::hardware_concurrency(), 2);
 
