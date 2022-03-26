@@ -30,6 +30,7 @@ namespace SPP
 	LogEntry LOG_CORE("CORE");
     static std::string GBinaryPath;
     static std::string GResourcePath;
+	static std::string GLogPath;
 
 	void* SPP_MALLOC(std::size_t size)
 	{
@@ -57,7 +58,10 @@ namespace SPP
     {
         return GResourcePath.c_str();
     }
-    
+	const char* GetLogPath()
+	{
+		return GLogPath.c_str();
+	}
 	SPP_CORE_API std::unique_ptr<class ThreadPool> CPUThreaPool;
 
 	static SystemClock::time_point appStarted;
@@ -140,7 +144,9 @@ namespace SPP
 		strftime(&buffer[0], buffer.size(), "_%Y-%m-%d@%H-%M_LOG.txt", appLT);
 
 		std::string ProcessNameAsLog = stdfs::path(ProcessName).stem().generic_string() + buffer;
-		SPP_LOGGER.Attach<FileLogger>( (LoggingDirectory / ProcessNameAsLog).generic_string().c_str() );
+		stdfs::path LogFullPath = (LoggingDirectory / ProcessNameAsLog);
+		GLogPath = LogFullPath.generic_string();
+		SPP_LOGGER.Attach<FileLogger>(LogFullPath.generic_string().c_str() );
 		
 		SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: cmd %s PWD: %s GIT HASH: %s GIT TAG: %s",
 			Commandline ? Commandline : "NULL",

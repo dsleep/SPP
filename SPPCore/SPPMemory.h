@@ -37,6 +37,23 @@ namespace SPP
 		void ReadMemory(void* OutMem, size_t DataSize, size_t Offset = 0);
 	};
 
+	class SPP_CORE_API IPCDeadlockCheck
+	{
+	private:
+		std::string _memoryID;
+		std::unique_ptr< IPCMappedMemory> _IPCMem;
+		uint32_t _memTag = 123;
+
+	public:
+		//MONITOR
+		const std::string& InitializeMonitor();
+		// return true if reporter updated
+		bool CheckReporter();
+		//REPORTER
+		void InitializeReporter(const std::string& InMemoryID);
+		void ReportToAppMonitor();
+	};
+
 	template<typename T>
 	class SimpleIPCMessageQueue
 	{

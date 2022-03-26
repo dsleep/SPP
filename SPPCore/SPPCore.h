@@ -69,6 +69,8 @@ namespace SPP
     SPP_CORE_API const char* GetBinaryDirectory();
     SPP_CORE_API const char* GetResourceDirectory();
 
+	SPP_CORE_API const char* GetLogPath();
+
 	SPP_CORE_API const char* GetGitHash();
 	SPP_CORE_API const char* GetGitTag();
 }

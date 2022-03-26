@@ -95,6 +95,13 @@ namespace std
 		return !s.empty() && it == s.end();
 	}
 
+	bool is_alphanumeric(const std::string& s)
+	{
+		std::string::const_iterator it = s.begin();
+		while (it != s.end() && (std::isdigit(*it) || std::isalpha(*it))) ++it;
+		return !s.empty() && it == s.end();
+	}
+
 	//////////////
 
 	const std::string WHITESPACE = " \n\r\t\f\v";
@@ -113,5 +120,37 @@ namespace std
 
 	std::string trim(const std::string& s) {
 		return rtrim(ltrim(s));
+	}
+
+	std::map<std::string, std::string> BuildCCMap(int argc, char* argv[])
+	{
+		std::map<std::string, std::string> oMap;
+
+		for (int ArgIter = 0; ArgIter < argc; ArgIter++)
+		{
+			std::string curArg = argv[ArgIter];
+
+			auto trimmed = trim(curArg);
+
+			if (trimmed.length() > 1 && trimmed[0] == '-')
+			{
+				auto curEquals = trimmed.find_first_of('=');
+
+				if (curEquals == std::string::npos)
+				{
+					auto curKey = trimmed.substr(1);
+					oMap[curKey] = "";
+				}
+				else if (curEquals != std::string::npos &&
+					curEquals > 1)
+				{
+					auto curKey = trimmed.substr(1, curEquals - 1);
+					auto curValue = trimmed.substr(curEquals + 1);
+					oMap[curKey] = curValue;
+				}
+			}
+		}
+
+		return oMap;
 	}
 }

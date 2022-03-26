@@ -11,13 +11,13 @@
 
 namespace SPP
 {
-	template<typename K, typename V>
-	V* MapFindOrNull(const std::map<K, V>& InMap, const K& InKey)
+	template<class MT>
+	typename MT::value_type::second_type* MapFindOrNull(const MT& InMap, const typename MT::value_type::first_type& InKey)
 	{
 		auto findIter = InMap.find(InKey);
 		if (findIter != InMap.end())
 		{
-			return (V*)&findIter->second;
+			return (MT::value_type::second_type*)&findIter->second;
 		}
 		return nullptr;
 	}

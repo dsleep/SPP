@@ -4,6 +4,7 @@
 
 #include "SPPMemory.h"
 #include "SPPLogging.h"
+#include "SPPString.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -252,3 +253,43 @@ namespace SPP
 	}
 }
 #endif
+
+namespace SPP
+{ 
+	const std::string& IPCDeadlockCheck::InitializeMonitor()
+	{
+		SE_ASSERT(!_IPCMem);
+		_memoryID = std::generate_hex(3);
+		_IPCMem.reset(new IPCMappedMemory(_memoryID.c_str(), 4, true));
+		return _memoryID;
+	}
+	// return true if reporter updated
+	bool IPCDeadlockCheck::CheckReporter()
+	{
+		uint32_t newTag = 0;
+		_IPCMem->ReadMemory(&newTag, sizeof(newTag));
+		if (newTag == _memTag)
+		{
+			return false;
+		}
+		else
+		{
+			_memTag = newTag;
+			return true;
+		}
+	}
+
+	//REPORTER
+	void IPCDeadlockCheck::InitializeReporter(const std::string& InMemoryID)
+	{
+		SE_ASSERT(!_IPCMem);
+		_memoryID = InMemoryID;
+		_IPCMem.reset(new IPCMappedMemory(_memoryID.c_str(), 4, false));
+	}
+	void IPCDeadlockCheck::ReportToAppMonitor()
+	{
+		SE_ASSERT(_IPCMem);
+		_memTag++;
+		_IPCMem->WriteMemory(&_memTag, sizeof(_memTag));
+	}
+}

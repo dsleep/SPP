@@ -4,6 +4,8 @@
 
 #include "SPPCore.h"
 #include "SPPNatTraversal.h"
+#include "SPPMemory.h"
+#include "SPPString.h"
 #include "json/json.h"
 #include "SPPLogging.h"
 #include "SPPTiming.h"
@@ -23,9 +25,20 @@ IPv4_SocketAddress RemoteCoordAddres;
 std::string Password;
 
 LogEntry LOG_COORD("APPCOORD");
-int main()
+int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
+
+	auto CCMap = std::BuildCCMap(argc, argv);
+	auto deadlockmem = MapFindOrNull(CCMap, "deadlockmem");
+
+	std::unique_ptr< IPCDeadlockCheck > deadlockCheck;
+	if (deadlockmem)
+	{
+		deadlockCheck = std::make_unique<IPCDeadlockCheck>();
+		deadlockCheck->InitializeReporter(*deadlockmem);
+		SPP_LOG(LOG_COORD, LOG_INFO, "has dead lock check");
+	}
 
 	{
 		Json::Value JsonConfig;
@@ -41,7 +54,7 @@ int main()
 	}
 
 	GetOSNetwork();
-
+	SPP_LOG(LOG_COORD, LOG_INFO, "make sure no prior coordDB");
 	stdfs::remove("coordDB.db");
 
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator( new UDP_SQL_Coordinator(RemoteCoordAddres.Port,
@@ -63,6 +76,10 @@ int main()
 	mainController.AddTimer(500ms, true, [&]()
 		{
 			coordinator->Update();
+			if (deadlockCheck)
+			{
+				deadlockCheck->ReportToAppMonitor();
+			}
 		});
 
 	// Clear out oldies

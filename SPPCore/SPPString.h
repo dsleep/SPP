@@ -6,6 +6,7 @@
 
 #include "SPPCore.h"
 #include <string>
+#include <map>
 #include <vector>
 #include <memory>
 #include <stdexcept>
@@ -30,6 +31,8 @@ namespace std
 
     SPP_CORE_API bool str_equals(const std::string& a, const std::string& b, bool bIgnoreCase = true);
 
+	SPP_CORE_API bool is_alphanumeric(const std::string& s);
+
 	SPP_CORE_API bool is_number(const std::string& s);
 
 	template<typename ... Args>
@@ -45,4 +48,6 @@ namespace std
 	SPP_CORE_API std::string ltrim(const std::string& s);
 	SPP_CORE_API std::string rtrim(const std::string& s);
 	SPP_CORE_API std::string trim(const std::string& s);
+
+	SPP_CORE_API std::map<std::string, std::string> BuildCCMap(int argc, char* argv[]);
 }

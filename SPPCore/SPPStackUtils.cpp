@@ -252,6 +252,10 @@ namespace SPP
 		//return EXCEPTION_EXECUTE_HANDLER;
 		SymCleanup(process);
 
+		std::string LogPath = GetLogPath();
+
+		WriteStringToFile( (LogPath + ".crash").c_str(), builder.str());
+
 		SPP_LOG(LOG_STACK, LOG_INFO, "CRASH!!!\n\n%s", builder.str().c_str());
 
 		MessageBoxA(
