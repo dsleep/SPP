@@ -188,6 +188,11 @@ namespace SPP
 			{
 				JsonMessage["AES"] = _rsaCipherRemote.EncryptString(_aesCipherShared.GetKey());
 			}
+
+			if (_rsaCipherRemote.CanEncrypt())
+			{
+				JsonMessage["REMOTENAME"] = _rsaCipherRemote.EncryptString(GetOSNetwork().HostName);
+			}
 		}
 		else if (_networkState == EConnectionState::AUTHENTICATE_PASSWORD)
 		{
@@ -230,6 +235,7 @@ namespace SPP
 		Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
 		Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
 		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
+		Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
 
 		if (RemoteState.isNull() || Message.isNull())
 		{
@@ -254,6 +260,14 @@ namespace SPP
 			{
 				std::string RSAString = RSAValue.asCString();
 				_rsaCipherRemote.SetPublicKey(RSAString);
+
+				if (!RemoteNameValue.isNull())
+				{
+					std::string RemoteNameString = RemoteNameValue.asCString();
+					_remoteName = _rsaCipherLocal.DecryptString(RemoteNameString);
+				}
+
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Remote Name: %s", _remoteName.c_str());
 				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received Public RSA Key: %s", RSAString.c_str());
 				_SetState(EConnectionState::C_SENDING_SHARED_KEY);
 			}
@@ -299,7 +313,8 @@ namespace SPP
 		Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
 		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
 		Json::Value PasswordValue = jsonMessage.get("PASSWORD", Json::Value::nullSingleton());
-		
+		Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
+
 		if (RemoteState.isNull() || Message.isNull())
 		{
 			return;
@@ -332,6 +347,14 @@ namespace SPP
 			{
 				std::string AESString = AESValue.asCString();
 				AESString = _rsaCipherLocal.DecryptString(AESString);
+
+				if (!RemoteNameValue.isNull())
+				{
+					std::string RemoteNameString = RemoteNameValue.asCString();
+					_remoteName = _rsaCipherLocal.DecryptString(RemoteNameString);
+				}
+
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Remote Name: %s", _remoteName.c_str());
 				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received AES Key: %s", AESString.c_str());
 				_aesCipherShared.SetKey(AESString);
 				_SetState(EConnectionState::AUTHENTICATE_PASSWORD);

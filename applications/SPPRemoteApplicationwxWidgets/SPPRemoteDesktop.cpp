@@ -226,7 +226,6 @@ void ClientThread()
 				{
 					auto hasCoord = outRoot["COORD"].asUInt();
 					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
-					auto btConn = outRoot["BLUETOOTH"].asUInt();
 					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
 
 					static int32_t hasCoordV = 0;

@@ -1014,6 +1014,7 @@ void SPPApp(int argc, char* argv[])
 					std::string ConnectKey;
 					coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
 					JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
+					JsonMessage["CONNNAME"] = "NONE";
 				}
 				else
 				{
@@ -1025,6 +1026,7 @@ void SPPApp(int argc, char* argv[])
 					{
 						JsonMessage["CONNSTATUS"] = 1;
 					}
+					JsonMessage["CONNNAME"] = "NONE";
 				}
 
 				if (Hosts.empty() == false)

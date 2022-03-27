@@ -127,6 +127,7 @@ namespace SPP
 		BinaryBlobSerializer _outGoingStream;
 		BinaryBlobSerializer _incomingStream;
 
+		std::string _remoteName;
 		std::string _serverPassword;
 
 		std::string _localGUID;
