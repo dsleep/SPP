@@ -666,8 +666,7 @@ public:
 			return;
 		}
 
-		auto recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size());
-		if (recvAmmount > 0)
+		while( auto recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size()) > 0 )
 		{
 			ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
 		}
@@ -1014,19 +1013,21 @@ void SPPApp(int argc, char* argv[])
 					std::string ConnectKey;
 					coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
 					JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
-					JsonMessage["CONNNAME"] = "NONE";
 				}
 				else
 				{
 					if (videoConnection->IsConnected())
 					{
 						JsonMessage["CONNSTATUS"] = 2;
+						auto& stats = videoConnection->GetStats();
+						JsonMessage["KBIN"] = stats.LastKBsIncoming;
+						JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
+						JsonMessage["CONNNAME"] = videoConnection->ToString();
 					}
 					else
 					{
 						JsonMessage["CONNSTATUS"] = 1;
 					}
-					JsonMessage["CONNNAME"] = "NONE";
 				}
 
 				if (Hosts.empty() == false)

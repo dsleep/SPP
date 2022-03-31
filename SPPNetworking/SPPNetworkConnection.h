@@ -162,9 +162,7 @@ namespace SPP
 
 		std::string ToString() const
 		{
-			//SE_ASSERT(_peerLink);
-			//return _remoteAddr.ToString();
-			return "";
+			return _remoteName;
 		}
 				
 		std::list< std::shared_ptr< Interface_MessageTranscoder > > GetTranscoderStack()

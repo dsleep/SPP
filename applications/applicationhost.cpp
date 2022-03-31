@@ -475,8 +475,7 @@ public:
 
 	virtual void Tick() override
 	{
-		auto recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size());
-		if (recvAmmount > 0)
+		while( auto recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size()) > 0 )
 		{
 			ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
 		}

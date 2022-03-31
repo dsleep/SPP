@@ -249,7 +249,7 @@ p
 			</div>					
 		</div>		
 		
-		<div id="connectionInfo" class="ListAndStatusArea" style="display: none;" > 
+		<div id="connectionInfo" class="ListAndStatusArea" style="display: none; background-color: black;  z-index: 1;" > 
 		    <div style="flex: 0; "> <h2>Connection: </h2> </div> 
 
 			<div class="childListAndArea" style="overflow-y: scroll;">
@@ -277,8 +277,59 @@ p
 		
 	</div>
 	
-	<script>
+	<script type="module">
 	
+	import { createStateMachine } from './simpleStateMachine.js';
+	const machine = createStateMachine({
+	  initialState: 'connectionType',
+	  states: [
+			{
+				stateName: "connectionType",
+				actions: {
+				  onEnter(PrevState) {
+					console.log('connectionType: onEnter')
+				  },
+				  onExit(NextState) {
+					console.log('connectionType: onExit')
+				  },
+				}
+			},
+			{
+				stateName: "connectionType",
+				actions: {
+				  onEnter(PrevState) {
+					console.log('connectionType: onEnter')
+				  },
+				  onExit(NextState) {
+					console.log('connectionType: onExit')
+				  },
+				}
+			},
+			{
+				stateName: "connectionType",
+				actions: {
+				  onEnter(PrevState) {
+					console.log('connectionType: onEnter')
+				  },
+				  onExit(NextState) {
+					console.log('connectionType: onExit')
+				  },
+				}
+			},
+			{
+				stateName: "connectionType",
+				actions: {
+				  onEnter(PrevState) {
+					console.log('connectionType: onEnter')
+				  },
+				  onExit(NextState) {
+					console.log('connectionType: onExit')
+				  },
+				}
+			}
+		]
+	  });
+
 	function IsHost()
 	{
 		var x = document.getElementById("initialArea");
@@ -399,6 +450,33 @@ p
 	{
 		document.getElementById("CoordSignal").style.color = InActive ? "green" : "red";	
 	}
+	
+	var currentConnection = 0;
+	function UpdateConnectionStatus(InActive)
+	{
+		//document.getElementById("CoordSignal").style.color = InActive ? "green" : "red";	
+		
+		if(currentConnection != InActive)
+		{
+			if(InActive > 0)
+			{
+				IsConnected(true);
+			}
+			else if(InActive == 0)
+			{
+			
+			}
+			
+			currentConnection = InActive;
+		}
+	}
+		
+	function UpdateConnectionStats(InName, InKBsIn, InKBsOut)
+	{
+		document.getElementById("ConnectionName").innerHTML = InName;
+		document.getElementById("BandwidthOut").innerHTML = InKBsIn.toString();
+		document.getElementById("BandwidthIn").innerHTML = InKBsOut.toString();
+	}
 		
 	if(window.RegisterJSFunction)
 	{	
@@ -406,8 +484,10 @@ p
 		window.RegisterJSFunction("UpdateCoord", UpdateCoord);
 		window.RegisterJSFunction("AddHost", AddHost);
 		window.RegisterJSFunction("RemoveHost", RemoveHost);
+		window.RegisterJSFunction("UpdateConnectionStatus", UpdateConnectionStatus);
+		window.RegisterJSFunction("UpdateConnectionStats", UpdateConnectionStats);
 	}
-	
+	//IsConnected();
 	</script>
 	
   </body>

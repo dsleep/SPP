@@ -226,10 +226,11 @@ void ClientThread()
 				{
 					auto hasCoord = outRoot["COORD"].asUInt();
 					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
-					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
+					auto connectionStatus = outRoot["CONNSTATUS"].asUInt();
 
 					static int32_t hasCoordV = 0;
 					static int32_t resolvedStunV = 0;
+					static int32_t connectionStatusV = 0;
 
 					if (hasCoord != hasCoordV)
 					{
@@ -240,6 +241,23 @@ void ClientThread()
 					{
 						resolvedStunV = resolvedStun;
 						JavascriptInterface::CallJS("UpdateSTUN", resolvedStunV);
+					}
+					if (connectionStatus != connectionStatusV)
+					{
+						connectionStatusV = connectionStatus;
+						JavascriptInterface::CallJS("UpdateConnectionStatus", connectionStatusV);
+
+						if (connectionStatusV == 2)
+						{
+							auto connectionNameValue = outRoot["CONNNAME"].asCString();
+							auto KBInValue = outRoot["KBIN"].asFloat();
+							auto KBOutValue = outRoot["KBOUT"].asFloat();
+
+							JavascriptInterface::CallJS("UpdateConnection", 
+								std::string(connectionNameValue),
+								KBInValue,
+								KBOutValue);
+						}
 					}
 
 					Json::Value hostList = outRoot.get("HOSTS", Json::Value::nullSingleton());
