@@ -246,14 +246,17 @@ void ClientThread()
 					{
 						connectionStatusV = connectionStatus;
 						JavascriptInterface::CallJS("UpdateConnectionStatus", connectionStatusV);
-
-						if (connectionStatusV == 2)
+					}
+					if (connectionStatusV == 2)
+					{
+						Json::Value connectionName = outRoot.get("CONNNAME", Json::Value::nullSingleton());
+						if (!connectionName.isNull())
 						{
-							auto connectionNameValue = outRoot["CONNNAME"].asCString();
+							auto connectionNameValue = connectionName.asCString();
 							auto KBInValue = outRoot["KBIN"].asFloat();
 							auto KBOutValue = outRoot["KBOUT"].asFloat();
 
-							JavascriptInterface::CallJS("UpdateConnection", 
+							JavascriptInterface::CallJS("UpdateConnectionStats",
 								std::string(connectionNameValue),
 								KBInValue,
 								KBOutValue);
