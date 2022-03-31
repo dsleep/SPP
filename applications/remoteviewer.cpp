@@ -666,7 +666,8 @@ public:
 			return;
 		}
 
-		while( int32_t recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size()) > 0 )
+		int32_t recvAmmount = 0;
+		while( (recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size())) > 0 )
 		{
 			ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
 		}
