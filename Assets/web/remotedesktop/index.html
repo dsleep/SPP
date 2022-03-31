@@ -32,7 +32,7 @@ body {
 #mainArea {
   
   flex-flow: column;
-   display: none;
+   display: flex;
   height: 100%;
   width: 100%;
    padding: 0px 20px 0 20px;
@@ -200,7 +200,7 @@ p
 		  </form>  
 	</div>
   
-  <div id="mainArea">
+  <div id="mainArea" style="display: none;">
 		
 		 <div id="menuArea">
 		
@@ -283,99 +283,129 @@ p
 		
 	const machine = createStateMachine({
 	  initialState: 'connectionType',
-	  states: [
-			{
-				stateName: "connectionType",
+	  states: 
+	  {
+		connectionType : {
 				actions: {
 				  onEnter(PrevState) {
 					console.log('connectionType: onEnter')
+					
+					var x = document.getElementById("initialArea");
+					x.style.display = null;
 				  },
 				  onExit(NextState) {
 					console.log('connectionType: onExit')
+					
+					var x = document.getElementById("initialArea");
+					x.style.display = "none";
 				  },
 				}
 			},
-			{
-				stateName: "connectionType",
+		hostConnection : {
 				actions: {
 				  onEnter(PrevState) {
-					console.log('connectionType: onEnter')
+					console.log('hostConnection: onEnter')
+					
+					var mainArea = document.getElementById("mainArea");
+					mainArea.style.display = null;
+					
+					var subArea = document.getElementById("serverStatus");
+					subArea.style.display = null;
+					
+					if(window.CallNativeWithJSON)
+					{
+						window.CallNativeWithJSON(JSON.stringify({ func: "StartupHost" }));
+					}
 				  },
 				  onExit(NextState) {
-					console.log('connectionType: onExit')
+					console.log('hostConnection: onExit')
+					
+					var mainArea = document.getElementById("mainArea");
+					mainArea.style.display = "none";
+					
+					var subArea = document.getElementById("serverStatus");
+					subArea.style.display = "none";
 				  },
 				}
 			},
-			{
-				stateName: "connectionType",
+		clientConnection : {
 				actions: {
 				  onEnter(PrevState) {
-					console.log('connectionType: onEnter')
+					console.log('clientConnection: onEnter')
+					
+					var mainArea = document.getElementById("mainArea");
+					mainArea.style.display = null;
+					
+					var subArea = document.getElementById("serverBrowser");
+					subArea.style.display = null;
+					
+					if(window.CallNativeWithJSON)
+					{
+						window.CallNativeWithJSON(JSON.stringify({ func: "StartupClient" }));
+					}	
 				  },
 				  onExit(NextState) {
-					console.log('connectionType: onExit')
+					console.log('clientConnection: onExit')
+					
+					var mainArea = document.getElementById("mainArea");
+					mainArea.style.display = "none";
+					
+					var subArea = document.getElementById("serverBrowser");
+					subArea.style.display = "none";
 				  },
 				}
 			},
-			{
-				stateName: "connectionType",
+		activeConnection : {
 				actions: {
 				  onEnter(PrevState) {
-					console.log('connectionType: onEnter')
+					console.log('activeConnection: onEnter')
+					
+					var mainArea = document.getElementById("mainArea");
+					mainArea.style.display = null;
+					
+					var subArea = document.getElementById("connectionInfo");
+					subArea.style.display = null;
 				  },
 				  onExit(NextState) {
-					console.log('connectionType: onExit')
+					console.log('activeConnection: onExit')
+					
+					var mainArea = document.getElementById("mainArea");
+					mainArea.style.display = "none";
+					
+					var subArea = document.getElementById("connectionInfo");
+					subArea.style.display = "none";
 				  },
 				}
 			}
-		]
+		}
 	  });
 
+	var coreState = "";
 
 	window.IsHost = function()
 	{
-		var x = document.getElementById("initialArea");
-		x.style.display = "none";
-		
-		var mainArea = document.getElementById("mainArea");
-		mainArea.style.display = "flex";
-		
-		var subArea = document.getElementById("serverStatus");
-		subArea.style.display = null;
-		
-		if(window.CallNativeWithJSON)
-		{
-			window.CallNativeWithJSON(JSON.stringify({ func: "StartupHost" }));
-		}	
+		machine.transitionState("hostConnection");
+		coreState = "hostConnection";
 	}
 	
 	window.IsClient = function()
 	{
-		var x = document.getElementById("initialArea");
-		x.style.display = "none";
-		
-		var mainArea = document.getElementById("mainArea");
-		mainArea.style.display = "flex";
-		
-		var subArea = document.getElementById("serverBrowser");
-		subArea.style.display = null;
-		
-		if(window.CallNativeWithJSON)
-		{
-			window.CallNativeWithJSON(JSON.stringify({ func: "StartupClient" }));
-		}	
+		machine.transitionState("clientConnection");
+		coreState = "clientConnection";
 	}
 	
-	function IsConnected()
+	var bLastConnection = false;
+	
+	function IsConnected(bIsConnected)
 	{
-		var x = document.getElementById("initialArea");
-		x.style.display = "none";
-		
-		var mainArea = document.getElementById("mainArea");
-		mainArea.style.display = "flex";
-		
-		var subArea = document.getElementById("connectionInfo");
-		subArea.style.display = null;
+		if(bLastConnection != bIsConnected)
+		{
+			if(bIsConnected)
+				machine.transitionState("activeConnection");
+			else
+				machine.transitionState(coreState);
+			bLastConnection = bIsConnected;
+		}
 	}
 	
 	function OpenConfig()
@@ -403,7 +433,7 @@ p
 	}
 	
 	
-	function ClickHost(InGUID)
+	window.ClickHost = function(InGUID)
 	{
 		console.log("ClickHost: " + InGUID);
 		if(window.CallNativeWithJSON)
@@ -452,25 +482,10 @@ p
 	{
 		document.getElementById("CoordSignal").style.color = InActive ? "green" : "red";	
 	}
-	
-	var currentConnection = 0;
+
 	function UpdateConnectionStatus(InActive)
 	{
-		//document.getElementById("CoordSignal").style.color = InActive ? "green" : "red";	
-		
-		if(currentConnection != InActive)
-		{
-			if(InActive > 0)
-			{
-				IsConnected(true);
-			}
-			else if(InActive == 0)
-			{
-			
-			}
-			
-			currentConnection = InActive;
-		}
+		IsConnected( InActive > 0 );
 	}
 		
 	function UpdateConnectionStats(InName, InKBsIn, InKBsOut)

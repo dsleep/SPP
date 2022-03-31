@@ -31,6 +31,8 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
+#define PREVENT_INPUT 1
+
 struct handle_data {
 	uint32_t process_id;
 	HWND window_handle;
@@ -138,6 +140,9 @@ public:
 	{
 		//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
 
+#if PREVENT_INPUT
+		return;
+#endif
 	
 		{
 			MemoryView DataView(Data, DataLength);
