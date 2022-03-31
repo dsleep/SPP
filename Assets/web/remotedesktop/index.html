@@ -280,6 +280,7 @@ p
 	<script type="module">
 	
 	import { createStateMachine } from './simpleStateMachine.js';
+		
 	const machine = createStateMachine({
 	  initialState: 'connectionType',
 	  states: [
@@ -330,7 +331,8 @@ p
 		]
 	  });
 
-	function IsHost()
+
+	window.IsHost = function()
 	{
 		var x = document.getElementById("initialArea");
 		x.style.display = "none";
@@ -347,7 +349,7 @@ p
 		}	
 	}
 	
-	function IsClient()
+	window.IsClient = function()
 	{
 		var x = document.getElementById("initialArea");
 		x.style.display = "none";
