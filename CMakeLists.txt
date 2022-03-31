@@ -103,7 +103,7 @@ if(USE_OBJECTS)
 endif()
 
 #General C++ Compiling
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -111,7 +111,7 @@ if(MSVC)
 
 	set(USE_VS_MULTIPROCESS ON CACHE BOOL "Use MultiProcessor compiling on VS")
 	
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
 	
 	if(USE_VS_MULTIPROCESS)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
@@ -121,7 +121,7 @@ if(MSVC)
 else()
 	
 	# set position independent
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fPIC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fPIC")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
  
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -D_DEBUG")
