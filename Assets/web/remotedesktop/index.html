@@ -264,7 +264,7 @@ p
 				<option value="opel">Favor Quality</option>
 			  </select>
 			</p>
-			<button >Disconnect</button>
+			<button onclick="javascript:Disconnect();">Disconnect</button>
 			</div>					
 		</div>
 		
@@ -498,6 +498,14 @@ p
 		document.getElementById("ConnectionName").innerHTML = InName;
 		document.getElementById("BandwidthOut").innerHTML = InKBsOut.toString();
 		document.getElementById("BandwidthIn").innerHTML = InKBsIn.toString();
+	}
+	
+	window.Disconnect = function()
+	{
+		if(window.CallNativeWithJSON)
+		{
+			window.CallNativeWithJSON(JSON.stringify({ func: "Disconnect" }));
+		}	
 	}
 		
 	if(window.RegisterJSFunction)

@@ -718,7 +718,27 @@ int main(int argc, char* argv[])
 			Json::Value JsonMessage;
 			JsonMessage["COORD"] = IsConnectedToCoord;
 			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
-			JsonMessage["CONNECTED"] = (videoConnection && videoConnection->IsValid());
+
+			if (videoConnection)
+			{
+				if (videoConnection->IsConnected())
+				{
+					JsonMessage["CONNSTATUS"] = 2;
+					auto& stats = videoConnection->GetStats();
+					JsonMessage["KBIN"] = stats.LastKBsIncoming;
+					JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
+					JsonMessage["CONNNAME"] = videoConnection->ToString();
+				}
+				else
+				{
+					JsonMessage["CONNSTATUS"] = 1;
+				}
+			}
+			else
+			{
+				JsonMessage["CONNSTATUS"] = 0;
+			}
+			
 
 			Json::StreamWriterBuilder wbuilder;
 			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);

@@ -114,7 +114,47 @@ struct HostFromCoord
 	std::string GUID;
 };
 
+void UpdateStatus(Json::Value &InJSON)
+{
+	auto hasCoord = InJSON["COORD"].asUInt();
+	auto resolvedStun = InJSON["RESOLVEDSDP"].asUInt();
+	auto connectionStatus = InJSON["CONNSTATUS"].asUInt();
 
+	static int32_t hasCoordV = 0;
+	static int32_t resolvedStunV = 0;
+	static int32_t connectionStatusV = 0;
+
+	if (hasCoord != hasCoordV)
+	{
+		hasCoordV = hasCoord;
+		JavascriptInterface::CallJS("UpdateCoord", hasCoordV);
+	}
+	if (resolvedStun != resolvedStunV)
+	{
+		resolvedStunV = resolvedStun;
+		JavascriptInterface::CallJS("UpdateSTUN", resolvedStunV);
+	}
+	if (connectionStatus != connectionStatusV)
+	{
+		connectionStatusV = connectionStatus;
+		JavascriptInterface::CallJS("UpdateConnectionStatus", connectionStatusV);
+	}
+	if (connectionStatusV == 2)
+	{
+		Json::Value connectionName = InJSON.get("CONNNAME", Json::Value::nullSingleton());
+		if (!connectionName.isNull())
+		{
+			auto connectionNameValue = connectionName.asCString();
+			auto KBInValue = InJSON["KBIN"].asFloat();
+			auto KBOutValue = InJSON["KBOUT"].asFloat();
+
+			JavascriptInterface::CallJS("UpdateConnectionStats",
+				std::string(connectionNameValue),
+				KBInValue,
+				KBOutValue);
+		}
+	}
+}
 
 void HostThread()
 {
@@ -154,29 +194,7 @@ void HostThread()
 				Json::Value outRoot;
 				if (MemoryToJson(inMem.GetData(), dataSize, outRoot))
 				{
-					auto hasCoord = outRoot["COORD"].asUInt();
-					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
-					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
-
-					static int32_t hasCoordV = 0;
-					static int32_t resolvedStunV = 0;
-
-					if (hasCoord != hasCoordV)
-					{
-						hasCoordV = hasCoord;
-						JavascriptInterface::CallJS("UpdateCoord", hasCoordV);
-					}
-					if (resolvedStun != resolvedStunV)
-					{
-						resolvedStunV = resolvedStun;
-						JavascriptInterface::CallJS("UpdateSTUN", resolvedStunV);
-					}
-
-					//auto appInstance = (MyApp*)wxApp::GetInstance();
-					//appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun]()
-					//	{
-					//		appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun);
-					//	});
+					UpdateStatus(outRoot);
 				}
 			}
 
@@ -224,44 +242,7 @@ void ClientThread()
 				Json::Value outRoot;
 				if (MemoryToJson(inMem.GetData(), dataSize, outRoot))
 				{
-					auto hasCoord = outRoot["COORD"].asUInt();
-					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
-					auto connectionStatus = outRoot["CONNSTATUS"].asUInt();
-
-					static int32_t hasCoordV = 0;
-					static int32_t resolvedStunV = 0;
-					static int32_t connectionStatusV = 0;
-
-					if (hasCoord != hasCoordV)
-					{
-						hasCoordV = hasCoord;
-						JavascriptInterface::CallJS("UpdateCoord", hasCoordV);
-					}
-					if (resolvedStun != resolvedStunV)
-					{
-						resolvedStunV = resolvedStun;
-						JavascriptInterface::CallJS("UpdateSTUN", resolvedStunV);
-					}
-					if (connectionStatus != connectionStatusV)
-					{
-						connectionStatusV = connectionStatus;
-						JavascriptInterface::CallJS("UpdateConnectionStatus", connectionStatusV);
-					}
-					if (connectionStatusV == 2)
-					{
-						Json::Value connectionName = outRoot.get("CONNNAME", Json::Value::nullSingleton());
-						if (!connectionName.isNull())
-						{
-							auto connectionNameValue = connectionName.asCString();
-							auto KBInValue = outRoot["KBIN"].asFloat();
-							auto KBOutValue = outRoot["KBOUT"].asFloat();
-
-							JavascriptInterface::CallJS("UpdateConnectionStats",
-								std::string(connectionNameValue),
-								KBInValue,
-								KBOutValue);
-						}
-					}
+					UpdateStatus(outRoot);
 
 					Json::Value hostList = outRoot.get("HOSTS", Json::Value::nullSingleton());
 					if (!hostList.isNull() && hostList.isArray())
