@@ -486,6 +486,11 @@ p
 	function UpdateConnectionStatus(InActive)
 	{
 		IsConnected( InActive > 0 );
+		
+		if(InActive == 1)
+		document.getElementById("ConnectionStatus").innerHTML = "Pending...";
+		if(InActive == 2)
+		document.getElementById("ConnectionStatus").innerHTML = "Connected";
 	}
 		
 	function UpdateConnectionStats(InName, InKBsIn, InKBsOut)

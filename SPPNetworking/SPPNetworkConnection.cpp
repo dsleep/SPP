@@ -55,15 +55,16 @@ namespace SPP
 	static const char *NetStateStrings[] =
 	{ 
 		"UNKNOWN",
-		"S_WAITING",
-		"S_SENDING_PUBLIC_KEY",
 
-		"C_SAYING_HI",
-		"C_SENDING_SHARED_KEY",
+		"DISCONNECTED",
 
-		"AUTHENTICATE_PASSWORD",
-		"CONNECTED",
-		"DISCONNECTED"
+		"SERVER_WAITING",
+		"SAYING_HI",
+
+		"FULL_ENCRYPTION_START",
+
+		"CLIENT_AUTHENTICATE_PASSWORD",
+		"CONNECTED"
 	};
 
 	NetworkConnection::NetworkConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool bIsServer) : _peerLink(InPeer), _bIsServer(bIsServer)
@@ -76,7 +77,7 @@ namespace SPP
 #if SPP_NETCONN_CRYPTO
 		_rsaCipherLocal.GenerateKeyPair(1024);
 
-		if (!_bIsServer)
+		if (_bIsServer)
 		{
 			_aesCipherShared.GenerateKey();
 		}
@@ -84,7 +85,7 @@ namespace SPP
 
 		if (_bIsServer)
 		{
-			_networkState = EConnectionState::S_WAITING;
+			_networkState = EConnectionState::SERVER_WAITING;
 		}
 
 		_PingTimer.Initialize(
@@ -119,19 +120,24 @@ namespace SPP
 		return _networkState == EConnectionState::CONNECTED;
 	}
 	
-	void NetworkConnection::_SendState()
+	void NetworkConnection::SERVER_SendState()
 	{
-		_PingTimer.Reset();
-
 		switch (_networkState)
 		{
-		case EConnectionState::S_WAITING:
-		case EConnectionState::S_SENDING_PUBLIC_KEY:
-		case EConnectionState::C_SAYING_HI:
-		case EConnectionState::C_SENDING_SHARED_KEY:
-		case EConnectionState::AUTHENTICATE_PASSWORD:
-			_SendGenericMessage("STATEFUL");
-			break;
+		case EConnectionState::SAYING_HI:
+		{
+			Json::Value JsonMessage;
+			JsonMessage["State"] = (uint8_t)_networkState;
+#if SPP_NETCONN_CRYPTO
+			JsonMessage["RSA"] = _rsaCipherLocal.GetPublicKey();
+			JsonMessage["AES"] = _rsaCipherRemote.EncryptString(_aesCipherShared.GetKey());
+			JsonMessage["REMOTENAME"] = _rsaCipherRemote.EncryptString(GetOSNetwork().HostName);
+#else
+			JsonMessage["REMOTENAME"] = GetOSNetwork().HostName;
+#endif
+			_SendJsonMessage(JsonMessage);
+		}
+		break;
 		case EConnectionState::CONNECTED:
 			_SendGenericMessage("Ping");
 			break;
@@ -139,6 +145,209 @@ namespace SPP
 			//do nothing for others...
 			break;
 		}
+	}
+
+	void NetworkConnection::CLIENT_SendState()
+	{
+		switch (_networkState)
+		{
+		case EConnectionState::SAYING_HI:
+		{
+			Json::Value JsonMessage;
+#if SPP_NETCONN_CRYPTO
+			JsonMessage["RSA"] = _rsaCipherLocal.GetPublicKey();
+#endif
+			_SendJsonMessage(JsonMessage);
+		}
+		break;
+		//all data beyond AES shares are fully encrypted
+		case EConnectionState::CLIENT_AUTHENTICATE_PASSWORD:
+		{
+			Json::Value JsonMessage;
+			JsonMessage["REMOTENAME"] = GetOSNetwork().HostName; 
+			JsonMessage["PASSWORD"] = _serverPassword;
+			_SendJsonMessage(JsonMessage);
+		}
+		break;
+		case EConnectionState::CONNECTED:
+			_SendGenericMessage("Ping");
+			break;
+		default:
+			//do nothing for others...
+			break;
+		}
+	}
+
+	void NetworkConnection::CLIENT_ProcessControlMessages(Json::Value& jsonMessage)
+	{
+		Json::Value Message = jsonMessage.get("Message", Json::Value::nullSingleton());
+		Json::Value RemoteState = jsonMessage.get("State", Json::Value::nullSingleton());
+
+		if (RemoteState.isNull())
+		{
+			return;
+		}
+
+		EConnectionState msgState = (EConnectionState)RemoteState.asUInt();
+		std::string MessageString = Message.isNull() ? "" : Message.asCString();
+
+		SPP_LOG(LOG_NETCON, LOG_VERBOSE, "CLIENT_PCM: %s", NetStateStrings[(uint8_t)msgState]);
+
+		if (StartsWith(MessageString, "Disconnect"))
+		{
+			CloseDown(MessageString.c_str());
+			return;
+		}
+
+		// using our state we should know the exact flow
+		switch (_networkState)
+		{
+#if SPP_NETCONN_CRYPTO
+		case EConnectionState::SAYING_HI:
+		{
+			Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
+			Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
+			Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
+
+			if (!RSAValue.isNull() && !AESValue.isNull() && !RemoteNameValue.isNull())
+			{
+				std::string RSAString = RSAValue.asCString();
+				
+				std::string AESString = _rsaCipherLocal.DecryptString(AESValue.asCString());
+				_remoteName = _rsaCipherLocal.DecryptString(RemoteNameValue.asCString());
+
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received Public RSA Key: %s", RSAString.c_str());
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received AES Key: %s", AESString.c_str());
+				_rsaCipherRemote.SetPublicKey(RSAString);
+				_aesCipherShared.SetKey(AESString);
+				_SetState(EConnectionState::CLIENT_AUTHENTICATE_PASSWORD);
+			}
+		}
+		break;
+		case EConnectionState::CLIENT_AUTHENTICATE_PASSWORD:
+		{
+			if (msgState == EConnectionState::CONNECTED)
+			{
+				
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "CONNECTED TO SERVER!!! %s", _remoteName.c_str());
+				_SetState(EConnectionState::CONNECTED);
+			}
+			break;
+		}
+#else
+		case EConnectionState::C_SAYING_HI:
+			if (msgState == EConnectionState::CONNECTED)
+			{
+				_SetState(EConnectionState::CONNECTED);
+			}
+			break;
+#endif
+		case EConnectionState::CONNECTED:
+			if (MessageString == "Ping")
+			{
+				_SendGenericMessage("Pong");
+			}
+			else if (MessageString == "Pong")
+			{
+				_lastKeepAlive = std::chrono::steady_clock::now();
+			}
+			break;
+		}
+	}
+
+	void NetworkConnection::SERVER_ProcessControlMessages(Json::Value& jsonMessage)
+	{
+		Json::Value Message = jsonMessage.get("Message", Json::Value::nullSingleton());
+		Json::Value RemoteState = jsonMessage.get("State", Json::Value::nullSingleton());
+
+		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
+		Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
+
+		if (RemoteState.isNull())
+		{
+			return;
+		}
+
+		EConnectionState msgState = (EConnectionState)RemoteState.asUInt();
+		std::string MessageString = Message.isNull() ? "" : Message.asCString();
+
+		SPP_LOG(LOG_NETCON, LOG_VERBOSE, "SERVER_PCM: %s", NetStateStrings[(uint8_t)msgState]);
+
+		if (MessageString == "Disconnect")
+		{
+			CloseDown("Disconnect Message Received");
+			return;
+		}
+
+		// using our state we should know the exact flow
+		switch (_networkState)
+		{
+#if SPP_NETCONN_CRYPTO
+		case EConnectionState::SERVER_WAITING:
+		{
+			Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
+			if (!RSAValue.isNull())
+			{
+				std::string RSAString = RSAValue.asCString();
+				_rsaCipherRemote.SetPublicKey(RSAString);
+				
+				_SetState(EConnectionState::SAYING_HI);
+			}
+		}
+		break;
+		case EConnectionState::SAYING_HI:
+		{
+			Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
+			Json::Value PasswordValue = jsonMessage.get("PASSWORD", Json::Value::nullSingleton());
+
+			if (!PasswordValue.isNull() && !RemoteNameValue.isNull())
+			{
+				std::string PasswordString = PasswordValue.asCString();
+
+				SPP_LOG(LOG_NETCON, LOG_WARNING, "Checking Password %s to %s", PasswordString.c_str(), _serverPassword.c_str());
+
+				if (PasswordValue == _serverPassword)
+				{
+					_remoteName = RemoteNameValue.asCString();
+
+					SPP_LOG(LOG_NETCON, LOG_WARNING, " - PASSWORD VALID");
+					SPP_LOG(LOG_NETCON, LOG_WARNING, "CLIENT CONNECTED!!! %s", _remoteName.c_str());
+					_SetState(EConnectionState::CONNECTED);
+				}
+				else
+				{
+					CloseDown("Invalid Password");
+				}
+			}
+		}
+		break;
+#else
+		case EConnectionState::S_WAITING:
+			if (MessageString == "C_SAYING_HI")
+			{
+				_SetState(EConnectionState::CONNECTED);
+			}
+			break;
+#endif
+		case EConnectionState::CONNECTED:
+			if (MessageString == "Ping")
+			{
+				_SendGenericMessage("Pong");
+			}
+			else if (MessageString == "Pong")
+			{
+				_lastKeepAlive = std::chrono::steady_clock::now();
+			}
+			break;
+		}
+	}
+
+	void NetworkConnection::_SendState()
+	{
+		_PingTimer.Reset();
+
+		if (_bIsServer) SERVER_SendState();
+		else CLIENT_SendState();
 	}
 
 	//
@@ -165,58 +374,23 @@ namespace SPP
 		_AppendToOutoing(MessageData, (uint16_t)MessageData.Size());
 	}
 
-	/// <summary>
-	/// 
-	/// </summary>
-	/// <param name="Message"></param>
-	void NetworkConnection::_SendGenericMessage(const char *Message)
+	void NetworkConnection::_SendJsonMessage(Json::Value& jsonMessage)
 	{
-		SPP_LOG(LOG_NETCON, LOG_VERBOSE, "GUID: %s SendGenericMessage: %s", _localGUID.c_str(), Message);
-
-		Json::Value JsonMessage;
-
-		JsonMessage["Message"] = Message;
-		JsonMessage["State"] = (uint8_t)_networkState;
-		JsonMessage["GUID"] = _localGUID;
-
-#if SPP_NETCONN_CRYPTO
-		if (_networkState < EConnectionState::AUTHENTICATE_PASSWORD)
-		{
-			JsonMessage["RSA"] = _rsaCipherLocal.GetPublicKey();
-
-			if (!_bIsServer && _rsaCipherRemote.CanEncrypt())
-			{
-				JsonMessage["AES"] = _rsaCipherRemote.EncryptString(_aesCipherShared.GetKey());
-			}
-
-			if (_rsaCipherRemote.CanEncrypt())
-			{
-				JsonMessage["REMOTENAME"] = _rsaCipherRemote.EncryptString(GetOSNetwork().HostName);
-			}
-		}
-		else if (_networkState == EConnectionState::AUTHENTICATE_PASSWORD)
-		{
-			if (!_bIsServer)
-			{
-				JsonMessage["PASSWORD"] = _serverPassword;
-			}
-		}
-				
-#endif
+		jsonMessage["State"] = (uint8_t)_networkState;
+		jsonMessage["GUID"] = _localGUID;
 
 		bool bIsEncrypted = false;
 		Json::StreamWriterBuilder wbuilder;
-		std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
+		std::string StrMessage = Json::writeString(wbuilder, jsonMessage);
 
 		std::vector<uint8_t> oData;
 
 #if SPP_NETCONN_CRYPTO		
-		if (_networkState == EConnectionState::AUTHENTICATE_PASSWORD ||
-			_networkState == EConnectionState::CONNECTED)
+		if (_networkState > EConnectionState::FULL_ENCRYPTION_START)
 		{
 			bIsEncrypted = true;
 			EncryptData(StrMessage.data(), StrMessage.size(), oData);
-		}		
+		}
 		else
 		{
 			oData.insert(oData.begin(), StrMessage.begin(), StrMessage.end());
@@ -228,176 +402,18 @@ namespace SPP
 		_SendJSONConstrolMessage(oData, bIsEncrypted);
 	}
 
-	void NetworkConnection::CLIENT_ProcessControlMessages(Json::Value &jsonMessage)
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="Message"></param>
+	void NetworkConnection::_SendGenericMessage(const char *Message)
 	{
-		Json::Value Message = jsonMessage.get("Message", Json::Value::nullSingleton());
-		Json::Value RemoteState = jsonMessage.get("State", Json::Value::nullSingleton());
-		Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
-		Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
-		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
-		Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
-
-		if (RemoteState.isNull() || Message.isNull())
-		{
-			return;
-		}
-
-		EConnectionState msgState = (EConnectionState)RemoteState.asUInt();
-		std::string MessageString = Message.asCString();
-				
-		if (StartsWith(MessageString, "Disconnect"))
-		{
-			CloseDown(MessageString.c_str());
-			return;
-		}
-
-		// using our state we should know the exact flow
-		switch (_networkState)
-		{
-#if SPP_NETCONN_CRYPTO
-		case EConnectionState::C_SAYING_HI:
-			if (!RSAValue.isNull())
-			{
-				std::string RSAString = RSAValue.asCString();
-				_rsaCipherRemote.SetPublicKey(RSAString);
-
-				if (!RemoteNameValue.isNull())
-				{
-					std::string RemoteNameString = RemoteNameValue.asCString();
-					_remoteName = _rsaCipherLocal.DecryptString(RemoteNameString);
-				}
-
-				SPP_LOG(LOG_NETCON, LOG_WARNING, "Remote Name: %s", _remoteName.c_str());
-				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received Public RSA Key: %s", RSAString.c_str());
-				_SetState(EConnectionState::C_SENDING_SHARED_KEY);
-			}
-			break;
-		case EConnectionState::C_SENDING_SHARED_KEY:
-			if (msgState == EConnectionState::AUTHENTICATE_PASSWORD)
-			{
-				_SetState(EConnectionState::AUTHENTICATE_PASSWORD);
-			}
-			break;
-		case EConnectionState::AUTHENTICATE_PASSWORD:
-			if (msgState == EConnectionState::CONNECTED)
-			{
-				_SetState(EConnectionState::CONNECTED);
-			}
-			break;
-#else
-		case EConnectionState::C_SAYING_HI:
-			if (msgState == EConnectionState::CONNECTED)
-			{
-				_SetState(EConnectionState::CONNECTED);
-			}
-			break;
-#endif
-		case EConnectionState::CONNECTED:
-			if (MessageString == "Ping")
-			{
-				_SendGenericMessage("Pong");
-			}
-			else if (MessageString == "Pong")
-			{
-				_lastKeepAlive = std::chrono::steady_clock::now();
-			}
-			break;
-		}
+		Json::Value JsonMessage;
+		JsonMessage["Message"] = Message;
+		_SendJsonMessage(JsonMessage);
 	}
 
-	void NetworkConnection::SERVER_ProcessControlMessages(Json::Value& jsonMessage)
-	{		
-		Json::Value Message = jsonMessage.get("Message", Json::Value::nullSingleton());
-		Json::Value RemoteState = jsonMessage.get("State", Json::Value::nullSingleton());
-		Json::Value RSAValue = jsonMessage.get("RSA", Json::Value::nullSingleton());
-		Json::Value AESValue = jsonMessage.get("AES", Json::Value::nullSingleton());
-		Json::Value RemoteGUIDValue = jsonMessage.get("GUID", Json::Value::nullSingleton());
-		Json::Value PasswordValue = jsonMessage.get("PASSWORD", Json::Value::nullSingleton());
-		Json::Value RemoteNameValue = jsonMessage.get("REMOTENAME", Json::Value::nullSingleton());
-
-		if (RemoteState.isNull() || Message.isNull())
-		{
-			return;
-		}
-
-		EConnectionState msgState = (EConnectionState)RemoteState.asUInt();
-		std::string MessageString = Message.asCString();
-
-		if (MessageString == "Disconnect")
-		{
-			CloseDown("Disconnect Message Received");
-			return;
-		}
-
-		// using our state we should know the exact flow
-		switch (_networkState)
-		{
-#if SPP_NETCONN_CRYPTO
-		case EConnectionState::S_WAITING:
-			if (!RSAValue.isNull())
-			{
-				std::string RSAString = RSAValue.asCString();
-				_rsaCipherRemote.SetPublicKey(RSAString);
-				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received Public RSA Key: %s", RSAString.c_str());
-				_SetState(EConnectionState::S_SENDING_PUBLIC_KEY);
-			}
-			break;
-		case EConnectionState::S_SENDING_PUBLIC_KEY:
-			if (!AESValue.isNull())
-			{
-				std::string AESString = AESValue.asCString();
-				AESString = _rsaCipherLocal.DecryptString(AESString);
-
-				if (!RemoteNameValue.isNull())
-				{
-					std::string RemoteNameString = RemoteNameValue.asCString();
-					_remoteName = _rsaCipherLocal.DecryptString(RemoteNameString);
-				}
-
-				SPP_LOG(LOG_NETCON, LOG_WARNING, "Remote Name: %s", _remoteName.c_str());
-				SPP_LOG(LOG_NETCON, LOG_WARNING, "Received AES Key: %s", AESString.c_str());
-				_aesCipherShared.SetKey(AESString);
-				_SetState(EConnectionState::AUTHENTICATE_PASSWORD);
-			}			
-			break;
-		case EConnectionState::AUTHENTICATE_PASSWORD:
-			if (!PasswordValue.isNull())
-			{
-				std::string PasswordString = PasswordValue.asCString();
-
-				SPP_LOG(LOG_NETCON, LOG_WARNING, "Checking Password %s to %s", PasswordString.c_str(), _serverPassword.c_str());
-
-				if (PasswordValue == _serverPassword)
-				{		
-					SPP_LOG(LOG_NETCON, LOG_WARNING, " - PASSWORD VALID");
-					_SetState(EConnectionState::CONNECTED);
-				}
-				else
-				{
-					CloseDown("Invalid Password");
-				}
-			}
-			break;
-#else
-		case EConnectionState::S_WAITING:
-			if (MessageString == "C_SAYING_HI")
-			{
-				_SetState(EConnectionState::CONNECTED);
-			}
-			break;
-#endif
-		case EConnectionState::CONNECTED:
-			if (MessageString == "Ping")
-			{
-				_SendGenericMessage("Pong");
-			}
-			else if (MessageString == "Pong")
-			{
-				_lastKeepAlive = std::chrono::steady_clock::now();
-			}
-			break;
-		}
-	}
+	
 
 #if SPP_NETCONN_CRYPTO
 	void NetworkConnection::EncryptData(const void* InData, size_t DataLength, std::vector<uint8_t>& oData)
@@ -481,23 +497,24 @@ namespace SPP
 
 	void NetworkConnection::Connect()
 	{
-		_SetState(EConnectionState::C_SAYING_HI);
+		_SetState(EConnectionState::SAYING_HI);
 	}
 
 	void NetworkConnection::_SetState(EConnectionState InState)
 	{
 		SE_ASSERT((uint8_t)InState < ARRAY_SIZE(NetStateStrings));
-		
+
 		if (_networkState != InState)
 		{
-			SPP_LOG(LOG_NETCON, LOG_INFO, "GUID: %s SetState: %s from %s", 
-				_localGUID.c_str(),
-				NetStateStrings[(uint8_t)InState], 
-				NetStateStrings[(uint8_t)_networkState]);
+			SPP_LOG(LOG_NETCON, LOG_INFO, "(%s) : SetState: %s from %s, GUID: %s",
+				_bIsServer ? "server" : "client",
+				NetStateStrings[(uint8_t)InState],
+				NetStateStrings[(uint8_t)_networkState],
+				_localGUID.c_str());
 			_networkState = InState;
+
+			_SendState();
 		}
-		
-		_SendState();
 	}
 
 	// connection state

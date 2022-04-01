@@ -22,17 +22,17 @@ namespace SPP
 	{
 		UNKNOWN = 0,
 
-		S_WAITING = 1,
-		S_SENDING_PUBLIC_KEY = 2,
-		
-		C_SAYING_HI = 3,
-		C_SENDING_SHARED_KEY = 4,
-		
-		AUTHENTICATE_PASSWORD = 5,
+		DISCONNECTED,
 
-		CONNECTED = 6,
-		DISCONNECTED = 7,
-		STATE_COUNT = 8
+		SERVER_WAITING,
+		SAYING_HI,
+		
+		FULL_ENCRYPTION_START,
+
+		CLIENT_AUTHENTICATE_PASSWORD,
+		CONNECTED,
+		
+		STATE_COUNT
 	};
 
 	namespace EMessageMask
@@ -146,10 +146,19 @@ namespace SPP
 		void _SendJSONConstrolMessage(const std::vector<uint8_t> &Data, bool Encrypted);
 		void _SendGenericMessage(const char* Message);
 
+		void _SendJsonMessage(Json::Value& jsonMessage);
+
+		void SERVER_SendState();
+		void CLIENT_SendState();
+
 		void _SendState();
 		void _SetState(EConnectionState InState);
 		
 		virtual void _RawSend(const void* buf, uint16_t DataLength);
+
+		void SERVER_ProcessControlMessages(Json::Value& jsonMessage);
+		void CLIENT_ProcessControlMessages(Json::Value& jsonMessage);
+		void ProcessControlMessages(const std::vector<uint8_t>& ControlMsg, bool Encrypted);
 
 	public:
 		NetworkConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool bIsServer);
@@ -233,10 +242,6 @@ namespace SPP
 		
 		// connection state
 		virtual void Tick();
-		
-		void SERVER_ProcessControlMessages(Json::Value& jsonMessage);
-		void CLIENT_ProcessControlMessages(Json::Value& jsonMessage);
-		void ProcessControlMessages(const std::vector<uint8_t>& ControlMsg, bool Encrypted);
 
 		virtual int32_t GetBufferedAmount() const override;
 		virtual int32_t GetBufferedMessageCount() const override;
