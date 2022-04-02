@@ -78,7 +78,6 @@ static std::vector<uint8_t> startMessage = { 0, 1, 2, 3 };
 static std::vector<uint8_t> endMessage = { 3, 2, 1, 0 };
 static std::atomic_bool bDCRequest{ 0 };
 
-
 class SimpleJSONPeerReader
 {
 protected:
@@ -753,15 +752,6 @@ public:
 };
 
 
-bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string& OutValue)
-{
-	if (StartsWith(InCmdLn, InValue))
-	{
-		OutValue = std::string(InCmdLn.begin() + InValue.size(), InCmdLn.end());
-		return true;
-	}
-	return false;
-}
 
 template<typename T>
 struct LocalBTEWatcher : public IBTEWatcher
@@ -828,25 +818,15 @@ void SPPApp(int argc, char* argv[])
 #if PLATFORM_WINDOWS
 	AddDLLSearchPath("../3rdParty/libav/bin");
 #endif
-	std::string IPMemoryID;
-	std::string AppPath;
-	std::string AppCommandline;
 
-	for (int i = 0; i < argc; ++i)
-	{
-		SPP_LOG(LOG_APP, LOG_INFO, "CC(%d):%s", i, argv[i]);
+	auto CCMap = std::BuildCCMap(argc, argv);
+	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
 
-		auto Arg = std::string(argv[i]);
-		ParseCC(Arg, "-MEM=", IPMemoryID);
-		ParseCC(Arg, "-APP=", AppPath);
-		ParseCC(Arg, "-CMDLINE=", AppCommandline);
-	}
+	SE_ASSERT(IPMemoryID);
 
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID.c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
+	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
     
-	IPCMappedMemory ipcMem(IPMemoryID.c_str(), 2 * 1024 * 1024, false);
+	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 2 * 1024 * 1024, false);
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());

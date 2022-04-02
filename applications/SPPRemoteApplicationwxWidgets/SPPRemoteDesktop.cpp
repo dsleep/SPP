@@ -2,6 +2,8 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
+// Currently PC only!!!
+
 
 // Windows Header Files
 #include <windows.h>
@@ -15,7 +17,6 @@
 #include <optional>
 #include <sstream>
 #include <set>
- 
 
 #include "SPPString.h"
 #include "SPPEngine.h"
@@ -36,8 +37,6 @@
 
 #include "SPPPlatformCore.h"
 
-#define MAX_LOADSTRING 100
-
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace std::chrono_literals;
@@ -51,6 +50,13 @@ std::string GIPCMemoryID;
 std::unique_ptr< IPCMappedMemory > GIPCMem;
 const int32_t MemSize = 2 * 1024 * 1024;
 
+/// <summary>
+/// Handles the functionality for all javascript->native calls.
+/// 
+/// In JS call native via window.CallNativeWithJSON 
+/// </summary>
+/// <param name="InFunc"></param>
+/// <param name="InValue"></param>
 void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 {
 	uint32_t jsonParamCount = InValue.isNull() ? 0 : InValue.size();
@@ -102,18 +108,10 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 
 }
 
-///////////////////////////////////////
-//
-///////////////////////////////////////
-
-struct HostFromCoord
-{
-	std::string NAME;
-	std::string APPNAME;
-	std::string APPCL;
-	std::string GUID;
-};
-
+/// <summary>
+/// Generic Status update coming from the child launched app "client" or "host"
+/// </summary>
+/// <param name="InJSON"></param>
 void UpdateStatus(Json::Value &InJSON)
 {
 	auto hasCoord = InJSON["COORD"].asUInt();
@@ -156,6 +154,9 @@ void UpdateStatus(Json::Value &InJSON)
 	}
 }
 
+/// <summary>
+/// Thread started up if you click host....
+/// </summary>
 void HostThread()
 {
 	GIPCMemoryID = std::generate_hex(3);
@@ -205,6 +206,10 @@ void HostThread()
 	}
 }
 
+
+/// <summary>
+/// Thread started up if you click connect to host
+/// </summary>
 void ClientThread()
 {
 	GIPCMemoryID = std::generate_hex(3);
@@ -299,6 +304,9 @@ void ClientThread()
 	}
 }
 
+/// <summary>
+/// Kill child works (host or client)
+/// </summary>
 void StopThread()
 {
 	if (GWorkerThread)
@@ -313,8 +321,6 @@ void StopThread()
 	}
 }
 
-
-
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
@@ -322,18 +328,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	UNREFERENCED_PARAMETER(hPrevInstance);
 
-	//Alloc Console
-	//print some stuff to the console
-	//make sure to include #include "stdio.h"
-	//note, you must use the #include <iostream>/ using namespace std
-	//to use the iostream... #incldue "iostream.h" didn't seem to work
-	//in my VC 6
+	//Alloc Console regardless of being on windows
 	AllocConsole();
 	freopen("conin$", "r", stdin);
 	freopen("conout$", "w", stdout);
 	freopen("conout$", "w", stderr);
 	printf("Debugging Window:\n");
 
+	// initialize our SPP core (logging, exceptions, ....)
 	SPP::IntializeCore(std::wstring_to_utf8(lpCmdLine).c_str());
 
 #if PLATFORM_WINDOWS

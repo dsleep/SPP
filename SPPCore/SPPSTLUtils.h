@@ -22,6 +22,17 @@ namespace SPP
 		return nullptr;
 	}
 
+	template<class MT>
+	typename MT::value_type::second_type MapFindOrDefault(const MT& InMap, const typename MT::value_type::first_type& InKey)
+	{
+		auto findIter = InMap.find(InKey);
+		if (findIter != InMap.end())
+		{
+			return (MT::value_type::second_type)findIter->second;
+		}
+		return MT::value_type::second_type();
+	}
+
 	template <typename K, typename V>
 	V& MapFindOrAdd(std::map <K, V>& m, const K& key)
 	{

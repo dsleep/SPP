@@ -560,15 +560,6 @@ public:
 	}
 };
 
-bool ParseCC(const std::string& InCmdLn, const std::string& InValue, std::string& OutValue)
-{
-	if (StartsWith(InCmdLn, InValue))
-	{
-		OutValue = std::string(InCmdLn.begin() + InValue.size(), InCmdLn.end());
-		return true;
-	}
-	return false;
-}
 
 std::string CoordPWD;
 IPv4_SocketAddress RemoteCoordAddres;
@@ -605,26 +596,20 @@ int main(int argc, char* argv[])
 	auto ThisRUNGUID = std::generate_hex(3);
 	AddDLLSearchPath("../3rdParty/libav_CUDA/bin");
 
-	std::string IPMemoryID;
-	std::string AppPath;
-	std::string AppCommandline;
 	std::string ClientRequestCommandline;
 
-	for (int i = 0; i < argc; ++i)
-	{
-		SPP_LOG(LOG_APP, LOG_INFO, "CC(%d):%s", i, argv[i]);
+	auto CCMap = std::BuildCCMap(argc, argv);
+	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
+	auto AppPath = MapFindOrDefault(CCMap, "APP");
+	auto AppCommandline = MapFindOrDefault(CCMap, "CMDLINE");
 
-		auto Arg = std::string(argv[i]);
-		ParseCC(Arg, "-MEM=", IPMemoryID);
-		ParseCC(Arg, "-APP=", AppPath);
-		ParseCC(Arg, "-CMDLINE=", AppCommandline);
-	}
+	SE_ASSERT(IPMemoryID);
 
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID.c_str());
+	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
 
-	IPCMappedMemory ipcMem(IPMemoryID.c_str(), 1 * 1024 * 1024, false);
+	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 1 * 1024 * 1024, false);
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
