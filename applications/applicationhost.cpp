@@ -31,7 +31,7 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
-#define PREVENT_INPUT 1
+#define PREVENT_INPUT 0
 
 struct handle_data {
 	uint32_t process_id;
