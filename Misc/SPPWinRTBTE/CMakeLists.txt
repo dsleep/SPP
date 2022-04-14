@@ -7,6 +7,9 @@ set_target_properties(SPPWinRTBTE PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX
 
 add_dependencies( SPPWinRTBTE SPPCore )
 
+set_property(TARGET SPPWinRTBTE PROPERTY CXX_STANDARD 17)
+
+
 # will need define to not create empty dll export
 target_compile_definitions(SPPWinRTBTE
 	PRIVATE

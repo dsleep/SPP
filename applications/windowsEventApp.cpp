@@ -346,7 +346,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     OpenGLApp curApp;
 
-    hWnd = curApp.CreateOpenGLWindow("minimal", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
+    hWnd = curApp.CreateOpenGLWindow((char*)"minimal", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
     if (hWnd == NULL)
     {
         exit(1);

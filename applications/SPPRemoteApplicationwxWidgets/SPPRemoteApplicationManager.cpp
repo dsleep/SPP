@@ -198,7 +198,8 @@ MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	Json::Value jsonData;
 	if (FileToJson("./RAMSettings.txt", jsonData))
 	{
-		JSONToPOD(std::ref(appConfig), jsonData);
+		//TODO FIXME
+		//JSONToPOD(std::ref(appConfig), jsonData);
 
 		MainEditBox->SetValue(appConfig.ApplicationPath.c_str());
 		ArgsEditBox->SetValue(appConfig.ApplicationArguments.c_str());
@@ -237,7 +238,8 @@ void MyFrame::SaveSettings()
 		(std::string)ArgsEditBox->GetValue().mb_str() );
 
 	Json::Value jsonData;
-	PODToJSON(std::ref(appConfig), jsonData);
+	//TODO FIXME
+	//PODToJSON(std::ref(appConfig), jsonData);
 	JsonToFile("./RAMSettings.txt", jsonData);	
 }
 

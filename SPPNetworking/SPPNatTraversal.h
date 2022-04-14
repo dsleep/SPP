@@ -16,19 +16,20 @@ namespace SPP
 		struct PlatImpl;
 		std::unique_ptr<PlatImpl> _impl;
 
-		void _RecvData(const IPv4_SocketAddress&, const void*, uint16_t);
-
 	public:
 		UDP_SQL_Coordinator(const IPv4_SocketAddress& InRemoteAddr);
 		UDP_SQL_Coordinator(uint16_t InPort, const std::vector<TableField>& InFields);
 		~UDP_SQL_Coordinator();
 
+		void SetPassword(const std::string& InPWD);
+
 		void SetSQLRequestCallback(std::function<void(const std::string&)> InReponseFunc);
 		void SQLRequest(const std::string& InSQL);
 		void SetKeyPair(const std::string& Key, const std::string& Value);
 		void GetLocalKeyValue(const std::string& Key, std::string& Value);
-		void Update();
+
 		bool IsConnected() const;
+		void Update();
 	};
 
 	class SPP_NETWORKING_API UDPJuiceSocket : public Interface_PeerConnection

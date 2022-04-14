@@ -69,18 +69,19 @@ else()
 	set(LIB_PATH_POSTFIX "" )	
 endif()
 
-set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
+if(OS_WINDOWS)
+	set(USE_CEF ON CACHE BOOL "Use CEF 3rd Party")
+else()
+	set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
+endif()
+
 set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
 set(USE_DX12 OFF CACHE BOOL "Use DX12")
 set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
 set(USE_VULKAN OFF CACHE BOOL "Use Vulkan")
-
-
 set(INCLUE_WEBSERVER ON CACHE BOOL "Include a webserver")
-
 set(USE_CRYPTOCPP ON CACHE BOOL "Include lib Cryptopp")
 set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
-
 set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
 set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
 set(USE_WINRT ON CACHE BOOL "Use C++/WinRt")
@@ -111,7 +112,6 @@ if(MSVC)
 
 	set(USE_VS_MULTIPROCESS ON CACHE BOOL "Use MultiProcessor compiling on VS")
 	
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
 	
 	if(USE_VS_MULTIPROCESS)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
@@ -121,7 +121,7 @@ if(MSVC)
 else()
 	
 	# set position independent
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -fPIC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
  
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -D_DEBUG")
