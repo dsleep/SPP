@@ -24,6 +24,8 @@ target_sources(SPPWinRTBTE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPWinRTBTE.h" 
 		)
 		
+target_compile_options(SPPWinRTBTE  PRIVATE "/std:c++17") # only internal
+
 target_compile_options( SPPWinRTBTE 
 	PRIVATE 
 		"/await"

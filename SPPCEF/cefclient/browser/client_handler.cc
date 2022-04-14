@@ -322,7 +322,7 @@ namespace client {
 		//DS
 		if (message_name == kJSONNativeMessage)
 		{
-			auto& ArgumentList = message->GetArgumentList();
+			auto ArgumentList = message->GetArgumentList();
 
 			if (ArgumentList->GetSize() == 1)
 			{
