@@ -121,7 +121,7 @@ if(MSVC)
 else()
 	
 	# set position independent
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fPIC")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++2a -fPIC")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
  
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -D_DEBUG")
