@@ -898,8 +898,8 @@ namespace SPP
 		wsaQuerySet.dwSize = sizeof(WSAQUERYSET);
 		wsaQuerySet.lpServiceClassId = &GBT_GUID._guid;
 		// should be something like "Sample Bluetooth Server"
-		wsaQuerySet.lpszServiceInstanceName = L"BT SERVER";
-		wsaQuerySet.lpszComment = L"SPP BT Service";
+		wsaQuerySet.lpszServiceInstanceName = (LPWSTR)L"BT SERVER";
+		wsaQuerySet.lpszComment = (LPWSTR)L"SPP BT Service";
 		wsaQuerySet.dwNameSpace = NS_BTH;
 		wsaQuerySet.dwNumberOfCsAddrs = 1;      // Must be 1.
 		wsaQuerySet.lpcsaBuffer = lpCSAddrInfo; // Required.
