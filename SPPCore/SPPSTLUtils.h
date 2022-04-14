@@ -28,7 +28,7 @@ namespace SPP
 		auto findIter = InMap.find(InKey);
 		if (findIter != InMap.end())
 		{
-			return (MT::value_type::second_type)findIter->second;
+			return (MT::value_type::template second_type)findIter->second;
 		}
 		return MT::value_type::second_type();
 	}
