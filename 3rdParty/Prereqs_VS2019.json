@@ -82,6 +82,11 @@
 		{
 			"Path": "civetweb",
 			"Version": 1
+		},
+		{
+			"Path": "libdatachannel",
+			"Version": 1,
+			"BinCopy": [ "bin/*.dll" ]
 		}
 	]
 }
