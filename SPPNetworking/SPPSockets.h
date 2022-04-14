@@ -11,6 +11,7 @@
 #include <list>
 #include <thread>
 #include <mutex>
+#include <functional>
 
 #define IDEAL_NETWORK_MESSAGE_SIZE 1024
 
@@ -203,6 +204,33 @@ namespace SPP
 						
 		virtual void Send(const void *buf, uint16_t BufferSize) override;
 		virtual int32_t Receive(void *buf, uint16_t InBufferSizee) override;
+	};
+
+	class Active_UDP_Socket
+	{
+	protected:
+		IPv4_SocketAddress _addr;
+		UDPSocketOptions::Value _socketType = { UDPSocketOptions::None };
+		bool _IsValid = false;
+		bool _bRunning = false;
+
+		std::function<void(const IPv4_SocketAddress&, const void*, uint16_t)> _recvFunc;
+
+		struct PlatImpl;
+		std::unique_ptr<PlatImpl> _impl;
+
+		std::unique_ptr<std::thread> _recvThread;
+		void _RunThread();
+
+	public:
+		Active_UDP_Socket(uint16_t InPort = 0, UDPSocketOptions::Value InSocketType = UDPSocketOptions::None);
+		~Active_UDP_Socket();
+
+		bool IsValid();
+
+		void SendTo(const IPv4_SocketAddress& Address, const void* buf, uint16_t BufferSize);
+		void StartReceiving(std::function<void(const IPv4_SocketAddress&, const void*, uint16_t)> RecvFunc);
+		void StopReceiving();
 	};
 
 #if _WIN32

@@ -781,6 +781,211 @@ namespace SPP
 		_sendBuffer.insert(_sendBuffer.end(), (uint8_t*)buf, (uint8_t*)buf + BufferSize);
 	}
 
+	///////////////////////////
+	// Active_UDP_Socket
+	///////////////////////////
+
+	struct Active_UDP_Socket::PlatImpl
+	{
+		SOCKET Socket = INVALID_SOCKET;
+
+		PlatImpl() { }
+		PlatImpl(SOCKET InSocket) : Socket(InSocket) { }
+	};
+
+	Active_UDP_Socket::Active_UDP_Socket(uint16_t InPort, UDPSocketOptions::Value InSocketType) :
+		_impl(new PlatImpl())
+	{
+		_socketType = InSocketType;
+
+		SPP_LOG(LOG_UDP, LOG_INFO, "Create ACTIVE BLOCKIG UDPSocket Port %d Type %d", InPort, InSocketType);
+
+		// Creating socket file descriptor 
+		if ((_impl->Socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+		{
+			SPP_LOG(LOG_UDP, LOG_WARNING, " - failed socket");
+			return; //return if socket cannot be created
+		}
+
+		if (_socketType == UDPSocketOptions::Broadcast)
+		{
+			sock_opt opt = 1;
+			if (setsockopt(_impl->Socket,
+				SOL_SOCKET,
+				SO_BROADCAST,
+				&opt,
+				sizeof(opt)))
+			{
+				return; //return if socket cannot be set to Broadcast
+			}
+		}
+
+		sockaddr_in address = { 0 };
+		address.sin_family = AF_INET;
+		address.sin_addr.s_addr = INADDR_ANY;
+		address.sin_port = htons(InPort);
+
+		if (InPort)
+		{
+			// Forcefully attaching socket to the port  
+			if (bind(_impl->Socket, (struct sockaddr*)&address, sizeof(address)) < 0)
+			{
+				SPP_LOG(LOG_UDP, LOG_WARNING, " - failed binding");
+				return;
+			}
+			else
+			{
+				SPP_LOG(LOG_UDP, LOG_WARNING, " - bound port");
+			}
+		}
+
+		int32_t bufsize = OS_SOCK_BUFFER_SIZES;
+		socklen_t len = sizeof(bufsize);
+		setsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (const char*)&bufsize, sizeof(int));
+		getsockopt(_impl->Socket, SOL_SOCKET, SO_RCVBUF, (char*)&bufsize, &len);
+		//SE_ASSERT(bufsize >= OS_SOCK_BUFFER_SIZES);
+		setsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (const char*)&bufsize, sizeof(int));
+		getsockopt(_impl->Socket, SOL_SOCKET, SO_SNDBUF, (char*)&bufsize, &len);
+		//SE_ASSERT(bufsize >= OS_SOCK_BUFFER_SIZES);
+		// where socketfd is the socket you want to make non-blocking
+
+
+
+#if _WIN32
+		u_long iMode = 1;
+		ioctlsocket(_impl->Socket, FIONBIO, &iMode);
+#else
+		fcntl(_impl->Socket, F_SETFL, fcntl(_impl->Socket, F_GETFL, 0) | O_NONBLOCK);
+#endif
+
+		len = sizeof(address);
+		if (getsockname(_impl->Socket, (struct sockaddr*)&address, &len) != -1)
+		{
+			_addr = ToIPv4_SocketAddress(address);
+		}
+
+		SPP_LOG(LOG_UDP, LOG_WARNING, " - socket created!!!");
+
+		_IsValid = true;
+	}
+
+	Active_UDP_Socket::~Active_UDP_Socket()
+	{
+		if (SOCKET_VALID(_impl->Socket))
+		{
+#if _WIN32
+			closesocket(_impl->Socket);
+#else
+			close(_impl->Socket);
+#endif
+		}
+
+		// in case it was
+		StopReceiving();
+	}
+
+	void Active_UDP_Socket::StartReceiving(std::function<void(const IPv4_SocketAddress&, const void*, uint16_t)> RecvFunc)
+	{
+		SE_ASSERT(!_recvThread);
+		_bRunning = true;
+		_recvFunc = RecvFunc;
+		_recvThread = std::make_unique<std::thread>(&Active_UDP_Socket::_RunThread, this);
+	}
+
+	void Active_UDP_Socket::StopReceiving()
+	{
+		if (_bRunning)
+		{
+			_bRunning = false;
+		}
+		if (_recvThread)
+		{
+			if (_recvThread->joinable())
+			{
+				_recvThread->join();
+			}
+			_recvThread = nullptr;
+		}
+	}
+
+	void Active_UDP_Socket::SendTo(const IPv4_SocketAddress& Address, const void* buf, uint16_t BufferSize)
+	{
+		sockaddr_in Platform_Addr = ToSockAddr_In(Address);
+		int32_t socketValue = sendto(_impl->Socket, (const char*)buf, (int)BufferSize, 0, (sockaddr*)&Platform_Addr, sizeof(sockaddr_in));
+
+		if (HAS_SOCKET_ERROR(socketValue))
+		{
+#if _WIN32
+			socketValue = WSAGetLastError();
+#endif
+			SPP_LOG(LOG_UDP, LOG_WARNING, "UDPSocket::SendTo error %d", socketValue);
+			return;
+		}
+
+		SE_ASSERT(socketValue == BufferSize);
+	}
+
+	void Active_UDP_Socket::_RunThread()
+	{
+		SE_ASSERT(_recvFunc);
+
+		struct pollfd fds;
+		fds.fd = _impl->Socket;
+		fds.events = POLLIN;
+
+		std::vector<uint8_t> localRecv;
+		localRecv.resize(1 * 1024 * 1024);
+
+		while (_bRunning)
+		{
+#if PLATFORM_WINDOWS
+			auto pollRet = WSAPoll(
+				&fds,
+				1,
+				3000
+			);
+#else
+			auto pollRet = poll(&fds, 1, 3000);
+#endif
+
+			if (pollRet == 0)
+			{
+				//timeout 
+			}
+			else if (pollRet < 0)
+			{
+				//error
+				break;
+			}
+			else
+			{
+				struct sockaddr_in Platform_Addr = { 0 };
+				Platform_Addr.sin_family = AF_INET;
+				Platform_Addr.sin_addr.s_addr = INADDR_ANY;
+
+				socklen_t SockLength = sizeof(sockaddr_in);
+				int32_t DataRecv = recvfrom(_impl->Socket, (char*)localRecv.data(), localRecv.size(),
+					0, (sockaddr*)&Platform_Addr, &SockLength);
+				auto Address = ToIPv4_SocketAddress(Platform_Addr);
+
+				if (HAS_SOCKET_ERROR(DataRecv))
+				{
+#if _WIN32
+					int errorCode = WSAGetLastError();
+					if (errorCode != WSAEWOULDBLOCK)
+					{
+						SPP_LOG(LOG_UDP, LOG_VERBOSE, "Active_UDP_Socket recvfrom error %d", errorCode);
+					}
+#endif
+				}
+				else if (DataRecv > 0)
+				{
+					_recvFunc(Address, localRecv.data(), DataRecv);
+				}
+			}
+		}
+	}
+
 	//BLUETOOTH
 #if _WIN32
 		
