@@ -28,7 +28,7 @@
 		},
 		{
 			"Path": "eigen",
-			"Version": 1
+			"Version": 2
 		},
 		{
 			"Path": "dxc",
@@ -67,7 +67,7 @@
 		},
 		{
 			"Path": "rttr",
-			"Version": 2,
+			"Version": 3,
 			"BinCopy": [ "bin/*.dll" ]
 		},
 		{
