@@ -15,6 +15,17 @@ project(SPPTests_API VERSION 1.0.0 LANGUAGES CXX)
 if(OS_WINDOWS)
 
 ##########
+add_executable( coroutineTest "")
+add_dependencies( coroutineTest SPPCoroutines )			
+target_sources( coroutineTest 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/coroutineTest.cpp" )		
+target_link_libraries( coroutineTest SPPCoroutines )
+set_target_properties( coroutineTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET coroutineTest PROPERTY FOLDER "TESTS")
+set_property(TARGET coroutineTest PROPERTY VS_DPI_AWARE "PerMonitor")
+
+##########
 add_executable( bluetoothTest "")
 add_dependencies( bluetoothTest SPPNetworking SPPWinRTBTE)			
 target_sources( bluetoothTest 

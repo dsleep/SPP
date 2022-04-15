@@ -150,6 +150,7 @@ include_directories( "${THIRD_PARTY}" )
 list(APPEND 
 		SPPProjects 
 			"SPPCore" 
+			"SPPCoroutines" 
 			"SPPDatabase" 
 			"SPPNetworking" 
 			"SPPMath"			
