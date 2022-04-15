@@ -6,6 +6,7 @@
 
 #include "SPPCore.h"
 #include <coroutine>
+#include <list>
 
 #if _WIN32 && !defined(SPP_COROUTINES_STATIC)
 
@@ -23,6 +24,9 @@
 
 namespace SPP
 {	
+	class coroutine_base;
+
+
 	class scheduler_base
 	{
 	protected:
@@ -32,24 +36,33 @@ namespace SPP
 	class simple_scheduler : public scheduler_base
 	{
 	protected:
+		std::list< std::shared_ptr< coroutine_base > > _coroutines;
+		std::shared_ptr< coroutine_base > _curActive;
+
 	public:
 
-		void run()
-		{
+		template<typename COROTYPE>
+		void Schedule(COROTYPE &&InCoroutine);
 
-		}
+		void RunOnce();
 	};
 
 	class coroutine_base 
 	{
+		friend class simple_scheduler;
+
 	protected:
-		std::shared_ptr< simple_scheduler > _scheduler;
+		simple_scheduler* _scheduler = nullptr;
 
 	public:
 		virtual bool resume() { return true; }
 	};
 
+
 	struct final_awaitable;
+
+	template<typename RT>
+	class coroutine;
 
 	class coroutine_promise_base
 	{
@@ -60,6 +73,11 @@ namespace SPP
 	class coroutine_promise : public coroutine_promise_base
 	{
 	public:
+		coroutine_promise()
+		{
+
+		}
+
 		using coro_handle = std::coroutine_handle<coroutine_promise<RT>>;
 
 		auto initial_suspend() noexcept { return std::suspend_always{}; }
@@ -77,17 +95,31 @@ namespace SPP
 		{
 			return data;
 		}
+
+		coroutine<RT> get_return_object() noexcept;
 	};
 
 	template<>
 	class coroutine_promise<void>
 	{
 	public:
+		coroutine_promise()
+		{
+
+		}
+		~coroutine_promise()
+		{
+
+		}
+		using coro_handle = std::coroutine_handle<coroutine_promise<void>>;
+
 		auto initial_suspend() noexcept { return std::suspend_always{}; }
 		auto final_suspend() noexcept { return std::suspend_always{}; }
 		void return_void() {}
 		void unhandled_exception() { std::terminate(); }
 		void result() {};
+
+		coroutine<void> get_return_object() noexcept;
 	};
 
 	class broken_promise : public std::logic_error
@@ -102,20 +134,54 @@ namespace SPP
 	template<typename RT = void>
 	class coroutine : public coroutine_base
 	{
+		
+
 	public:
+		using cororoutine_type = coroutine<RT>;
 		using promise_type = coroutine_promise<RT>;
 		using value_type = RT;
 		using coro_handle = std::coroutine_handle<promise_type>;
 
-		coroutine(coro_handle& handle)
-			: co_handle(handle)
-		{
-			assert(handle);
-		}
-		coroutine(coroutine&) = delete;
-		coroutine(coroutine&&) = delete;
+		coroutine() noexcept
+			: co_handle(nullptr)
+		{}
+		explicit coroutine(coro_handle InCoroutine)
+			: co_handle(InCoroutine)
+		{}
 
-		~coroutine() { co_handle.destroy(); }
+		coroutine(coroutine&& t) noexcept
+			: co_handle(t.co_handle)
+		{
+			t.co_handle = nullptr;
+		}
+
+		coroutine(coroutine&) = delete;
+		coroutine& operator=(const coroutine&) = delete;
+
+		~coroutine() 
+		{
+			if (co_handle)
+			{
+				co_handle.destroy();
+			}
+			co_handle = nullptr;
+		}
+
+		coroutine& operator=(coroutine&& other) noexcept
+		{
+			if (std::addressof(other) != this)
+			{
+				if (co_handle)
+				{
+					co_handle.destroy();
+				}
+
+				co_handle = other.co_handle;
+				other.co_handle = nullptr;
+			}
+
+			return *this;
+		}
 
 		virtual bool resume() override
 		{
@@ -128,22 +194,26 @@ namespace SPP
 
 		struct awaitable_base
 		{
+			cororoutine_type* _this = nullptr;
 			coro_handle m_coroutine;
+			simple_scheduler* _scheduler = nullptr;
 
-			awaitable_base(coro_handle coroutine) noexcept
-				: m_coroutine(coroutine)
+			awaitable_base(cororoutine_type *InThis) noexcept
 			{
+				_this = InThis;
+				m_coroutine = InThis->co_handle;
+				_scheduler = InThis->_scheduler;
 			}
 
-			bool await_ready() const noexcept { return !m_coroutine || m_coroutine.done(); }
+			bool await_ready() const noexcept { return false; }
 
 			template<typename PROMISE>
 			bool await_suspend(std::coroutine_handle<PROMISE> awaitingCoroutine) noexcept
 			{
-				//coroutinebase& promise = awaitingCoroutine.promise();
-				//promise._nestedcoroutine = awaitingCoroutine;
-				return false;
-				//m_coroutine.promise().try_set_continuation(awaitingCoroutine);
+				auto getPromise = awaitingCoroutine.promise();	
+				_scheduler->Schedule(std::move(*_this));
+
+				return false;				
 			}
 		};
 
@@ -164,7 +234,7 @@ namespace SPP
 				}
 			};
 
-			return awaitable{ co_handle };
+			return awaitable( (cororoutine_type *)this );
 		}
 
 		auto operator co_await() const&& noexcept
@@ -184,12 +254,40 @@ namespace SPP
 				}
 			};
 
-			return awaitable{ co_handle };
+			return awaitable( (cororoutine_type * )this );
 		}
 
 	private:
 		coro_handle co_handle;
-	};
+	}; 
+		
+	template<typename RT>
+	coroutine<RT> coroutine_promise<RT>::get_return_object() noexcept
+	{
+		return coroutine<RT>{ coro_handle::from_promise(*this) };
+	}
+
+	coroutine<void> coroutine_promise<void>::get_return_object() noexcept
+	{
+		return coroutine<void>{ coro_handle::from_promise(*this) };
+	}
+
+
+	void simple_scheduler::RunOnce()
+	{
+		for (auto& routine : _coroutines)
+		{
+			_curActive = routine;
+			routine->resume();
+		}
+	}
+
+	template<typename COROTYPE>
+	void simple_scheduler::Schedule(COROTYPE&& InCoroutine)
+	{
+		_coroutines.push_back(std::make_shared< COROTYPE >(std::move(InCoroutine)));
+		_coroutines.back()->_scheduler = this;
+	}
 
 	SPP_COROUTINES_API uint32_t GetCoroutineVersion();
 }
