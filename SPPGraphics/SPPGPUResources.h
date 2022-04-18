@@ -158,7 +158,7 @@ namespace SPP
         }
 
     public: 
-        Referencer(T* obj = nullptr) : obj(obj)
+        Referencer(T* InObj = nullptr) : obj(InObj)
         {
             if (obj)
             {

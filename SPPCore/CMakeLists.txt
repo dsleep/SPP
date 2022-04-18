@@ -31,6 +31,7 @@ target_sources(SPPCore
 		"${CMAKE_CURRENT_LIST_DIR}/SPPCore.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSTLUtils.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPReferenceCounter.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.h"

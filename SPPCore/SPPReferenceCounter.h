@@ -47,12 +47,20 @@ namespace SPP
         }
 
     public:
-        Referencer(T* obj = nullptr) : obj(obj)
+        Referencer(T* InObj = nullptr) : obj(InObj)
         {
             if (obj)
             {
                 obj->incRefCnt();
             }
+        }
+
+        template<typename K = T>
+        Referencer(Referencer<K>&& orig) 
+        {
+            static_assert(std::is_base_of_v<T, K>, "must be base of");
+
+            std::swap(obj, orig.obj);
         }
 
         Referencer(Referencer<T>& orig)
@@ -112,27 +120,31 @@ namespace SPP
             return obj == right.obj;
         }
 
-        Referencer<T>& operator= (Referencer<T>& right)
+        template<typename K>
+        Referencer<T>& operator= (const Referencer<K>& right)
         {
-            if (this == &right)
+            static_assert(std::is_base_of_v<T, K>, "must be base of");
+
+            if constexpr (std::is_same_v<T, K>)
             {
+                if (this == &right)
+                {
+                    return *this;
+                }
+                if (right.obj)
+                {
+                    right.obj->incRefCnt();
+                }
+                decRef();
+                obj = right.obj;
                 return *this;
             }
-            if (right.obj)
+            else
             {
-                right.obj->incRefCnt();
+                *this = reinterpret_cast<const Referencer<T>> (right);
             }
-            decRef();
-            obj = right.obj;
+
             return *this;
-        }
-
-        template<typename K>
-        Referencer<T>& operator= (Referencer<K>& right)
-        {
-            static_assert(std::is_base_of_v(T, K));
-
-            *this = reinterpret_cast<Referencer<T>>(right);
         }
 
         void Reset()
