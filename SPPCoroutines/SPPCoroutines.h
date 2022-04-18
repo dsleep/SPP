@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPReferenceCounter.h"
 #include <coroutine>
 #include <list>
 
