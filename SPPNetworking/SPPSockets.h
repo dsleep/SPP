@@ -175,7 +175,7 @@ namespace SPP
 		virtual bool Listen(uint16_t InPort);				
 		virtual std::shared_ptr<TCPSocket> Accept();	
 		virtual void Send(const void *buf, uint16_t BufferSize) override;
-		int32_t Receive(void *buf, uint16_t InBufferSizee)  override;
+		virtual int32_t Receive(void *buf, uint16_t InBufferSizee)  override;
 	};
 
 	class SPP_NETWORKING_API TCPSocketThreaded : public TCPSocket

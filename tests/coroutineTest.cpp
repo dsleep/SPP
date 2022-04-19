@@ -91,6 +91,23 @@ coroutine_refence<void> DoConnect()
     co_return;
 }
 
+class TestThis
+{
+private:
+    int32_t someData = 0;
+
+public:
+
+    coroutine_refence<void> DoConnect(int32_t Incoming)
+    {
+        someData++;
+
+        SPP_LOG(LOG_APP, LOG_INFO, "Pass 1");
+        co_await GetData();
+        SPP_LOG(LOG_APP, LOG_INFO, "Pass 2");
+        co_return;
+    }
+};
 
 
 int main(int argc, char* argv[])
@@ -98,6 +115,15 @@ int main(int argc, char* argv[])
     IntializeCore(nullptr);
 
     auto thisValue = DoConnect();
+
+    TestThis ourValue;
+
+    auto currentSlice = ourValue.DoConnect(0);
+
+    while (currentSlice.resume())
+    {
+
+    }
 
     while (thisValue.resume())
     {

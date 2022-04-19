@@ -29,6 +29,9 @@ target_sources(SPPNetworking
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNatTraversal.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNetworkConnection.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.h"
 		)
 
 target_include_directories(SPPNetworking 
@@ -61,6 +64,24 @@ if(USE_CRYPTOCPP AND USE_CRYPTOCPP_NETCONN)
 			SPPCrypto )
 endif()
 
+if(USE_LIBDATACHANNEL)
+	target_compile_definitions(SPPNetworking
+			PUBLIC
+				SPP_LIBDATACHANNEL_CRYPTO=1
+				RTC_ENABLE_WEBSOCKET=1 )
+
+	target_include_directories(SPPNetworking 
+	PRIVATE  	
+		"${THIRD_PARTY}/libdatachannel/include" )
+
+	target_link_directories(SPPNetworking 
+		PRIVATE		
+			"${THIRD_PARTY}/libdatachannel/lib" )
+		
+	target_link_libraries(SPPNetworking 
+		PRIVATE
+			debug datachanneld optimized datachannel )
+endif()
 
 if(OS_WINDOWS)
 
