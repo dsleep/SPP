@@ -13,6 +13,7 @@ namespace SPP
 	{
 	private:
 		IPv4_SocketAddress _addr;
+		IPv4_SocketAddress _remoteaddr;
 		bool _IsValid = false;
 
 		struct PlatImpl;
@@ -29,6 +30,7 @@ namespace SPP
 		virtual ~WebSocket();
 		bool IsValid() const;
 		const IPv4_SocketAddress& GetLocalAddress() const { return _addr; }
+		const IPv4_SocketAddress& GetRemoteAddress() const { return _remoteaddr; }
 
 
 		virtual void Connect(const std::string& Address);

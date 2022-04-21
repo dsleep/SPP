@@ -104,6 +104,10 @@ if(USE_OBJECTS)
 	add_definitions(-DUSE_OBJECTS=1)
 endif()
 
+if(USE_LIBDATACHANNEL)
+	add_definitions(-DUSE_LIBDATACHANNEL=1)
+endif()
+
 #General C++ Compiling
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -6,8 +6,7 @@
 #include "SPPWebSockets.h"
 #include "SPPLogging.h"
 
-#include "rtc/websocket.hpp"
-#include "rtc/websocketserver.hpp"
+#include "rtc/rtc.hpp"
 
 #include <string.h>
 #include <iostream>
@@ -31,13 +30,31 @@ namespace SPP
 		std::list< std::shared_ptr<rtc::WebSocket> > pendingWSSClients;
 	};
 
+	void InitLDCLogging()
+	{
+		static bool bIsInit = false;
+
+		if (!bIsInit)
+		{
+			rtcInitLogger(RTC_LOG_VERBOSE, [](rtcLogLevel level, const char* message)
+				{
+					SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "libdatachannel: %s", message);
+				});
+			bIsInit = true;
+		}			
+	}
+	
+
 	WebSocket::WebSocket() : _impl(new PlatImpl())
 	{
-
+		InitLDCLogging();
 	}
 	WebSocket::WebSocket(std::unique_ptr<PlatImpl>&& InImpl) : _impl(std::move(InImpl))
 	{
+		InitLDCLogging();
 
+		//TODO FIX UP
+		auto remoteAddr = InImpl->ws->remoteAddress();
 	}
 
 	WebSocket::~WebSocket()
@@ -83,13 +100,13 @@ namespace SPP
 		_impl->ws = std::make_shared<rtc::WebSocket>();
 
 		_impl->ws->onOpen([]() {
-			std::cout << "WebSocket onOpen" << std::endl;
+			SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "WEBSOCKET onOpen");
 			});
 		_impl->ws->onClosed([]() {
-			std::cout << "WebSocket onClosed" << std::endl;
+			SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "WEBSOCKET onClosed");
 			});
 		_impl->ws->onError([](std::string Error) {
-			std::cout << "WebSocket onError: " << Error << std::endl;
+			SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "WEBSOCKET onError: %s", Error.c_str());
 			});
 
 		_impl->ws->onMessage([_impl = _impl.get()](rtc::binary data) {
@@ -99,7 +116,7 @@ namespace SPP
 				_impl->data.insert(_impl->data.end(), castData.begin(), castData.end());
 			},
 			[](std::string data) {
-				std::cout << "WebSocket onMessage string" << std::endl;
+				SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "WEBSOCKET msg: %s", data.c_str());
 			});
 
 		_impl->ws->open(Address.c_str());		
@@ -107,12 +124,14 @@ namespace SPP
 
 	bool WebSocket::Listen(uint16_t InPort)
 	{
-		rtc::WebSocketServer::Configuration config;
+		rtc::WebSocketServer::Configuration config{};
 		config.port = InPort;
 
-		_impl->wss = std::make_shared<rtc::WebSocketServer>(config);
+		_impl->wss = std::make_shared<rtc::WebSocketServer>(std::move(config));
 		_impl->wss->onClient([_impl = _impl.get()](std::shared_ptr<rtc::WebSocket> InSocket)
 			{
+				SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "WEBSOCKET CLIENT CONNECTION");
+
 				std::unique_lock<std::mutex> lock(_impl->clienList);
 				_impl->pendingWSSClients.push_back(InSocket);
 			}); 
@@ -126,6 +145,8 @@ namespace SPP
 		std::unique_lock<std::mutex> lock(_impl->clienList);
 		if (!_impl->pendingWSSClients.empty())
 		{
+			SPP_LOG(LOG_WEBSOCKETS, LOG_INFO, "WebSocket::Accept getting connection");
+
 			auto platData = std::make_unique<PlatImpl>();
 			platData->ws = _impl->pendingWSSClients.back();
 			_impl->pendingWSSClients.pop_back();

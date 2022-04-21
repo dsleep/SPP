@@ -7,6 +7,10 @@
 #include "SPPLogging.h"
 #include <set>
 
+#if USE_LIBDATACHANNEL
+	#include "SPPWebSockets.h"
+#endif
+
 #include "SPPMemory.h"
 #include "SPPPlatformCore.h"
 
@@ -44,7 +48,7 @@ using namespace std::chrono_literals;
 
 int main(int argc, char* argv[])
 {
-    IntializeCore(nullptr);
+	IntializeCore(nullptr);
 
 	// START OS NETWORKING
 	GetOSNetwork();
@@ -65,7 +69,7 @@ int main(int argc, char* argv[])
 
 	if (bIsServer)
 	{
-		CreateChildProcess("networkTestd.exe", "-ISCLIENT");
+		//CreateChildProcess("networkTestd.exe", "-ISCLIENT");
 	}
 
 	SPP_LOG(LOG_APP, LOG_INFO, "NETTEST SERVER %d", bIsServer);
@@ -80,7 +84,17 @@ int main(int argc, char* argv[])
 
 	uint16_t PortNum = 33982;
 	IPv4_SocketAddress serverAddr("127.0.0.1", PortNum);
-	
+
+#if USE_LIBDATACHANNEL
+	std::shared_ptr< WebSocket > socketServer;
+	if (bIsServer)
+	{
+		socketServer = std::make_shared< WebSocket >();
+		socketServer->Listen(PortNum + 1);
+	}
+#endif
+
+
 	if (bIsServer)
 	{
 		_recvSocket = std::make_shared<UDPSocket>(PortNum);
@@ -97,6 +111,18 @@ int main(int argc, char* argv[])
 	{
 		IPv4_SocketAddress recvAddr;
 		auto DataRecv = _recvSocket->ReceiveFrom(recvAddr, recvBuffer.data(), recvBuffer.size());
+
+#if USE_LIBDATACHANNEL
+		if (socketServer)
+		{
+			auto newConnection = socketServer->Accept();
+			if(newConnection)
+			{
+				std::shared_ptr< TestConnection > currentClient = std::make_shared<TestConnection>(newConnection, true);
+				Clients[newConnection->GetRemoteAddress()] = currentClient;
+			}
+		}
+#endif
 
 		if (DataRecv > 0)
 		{
