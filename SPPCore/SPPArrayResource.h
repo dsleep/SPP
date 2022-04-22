@@ -73,7 +73,7 @@ namespace SPP
     {
     public:
         TArrayResource() : ArrayResource() {}
-        TArrayResource(int32_t InElementCount) : ArrayResource(sizeof(T) InPerElementSize, InElementCount) {}
+        TArrayResource(int32_t InElementCount) : ArrayResource(sizeof(T), InElementCount) {}
                 
         TSpan<T> Initialize(int32_t Count)
         {
