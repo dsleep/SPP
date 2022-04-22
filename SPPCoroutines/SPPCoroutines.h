@@ -57,17 +57,44 @@ namespace SPP
 		bool RunOnce();
 	};
 
+	class coroutine_base_refence : public Referencer< coroutine_base >
+	{
+	public:
+		coroutine_base_refence(coroutine_base* obj = nullptr) : Referencer< coroutine_base >(obj)
+		{
+		}
+
+		bool resume();
+
+		template<typename T>
+		void operator= (const coroutine_refence<T>& right)
+		{
+			coroutine_base* thisObj = right.RawGet();
+			Referencer< coroutine_base >::operator=(thisObj);
+		}
+	};
+
 	class coroutine_base : public ReferenceCounted
 	{
 		friend class simple_scheduler;
 
-	protected:
+	public:
+		coroutine_base_refence _nestedCoroutine;
 
 	public:
 		
 		virtual bool resume() { return true; }
 	};
 
+
+	bool coroutine_base_refence::resume()
+	{
+		if (this->obj)
+		{
+			return this->obj->resume();
+		}
+		return {};
+	}
 
 	struct final_awaitable;
 
@@ -120,9 +147,9 @@ namespace SPP
 		// void return_void() {}
 
 		// Place to hold the results produced by the coroutine
-		RT data;
+		RT data{};
 
-		void return_value(const RT& value) noexcept { data = std::move(value); }
+		void return_value(const RT& value) noexcept { data = value; }
 		void unhandled_exception() { std::terminate(); }
 
 		RT result()
@@ -166,12 +193,12 @@ namespace SPP
 		}
 	};
 
+	class coroutine_base_refence;
+
 	template<typename RT = void>
 	class coroutine : public coroutine_base
 	{
 	public:
-		coroutine_refence<void> _nestedCoroutine;
-
 		using cororoutine_type = coroutine<RT>;
 		using promise_type = coroutine_promise<RT>;
 		using value_type = RT;
@@ -244,13 +271,14 @@ namespace SPP
 	private:
 		coro_handle co_handle;
 	}; 
+
+	
 		
 	template<typename RT = void>
 	class coroutine_refence : public Referencer< coroutine<RT> >
 	{
 	private:
-
-		
+				
 	public:
 		using cororoutine_ref_type = coroutine_refence<RT>;
 		using cororoutine_type = coroutine<RT>;
@@ -292,9 +320,9 @@ namespace SPP
 
 		struct awaitable_base
 		{
-			const cororoutine_ref_type &_this;
+			const cororoutine_ref_type _this;
 
-			awaitable_base(const cororoutine_ref_type &InThis) noexcept : _this(InThis)
+			awaitable_base(const cororoutine_ref_type InThis) noexcept : _this(InThis)
 			{
 				
 			}
@@ -307,7 +335,7 @@ namespace SPP
 				auto& getPromise = awaitingCoroutine.promise();
 				auto owner = getPromise.GetOwner();
 				SE_ASSERT(owner);
-				reinterpret_cast< coroutine<void> *>(owner)->_nestedCoroutine = _this;
+				owner->_nestedCoroutine = _this;
 				return true;
 			}
 		};
@@ -340,7 +368,7 @@ namespace SPP
 			{
 				using awaitable_base::awaitable_base;
 
-				decltype(auto) await_resume()
+				auto await_resume()
 				{
 					auto thisCoro = _this.GetCoroutineHandle();
 

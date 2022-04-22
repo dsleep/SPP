@@ -73,20 +73,18 @@ coroutine_refence<void> OneLowereven()
     co_return;
 }
 
-coroutine_refence<void> GetData()
+coroutine_refence<int32_t> GetData()
 {
     SPP_LOG(LOG_APP, LOG_INFO, "hmm no data");
-
-    co_await OneLowereven();
+    //co_await OneLowereven();
     SPP_LOG(LOG_APP, LOG_INFO, "hmm no data2");
-
-    co_return;
+    co_return 12;
 }
 
 coroutine_refence<void> DoConnect()
 {
     SPP_LOG(LOG_APP, LOG_INFO, "Pass 1");
-    co_await GetData();
+    auto value = co_await GetData();
     SPP_LOG(LOG_APP, LOG_INFO, "Pass 2");
     co_return;
 }
@@ -114,17 +112,17 @@ int main(int argc, char* argv[])
 {
     IntializeCore(nullptr);
 
+
+    //TestThis ourValue;
+    //auto currentSlice = ourValue.DoConnect(0);
+
+    //while (currentSlice.resume())
+    //{
+
+    //}
+
+
     auto thisValue = DoConnect();
-
-    TestThis ourValue;
-
-    auto currentSlice = ourValue.DoConnect(0);
-
-    while (currentSlice.resume())
-    {
-
-    }
-
     while (thisValue.resume())
     {
 
