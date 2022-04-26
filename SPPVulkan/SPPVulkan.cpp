@@ -39,14 +39,14 @@ namespace SPP
 		uint32_t height = 720;
 
 		// Vulkan instance, stores all per-application states
-		VkInstance instance;
+		VkInstance instance = nullptr;
 		std::vector<std::string> supportedInstanceExtensions;
 		// Physical device (GPU) that Vulkan will use
-		VkPhysicalDevice physicalDevice;
+		VkPhysicalDevice physicalDevice = nullptr;
 		// Stores physical device properties (for e.g. checking device limits)
-		VkPhysicalDeviceProperties deviceProperties;
+		VkPhysicalDeviceProperties deviceProperties{ 0 };
 		// Stores the features available on the selected physical device (for e.g. checking if a feature is available)
-		VkPhysicalDeviceFeatures deviceFeatures;
+		VkPhysicalDeviceFeatures deviceFeatures{ 0 };
 		// Stores all available memory (type) properties for the physical device
 		VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
 		/** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
@@ -57,7 +57,7 @@ namespace SPP
 		/** @brief Optional pNext structure for passing extension structures to device creation */
 		void* deviceCreatepNextChain = nullptr;
 		/** @brief Logical device, application's view of the physical device (GPU) */
-		VkDevice device;
+		VkDevice device = nullptr;
 		// Handle to the device graphics queue that command buffers are submitted to
 		VkQueue queue;
 		// Depth buffer format (selected during Vulkan initialization)
@@ -127,8 +127,7 @@ namespace SPP
 			appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 			appInfo.pApplicationName = "SPP";
 			appInfo.pEngineName = "SPP";
-			appInfo.apiVersion = 1;
-
+			appInfo.apiVersion = 0;
 			std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
 			// Enable surface extensions depending on os
@@ -175,7 +174,7 @@ namespace SPP
 					// Output message if requested extension is not available
 					if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), enabledExtension) == supportedInstanceExtensions.end())
 					{
-						std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level\n";
+						SPP_LOG(LOG_VULKAN, LOG_INFO, "Enabled instance extension %s is not present at instance level", enabledExtension);
 					}
 					instanceExtensions.push_back(enabledExtension);
 				}
@@ -217,7 +216,7 @@ namespace SPP
 					instanceCreateInfo.enabledLayerCount = 1;
 				}
 				else {
-					std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
+					SPP_LOG(LOG_VULKAN, LOG_INFO, "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled");
 				}
 			}
 			return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
@@ -234,7 +233,7 @@ namespace SPP
 			// Vulkan instance
 			err = createInstance(settings.validation);
 			if (err) {
-				vks::tools::exitFatal("Could not create Vulkan instance : \n" + vks::tools::errorString(err), err);
+				SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not create Vulkan instance %s", vks::tools::errorString(err));
 				return false;
 			}
 
@@ -257,17 +256,20 @@ namespace SPP
 			// Get number of available physical devices
 			VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
 			if (gpuCount == 0) {
-				vks::tools::exitFatal("No device with Vulkan support found", -1);
+				SPP_LOG(LOG_VULKAN, LOG_ERROR, "No device with Vulkan support found");
 				return false;
 			}
 			// Enumerate devices
 			std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
 			err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
 			if (err) {
-				vks::tools::exitFatal("Could not enumerate physical devices : \n" + vks::tools::errorString(err), err);
+				SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not enumerate physical devices %s", vks::tools::errorString(err));
 				return false;
 			}
-
+			else
+			{
+				SPP_LOG(LOG_VULKAN, LOG_ERROR, "Vulkan found %d devices", gpuCount);
+			}
 			// GPU selection
 
 			// Select physical device to be used for the Vulkan example
@@ -286,14 +288,14 @@ namespace SPP
 			//	}
 			//}
 			//if (commandLineParser.isSet("gpulist")) {
-				std::cout << "Available Vulkan devices" << "\n";
-				for (uint32_t i = 0; i < gpuCount; i++) {
-					VkPhysicalDeviceProperties deviceProperties;
-					vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
-					std::cout << "Device [" << i << "] : " << deviceProperties.deviceName << std::endl;
-					std::cout << " Type: " << vks::tools::physicalDeviceTypeString(deviceProperties.deviceType) << "\n";
-					std::cout << " API: " << (deviceProperties.apiVersion >> 22) << "." << ((deviceProperties.apiVersion >> 12) & 0x3ff) << "." << (deviceProperties.apiVersion & 0xfff) << "\n";
-				}
+			SPP_LOG(LOG_VULKAN, LOG_INFO, "Available Vulkan devices");
+			for (uint32_t i = 0; i < gpuCount; i++) {
+				VkPhysicalDeviceProperties deviceProperties;
+				vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
+				SPP_LOG(LOG_VULKAN, LOG_INFO, "Device [%d] : %s", i, deviceProperties.deviceName);
+				SPP_LOG(LOG_VULKAN, LOG_INFO, " - Type: %s", vks::tools::physicalDeviceTypeString(deviceProperties.deviceType).c_str());
+				SPP_LOG(LOG_VULKAN, LOG_INFO, " - API: %d.%d.%d", (deviceProperties.apiVersion >> 22), ((deviceProperties.apiVersion >> 12) & 0x3ff), (deviceProperties.apiVersion & 0xfff));
+			}
 			//}
 #endif
 
@@ -313,12 +315,14 @@ namespace SPP
 			vulkanDevice = new vks::VulkanDevice(physicalDevice);
 			VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
 			if (res != VK_SUCCESS) {
-				vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(res), res);
+				SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not create Vulkan device: %s %d", vks::tools::errorString(res), res);
 				return false;
 			}
 			device = vulkanDevice->logicalDevice;
 
 			GGlobalVulkanDevice = device;
+
+			swapChain.connect(instance, physicalDevice, device);
 
 			// Get a graphics queue from the device
 			vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
@@ -326,8 +330,6 @@ namespace SPP
 			// Find a suitable depth format
 			VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
 			assert(validDepthFormat);
-
-			swapChain.connect(instance, physicalDevice, device);
 
 			// Create synchronization objects
 			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
@@ -464,6 +466,78 @@ namespace SPP
 			VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &depthStencil.view));
 		}
 
+		void setupRenderPass()
+		{
+			std::array<VkAttachmentDescription, 2> attachments = {};
+			// Color attachment
+			attachments[0].format = swapChain.colorFormat;
+			attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			// Depth attachment
+			attachments[1].format = depthFormat;
+			attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference colorReference = {};
+			colorReference.attachment = 0;
+			colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference depthReference = {};
+			depthReference.attachment = 1;
+			depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			VkSubpassDescription subpassDescription = {};
+			subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescription.colorAttachmentCount = 1;
+			subpassDescription.pColorAttachments = &colorReference;
+			subpassDescription.pDepthStencilAttachment = &depthReference;
+			subpassDescription.inputAttachmentCount = 0;
+			subpassDescription.pInputAttachments = nullptr;
+			subpassDescription.preserveAttachmentCount = 0;
+			subpassDescription.pPreserveAttachments = nullptr;
+			subpassDescription.pResolveAttachments = nullptr;
+
+			// Subpass dependencies for layout transitions
+			std::array<VkSubpassDependency, 2> dependencies;
+
+			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[0].dstSubpass = 0;
+			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			dependencies[1].srcSubpass = 0;
+			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			VkRenderPassCreateInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+			renderPassInfo.pAttachments = attachments.data();
+			renderPassInfo.subpassCount = 1;
+			renderPassInfo.pSubpasses = &subpassDescription;
+			renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+			renderPassInfo.pDependencies = dependencies.data();
+
+			VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+		}
+
 
 		void setupFrameBuffer()
 		{
@@ -495,6 +569,11 @@ namespace SPP
 
 		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
 		{
+#if PLATFORM_WINDOWS
+			window = (HWND)OSWindow;
+			windowInstance = GetModuleHandle(NULL);
+#endif
+
 			DeviceInitialize();			
 			initSwapchain();
 			width = InitialWidth;
@@ -503,8 +582,10 @@ namespace SPP
 			cmdPool = vulkanDevice->createCommandPool(swapChain.queueNodeIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 			setupSwapChain();
 			createCommandBuffers();
+			createSynchronizationPrimitives();
 
 			setupDepthStencil();
+			setupRenderPass();
 			setupFrameBuffer();
 		}
 
@@ -799,61 +880,67 @@ namespace SPP
 
 		virtual void BeginFrame()
 		{
-			//// Get next image in the swap chain (back/front buffer)
-			//VK_CHECK_RESULT(swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer));
+			// Acquire the next image from the swap chain
+			VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
+			// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
+			if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+				//windowResize();
+			}
+			else {
+				VK_CHECK_RESULT(result);
+			}
 
-			//// Use a fence to wait until the command buffer has finished execution before using it again
-			//VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-			//VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+			// Use a fence to wait until the command buffer has finished execution before using it again
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
 
-			/////
-			//VkCommandBufferBeginInfo cmdBufInfo = {};
-			//cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			//cmdBufInfo.pNext = nullptr;
+			VkCommandBufferBeginInfo cmdBufInfo = {};
+			cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			cmdBufInfo.pNext = nullptr;
 
-			//// Set clear values for all framebuffer attachments with loadOp set to clear
-			//// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
-			//VkClearValue clearValues[2];
-			//clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
-			//clearValues[1].depthStencil = { 1.0f, 0 };
+			// Set clear values for all framebuffer attachments with loadOp set to clear
+			// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
+			VkClearValue clearValues[2];
+			clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+			clearValues[1].depthStencil = { 1.0f, 0 };
 
-			//VkRenderPassBeginInfo renderPassBeginInfo = {};
-			//renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			//renderPassBeginInfo.pNext = nullptr;
-			//renderPassBeginInfo.renderPass = renderPass;
-			//renderPassBeginInfo.renderArea.offset.x = 0;
-			//renderPassBeginInfo.renderArea.offset.y = 0;
-			//renderPassBeginInfo.renderArea.extent.width = width;
-			//renderPassBeginInfo.renderArea.extent.height = height;
-			//renderPassBeginInfo.clearValueCount = 2;
-			//renderPassBeginInfo.pClearValues = clearValues;
-			//// Set target frame buffer
-			//renderPassBeginInfo.framebuffer = frameBuffers[currentBuffer];
+			VkRenderPassBeginInfo renderPassBeginInfo = {};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = renderPass;
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = width;
+			renderPassBeginInfo.renderArea.extent.height = height;
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
+			// Set target frame buffer
+			renderPassBeginInfo.framebuffer = frameBuffers[currentBuffer];
 
 
-			//auto& commandBuffer = drawCmdBuffers[currentBuffer];
+			auto& commandBuffer = drawCmdBuffers[currentBuffer];
 
-			//VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
-			//// Start the first sub pass specified in our default render pass setup by the base class
-			//// This will clear the color and depth attachment
-			//vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			// Start the first sub pass specified in our default render pass setup by the base class
+			// This will clear the color and depth attachment
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			//// Update dynamic viewport state
-			//VkViewport viewport = {};
-			//viewport.height = (float)height;
-			//viewport.width = (float)width;
-			//viewport.minDepth = (float)0.0f;
-			//viewport.maxDepth = (float)1.0f;
-			//vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+			// Update dynamic viewport state
+			VkViewport viewport = {};
+			viewport.height = (float)height;
+			viewport.width = (float)width;
+			viewport.minDepth = (float)0.0f;
+			viewport.maxDepth = (float)1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-			//// Update dynamic scissor state
-			//VkRect2D scissor = {};
-			//scissor.extent.width = width;
-			//scissor.extent.height = height;
-			//scissor.offset.x = 0;
-			//scissor.offset.y = 0;
-			//vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+			// Update dynamic scissor state
+			VkRect2D scissor = {};
+			scissor.extent.width = width;
+			scissor.extent.height = height;
+			scissor.offset.x = 0;
+			scissor.offset.y = 0;
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 			//// Bind descriptor sets describing shader binding points
 			//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
@@ -900,13 +987,18 @@ namespace SPP
 			// Submit to the graphics queue passing a wait fence
 			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
 
-			// Present the current buffer to the swap chain
-			// Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
-			// This ensures that the image is not presented to the windowing system until all commands have been submitted
-			VkResult present = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-			if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
-				VK_CHECK_RESULT(present);
+			VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+			if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					// Swap chain is no longer compatible with the surface and needs to be recreated
+					//windowResize();
+					return;
+				}
+				else {
+					VK_CHECK_RESULT(result);
+				}
 			}
+			//VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 		}
 		virtual void MoveToNextFrame() 
 		{
