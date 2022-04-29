@@ -94,6 +94,8 @@ namespace SPP
 			}
 		}
 
+		_entryPoint = EntryPoint;
+
 		return true;
 	}
 	

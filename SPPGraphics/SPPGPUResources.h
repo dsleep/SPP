@@ -204,11 +204,17 @@ namespace SPP
     {
     protected:
         EShaderType _type;
+        std::string _entryPoint;
 
     public:
         GPUShader(EShaderType InType) : _type(InType)
         {
 
+        }
+
+        const std::string &GetEntryPoint() 
+        {
+            return _entryPoint;
         }
 
         virtual const char* GetName() const override
