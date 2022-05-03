@@ -178,7 +178,7 @@ private:
 	Vector2i _mousePosition = { -1, -1 };
 	Vector2i _mouseCaptureSpot = { -1, -1 };
 	std::chrono::high_resolution_clock::time_point _lastTime;
-	std::shared_ptr< SPP::MeshMaterial > _gizmoMat;	
+	//std::shared_ptr< SPP::MeshMaterial > _gizmoMat;	
 
 	OMesh* _moveGizmo = nullptr;
 	OMesh* _rotateGizmo = nullptr;
@@ -406,12 +406,18 @@ public:
 			);
 		}
 
-#ifdef _DEBUG
-		LoadLibraryA("SPPDX12d.dll");
-#else
-		LoadLibraryA("SPPDX12.dll");
-#endif
+//#ifdef _DEBUG
+//		LoadLibraryA("SPPDX12d.dll");
+//#else
+//		LoadLibraryA("SPPDX12.dll");
+//#endif
 				
+#ifdef _DEBUG
+		LoadLibraryA("SPPVulkand.dll");
+#else
+		LoadLibraryA("SPPVulkan.dll");
+#endif
+
 		GetSDFVersion();
 		
 		RECT rect;
@@ -445,26 +451,37 @@ public:
 		//_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
 		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
 
-		_gizmoMat = std::make_shared< MeshMaterial >();
-		//_gizmoMat->depthState = EDepthState::Disabled;
-		_gizmoMat->rasterizerState = ERasterizerState::NoCull;
-		_gizmoMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
-		_gizmoMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
+		auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
+		SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
-		_gizmoMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
-		_gizmoMat->pixelShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_ps");
+		auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
+		SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
-		_gizmoMat->layout = GGI()->CreateInputLayout();
-		_gizmoMat->layout->InitializeLayout({
-				{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },
-				{ "COLOR",  SPP::InputLayoutElementType::UInt, offsetof(SPP::MeshVertex,color) } });
+
+		//TODO 
+
+		//_gizmoMat = std::make_shared< MeshMaterial >();
+		////_gizmoMat->depthState = EDepthState::Disabled;
+		//_gizmoMat->rasterizerState = ERasterizerState::NoCull;
+		//_gizmoMat->vertexShader = GGI()->CreateShader(EShaderType::Vertex);
+		//_gizmoMat->vertexShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_vs");
+
+		//_gizmoMat->pixelShader = GGI()->CreateShader(EShaderType::Pixel);
+		//_gizmoMat->pixelShader->CompileShaderFromFile("shaders/SimpleColoredMesh.hlsl", "main_ps");
+
+		//_gizmoMat->layout = GGI()->CreateInputLayout();
+		//_gizmoMat->layout->InitializeLayout({
+		//		{ "POSITION",  SPP::InputLayoutElementType::Float3, offsetof(SPP::MeshVertex,position) },
+		//		{ "COLOR",  SPP::InputLayoutElementType::UInt, offsetof(SPP::MeshVertex,color) } });
 
 		auto& meshElements = _moveGizmo->GetMesh()->GetMeshElements();
 
-		for (auto& curMesh : meshElements)
-		{
-			curMesh->material = _gizmoMat; 
-		}
+		//TODO
+
+		//for (auto& curMesh : meshElements)
+		//{
+		//	curMesh->material = _gizmoMat; 
+		//}
 
 		bool _bGizmoMode = false;
 		bool _bCamMode = false;
@@ -495,6 +512,8 @@ public:
 
 	void Update()
 	{
+		if (!_graphicsDevice) return;
+
 		RECT rect;
 		GetClientRect(_mainDXWindow, &rect);
 

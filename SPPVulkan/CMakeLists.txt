@@ -44,6 +44,12 @@ target_sources(SPPVulkan
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanTools.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanTools.h"
 
+		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv.h"
+		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_reflect.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_reflect.h"
+		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_output_stream.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_output_stream.h"
+
 		"${THIRD_PARTY}/ktx/lib/texture.c"
 		"${THIRD_PARTY}/ktx/lib/hashlist.c"
 		"${THIRD_PARTY}/ktx/lib/hashtable.c"

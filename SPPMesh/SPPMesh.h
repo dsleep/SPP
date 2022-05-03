@@ -23,6 +23,7 @@
 #include "SPPMath.h"
 #include "SPPPrimitiveShapes.h"
 #include "SPPArrayResource.h"
+
 #include <vector>
 #include <cstddef>
 #include <unordered_set>
@@ -348,7 +349,7 @@ namespace SPP
 		std::shared_ptr< ArrayResource > VertexResource;
 		std::shared_ptr< ArrayResource > IndexResource;
 
-		//std::shared_ptr< MeshMaterial > material;
+		//std::shared_ptr< struct MeshMaterial > material;
 
 		virtual MeshTypes GetType() const
 		{
@@ -397,22 +398,21 @@ namespace SPP
 		}
 	};
 
-#if 0
-	class SPP_MESH_API MeshLayout
-	{
-	private:
-		std::unique_ptr<GPUInputLayout> _meshVertexLayout;
-	public:
-		MeshLayout()
-		{
-			_meshVertexLayout->InitializeLayout({
-				{ "POSITION",  InputLayoutElementType::Float3, offsetof(MeshVertex,position) },
-				{ "NORMAL",    InputLayoutElementType::Float3, offsetof(MeshVertex,normal) },
-				{ "TANGENT",   InputLayoutElementType::Float3, offsetof(MeshVertex,tangent) },
-				{ "BITANGENT", InputLayoutElementType::Float3, offsetof(MeshVertex,bitangent) },
-				{ "TEXCOORD",  InputLayoutElementType::Float2, offsetof(MeshVertex,texcoord) } });
-		}
-	};
+	//class SPP_MESH_API MeshLayout
+	//{
+	//private:
+	//	std::unique_ptr<GPUInputLayout> _meshVertexLayout;
+	//public:
+	//	MeshLayout()
+	//	{
+	//		_meshVertexLayout->InitializeLayout({
+	//			{ "POSITION",  InputLayoutElementType::Float3, offsetof(MeshVertex,position) },
+	//			{ "NORMAL",    InputLayoutElementType::Float3, offsetof(MeshVertex,normal) },
+	//			{ "TANGENT",   InputLayoutElementType::Float3, offsetof(MeshVertex,tangent) },
+	//			{ "BITANGENT", InputLayoutElementType::Float3, offsetof(MeshVertex,bitangent) },
+	//			{ "TEXCOORD",  InputLayoutElementType::Float2, offsetof(MeshVertex,texcoord) } });
+	//	}
+	//};
 
 	namespace MaterialTypes
 	{
@@ -434,74 +434,67 @@ namespace SPP
 		virtual ~Material() {}
 	};
 
-	struct SPP_MESH_API PBRMaterialAsset : public Material
-	{
-	protected:
-		uint32_t _uniqueID = 0;
+	//struct SPP_MESH_API PBRMaterialAsset : public Material
+	//{
+	//protected:
+	//	uint32_t _uniqueID = 0;
 
-	public:
-		GPUReferencer<GPUTexture> albedo;
-		GPUReferencer<GPUTexture> normal;
-		GPUReferencer<GPUTexture> metalness;
-		GPUReferencer<GPUTexture> roughness;
-		GPUReferencer<GPUTexture> specular;
-		GPUReferencer<GPUTexture> irradiance;
-		GPUReferencer<GPUTexture> specularBRDF_LUT;
+	//public:
+	//	GPUReferencer<GPUTexture> albedo;
+	//	GPUReferencer<GPUTexture> normal;
+	//	GPUReferencer<GPUTexture> metalness;
+	//	GPUReferencer<GPUTexture> roughness;
+	//	GPUReferencer<GPUTexture> specular;
+	//	GPUReferencer<GPUTexture> irradiance;
+	//	GPUReferencer<GPUTexture> specularBRDF_LUT;
 
-		GPUReferencer<GPUTexture> masked;
-		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
+	//	GPUReferencer<GPUTexture> masked;
+	//	ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
 
-		void SetData();
+	//	void SetData();
 
-		virtual MaterialTypes::BaseMaterials GetMaterialType() const override
-		{
-			return MaterialTypes::PBR;
-		}
+	//	virtual MaterialTypes::BaseMaterials GetMaterialType() const override
+	//	{
+	//		return MaterialTypes::PBR;
+	//	}
 
-		PBRMaterialAsset();
-		virtual ~PBRMaterialAsset();
-	};
+	//	PBRMaterialAsset();
+	//	virtual ~PBRMaterialAsset();
+	//};
 
-	struct SPP_MESH_API MeshMaterial : public Material
-	{
-		std::vector< GPUReferencer<GPUTexture> > textureArray;
+	//struct SPP_MESH_API MeshMaterial : public Material
+	//{
+	//	std::vector< GPUReferencer<GPUTexture> > textureArray;
 
-		GPUReferencer<GPUShader> vertexShader;
-		GPUReferencer<GPUShader> pixelShader;
-		GPUReferencer<GPUShader> domainShader;
-		GPUReferencer<GPUShader> hullShader;
-		GPUReferencer<GPUShader> meshShader;
-		GPUReferencer<GPUShader> amplificationShader;
+	//	GPUReferencer<GPUShader> vertexShader;
+	//	GPUReferencer<GPUShader> pixelShader;
+	//	GPUReferencer<GPUShader> domainShader;
+	//	GPUReferencer<GPUShader> hullShader;
+	//	GPUReferencer<GPUShader> meshShader;
+	//	GPUReferencer<GPUShader> amplificationShader;
 
-		GPUReferencer<GPUInputLayout> layout;
+	//	GPUReferencer<GPUInputLayout> layout;
 
-		EBlendState blendState = EBlendState::Disabled;
-		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
-		EDepthState depthState = EDepthState::Enabled;
+	//	EBlendState blendState = EBlendState::Disabled;
+	//	ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
+	//	EDepthState depthState = EDepthState::Enabled;
 
-		void SetTextureUnit(uint8_t Idx, GPUReferencer<GPUTexture> InTexture)
-		{
-			if (Idx >= textureArray.size())
-			{
-				textureArray.resize((size_t)Idx + 1);
-			}
+	//	void SetTextureUnit(uint8_t Idx, GPUReferencer<GPUTexture> InTexture)
+	//	{
+	//		if (Idx >= textureArray.size())
+	//		{
+	//			textureArray.resize((size_t)Idx + 1);
+	//		}
 
-			textureArray[Idx] = InTexture;
-		}
+	//		textureArray[Idx] = InTexture;
+	//	}
 
-		virtual MaterialTypes::BaseMaterials GetMaterialType() const override
-		{
-			return MaterialTypes::Mesh;
-		}
+	//	virtual MaterialTypes::BaseMaterials GetMaterialType() const override
+	//	{
+	//		return MaterialTypes::Mesh;
+	//	}
 
-		virtual ~MeshMaterial() { }
-	};
-	
-	
+	//	virtual ~MeshMaterial() { }
+	//};
 
-	
-
-	
-#endif
-		
 }

@@ -78,7 +78,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto graphicsDevice = GGI()->CreateGraphicsDevice();
 		graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 				
-		MakeResidentAllGPUResources();		
+
+
+		auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
+		SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
+
+		auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
+		SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
+
+
 
 		std::mutex tickMutex;
 		std::condition_variable cv;		
