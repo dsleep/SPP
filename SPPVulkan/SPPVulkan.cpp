@@ -52,6 +52,7 @@ namespace SPP
 		VkPhysicalDeviceFeatures deviceFeatures{ 0 };
 		// Stores all available memory (type) properties for the physical device
 		VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+
 		/** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
 		VkPhysicalDeviceFeatures enabledFeatures{};
 		/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
@@ -312,6 +313,38 @@ namespace SPP
 			vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 			vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 			vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
+
+			VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+			indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+			indexingFeatures.pNext = nullptr;
+
+			VkPhysicalDeviceFeatures2 deviceFeatures{};
+			deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			deviceFeatures.pNext = &indexingFeatures;
+			vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+
+			if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray)
+			{
+				// all set to use unbound arrays of textures
+				SPP_LOG(LOG_VULKAN, LOG_INFO, "BOUNDLESS SUPPORT!");
+			}
+
+			// [POI] Enable required extensions
+			enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+			enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
+			enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+
+			// [POI] Enable required extension features
+			VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
+
+			physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+			physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+			physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
+			physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
+
+			//physicalDeviceDescriptorIndexingFeatures.pNext = &otherone
+
+			deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
 
 			// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
 			//getEnabledFeatures();
@@ -618,6 +651,54 @@ namespace SPP
 		virtual int32_t GetDeviceHeight() const
 		{
 			return height;
+		}
+
+		void CreateCommonDescriptors()
+		{
+			//#define MESH_SIG \
+			//	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | DENY_GEOMETRY_SHADER_ROOT_ACCESS), " \
+			//1:		"CBV(b0, visibility=SHADER_VISIBILITY_ALL )," \
+			//2:		"CBV(b1, space = 0, visibility = SHADER_VISIBILITY_ALL )," \
+			//3:		"CBV(b1, space = 1, visibility = SHADER_VISIBILITY_PIXEL ), " \
+			//4:		"CBV(b2, space = 1, visibility = SHADER_VISIBILITY_PIXEL )," \
+			//5:		"CBV(b1, space = 2, visibility = SHADER_VISIBILITY_DOMAIN ), " \
+			//6:		"CBV(b1, space = 3, visibility = SHADER_VISIBILITY_MESH), " \
+			//7:		"RootConstants(b3, num32bitconstants=5), " \
+			//8:		"DescriptorTable( SRV(t0, space = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
+			//9:		"DescriptorTable( SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
+			//10:		"DescriptorTable( SRV(t0, space = 2, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
+			//11:		"DescriptorTable( SRV(t0, space = 3, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
+			//12:		"DescriptorTable( SRV(t0, space = 4, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
+			//13:		"DescriptorTable( Sampler(s0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE) )"
+
+			//typedef struct VkDescriptorSetLayoutBinding {
+			//	uint32_t              binding;
+			//	VkDescriptorType      descriptorType;
+			//	uint32_t              descriptorCount;
+			//	VkShaderStageFlags    stageFlags;
+			//	const VkSampler* pImmutableSamplers;
+			//} VkDescriptorSetLayoutBinding;
+
+			// uniform buffer
+			std::array<VkDescriptorSetLayoutBinding, 13> setLayoutBindings{};
+	
+
+			setLayoutBindings[0] = { 0,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_ALL };
+			setLayoutBindings[1] = { 0,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_ALL };
+			setLayoutBindings[2] = { 0,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_ALL };
+
+
+			setLayoutBindings[3] = { 1,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT };
+			
+
+			// Create the descriptor set layout
+			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
+			descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+			descriptorLayoutCI.pBindings = setLayoutBindings.data();
+
+			//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
+
 		}
 
 		void Descriptor()
