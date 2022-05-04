@@ -8,10 +8,18 @@
 
 namespace SPP
 {
+	struct DescriptorSetLayoutData 
+	{
+		uint32_t set_number;
+		VkDescriptorSetLayoutCreateInfo create_info;
+		std::vector<VkDescriptorSetLayoutBinding> bindings;
+	};
+
 	class VulkanShader : public GPUShader
 	{
 	private:
 		VkShaderModule _shader = nullptr;
+		std::vector<DescriptorSetLayoutData> _layoutSets;
 
 	public:
 		VulkanShader(EShaderType InType);

@@ -47,76 +47,81 @@ namespace SPP
 		SE_ASSERT(InType == EShaderType::Pixel || InType == EShaderType::Vertex);		
 	}
 
-	void PrintModuleInfo(std::ostream& os, const SpvReflectShaderModule& obj, const char* /*indent*/)
+	void PrintModuleInfo(const SpvReflectShaderModule& obj, const char* /*indent*/)
 	{
-		os << "entry point     : " << obj.entry_point_name << "\n";
-		os << "source lang     : " << spvReflectSourceLanguage(obj.source_language) << "\n";
-		os << "source lang ver : " << obj.source_language_version << "\n";
-		if (obj.source_language == SpvSourceLanguageHLSL) {
-			os << "stage           : ";
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "entry point: %s", obj.entry_point_name);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "source lang: %s", spvReflectSourceLanguage(obj.source_language));
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "source lang ver: %d", obj.source_language_version);
+
+		if (obj.source_language == SpvSourceLanguageHLSL) {			
 			switch (obj.shader_stage) {
 			default: break;
-			case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT: os << "VS"; break;
-			case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT: os << "HS"; break;
-			case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: os << "DS"; break;
-			case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT: os << "GS"; break;
-			case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT: os << "PS"; break;
-			case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT: os << "CS"; break;
+			case SPV_REFLECT_SHADER_STAGE_VERTEX_BIT:
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "stage: VS");
+				break;
+			case SPV_REFLECT_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "stage: HS");
+				break;
+			case SPV_REFLECT_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: 
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "stage: DS");
+				break;
+			case SPV_REFLECT_SHADER_STAGE_GEOMETRY_BIT:
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "stage: GS");
+				break;
+			case SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT:
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "stage: PS");
+				break;
+			case SPV_REFLECT_SHADER_STAGE_COMPUTE_BIT:
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "stage: CS");
+				break;
 			}
 		}
 	}
 
-	void PrintDescriptorBinding(std::ostream& os, const SpvReflectDescriptorBinding& obj, bool write_set, const char* indent)
-	{
-		const char* t = indent;
-		os << t << "binding : " << obj.binding << "\n";
+	void PrintDescriptorBinding(const SpvReflectDescriptorBinding& obj, bool write_set, const char* indent)
+	{		
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - binding : %d", obj.binding);
 		if (write_set) {
-			os << t << "set     : " << obj.set << "\n";
-		}
-		os << t << "type    : " << ToStringDescriptorType(obj.descriptor_type) << "\n";
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - set : %d", obj.set);		
+		}		
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - type : %s", ToStringDescriptorType(obj.descriptor_type).c_str());
 
 		// array
 		if (obj.array.dims_count > 0) {
-			os << t << "array   : ";
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - array");
+
 			for (uint32_t dim_index = 0; dim_index < obj.array.dims_count; ++dim_index) {
-				os << "[" << obj.array.dims[dim_index] << "]";
-			}
-			os << "\n";
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "   - [%d]", obj.array.dims[dim_index]);
+			}			
 		}
 
 		// counter
-		if (obj.uav_counter_binding != nullptr) {
-			os << t << "counter : ";
-			os << "(";
-			os << "set=" << obj.uav_counter_binding->set << ", ";
-			os << "binding=" << obj.uav_counter_binding->binding << ", ";
-			os << "name=" << obj.uav_counter_binding->name;
-			os << ");";
-			os << "\n";
+		if (obj.uav_counter_binding != nullptr) {			
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - counter: set=%s, binding=%s, name=%s", 
+				obj.uav_counter_binding->set,
+				obj.uav_counter_binding->binding,
+				obj.uav_counter_binding->name );			
 		}
 
-		os << t << "name    : " << obj.name;
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "name: %s", obj.name);
 		if ((obj.type_description->type_name != nullptr) && (strlen(obj.type_description->type_name) > 0)) {
-			os << " " << "(" << obj.type_description->type_name << ")";
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - (%s)", obj.type_description->type_name);
 		}
 	}
 
-	void PrintDescriptorSet(std::ostream& os, const SpvReflectDescriptorSet& obj, const char* indent)
+	void PrintDescriptorSet(const SpvReflectDescriptorSet& obj, const char* indent)
 	{
 		const char* t = indent;
 		std::string tt = std::string(indent) + "  ";
 		std::string ttttt = std::string(indent) + "    ";
 
-		os << t << "set           : " << obj.set << "\n";
-		os << t << "binding count : " << obj.binding_count;
-		os << "\n";
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sset: %d", t, obj.set);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sbinding count: %d", t, obj.binding_count);
+
 		for (uint32_t i = 0; i < obj.binding_count; ++i) {
-			const SpvReflectDescriptorBinding& binding = *obj.bindings[i];
-			os << tt << i << ":" << "\n";
-			PrintDescriptorBinding(os, binding, false, ttttt.c_str());
-			if (i < (obj.binding_count - 1)) {
-				os << "\n";
-			}
+			const SpvReflectDescriptorBinding& binding = *obj.bindings[i];			
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s%d: ", tt.c_str(), i);
+			PrintDescriptorBinding(binding, false, ttttt.c_str());			
 		}
 	}
 
@@ -191,34 +196,38 @@ namespace SPP
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
 			//std::vector<DescriptorSetLayoutData> set_layouts(sets.size(), DescriptorSetLayoutData{});
-			//for (size_t i_set = 0; i_set < sets.size(); ++i_set) {
-			//	const SpvReflectDescriptorSet& refl_set = *(sets[i_set]);
-			//	DescriptorSetLayoutData& layout = set_layouts[i_set];
-			//	layout.bindings.resize(refl_set.binding_count);
-			//	for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) {
-			//		const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
-			//		VkDescriptorSetLayoutBinding& layout_binding = layout.bindings[i_binding];
-			//		layout_binding.binding = refl_binding.binding;
-			//		layout_binding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
-			//		layout_binding.descriptorCount = 1;
-			//		for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim) {
-			//			layout_binding.descriptorCount *= refl_binding.array.dims[i_dim];
-			//		}
-			//		layout_binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
-			//	}
-			//	layout.set_number = refl_set.set;
-			//	layout.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			//	layout.create_info.bindingCount = refl_set.binding_count;
-			//	layout.create_info.pBindings = layout.bindings.data();
-			//}
+
+			_layoutSets.clear();
+
+			for (size_t i_set = 0; i_set < sets.size(); ++i_set) 
+			{
+				const SpvReflectDescriptorSet& refl_set = *(sets[i_set]);
+
+				DescriptorSetLayoutData& layout = _layoutSets.emplace_back();
+				//DescriptorSetLayoutData& layout = set_layouts[i_set];
+				layout.bindings.resize(refl_set.binding_count);
+				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) {
+					const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
+					VkDescriptorSetLayoutBinding& layout_binding = layout.bindings[i_binding];
+					layout_binding.binding = refl_binding.binding;
+					layout_binding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
+					layout_binding.descriptorCount = 1;
+					for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim) {
+						layout_binding.descriptorCount *= refl_binding.array.dims[i_dim];
+					}
+					layout_binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
+				}
+				layout.set_number = refl_set.set;
+				layout.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+				layout.create_info.bindingCount = refl_set.binding_count;
+				layout.create_info.pBindings = layout.bindings.data();
+			}
 
 			 // Log the descriptor set contents to stdout
 			const char* t = "  ";
 			const char* tt = "    ";
 
-			PrintModuleInfo(std::cout, module, "");
-			std::cout << "\n\n";
-
+			PrintModuleInfo(module, "");
 			std::cout << "Descriptor sets:" << "\n";
 			for (size_t index = 0; index < sets.size(); ++index) {
 				auto p_set = sets[index];
@@ -229,9 +238,8 @@ namespace SPP
 				assert(p_set == p_set2);
 				(void)p_set2;
 
-				std::cout << t << index << ":" << "\n";
-				PrintDescriptorSet(std::cout, *p_set, tt);
-				std::cout << "\n\n";
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s%d", t, index);
+				PrintDescriptorSet(*p_set, tt);
 			}
 
 			spvReflectDestroyShaderModule(&module);
