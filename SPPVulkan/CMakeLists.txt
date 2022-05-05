@@ -7,7 +7,12 @@ add_library(SPPVulkan SHARED "")
 
 set_target_properties(SPPVulkan PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies(SPPVulkan SPPEngine)
+add_dependencies(SPPVulkan 
+	SPPEngine
+	SPPGraphics
+	SPPGraphicsO
+	SPPSceneO
+	SPPSDFO )
 
 if(DEFINED ENV{VK_SDK_PATH})
 	set(VK_SDK_PATH $ENV{VK_SDK_PATH})
@@ -43,6 +48,15 @@ target_sources(SPPVulkan
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanTools.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanTools.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableMesh.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableMesh.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderScene.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderScene.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableSDF.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableSDF.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv.h"
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_reflect.cpp"
@@ -81,7 +95,10 @@ target_link_directories(SPPVulkan
 target_link_libraries(SPPVulkan 
 	PUBLIC
 		SPPEngine
-		SPPGraphics	)
+		SPPGraphics	
+		SPPGraphicsO
+		SPPSceneO
+		SPPSDFO )
 		
 target_link_libraries( SPPVulkan 
 	PRIVATE

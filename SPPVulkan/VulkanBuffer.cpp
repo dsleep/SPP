@@ -1,135 +1,113 @@
-/*
-* Vulkan buffer class
-*
-* Encapsulates a Vulkan buffer
-*
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+// Copyright (c) David Sleeper (Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
 
 #include "VulkanBuffer.h"
+#include "VulkanDevice.h"
 
-namespace vks
-{	
-	/** 
-	* Map a memory range of this buffer. If successful, mapped points to the specified buffer range.
-	* 
-	* @param size (Optional) Size of the memory range to map. Pass VK_WHOLE_SIZE to map the complete buffer range.
-	* @param offset (Optional) Byte offset from beginning
-	* 
-	* @return VkResult of the buffer mapping call
-	*/
-	VkResult Buffer::map(VkDeviceSize size, VkDeviceSize offset)
-	{
-		return vkMapMemory(device, memory, offset, size, 0, &mapped);
+
+namespace SPP
+{
+	extern VkDevice GGlobalVulkanDevice;
+
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
+	//VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010,
+	//VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020,
+	//VK_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040,
+	//VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080,
+
+	//VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT = 0x00000001,
+	//VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT = 0x00000002,
+	//VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004,
+	//VK_MEMORY_PROPERTY_HOST_CACHED_BIT = 0x00000008,
+
+	VulkanBuffer::VulkanBuffer(std::shared_ptr< ArrayResource > InCpuData)
+	{ 
+		_size = InCpuData ? InCpuData->GetTotalSize() : 0;
+		//_alignment = 0;
+
+		_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		_memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+		// Create the buffer handle
+		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(_usageFlags, _size);
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK_RESULT(vkCreateBuffer(GGlobalVulkanDevice, &bufferCreateInfo, nullptr, &_buffer));
+
+		// Create the memory backing up the buffer handle
+		VkMemoryRequirements memReqs;
+		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
+		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		// Find a memory type index that fits the properties of the buffer
+		memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, _memoryPropertyFlags);
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+		if (_usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+		{
+			allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+			allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+			memAlloc.pNext = &allocFlagsInfo;
+		}
+		VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &_memory));
+
+		if (InCpuData)
+		{
+			void* mapped = nullptr;
+			VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, _memory, 0, _size, 0, &mapped));
+			memcpy(mapped, InCpuData->GetElementData(), InCpuData->GetTotalSize());
+			// If host coherency hasn't been requested, do a manual flush to make writes visible
+			if ((_memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+			{
+				VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
+				mappedRange.memory = _memory;
+				mappedRange.offset = 0;
+				mappedRange.size = _size;
+				vkFlushMappedMemoryRanges(GGlobalVulkanDevice, 1, &mappedRange);
+			}
+			vkUnmapMemory(GGlobalVulkanDevice, _memory);
+		}
+
+		// Attach the memory to the buffer object
+		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
+
 	}
 
-	/**
-	* Unmap a mapped memory range
-	*
-	* @note Does not return a result as vkUnmapMemory can't fail
-	*/
-	void Buffer::unmap()
+	VulkanBuffer::~VulkanBuffer()
 	{
-		if (mapped)
+		if (_buffer)
 		{
-			vkUnmapMemory(device, memory);
-			mapped = nullptr;
+			vkDestroyBuffer(GGlobalVulkanDevice, _buffer, nullptr);
+			_buffer = nullptr;
 		}
 	}
 
-	/** 
-	* Attach the allocated memory block to the buffer
-	* 
-	* @param offset (Optional) Byte offset (from the beginning) for the memory region to bind
-	* 
-	* @return VkResult of the bindBufferMemory call
-	*/
-	VkResult Buffer::bind(VkDeviceSize offset)
+	void VulkanBuffer::UploadToGpu()
 	{
-		return vkBindBufferMemory(device, buffer, memory, offset);
+
+	}
+	void VulkanBuffer::UpdateDirtyRegion(uint32_t Idx, uint32_t Count)
+	{
+
 	}
 
-	/**
-	* Setup the default descriptor for this buffer
-	*
-	* @param size (Optional) Size of the memory range of the descriptor
-	* @param offset (Optional) Byte offset from beginning
-	*
-	*/
-	void Buffer::setupDescriptor(VkDeviceSize size, VkDeviceSize offset)
+	//TODO FIX UP THESE
+	GPUReferencer< GPUBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		descriptor.offset = offset;
-		descriptor.buffer = buffer;
-		descriptor.range = size;
-	}
-
-	/**
-	* Copies the specified data to the mapped buffer
-	* 
-	* @param data Pointer to the data to copy
-	* @param size Size of the data to copy in machine units
-	*
-	*/
-	void Buffer::copyTo(void* data, VkDeviceSize size)
-	{
-		assert(mapped);
-		memcpy(mapped, data, size);
-	}
-
-	/** 
-	* Flush a memory range of the buffer to make it visible to the device
-	*
-	* @note Only required for non-coherent memory
-	*
-	* @param size (Optional) Size of the memory range to flush. Pass VK_WHOLE_SIZE to flush the complete buffer range.
-	* @param offset (Optional) Byte offset from beginning
-	*
-	* @return VkResult of the flush call
-	*/
-	VkResult Buffer::flush(VkDeviceSize size, VkDeviceSize offset)
-	{
-		VkMappedMemoryRange mappedRange = {};
-		mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		mappedRange.memory = memory;
-		mappedRange.offset = offset;
-		mappedRange.size = size;
-		return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
-	}
-
-	/**
-	* Invalidate a memory range of the buffer to make it visible to the host
-	*
-	* @note Only required for non-coherent memory
-	*
-	* @param size (Optional) Size of the memory range to invalidate. Pass VK_WHOLE_SIZE to invalidate the complete buffer range.
-	* @param offset (Optional) Byte offset from beginning
-	*
-	* @return VkResult of the invalidate call
-	*/
-	VkResult Buffer::invalidate(VkDeviceSize size, VkDeviceSize offset)
-	{
-		VkMappedMemoryRange mappedRange = {};
-		mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		mappedRange.memory = memory;
-		mappedRange.offset = offset;
-		mappedRange.size = size;
-		return vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
-	}
-
-	/** 
-	* Release all Vulkan resources held by this buffer
-	*/
-	void Buffer::destroy()
-	{
-		if (buffer)
+		switch (InType)
 		{
-			vkDestroyBuffer(device, buffer, nullptr);
+		case GPUBufferType::Generic:
+			return Make_GPU<VulkanBuffer>(InCpuData);
+			break;
+		case GPUBufferType::Index:
+			break;
+		case GPUBufferType::Vertex:
+			break;
+		case GPUBufferType::Global:
+			break;
 		}
-		if (memory)
-		{
-			vkFreeMemory(device, memory, nullptr);
-		}
+
+		return nullptr;
 	}
-};
+}

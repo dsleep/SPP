@@ -116,13 +116,16 @@ if(USE_GRAPHICS)
 	# basic dx 12 app
 	####################
 	add_executable( testGraphicsApp WIN32 "")
-	add_dependencies( testGraphicsApp SPPGraphics ${SPPGDI} )			
+	add_dependencies( testGraphicsApp SPPGraphics ${SPPGDI} SPPSDFO SPPSceneO SPPGraphicsO )			
 	target_sources( testGraphicsApp 
 		PRIVATE 
 			"${CMAKE_CURRENT_LIST_DIR}/testGraphicsApp.cpp" )		
 	target_link_libraries( testGraphicsApp 
 		PRIVATE
-			SPPGraphics )
+			SPPGraphics 
+			SPPSDFO
+			SPPSceneO
+			SPPGraphicsO )
 	set_target_properties( testGraphicsApp PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 	set_property(TARGET testGraphicsApp PROPERTY FOLDER "TESTS")
 	set_property(TARGET testGraphicsApp PROPERTY VS_DPI_AWARE "PerMonitor")

@@ -28,6 +28,11 @@
 #include "ThreadPool.h"
 #include "SPPFileSystem.h"
 
+
+#include "SPPSDFO.h"
+#include "SPPSceneO.h"
+#include "SPPGraphicsO.h"
+
 #include <condition_variable>
 
 #define MAX_LOADSTRING 100
@@ -77,8 +82,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		auto graphicsDevice = GGI()->CreateGraphicsDevice();
 		graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
-				
-
 
 		auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
 		SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
@@ -86,7 +89,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
 		SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
+		/////////////SCENE SETUP
 
+		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
+
+		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
+		cam.GetCameraPosition()[2] = -100;
+
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
+		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
+		startingSphere->SetRadius(10);
+		startingGroup->AddChild(startingSphere);
+		_renderableScene->AddChild(startingGroup);
+
+
+		SPP::MakeResidentAllGPUResources();
 
 		std::mutex tickMutex;
 		std::condition_variable cv;		
@@ -95,14 +112,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		float DeltaTime = 0.016f;
 		auto msgLoop = [&]()
 		{
-			
-
 			graphicsDevice->BeginFrame();
 			//mainScene->Draw();
 			graphicsDevice->EndFrame();
-
-			
-
 			std::this_thread::sleep_for(0ms);
 		};
 

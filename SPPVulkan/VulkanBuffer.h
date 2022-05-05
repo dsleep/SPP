@@ -1,46 +1,48 @@
-/*
-* Vulkan buffer class
-*
-* Encapsulates a Vulkan buffer
-*
-* Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+// Copyright (c) David Sleeper (Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
 
 #pragma once
+
+#include "SPPGPUResources.h"
 
 #include <vector>
 
 #include "vulkan/vulkan.h"
 #include "VulkanTools.h"
 
-namespace vks
-{	
-	/**
-	* @brief Encapsulates access to a Vulkan buffer backed up by device memory
-	* @note To be filled by an external source like the VulkanDevice
-	*/
-	struct Buffer
+namespace SPP
+{
+	class VulkanBuffer : public GPUBuffer
 	{
-		VkDevice device;
-		VkBuffer buffer = VK_NULL_HANDLE;
-		VkDeviceMemory memory = VK_NULL_HANDLE;
-		VkDescriptorBufferInfo descriptor;
-		VkDeviceSize size = 0;
-		VkDeviceSize alignment = 0;
-		void* mapped = nullptr;
+	protected:
+
+		VkBuffer _buffer = VK_NULL_HANDLE;
+		VkDeviceMemory _memory = VK_NULL_HANDLE;
+
+		VkDescriptorBufferInfo descriptor = {};
+		VkDeviceSize _size = 0;
+		VkDeviceSize _alignment = 0;
+
 		/** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
-		VkBufferUsageFlags usageFlags;
+		VkBufferUsageFlags _usageFlags;
 		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
-		VkMemoryPropertyFlags memoryPropertyFlags;
-		VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void unmap();
-		VkResult bind(VkDeviceSize offset = 0);
-		void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void copyTo(void* data, VkDeviceSize size);
-		VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void destroy();
+		VkMemoryPropertyFlags _memoryPropertyFlags;
+
+	public:
+		VulkanBuffer(std::shared_ptr< ArrayResource > InCpuData);
+
+		virtual ~VulkanBuffer();
+
+		virtual void UploadToGpu() override;
+		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
+
+		VkBuffer GetBuffer() const
+		{
+			SE_ASSERT(_buffer);
+			return _buffer;
+		}
 	};
+
+	GPUReferencer< GPUBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 }

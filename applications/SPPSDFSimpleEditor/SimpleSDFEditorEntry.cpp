@@ -451,12 +451,6 @@ public:
 		//_rotateGizmo->LoadMesh("BlenderFiles/RotationGizmo.ply");
 		//_scaleGizmo->LoadMesh("BlenderFiles/ScaleGizmo.ply");
 
-		auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
-		SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
-
-		auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
-		SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
-
 
 		//TODO 
 
