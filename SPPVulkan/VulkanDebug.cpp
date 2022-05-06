@@ -9,10 +9,15 @@
 #include "VulkanDebug.h"
 #include <iostream>
 
+#include "SPPLogging.h"
+
+\
 namespace vks
 {
 	namespace debug
 	{
+		SPP::LogEntry LOG_VULKAN_DEBUG("VulkanDebug");
+
 		PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT;
 		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
 		VkDebugUtilsMessengerEXT debugUtilsMessenger;
@@ -39,26 +44,15 @@ namespace vks
 				prefix = "ERROR: ";
 			}
 
-
 			// Display message to default output (console/logcat)
 			std::stringstream debugMessage;
-			debugMessage << prefix << "[" << pCallbackData->messageIdNumber << "][" << pCallbackData->pMessageIdName << "] : " << pCallbackData->pMessage;
+			debugMessage << std::endl << prefix << "[" << pCallbackData->messageIdNumber << "]" << std::endl << "[" << pCallbackData->pMessageIdName << "] : " << std::endl << pCallbackData->pMessage;
 
-#if defined(__ANDROID__)
 			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-				LOGE("%s", debugMessage.str().c_str());
+				SPP_LOG(LOG_VULKAN_DEBUG, LOG_ERROR, "%s", debugMessage.str().c_str());
 			} else {
-				LOGD("%s", debugMessage.str().c_str());
+				SPP_LOG(LOG_VULKAN_DEBUG, LOG_INFO, "%s", debugMessage.str().c_str());
 			}
-#else
-			if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-				std::cerr << debugMessage.str() << "\n";
-			} else {
-				std::cout << debugMessage.str() << "\n";
-			}
-			fflush(stdout);
-#endif
-
 
 			// The return value of this callback controls whether the Vulkan call that caused the validation message will be aborted or not
 			// We return VK_FALSE as we DON'T want Vulkan calls that cause a validation message to abort

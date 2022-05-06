@@ -24,7 +24,7 @@ namespace SPP
 
 	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
 	{
-		return nullptr;
+		return Make_GPU<VulkanInputLayout> ();
 	}
 
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
@@ -860,7 +860,7 @@ namespace SPP
 	{
 	}
 
-	VulkanPipelineState::VulkanPipelineState(VulkanGraphicsDevice* InParent) : _parent(InParent)
+	VulkanPipelineState::VulkanPipelineState() : PipelineState()
 	{
 
 	}
@@ -868,6 +868,30 @@ namespace SPP
 	VulkanPipelineState::~VulkanPipelineState()
 	{
 
+		auto device = GGlobalVulkanDevice;
+
+		if (_pipeline)
+		{
+			vkDestroyPipeline(device, _pipeline, nullptr);
+			_pipeline = nullptr;
+		}
+		if (_pipelineLayout)
+		{
+			vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+			_pipelineLayout = nullptr;
+		}
+		if (_pipelineLayout)
+		{
+			vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+			_pipelineLayout = nullptr;
+		}
+		if (_descriptorSetLayout)
+		{
+			vkDestroyDescriptorSetLayout(device, _descriptorSetLayout, nullptr);
+			_descriptorSetLayout = nullptr;
+		}
+		//vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+		//vkDestroyPipelineCache(device, pipelineCache, nullptr);
 	}
 
 
@@ -886,28 +910,69 @@ namespace SPP
 
 		GPUReferencer< GPUShader> InCS)
 	{
-		auto device = _parent->GetDevice();
-		auto renderPass = _parent->GetBaseRenderPass();
+		auto device = GGlobalVulkanDevice;
+		auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto inputLayout = InLayout->GetAs<VulkanInputLayout>();
 
-		// Setup layout of descriptors used in this example
-		// Basically connects the different shader stages to descriptors for binding uniform buffers, image samplers, etc.
-		// So every shader binding should map to one descriptor set layout binding
+		// Shaders
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
-		// Binding 0: Uniform buffer (Vertex shader)
-		VkDescriptorSetLayoutBinding layoutBinding = {};
-		layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		layoutBinding.descriptorCount = 1;
-		layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		layoutBinding.pImmutableSamplers = nullptr;
+		if (InVS && InPS)
+		{
+			auto& vsSet = InVS->GetAs<VulkanShader>().GetLayoutSets();
+			auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
 
-		VkDescriptorSetLayoutCreateInfo descriptorLayout = {};
-		descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorLayout.pNext = nullptr;
-		descriptorLayout.bindingCount = 1;
-		descriptorLayout.pBindings = &layoutBinding;
+			VkDescriptorSetLayoutCreateInfo VSDescriptorLayout = {};
+			VSDescriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			VSDescriptorLayout.pNext = nullptr;
+			VSDescriptorLayout.bindingCount = vsSet.empty() == false ? vsSet[0].bindings.size() : 0;
+			if (VSDescriptorLayout.bindingCount)
+			{
+				VSDescriptorLayout.pBindings = vsSet[0].bindings.data();
+			}
 
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayout));
+			VkDescriptorSetLayoutCreateInfo PSDescriptorLayout = {};
+			PSDescriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			PSDescriptorLayout.pNext = &VSDescriptorLayout;
+			PSDescriptorLayout.bindingCount = psSet.empty() == false ? psSet[0].bindings.size() : 0;
+			if (PSDescriptorLayout.bindingCount)
+			{
+				PSDescriptorLayout.pBindings = psSet[0].bindings.data();
+			}
+
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &PSDescriptorLayout, nullptr, &_descriptorSetLayout));
+
+			SE_ASSERT(InVS->GetAs<VulkanShader>().GetModule());
+			SE_ASSERT(InPS->GetAs<VulkanShader>().GetModule());
+
+			shaderStages.push_back({ 
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				InVS->GetAs<VulkanShader>().GetModule(),
+				InVS->GetAs<VulkanShader>().GetEntryPoint().c_str()
+				});
+			shaderStages.push_back({
+				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				nullptr,
+				VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				InPS->GetAs<VulkanShader>().GetModule(),
+				InPS->GetAs<VulkanShader>().GetEntryPoint().c_str()
+				});
+			
+		}
+		//else if(InCS)
+		//{
+		//	auto& psSet = InCS->GetAs<VulkanShader>().GetLayoutSets();
+
+
+		//}
+		else
+		{
+			SE_ASSERT(false);
+		}
 
 		// Create the pipeline layout that is used to generate the rendering pipelines that are based on this descriptor set layout
 		// In a more complex scenario you would have different pipeline layouts for different descriptor set layouts that could be reused
@@ -1044,38 +1109,6 @@ namespace SPP
 			break;
 		}
 
-		// Shaders
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-
-		{
-			VkPipelineShaderStageCreateInfo curShader;
-			// Vertex shader
-			curShader.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			// Set pipeline stage for this shader
-			curShader.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			// Load binary SPIR-V shader
-			curShader.module = InVS->GetAs<VulkanShader>().GetModule();
-			// Main entry point for the shader
-			curShader.pName = InVS->GetAs<VulkanShader>().GetEntryPoint().c_str();
-			SE_ASSERT(curShader.module != VK_NULL_HANDLE);
-
-			shaderStages.push_back(curShader);
-		}
-		{
-			VkPipelineShaderStageCreateInfo curShader;
-			// Vertex shader
-			curShader.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			// Set pipeline stage for this shader
-			curShader.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			// Load binary SPIR-V shader
-			curShader.module = InPS->GetAs<VulkanShader>().GetModule();
-			// Main entry point for the shader
-			curShader.pName = InPS->GetAs<VulkanShader>().GetEntryPoint().c_str();
-			SE_ASSERT(curShader.module != VK_NULL_HANDLE);
-
-			shaderStages.push_back(curShader);
-		}
-
 		// Set pipeline shader stage info
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
@@ -1101,11 +1134,6 @@ namespace SPP
 		// Create rendering pipeline using the specified states
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &_pipeline));
 
-		vkDestroyPipeline(device, _pipeline, nullptr);
-		vkDestroyDescriptorSetLayout(device, _descriptorSetLayout, nullptr);
-		vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
-
-		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 		// Shader modules are no longer needed once the graphics pipeline has been created
 		//vkDestroyShaderModule(device, shaderStages[0].module, nullptr);
 		//vkDestroyShaderModule(device, shaderStages[1].module, nullptr);

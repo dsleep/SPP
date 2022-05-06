@@ -257,23 +257,20 @@ namespace SPP
 		// The pipeline layout is used by a pipeline to access the descriptor sets
 		// It defines interface (without binding any actual data) between the shader stages used by the pipeline and the shader resources
 		// A pipeline layout can be shared among multiple pipelines as long as their interfaces match
-		VkPipelineLayout _pipelineLayout;
+		VkPipelineLayout _pipelineLayout = nullptr;
 
 		// The descriptor set layout describes the shader binding layout (without actually referencing descriptor)
 		// Like the pipeline layout it's pretty much a blueprint and can be used with different descriptor sets as long as their layout matches
-		VkDescriptorSetLayout _descriptorSetLayout;
+		VkDescriptorSetLayout _descriptorSetLayout = nullptr;
 
 		// Pipelines (often called "pipeline state objects") are used to bake all states that affect a pipeline
 		// While in OpenGL every state can be changed at (almost) any time, Vulkan requires to layout the graphics (and compute) pipeline states upfront
 		// So for each combination of non-dynamic pipeline states you need a new pipeline (there are a few exceptions to this not discussed here)
 		// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
-		VkPipeline _pipeline;
-
-		VulkanGraphicsDevice* _parent = nullptr;
+		VkPipeline _pipeline = nullptr;
 
 	public:
-		VulkanPipelineState() {}
-		VulkanPipelineState(VulkanGraphicsDevice* InParent);
+		VulkanPipelineState();
 		virtual ~VulkanPipelineState();
 
 

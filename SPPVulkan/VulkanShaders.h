@@ -28,6 +28,10 @@ namespace SPP
 			return _shader;
 		}
 
+		const std::vector<DescriptorSetLayoutData>& GetLayoutSets() const {
+			return _layoutSets;
+		}
+
 		virtual void UploadToGpu() override { };
 		virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
 		virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
