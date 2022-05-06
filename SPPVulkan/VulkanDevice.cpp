@@ -922,25 +922,22 @@ namespace SPP
 			auto& vsSet = InVS->GetAs<VulkanShader>().GetLayoutSets();
 			auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
 
-			VkDescriptorSetLayoutCreateInfo VSDescriptorLayout = {};
-			VSDescriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			VSDescriptorLayout.pNext = nullptr;
-			VSDescriptorLayout.bindingCount = vsSet.empty() == false ? vsSet[0].bindings.size() : 0;
-			if (VSDescriptorLayout.bindingCount)
+			//
+
+			// Deferred shading layout
+			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
+			if (vsSet.empty() == false)
 			{
-				VSDescriptorLayout.pBindings = vsSet[0].bindings.data();
+				setLayoutBindings.insert(setLayoutBindings.end(), vsSet[0].bindings.begin(), vsSet[0].bindings.end());
+			}
+			if (psSet.empty() == false)
+			{
+				setLayoutBindings.insert(setLayoutBindings.end(), psSet[0].bindings.begin(), psSet[0].bindings.end());
 			}
 
-			VkDescriptorSetLayoutCreateInfo PSDescriptorLayout = {};
-			PSDescriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			PSDescriptorLayout.pNext = &VSDescriptorLayout;
-			PSDescriptorLayout.bindingCount = psSet.empty() == false ? psSet[0].bindings.size() : 0;
-			if (PSDescriptorLayout.bindingCount)
-			{
-				PSDescriptorLayout.pBindings = psSet[0].bindings.data();
-			}
+			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayout));
 
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &PSDescriptorLayout, nullptr, &_descriptorSetLayout));
 
 			SE_ASSERT(InVS->GetAs<VulkanShader>().GetModule());
 			SE_ASSERT(InPS->GetAs<VulkanShader>().GetModule());
@@ -1133,10 +1130,6 @@ namespace SPP
 
 		// Create rendering pipeline using the specified states
 		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &_pipeline));
-
-		// Shader modules are no longer needed once the graphics pipeline has been created
-		//vkDestroyShaderModule(device, shaderStages[0].module, nullptr);
-		//vkDestroyShaderModule(device, shaderStages[1].module, nullptr);
 	}
 
 

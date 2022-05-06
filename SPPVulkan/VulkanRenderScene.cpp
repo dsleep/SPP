@@ -32,10 +32,18 @@ namespace SPP
 
 
 		_debugLayout = Vulkan_CreateInputLayout();
-		_debugLayout->InitializeLayout({
-				{ "POSITION",  InputLayoutElementType::Float3, offsetof(DebugVertex,position) },
-				{ "COLOR",  InputLayoutElementType::Float3, offsetof(DebugVertex,color) }
-			});
+
+		{
+			auto& vulkanInputLayout = _debugLayout->GetAs<VulkanInputLayout>();
+			DebugVertex dvPattern;
+			vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position, dvPattern.color);
+			vulkanInputLayout.Finalize();
+		}
+			
+		//_debugLayout->InitializeLayout({
+		//		{ "POSITION",  InputLayoutElementType::Float3, offsetof(DebugVertex,position) },
+		//		{ "COLOR",  InputLayoutElementType::Float3, offsetof(DebugVertex,color) }
+		//	});
 
 		_debugPSO = GetVulkanPipelineState(EBlendState::Disabled,
 			ERasterizerState::NoCull,
@@ -54,7 +62,6 @@ namespace SPP
 		_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
 		_debugBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
 
-
 		//
 		_fullscreenRayVS = Vulkan_CreateShader(EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
@@ -66,9 +73,13 @@ namespace SPP
 		_fullscreenRaySkyBoxPS->CompileShaderFromFile("shaders/fullScreenRayCubemapPS.hlsl", "main_ps");
 
 		_fullscreenRayVSLayout = Vulkan_CreateInputLayout();
-		_fullscreenRayVSLayout->InitializeLayout({
-				{ "POSITION",  InputLayoutElementType::Float2, offsetof(FullscreenVertex,position) }
-			});
+
+		{
+			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();
+			FullscreenVertex dvPattern;
+			vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position);
+			vulkanInputLayout.Finalize();
+		}
 
 		_fullscreenRaySDFPSO = GetVulkanPipelineState(EBlendState::Disabled,
 			ERasterizerState::NoCull,
