@@ -22,6 +22,11 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice *GGlobalVulkanGI;
 
+	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
+	{
+		return nullptr;
+	}
+
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
 	{
 		return _vertexInputState;

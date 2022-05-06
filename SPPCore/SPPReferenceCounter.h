@@ -120,32 +120,47 @@ namespace SPP
             return obj == right.obj;
         }
 
-        template<typename K>
-        Referencer<T>& operator= (const Referencer<K>& right)
-        {
-            static_assert(std::is_base_of_v<T, K>, "must be base of");
+		Referencer<T>& operator= (const Referencer<T>& right)
+		{
+			if (this == &right)
+			{
+				return *this;
+			}
+			if (right.obj)
+			{
+				right.obj->incRefCnt();
+			}
+			decRef();
+			obj = right.obj;
+			return *this;
+		}
 
-            if constexpr (std::is_same_v<T, K>)
-            {
-                if (this == &right)
-                {
-                    return *this;
-                }
-                if (right.obj)
-                {
-                    right.obj->incRefCnt();
-                }
-                decRef();
-                obj = right.obj;
-                return *this;
-            }
-            else
-            {
-                *this = reinterpret_cast<const Referencer<T>> (right);
-            }
+        //template<typename K>
+        //Referencer<T>& operator= (const Referencer<K>& right)
+        //{
+        //    static_assert(std::is_base_of_v<T, K>, "must be base of");
 
-            return *this;
-        }
+        //    if constexpr (std::is_same_v<T, K>)
+        //    {
+        //        if (this == &right)
+        //        {
+        //            return *this;
+        //        }
+        //        if (right.obj)
+        //        {
+        //            right.obj->incRefCnt();
+        //        }
+        //        decRef();
+        //        obj = right.obj;
+        //        return *this;
+        //    }
+        //    else
+        //    {
+        //        *this = reinterpret_cast<const Referencer<T>> (right);
+        //    }
+
+        //    return *this;
+        //}
 
         void Reset()
         {

@@ -30,7 +30,7 @@ namespace SPP
 		VkMemoryPropertyFlags _memoryPropertyFlags;
 
 	public:
-		VulkanBuffer(std::shared_ptr< ArrayResource > InCpuData);
+		VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 
 		virtual ~VulkanBuffer();
 

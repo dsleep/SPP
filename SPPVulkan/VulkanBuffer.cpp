@@ -12,8 +12,8 @@ namespace SPP
 
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	//VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010,
-	//VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020,
+	//VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010, in hlsl code ConstantBuffer
+	//VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020, in hlsl code StructuredBuffer
 	//VK_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040,
 	//VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080,
 
@@ -22,10 +22,26 @@ namespace SPP
 	//VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004,
 	//VK_MEMORY_PROPERTY_HOST_CACHED_BIT = 0x00000008,
 
-	VulkanBuffer::VulkanBuffer(std::shared_ptr< ArrayResource > InCpuData)
+	VulkanBuffer::VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InType, InCpuData)
 	{ 
 		_size = InCpuData ? InCpuData->GetTotalSize() : 0;
 		//_alignment = 0;
+
+		switch (InType)
+		{
+		case GPUBufferType::Simple:
+			_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			break;
+		case GPUBufferType::Array:
+			_usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			break;
+		case GPUBufferType::Vertex:
+			_usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			break;
+		case GPUBufferType::Index:
+			_usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			break;
+		}
 
 		_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		_memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -97,8 +113,8 @@ namespace SPP
 	{
 		switch (InType)
 		{
-		case GPUBufferType::Generic:
-			return Make_GPU<VulkanBuffer>(InCpuData);
+		case GPUBufferType::Simple:
+			return Make_GPU<VulkanBuffer>(InType, InCpuData);
 			break;
 		case GPUBufferType::Index:
 			break;

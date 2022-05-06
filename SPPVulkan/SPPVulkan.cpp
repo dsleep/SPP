@@ -12,6 +12,7 @@
 #include "VulkanDevice.h"
 #include "VulkanTexture.h"
 #include "VulkanShaders.h"
+#include "VulkanRenderScene.h"
 
 #include "VulkanInitializers.hpp"
 
@@ -86,7 +87,7 @@ namespace SPP
 		}
 		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
 		{
-			return nullptr;
+			return std::make_shared< VulkanRenderScene >();
 		}
 		virtual std::shared_ptr<RenderableMesh> CreateRenderableMesh() override
 		{

@@ -62,7 +62,7 @@ namespace SPP
 			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
 			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
 
-			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Generic, _shapeResource);
+			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
 
 			//TODO 
 			//DX12_BegineResourceCopy();

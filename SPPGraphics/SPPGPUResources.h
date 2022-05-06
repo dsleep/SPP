@@ -282,7 +282,8 @@ namespace SPP
 
     enum class GPUBufferType
     {
-        Generic,
+        Simple,
+        Array,
         Index,
         Vertex,
         Global
@@ -291,11 +292,11 @@ namespace SPP
     class SPP_GRAPHICS_API GPUBuffer : public GPUResource
     {
     protected:
-        GPUBufferType _type = GPUBufferType::Generic;
+        GPUBufferType _type = GPUBufferType::Simple;
         std::shared_ptr< ArrayResource > _cpuLink;
 
     public:
-        GPUBuffer(std::shared_ptr< ArrayResource > InCpuData = nullptr) :_cpuLink(InCpuData) {}
+        GPUBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : _type(InType), _cpuLink(InCpuData) {}
 
         size_t GetDataSize() const
         {
