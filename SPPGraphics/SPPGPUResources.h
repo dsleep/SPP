@@ -319,7 +319,6 @@ namespace SPP
             return _cpuLink->GetElementCount();
         }
 
-
         virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) { }
 
         virtual void SetLink(std::shared_ptr < ArrayResource> InLink)

@@ -8,11 +8,6 @@
 #include "VulkanRenderScene.h"
 #include "SPPSDFO.h"
 
-//#include "DX12RenderScene.h"
-//#include "DX12Shaders.h"
-//#include "DX12Buffers.h"
-//#include "DX12Textures.h"
-
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -108,12 +103,12 @@ namespace SPP
 		//auto currentFrame = GGraphicsDevice->GetFrameCount();
 		//auto curCLWrapper = GGraphicsDevice->GetCommandListWrapper();
 
-		//auto SDFVS = _parentScene->GetAs<D3D12RenderScene>().GetSDFVS();
-		//auto SDFPSO = _parentScene->GetAs<D3D12RenderScene>().GetSDFPSO();
-		//if (_customPSO)
-		//{
-		//	SDFPSO = _customPSO;
-		//}
+		auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
+		auto SDFPSO = _parentScene->GetAs<VulkanRenderScene>().GetSDFPSO();
+		if (_customPSO)
+		{
+			SDFPSO = _customPSO;
+		}
 		//		
 		//curCLWrapper->SetRootSignatureFromVerexShader(SDFVS);
 
