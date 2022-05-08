@@ -13,6 +13,7 @@
 #include "VulkanTexture.h"
 #include "VulkanShaders.h"
 #include "VulkanRenderScene.h"
+#include "VulkanRenderableSDF.h"
 
 #include "VulkanInitializers.hpp"
 
@@ -45,6 +46,7 @@ namespace SPP
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
 	extern GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+	extern std::shared_ptr<RenderableSignedDistanceField> Vulkan_CreateSDF();
 
 	struct VulkanGraphicInterface : public IGraphicsInterface
 	{
@@ -95,7 +97,7 @@ namespace SPP
 		}
 		virtual std::shared_ptr<RenderableSignedDistanceField> CreateRenderableSDF() override
 		{
-			return nullptr;
+			return Vulkan_CreateSDF();
 		}
 		virtual void BeginResourceCopies() override
 		{
@@ -114,12 +116,6 @@ namespace SPP
 			return true;
 		}
 	};
-
-	
-
-	
-
-	
 
 	static VulkanGraphicInterface staticDGI;
 }

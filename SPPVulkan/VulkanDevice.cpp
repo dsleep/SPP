@@ -130,11 +130,14 @@ namespace SPP
 		vkEnumerateInstanceExtensionProperties(nullptr, &extCount, nullptr);
 		if (extCount > 0)
 		{
+			SPP_LOG(LOG_VULKAN, LOG_INFO, "Found %d Extensions", extCount);
+
 			std::vector<VkExtensionProperties> extensions(extCount);
 			if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
 			{
 				for (VkExtensionProperties extension : extensions)
 				{
+					SPP_LOG(LOG_VULKAN, LOG_INFO, " - Extension %s", extension.extensionName);
 					supportedInstanceExtensions.push_back(extension.extensionName);
 				}
 			}
@@ -603,6 +606,7 @@ namespace SPP
 		setupDepthStencil();
 		setupRenderPass();
 		setupFrameBuffer();
+		CreateDescriptorPool();
 	}
 
 	void VulkanGraphicsDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
@@ -619,47 +623,29 @@ namespace SPP
 		return height;
 	}
 
-	void VulkanGraphicsDevice::CreateCommonDescriptors()
+#define MAX_MESH_ELEMENTS 1024
+#define MAX_TEXTURE_COUNT 2048
+#define DYNAMIC_MAX_COUNT 20 * 1024
+
+
+	void VulkanGraphicsDevice::CreateDescriptorPool()
 	{
-		//#define MESH_SIG \
-			//	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | DENY_GEOMETRY_SHADER_ROOT_ACCESS), " \
-			//1:		"CBV(b0, visibility=SHADER_VISIBILITY_ALL )," \
-			//2:		"CBV(b1, space = 0, visibility = SHADER_VISIBILITY_ALL )," \
-			//3:		"CBV(b1, space = 1, visibility = SHADER_VISIBILITY_PIXEL ), " \
-			//4:		"CBV(b2, space = 1, visibility = SHADER_VISIBILITY_PIXEL )," \
-			//5:		"CBV(b1, space = 2, visibility = SHADER_VISIBILITY_DOMAIN ), " \
-			//6:		"CBV(b1, space = 3, visibility = SHADER_VISIBILITY_MESH), " \
-			//7:		"RootConstants(b3, num32bitconstants=5), " \
-			//8:		"DescriptorTable( SRV(t0, space = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			//9:		"DescriptorTable( SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			//10:		"DescriptorTable( SRV(t0, space = 2, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			//11:		"DescriptorTable( SRV(t0, space = 3, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			//12:		"DescriptorTable( SRV(t0, space = 4, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			//13:		"DescriptorTable( Sampler(s0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE) )"
+		std::vector<VkDescriptorPoolSize> poolSizes = {
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
 
-			//typedef struct VkDescriptorSetLayoutBinding {
-			//	uint32_t              binding;
-			//	VkDescriptorType      descriptorType;
-			//	uint32_t              descriptorCount;
-			//	VkShaderStageFlags    stageFlags;
-			//	const VkSampler* pImmutableSamplers;
-			//} VkDescriptorSetLayoutBinding;
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
 
-			// uniform buffer
-		std::array<VkDescriptorSetLayoutBinding, 13> setLayoutBindings{};
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURE_COUNT),
+		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DYNAMIC_MAX_COUNT)
+		};
+		// One set for matrices and one per model image/texture
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
 
-		setLayoutBindings[0] = { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL };
-		setLayoutBindings[1] = { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL };
-		setLayoutBindings[2] = { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL };
-		setLayoutBindings[3] = { 1,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT };
-
-		// Create the descriptor set layout
-		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
-		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-		descriptorLayoutCI.pBindings = setLayoutBindings.data();
-
-		//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayoutCI, nullptr, &descriptorSetLayout));
 	}
 
 	void VulkanGraphicsDevice::Descriptor()

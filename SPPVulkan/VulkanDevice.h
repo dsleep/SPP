@@ -121,7 +121,11 @@ namespace SPP
 
 			InputBindings.push_back(vertexInputBinding);
 		}
-
+		void Begin()
+		{
+			InputBindings.clear();
+			InputAttributes.clear();
+		}
 		void Finalize();
 		virtual void InitializeLayout(const std::vector< InputLayoutElement>& eleList) override;
 	};
@@ -175,7 +179,7 @@ namespace SPP
 		// Active frame buffer index
 		uint32_t currentBuffer = 0;
 		// Descriptor set pool
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
 		// List of shader modules created (stored for cleanup)
 		std::vector<VkShaderModule> shaderModules;
 		// Pipeline cache object
@@ -242,9 +246,14 @@ namespace SPP
 		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight);
 		virtual int32_t GetDeviceWidth() const;
 		virtual int32_t GetDeviceHeight() const;
-		void CreateCommonDescriptors();
-		void Descriptor();
+		void CreateDescriptorPool();
 		void CreateInputLayout(GPUReferencer < GPUInputLayout > InLayout);
+		
+		Vector2i GetExtents() const
+		{
+			return Vector2i(width, height);
+		};
+
 
 		virtual void BeginFrame();
 		virtual void EndFrame();

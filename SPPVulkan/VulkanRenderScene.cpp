@@ -13,7 +13,10 @@
 
 namespace SPP
 {
-	extern LogEntry LOG_D3D12Device;
+	extern LogEntry LOG_VULKAN;
+
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 	// lazy externs
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
@@ -36,6 +39,7 @@ namespace SPP
 		{
 			auto& vulkanInputLayout = _debugLayout->GetAs<VulkanInputLayout>();
 			DebugVertex dvPattern;
+			vulkanInputLayout.Begin();
 			vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position, dvPattern.color);
 			vulkanInputLayout.Finalize();
 		}
@@ -242,107 +246,107 @@ namespace SPP
 		//}
 	}
 
+#define MAX_MESH_ELEMENTS 1024
+#define MAX_TEXTURE_COUNT 2048
+#define DYNAMIC_MAX_COUNT 20 * 1024
+
+	//
+	//static DescriptorTableConfig _tableRegions[] =
+	//{
+	//	{ HDT_ShapeInfos, 1 },
+	//	{ HDT_MeshInfos, 1 },
+	//	{ HDT_MeshletVertices, MAX_MESH_ELEMENTS },
+	//	{ HDT_MeshletResource, MAX_MESH_ELEMENTS },
+	//	{ HDT_UniqueVertexIndices, MAX_MESH_ELEMENTS },
+	//	{ HDT_PrimitiveIndices, MAX_MESH_ELEMENTS },
+
+	//	{ HDT_Textures, MAX_TEXTURE_COUNT },
+	//	{ HDT_Dynamic, DYNAMIC_MAX_COUNT },
+	//};
+	//
+
 	void VulkanRenderScene::Draw()
 	{
-//		auto pd3dDevice = GGraphicsDevice->GetDevice();
-//		auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-//		auto cmdList = GGraphicsDevice->GetCommandList();
-//		auto currentFrame = GGraphicsDevice->GetFrameCount();
-//
-//		auto backBufferColor = GGraphicsDevice->GetScreenColor();
-//		auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
-//		
-//		if (_bRenderToBackBuffer)
-//		{
-//			backBufferColor->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_RENDER_TARGET);
-//
-//			auto colorDesc = backBufferColor->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
-//			auto depthDesc = backBufferDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
-//
-//			cmdList->OMSetRenderTargets(1, &colorDesc, FALSE, &depthDesc);
-//			cmdList->ClearDepthStencilView(depthDesc, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-//
-//			const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-//			cmdList->ClearRenderTargetView(colorDesc, clearColor, 0, nullptr);
-//		}
-//		else
-//		{
-//			// Set RTs
-//			D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle[5] = { 0 };
-//			int32_t ActiveCount = 0;
-//			for (ActiveCount = 0; ActiveCount < ARRAY_SIZE(_activeRTs); ActiveCount++)
-//			{
-//				if (!_activeRTs[ActiveCount])break;
-//				rtvHandle[ActiveCount] = _activeRTs[ActiveCount]->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
-//
-//				// make them draw
-//				_activeRTs[ActiveCount]->GetAs<D3D12RenderTarget>().TransitionTo(D3D12_RESOURCE_STATE_RENDER_TARGET);
-//			}
-//
-//			if (_bUseBBWithCustomColor)
-//			{
-//				auto depthDesc = backBufferDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
-//				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, &depthDesc);
-//				cmdList->ClearDepthStencilView(depthDesc, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-//			}
-//			else if(_activeDepth)
-//			{
-//				D3D12_CPU_DESCRIPTOR_HANDLE depthDescriptor = _activeDepth->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle();
-//				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, &depthDescriptor);
-//				cmdList->ClearDepthStencilView(depthDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-//			}
-//			else
-//			{
-//				cmdList->OMSetRenderTargets(ActiveCount, rtvHandle, FALSE, nullptr);
-//			}
-//
-//			const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-//			for (int32_t Iter = 0; Iter < ARRAY_SIZE(_activeRTs); Iter++)
-//			{
-//				if (!_activeRTs[ActiveCount])break;
-//				cmdList->ClearRenderTargetView(_activeRTs[Iter]->GetAs<D3D12RenderTarget>().GetCPUDescriptorHandle(), clearColor, 0, nullptr);
-//			}
-//		}
-//
-//		// if mesh instances dirty update that structure
-//		//if (_bMeshInstancesDirty)
-//		//{
-//
-//		//}
-//
-//		//TODO SHARED STRUCTURE FOR CROSS HLSL STRUCTS!!
-//		// 
-//		//on GPU
-//		//struct _ViewConstants
-//		//{
-//		//	//all origin centered
-//		//	float4x4 ViewMatrix;
-//		//	float4x4 ViewProjectionMatrix;
-//		//	float4x4 InvViewProjectionMatrix;
-//		//	//real view position
-//		//	double3 ViewPosition;
-//		//};
-//
-//		_declspec(align(256u))
-//		struct GPUViewConstants
-//		{
-//			//all origin centered
-//			Matrix4x4 ViewMatrix;
-//			Matrix4x4 ViewProjectionMatrix;
-//			Matrix4x4 InvViewProjectionMatrix;
-//			//real view position
-//			Vector3d ViewPosition;
-//			Vector4d FrustumPlanes[6];
-//			float RecipTanHalfFovy;
-//		};
-//
-//		_view.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)GGraphicsDevice->GetDeviceWidth() / (float)GGraphicsDevice->GetDeviceHeight());
-//		_view.BuildCameraMatrices();
-//
-//		Planed frustumPlanes[6];
-//		_view.GetFrustumPlanes(frustumPlanes);
-//
-//		// get first index
+		extern VkDevice GGlobalVulkanDevice;
+		extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
+
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+
+		//auto pd3dDevice = GGraphicsDevice->GetDevice();
+		//auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
+		//auto cmdList = GGraphicsDevice->GetCommandList();
+		//auto currentFrame = GGraphicsDevice->GetFrameCount();
+
+		//auto backBufferColor = GGraphicsDevice->GetScreenColor();
+		//auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
+		
+		if (_bRenderToBackBuffer)
+		{
+			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+			VkClearValue clearValues[2];
+			//clearValues[0].color = defaultClearColor;
+			clearValues[0].color = { { 0.25f, 0.25f, 0.25f, 1.0f } };;
+			clearValues[1].depthStencil = { 1.0f, 0 };
+
+			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo.renderPass = basicRenderPass;
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+			renderPassBeginInfo.clearValueCount = 2;
+			renderPassBeginInfo.pClearValues = clearValues;
+
+			const VkViewport viewport = vks::initializers::viewport((float)DeviceExtents[0], (float)DeviceExtents[1], 0.0f, 1.0f);
+			const VkRect2D scissor = vks::initializers::rect2D(DeviceExtents[0], DeviceExtents[1], 0, 0);
+		}
+		else
+		{
+			//
+		}
+
+		// if mesh instances dirty update that structure
+		//if (_bMeshInstancesDirty)
+		//{
+
+		//}
+
+		//TODO SHARED STRUCTURE FOR CROSS HLSL STRUCTS!!
+		// 
+		//on GPU
+		//struct _ViewConstants
+		//{
+		//	//all origin centered
+		//	float4x4 ViewMatrix;
+		//	float4x4 ViewProjectionMatrix;
+		//	float4x4 InvViewProjectionMatrix;
+		//	//real view position
+		//	double3 ViewPosition;
+		//};
+
+		_declspec(align(256u))
+		struct GPUViewConstants
+		{
+			//all origin centered
+			Matrix4x4 ViewMatrix;
+			Matrix4x4 ViewProjectionMatrix;
+			Matrix4x4 InvViewProjectionMatrix;
+			//real view position
+			Vector3d ViewPosition;
+			Vector4d FrustumPlanes[6];
+			float RecipTanHalfFovy;
+		};
+
+		_view.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
+		_view.BuildCameraMatrices();
+
+		Planed frustumPlanes[6];
+		_view.GetFrustumPlanes(frustumPlanes);
+
+		// get first index
 //		_currentFrameMem = perDrawSratchMem->GetWritable(sizeof(GPUViewConstants), currentFrame);
 //
 //		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, ViewMatrix), _view.GetCameraMatrix());
