@@ -642,76 +642,22 @@ namespace SPP
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURE_COUNT),
 		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DYNAMIC_MAX_COUNT)
 		};
-		// One set for matrices and one per model image/texture
+
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
 
+		////create the descriptor pool
+		//VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
+		//
+		//VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+
+		//// Descriptor set for scene matrices
+		//VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool,
+		//	&descriptorSetLayouts.matrices, 1);
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		//VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet( descriptorSet, 
+		//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
+		//vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 	}
-
-	void VulkanGraphicsDevice::Descriptor()
-	{
-		//VkDescriptorPoolSize poolSize{};
-		//poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		//poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-
-		//VkDescriptorPoolCreateInfo poolInfo{};
-		//poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		//poolInfo.poolSizeCount = 1;
-		//poolInfo.pPoolSizes = &poolSize;
-
-		//poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
-
-		////#define MESH_SIG \
-			////	"RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | DENY_GEOMETRY_SHADER_ROOT_ACCESS), " \
-			////		"CBV(b0, visibility=SHADER_VISIBILITY_ALL )," \
-			////		"CBV(b1, space = 0, visibility = SHADER_VISIBILITY_ALL )," \
-			////		"CBV(b1, space = 1, visibility = SHADER_VISIBILITY_PIXEL ), " \
-			////		"CBV(b2, space = 1, visibility = SHADER_VISIBILITY_PIXEL )," \
-			////		"CBV(b1, space = 2, visibility = SHADER_VISIBILITY_DOMAIN ), " \
-			////		"CBV(b1, space = 3, visibility = SHADER_VISIBILITY_MESH), " \
-			////		"RootConstants(b3, num32bitconstants=5), " \
-			////		"DescriptorTable( SRV(t0, space = 0, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			////		"DescriptorTable( SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			////		"DescriptorTable( SRV(t0, space = 2, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			////		"DescriptorTable( SRV(t0, space = 3, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			////		"DescriptorTable( SRV(t0, space = 4, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE) )," \
-			////		"DescriptorTable( Sampler(s0, numDescriptors = 32, flags = DESCRIPTORS_VOLATILE) )"
-
-			////VK_SHADER_STAGE_VERTEX_BIT = 0x00000001,
-			////VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT = 0x00000002,
-			////VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT = 0x00000004,
-			////VK_SHADER_STAGE_GEOMETRY_BIT = 0x00000008,
-			////VK_SHADER_STAGE_FRAGMENT_BIT = 0x00000010,
-			////VK_SHADER_STAGE_COMPUTE_BIT = 0x00000020,
-			////VK_SHADER_STAGE_ALL_GRAPHICS = 0x0000001F,
-
-			//// Binding 0: Uniform buffer (Vertex shader)
-			//VkDescriptorSetLayoutBinding layoutBinding = {};
-			//layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			//layoutBinding.descriptorCount = 1;
-			//layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-			//layoutBinding.pImmutableSamplers = nullptr;
-
-			////we start from just the default empty pipeline layout info
-			//VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 
-			//	sizeof(PushConstBlock), 0);
-
-			////setup push constants
-			//VkPushConstantRange push_constant;
-			////this push constant range starts at the beginning
-			//push_constant.offset = 0;
-			////this push constant range takes up the size of a MeshPushConstants struct
-			//push_constant.size = sizeof(MeshPushConstants);
-			////this push constant range is accessible only in the vertex shader
-			//push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-			//mesh_pipeline_layout_info.pPushConstantRanges = &push_constant;
-			//mesh_pipeline_layout_info.pushConstantRangeCount = 1;
-
-			//VK_CHECK(vkCreatePipelineLayout(_device, &mesh_pipeline_layout_info, nullptr, &_meshPipelineLayout));
-
-	}
-
 
 	void VulkanGraphicsDevice::CreateInputLayout(GPUReferencer < GPUInputLayout > InLayout)
 	{

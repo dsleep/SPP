@@ -270,7 +270,6 @@ namespace SPP
 		extern VkDevice GGlobalVulkanDevice;
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 
@@ -281,6 +280,14 @@ namespace SPP
 
 		//auto backBufferColor = GGraphicsDevice->GetScreenColor();
 		//auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
+
+		//VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
+		//vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		//vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+		//vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+		//// Bind scene matrices descriptor to set 0
+		//vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
 		
 		if (_bRenderToBackBuffer)
 		{
@@ -365,19 +372,19 @@ namespace SPP
 //		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, RecipTanHalfFovy), _view.GetRecipTanHalfFovy());
 //			
 //
-//#if 0
-//		for (auto renderItem : _renderables)
-//		{
-//			renderItem->DrawDebug(_lines);
-//		}
-//		DrawDebug();
-//#endif
-//
-//		if (_skyBox)
-//		{
-//			DrawSkyBox();
-//		}
-//
+#if 0
+		for (auto renderItem : _renderables)
+		{
+			renderItem->DrawDebug(_lines);
+		}
+		DrawDebug();
+#endif
+
+		if (_skyBox)
+		{
+			DrawSkyBox();
+		}
+
 //#if 1
 //		_octree.WalkElements(frustumPlanes, [](const IOctreeElement* InElement) -> bool
 //			{
@@ -392,8 +399,8 @@ namespace SPP
 //#endif
 	};
 
-	//void VulkanRenderScene::DrawSkyBox()
-	//{
+	void VulkanRenderScene::DrawSkyBox()
+	{
 		//auto pd3dDevice = GGraphicsDevice->GetDevice();
 		//auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
 		//auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
@@ -480,5 +487,5 @@ namespace SPP
 		//cmdList->SetGraphicsRootDescriptorTable(12, SamplerSlotBlock.gpuHandle);
 
 		//cmdList->DrawInstanced(4, 1, 0, 0);
-//	}
+	}
 }

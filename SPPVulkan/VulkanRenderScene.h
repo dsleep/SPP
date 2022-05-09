@@ -36,7 +36,7 @@ namespace SPP
 	public:
 		VulkanRenderScene();
 
-		//void DrawSkyBox();
+		void DrawSkyBox();
 
 		GPUReferencer< GPUShader > GetSDFVS()
 		{

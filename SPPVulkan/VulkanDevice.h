@@ -236,6 +236,8 @@ namespace SPP
 		void setupRenderPass();
 		void setupFrameBuffer();
 
+		void CreateDescriptorPool();
+
 	public:
 		vks::VulkanDevice* GetVKSVulkanDevice() {
 			return vulkanDevice;
@@ -246,7 +248,6 @@ namespace SPP
 		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight);
 		virtual int32_t GetDeviceWidth() const;
 		virtual int32_t GetDeviceHeight() const;
-		void CreateDescriptorPool();
 		void CreateInputLayout(GPUReferencer < GPUInputLayout > InLayout);
 		
 		Vector2i GetExtents() const
