@@ -80,45 +80,47 @@ namespace SPP
 
 	void PrintDescriptorBinding(const SpvReflectDescriptorBinding& obj, bool write_set, const char* indent)
 	{		
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - binding : %d", obj.binding);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sbinding : %d", indent, obj.binding);
 		if (write_set) {
-			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - set : %d", obj.set);		
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%set : %d", indent, obj.set);
 		}		
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - type : %s", ToStringDescriptorType(obj.descriptor_type).c_str());
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%stype : %s", indent, ToStringDescriptorType(obj.descriptor_type).c_str());
 
 		// array
 		if (obj.array.dims_count > 0) {
-			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - array");
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sarray", indent);
 
 			for (uint32_t dim_index = 0; dim_index < obj.array.dims_count; ++dim_index) {
-				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "   - [%d]", obj.array.dims[dim_index]);
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s[%d]", indent, obj.array.dims[dim_index]);
 			}			
 		}
 
 		// counter
 		if (obj.uav_counter_binding != nullptr) {			
-			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - counter: set=%s, binding=%s, name=%s", 
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%scounter: set=%s, binding=%s, name=%s", 
+				indent,
 				obj.uav_counter_binding->set,
 				obj.uav_counter_binding->binding,
 				obj.uav_counter_binding->name );			
 		}
 
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "name: %s", obj.name);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sname: %s", indent, obj.name);
 		if ((obj.type_description->type_name != nullptr) && (strlen(obj.type_description->type_name) > 0)) {
-			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - (%s)", obj.type_description->type_name);
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s(%s)", indent, obj.type_description->type_name);
 		}
 	}
+
+	
 
 	void PrintDescriptorSet(const SpvReflectDescriptorSet& obj, const char* indent)
 	{
 		const char* t = indent;
 		std::string tt = std::string(indent) + "  ";
-		std::string ttttt = std::string(indent) + "    ";
-
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sset: %d", t, obj.set);
+		std::string ttttt = tt + "  ";
 		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sbinding count: %d", t, obj.binding_count);
 
-		for (uint32_t i = 0; i < obj.binding_count; ++i) {
+		for (uint32_t i = 0; i < obj.binding_count; ++i) 
+		{
 			const SpvReflectDescriptorBinding& binding = *obj.bindings[i];			
 			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s%d: ", tt.c_str(), i);
 			PrintDescriptorBinding(binding, false, ttttt.c_str());			
@@ -223,12 +225,9 @@ namespace SPP
 				layout.create_info.pBindings = layout.bindings.data();
 			}
 
-			 // Log the descriptor set contents to stdout
-			const char* t = "  ";
-			const char* tt = "    ";
-
+			const char* tt = "  ";
 			PrintModuleInfo(module, "");
-			std::cout << "Descriptor sets:" << "\n";
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "Descriptor sets:");
 			for (size_t index = 0; index < sets.size(); ++index) {
 				auto p_set = sets[index];
 
@@ -238,7 +237,7 @@ namespace SPP
 				assert(p_set == p_set2);
 				(void)p_set2;
 
-				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s%d", t, index);
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sSET :%d", tt, index);
 				PrintDescriptorSet(*p_set, tt);
 			}
 

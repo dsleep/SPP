@@ -100,7 +100,8 @@ namespace SPP
 	void ConsoleLog::Log(const LogEntry &LogEntry, int line, const char* file, const char* format, ...)
 	{
 		char finalBuffer[LOGBUFFERSIZE + LINEFILEBUFFERSIZE];
-		snprintf(finalBuffer, LINEFILEBUFFERSIZE, "(%s)%s:%d:: ", LogEntry.LogName, (const char*) stdfs::path(file).filename().c_str(), line);
+		auto sfileName = stdfs::path(file).filename().generic_string();
+		snprintf(finalBuffer, LINEFILEBUFFERSIZE, "(%-12s)%24s:%5d:: ", LogEntry.LogName, sfileName.c_str(), line);
 
 		char buffer[LOGBUFFERSIZE];
 		va_list args;
@@ -137,7 +138,8 @@ namespace SPP
 	void FileLogger::Log(const LogEntry &LogEntry, int line, const char* file, const char* format, ...)
 	{
 		char finalBuffer[LOGBUFFERSIZE + LINEFILEBUFFERSIZE];
-		snprintf(finalBuffer, LINEFILEBUFFERSIZE, "(%s)%s:%d:: ", LogEntry.LogName, (const char*) stdfs::path(file).filename().c_str(), line);
+		auto sfileName = stdfs::path(file).filename().generic_string();
+		snprintf(finalBuffer, LINEFILEBUFFERSIZE, "(%-12s)%24s:%5d:: ", LogEntry.LogName, sfileName.c_str(), line);
 
 		char buffer[LOGBUFFERSIZE];
 		va_list args;

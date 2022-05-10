@@ -644,11 +644,36 @@ namespace SPP
 		};
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
 
-		////create the descriptor pool
-		//VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &material.descriptorSet));
+
+		VkDescriptorSetLayout storage;
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool,
+			&storage, 1);
+
 		//
+
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+
+		//std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = 
+		//{
+		//vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0)
+		//};
 		//VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+
+		//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayouts.matrices));
+
+
+		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		//VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet,
+		//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
+		//vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+
+		//////create the descriptor pool
+		////VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
+		////
+		////VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
 
 		//// Descriptor set for scene matrices
 		//VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool,
@@ -853,8 +878,6 @@ namespace SPP
 		{
 			auto& vsSet = InVS->GetAs<VulkanShader>().GetLayoutSets();
 			auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
-
-			//
 
 			// Deferred shading layout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
