@@ -20,7 +20,7 @@ namespace SPP
 
 	// lazy externs
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
-	extern GPUReferencer< GPUBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout();
 
 	static Vector3d HACKS_CameraPos;
@@ -81,6 +81,7 @@ namespace SPP
 		{
 			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();
 			FullscreenVertex dvPattern;
+			vulkanInputLayout.Begin();
 			vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position);
 			vulkanInputLayout.Finalize();
 		}
@@ -272,67 +273,10 @@ namespace SPP
 
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
-
-		//auto pd3dDevice = GGraphicsDevice->GetDevice();
-		//auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-		//auto cmdList = GGraphicsDevice->GetCommandList();
-		//auto currentFrame = GGraphicsDevice->GetFrameCount();
-
-		//auto backBufferColor = GGraphicsDevice->GetScreenColor();
-		//auto backBufferDepth = GGraphicsDevice->GetScreenDepth();
-
-		//VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
-		//vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		//vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-		//vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
-		//// Bind scene matrices descriptor to set 0
-		//vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-		
-		if (_bRenderToBackBuffer)
-		{
-			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
-			VkClearValue clearValues[2];
-			//clearValues[0].color = defaultClearColor;
-			clearValues[0].color = { { 0.25f, 0.25f, 0.25f, 1.0f } };;
-			clearValues[1].depthStencil = { 1.0f, 0 };
-
-			VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-			renderPassBeginInfo.renderPass = basicRenderPass;
-			renderPassBeginInfo.renderArea.offset.x = 0;
-			renderPassBeginInfo.renderArea.offset.y = 0;
-			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-			renderPassBeginInfo.clearValueCount = 2;
-			renderPassBeginInfo.pClearValues = clearValues;
-
-			const VkViewport viewport = vks::initializers::viewport((float)DeviceExtents[0], (float)DeviceExtents[1], 0.0f, 1.0f);
-			const VkRect2D scissor = vks::initializers::rect2D(DeviceExtents[0], DeviceExtents[1], 0, 0);
-		}
-		else
-		{
-			//
-		}
-
-		// if mesh instances dirty update that structure
-		//if (_bMeshInstancesDirty)
-		//{
-
-		//}
-
-		//TODO SHARED STRUCTURE FOR CROSS HLSL STRUCTS!!
-		// 
-		//on GPU
-		//struct _ViewConstants
-		//{
-		//	//all origin centered
-		//	float4x4 ViewMatrix;
-		//	float4x4 ViewProjectionMatrix;
-		//	float4x4 InvViewProjectionMatrix;
-		//	//real view position
-		//	double3 ViewPosition;
-		//};
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+				
+		// Bind scene matrices descriptor to set 0
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
 		_declspec(align(256u))
 		struct GPUViewConstants
@@ -408,12 +352,21 @@ namespace SPP
 		//auto cmdList = GGraphicsDevice->GetCommandList();
 		//auto currentFrame = GGraphicsDevice->GetFrameCount();
 
-		//ID3D12RootSignature* rootSig = nullptr;
+		//extern VkDevice GGlobalVulkanDevice;
+		//extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-		//if (_fullscreenRayVS)
-		//{
-		//	rootSig = _fullscreenRayVS->GetAs<D3D12Shader>().GetRootSignature();
-		//}
+		//auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		//
+		////ID3D12RootSignature* rootSig = nullptr;
+
+		////if (_fullscreenRayVS)
+		////{
+		////	rootSig = _fullscreenRayVS->GetAs<D3D12Shader>().GetRootSignature();
+		////}
+
+		//auto rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
+
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetPipelineObject());
 
 		//cmdList->SetGraphicsRootSignature(rootSig);
 
@@ -487,5 +440,9 @@ namespace SPP
 		//cmdList->SetGraphicsRootDescriptorTable(12, SamplerSlotBlock.gpuHandle);
 
 		//cmdList->DrawInstanced(4, 1, 0, 0);
+
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.pipeline);
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
+		//vkCmdDrawIndexed(commandBuffer, 4, 1, 0, 0, 0);
 	}
 }

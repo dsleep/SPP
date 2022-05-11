@@ -19,7 +19,7 @@ namespace SPP
 	extern LogEntry LOG_VULKAN;
 
 	// lazy externs
-	extern GPUReferencer< GPUBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	
 	class VulkanSDF : public RenderableSignedDistanceField
 	{

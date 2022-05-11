@@ -285,8 +285,7 @@ namespace SPP
         Simple,
         Array,
         Index,
-        Vertex,
-        Global
+        Vertex
     };
 
     class SPP_GRAPHICS_API GPUBuffer : public GPUResource

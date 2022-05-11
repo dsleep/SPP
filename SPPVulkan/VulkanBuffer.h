@@ -16,11 +16,8 @@ namespace SPP
 	class VulkanBuffer : public GPUBuffer
 	{
 	protected:
-
 		VkBuffer _buffer = VK_NULL_HANDLE;
 		VkDeviceMemory _memory = VK_NULL_HANDLE;
-
-		VkDescriptorBufferInfo descriptor = {};
 		VkDeviceSize _size = 0;
 		VkDeviceSize _alignment = 0;
 
@@ -44,5 +41,45 @@ namespace SPP
 		}
 	};
 
-	GPUReferencer< GPUBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	struct VulkanBufferSlice
+	{
+		VkBuffer buffer = VK_NULL_HANDLE;
+		uint32_t size = 0;
+		uint32_t offsetFromBase = 0;
+		uint8_t* cpuAddrWithOffset = nullptr;
+	};
+
+	class PerFrameStagingBuffer
+	{
+		struct Chunk
+		{
+			VkBuffer buffer = VK_NULL_HANDLE;
+			VkDeviceMemory memory = VK_NULL_HANDLE;
+
+			const uint32_t size = 0;
+			uint8_t frameIdx = 0;
+			uint8_t* CPUAddr = nullptr;
+			uint32_t currentOffset = 0;
+
+			Chunk(uint32_t InSize, uint8_t currentFrameIdx); 
+			~Chunk();
+			uint32_t SizeRemaining();
+			VulkanBufferSlice GetWritable(uint32_t DesiredSize, uint8_t currentFrameIdx);
+		};
+
+	private:
+		std::list< std::shared_ptr<Chunk> > _chunks;
+		std::list< std::shared_ptr<Chunk> > _unboundChunks;
+		const uint32_t DefaultChunkSize;
+
+	public:
+		PerFrameStagingBuffer(uint32_t InDefaultChunkSize = 1 * 1024 * 1024);
+		~PerFrameStagingBuffer();
+
+		VulkanBufferSlice GetWritable(uint32_t DesiredSize, uint8_t FrameIdx);
+		VulkanBufferSlice Write(const uint8_t* InData, uint32_t InSize, uint8_t FrameIdx);
+		void FrameCompleted(uint8_t FrameIdx);
+	};
+
+	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 }

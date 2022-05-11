@@ -175,6 +175,16 @@ namespace SPP
 		// List of available frame buffers (same as number of swap chain images)
 		std::vector<VkFramebuffer>frameBuffers;
 
+		PerFrameStagingBuffer _perFrameScratchBuffer;
+
+
+		GPUReferencer< class VulkanBuffer > _cameraBuffer;
+
+		VkDescriptorSetLayout _perFrameSetLayout = VK_NULL_HANDLE;
+		VkDescriptorSetLayout _perDrawSetLayout = VK_NULL_HANDLE;
+
+		VkDescriptorSet _perFrameDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet _perDrawDescriptorSet = VK_NULL_HANDLE;
 
 		// Active frame buffer index
 		uint32_t currentBuffer = 0;
@@ -221,6 +231,7 @@ namespace SPP
 		HINSTANCE windowInstance;
 #endif
 
+
 		VkResult createInstance(bool enableValidation);
 		bool DeviceInitialize();
 		void nextFrame();
@@ -242,6 +253,22 @@ namespace SPP
 		vks::VulkanDevice* GetVKSVulkanDevice() {
 			return vulkanDevice;
 		}
+
+		uint8_t GetActiveFrame()
+		{
+			return (uint8_t)currentBuffer;
+		}
+
+		VkCommandBuffer& GetActiveCommandBuffer()
+		{
+			return drawCmdBuffers[currentBuffer];
+		}
+
+		PerFrameStagingBuffer& GetPerFrameScratchBuffer()
+		{
+			return _perFrameScratchBuffer;
+		}
+
 		VkDevice GetDevice();
 		VkRenderPass GetBaseRenderPass();
 		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow);

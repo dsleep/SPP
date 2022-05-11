@@ -9,23 +9,12 @@
 namespace SPP
 {
 	extern VkDevice GGlobalVulkanDevice;
-
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
-
-	//VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT = 0x00000010, in hlsl code ConstantBuffer
-	//VK_BUFFER_USAGE_STORAGE_BUFFER_BIT = 0x00000020, in hlsl code StructuredBuffer
-	//VK_BUFFER_USAGE_INDEX_BUFFER_BIT = 0x00000040,
-	//VK_BUFFER_USAGE_VERTEX_BUFFER_BIT = 0x00000080,
-
-	//VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT = 0x00000001,
-	//VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT = 0x00000002,
-	//VK_MEMORY_PROPERTY_HOST_COHERENT_BIT = 0x00000004,
-	//VK_MEMORY_PROPERTY_HOST_CACHED_BIT = 0x00000008,
 
 	VulkanBuffer::VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InType, InCpuData)
 	{ 
-		_size = InCpuData ? InCpuData->GetTotalSize() : 0;
-		//_alignment = 0;
+		SE_ASSERT(InCpuData);
+		_size = InCpuData->GetTotalSize();
 
 		switch (InType)
 		{
@@ -43,7 +32,7 @@ namespace SPP
 			break;
 		}
 
-		_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		_usageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		_memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 		// Create the buffer handle
@@ -56,6 +45,7 @@ namespace SPP
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
 		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
+		_alignment = memReqs.alignment;
 		// Find a memory type index that fits the properties of the buffer
 		memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, _memoryPropertyFlags);
 		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
@@ -67,27 +57,9 @@ namespace SPP
 			memAlloc.pNext = &allocFlagsInfo;
 		}
 		VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &_memory));
-
-		if (InCpuData)
-		{
-			void* mapped = nullptr;
-			VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, _memory, 0, _size, 0, &mapped));
-			memcpy(mapped, InCpuData->GetElementData(), InCpuData->GetTotalSize());
-			// If host coherency hasn't been requested, do a manual flush to make writes visible
-			if ((_memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
-			{
-				VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
-				mappedRange.memory = _memory;
-				mappedRange.offset = 0;
-				mappedRange.size = _size;
-				vkFlushMappedMemoryRanges(GGlobalVulkanDevice, 1, &mappedRange);
-			}
-			vkUnmapMemory(GGlobalVulkanDevice, _memory);
-		}
-
+		
 		// Attach the memory to the buffer object
 		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
-
 	}
 
 	VulkanBuffer::~VulkanBuffer()
@@ -97,19 +69,45 @@ namespace SPP
 			vkDestroyBuffer(GGlobalVulkanDevice, _buffer, nullptr);
 			_buffer = nullptr;
 		}
+		
+		if (_memory)
+		{
+			vkFreeMemory(GGlobalVulkanDevice, _memory, nullptr);
+			_memory = nullptr;
+		}
 	}
 
+	// Calculates the size required for constant buffer alignment
+	template <typename T>
+	T GetAlignedSize(T size, T inalignment = 256)
+	{
+		const T alignment = inalignment;
+		const T alignedSize = (size + alignment - 1) & ~(alignment - 1);
+		return alignedSize;
+	}
+	
 	void VulkanBuffer::UploadToGpu()
 	{
+		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto &cmdBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
+		auto WritableChunk = perFrameScratchBuffer.Write(GetData(), GetDataSize(), activeFrame);
+
+		VkBufferCopy copyRegion{};
+		copyRegion.srcOffset = WritableChunk.offsetFromBase;
+		copyRegion.dstOffset = 0; 
+		copyRegion.size = _size;
+		vkCmdCopyBuffer(cmdBuffer, WritableChunk.buffer, _buffer, 1, &copyRegion);
 	}
+
 	void VulkanBuffer::UpdateDirtyRegion(uint32_t Idx, uint32_t Count)
 	{
 
 	}
 
 	//TODO FIX UP THESE
-	GPUReferencer< GPUBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
 		switch (InType)
 		{
@@ -120,10 +118,137 @@ namespace SPP
 			break;
 		case GPUBufferType::Vertex:
 			break;
-		case GPUBufferType::Global:
-			break;
 		}
 
 		return nullptr;
+	}
+
+	//
+	PerFrameStagingBuffer::Chunk::Chunk(uint32_t InSize, uint8_t currentFrameIdx) : size(InSize), frameIdx(currentFrameIdx)
+	{
+		frameIdx = currentFrameIdx;
+
+		VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+		// Create the buffer handle
+		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(usageFlags, size);
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK_RESULT(vkCreateBuffer(GGlobalVulkanDevice, &bufferCreateInfo, nullptr, &buffer));
+
+		// Create the memory backing up the buffer handle
+		VkMemoryRequirements memReqs;
+		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
+		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, buffer, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		// Find a memory type index that fits the properties of the buffer
+		memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+		VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &memory));
+		// Attach the memory to the buffer object
+		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, buffer, memory, 0));
+
+		VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, memory, 0, size, 0, (void**)&CPUAddr));
+	}
+
+	PerFrameStagingBuffer::Chunk::~Chunk()
+	{
+		vkUnmapMemory(GGlobalVulkanDevice, memory);
+		vkDestroyBuffer(GGlobalVulkanDevice, buffer, nullptr);
+		vkFreeMemory(GGlobalVulkanDevice, memory, nullptr);
+	}
+
+	uint32_t PerFrameStagingBuffer::Chunk::SizeRemaining()
+	{
+		return (size - currentOffset);
+	}
+
+	VulkanBufferSlice PerFrameStagingBuffer::Chunk::GetWritable(uint32_t DesiredSize, uint8_t currentFrameIdx)
+	{
+		SE_ASSERT(DesiredSize <= SizeRemaining());
+		SE_ASSERT(currentFrameIdx == frameIdx);
+
+		auto initialOffset = currentOffset;
+		currentOffset += DesiredSize;
+
+		return VulkanBufferSlice{ buffer, DesiredSize, initialOffset, CPUAddr + initialOffset };
+	}
+
+	PerFrameStagingBuffer::PerFrameStagingBuffer(uint32_t InDefaultChunkSize) : DefaultChunkSize(InDefaultChunkSize)
+	{
+
+	}
+	PerFrameStagingBuffer::~PerFrameStagingBuffer()
+	{
+
+	}
+
+	VulkanBufferSlice PerFrameStagingBuffer::GetWritable(uint32_t DesiredSize, uint8_t FrameIdx)
+	{
+		SE_ASSERT(DesiredSize > 0);
+
+		auto alignedSize = GetAlignedSize(DesiredSize);
+
+		// just grab the last active if it works out
+		if (!_chunks.empty())
+		{
+			auto currentChunk = _chunks.back();
+			if (currentChunk->frameIdx == FrameIdx &&
+				currentChunk->SizeRemaining() >= alignedSize)
+			{
+				return currentChunk->GetWritable(alignedSize, FrameIdx);
+			}
+		}
+
+		for (auto it = _unboundChunks.begin(); it != _unboundChunks.end(); ++it)
+		{
+			auto currentChunk = *it;
+			if (currentChunk->SizeRemaining() >= alignedSize)
+			{
+				// move to chunks
+				_unboundChunks.erase(it);
+				_chunks.push_back(currentChunk);
+
+				currentChunk->frameIdx = FrameIdx;
+				return currentChunk->GetWritable(alignedSize, FrameIdx);
+			}
+		}
+
+		auto newChunkSize = GetAlignedSize<uint32_t>(alignedSize, DefaultChunkSize);
+		auto newChunk = std::make_shared<Chunk>(newChunkSize, FrameIdx);
+		_chunks.push_back(newChunk);
+
+		return newChunk->GetWritable(alignedSize, FrameIdx);
+	}
+
+	VulkanBufferSlice PerFrameStagingBuffer::Write(const uint8_t* InData, uint32_t InSize, uint8_t FrameIdx)
+	{
+		auto memChunk = GetWritable(InSize, FrameIdx);
+		memcpy(memChunk.cpuAddrWithOffset, InData, InSize);
+		return memChunk;
+
+	}
+
+	void PerFrameStagingBuffer::FrameCompleted(uint8_t FrameIdx)
+	{
+		for (auto it = _chunks.begin(); it != _chunks.end();)
+		{
+			auto currentChunk = *it;
+			if (currentChunk->frameIdx == FrameIdx)
+			{
+				// move to chunks
+				it = _chunks.erase(it);
+
+				currentChunk->frameIdx = std::numeric_limits<uint8_t >::max();
+				currentChunk->currentOffset = 0;
+
+				_unboundChunks.push_back(currentChunk);
+			}
+			else
+			{
+				it++;
+			}
+		}
 	}
 }

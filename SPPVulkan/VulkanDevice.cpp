@@ -627,61 +627,93 @@ namespace SPP
 #define MAX_TEXTURE_COUNT 2048
 #define DYNAMIC_MAX_COUNT 20 * 1024
 
+	_declspec(align(256u))
+	struct GPUViewConstants
+	{
+		//all origin centered
+		Matrix4x4 ViewMatrix;
+		Matrix4x4 ViewProjectionMatrix;
+		Matrix4x4 InvViewProjectionMatrix;
+		//real view position
+		Vector3d ViewPosition;
+		Vector4d FrustumPlanes[6];
+		float RecipTanHalfFovy;
+	};
 
 	void VulkanGraphicsDevice::CreateDescriptorPool()
 	{
-		std::vector<VkDescriptorPoolSize> poolSizes = {
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
+		const auto InFlightFrames = swapChain.imageCount;
 
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_MESH_ELEMENTS),
-
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURE_COUNT),
-		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DYNAMIC_MAX_COUNT)
+		std::vector<VkDescriptorPoolSize> mainPool = {
+			
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURE_COUNT + DYNAMIC_MAX_COUNT),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 32)
 		};
 
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
+		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(mainPool, 2);
+		poolCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &_descriptorPool));
+		
 
-		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &material.descriptorSet));
+		auto CameraArray = std::make_shared< ArrayResource >();
+		auto CameraAccess = CameraArray->InitializeFromType< GPUViewConstants >(InFlightFrames);
 
-		VkDescriptorSetLayout storage;
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool,
-			&storage, 1);
+		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, CameraArray);
 
 		//
 
-		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		//PER FRAME DESCRIPTOR SET (1 set using VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_ALL_GRAPHICS, 0)
+			};
+			auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
 
-		//std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = 
-		//{
-		//vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0)
-		//};
-		//VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nullptr, &_perFrameSetLayout));
 
-		//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayouts.matrices));
+			//
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perFrameSetLayout, 1);
+			VkResult allocateCall = vkAllocateDescriptorSets(device, &allocInfo, &_perFrameDescriptorSet);
 
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = _cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = _cameraBuffer->GetPerElementSize();
 
-		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		//VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet,
-		//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
-		//vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(_perFrameDescriptorSet,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo);
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
 
-		//////create the descriptor pool
-		////VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &_descriptorPool));
-		////
-		////VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), static_cast<uint32_t>(setLayoutBindings.size()));
+		//PER DRAW DESCRIPTOR SET
+		{
+			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 0),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 1),
 
-		//// Descriptor set for scene matrices
-		//VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool,
-		//	&descriptorSetLayouts.matrices, 1);
-		//VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
-		//VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet( descriptorSet, 
-		//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
-		//vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
+			};
+			auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
+
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nullptr, &_perDrawSetLayout));
+
+			//
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perDrawSetLayout, 1);
+			VkResult allocateCall = vkAllocateDescriptorSets(device, &allocInfo, &_perDrawDescriptorSet);
+
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = _cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = _cameraBuffer->GetPerElementSize();
+
+			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo);
+			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+		}
+
 	}
 
 	void VulkanGraphicsDevice::CreateInputLayout(GPUReferencer < GPUInputLayout > InLayout)
@@ -709,10 +741,12 @@ namespace SPP
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBufInfo.pNext = nullptr;
 
+		static float color = 0.0f;
+
 		// Set clear values for all framebuffer attachments with loadOp set to clear
 		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
 		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+		clearValues[0].color = { { 0.0f, 0.0f, color, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -727,7 +761,6 @@ namespace SPP
 		renderPassBeginInfo.pClearValues = clearValues;
 		// Set target frame buffer
 		renderPassBeginInfo.framebuffer = frameBuffers[currentBuffer];
-
 
 		auto& commandBuffer = drawCmdBuffers[currentBuffer];
 
@@ -752,6 +785,7 @@ namespace SPP
 		scissor.offset.x = 0;
 		scissor.offset.y = 0;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
 
 		//// Bind descriptor sets describing shader binding points
 		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
@@ -1077,14 +1111,13 @@ namespace SPP
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 
 		// Pipeline cache object
-		VkPipelineCache pipelineCache;
-
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
+		//VkPipelineCache pipelineCache;
+		//VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+		//pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+		//VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 
 		// Create rendering pipeline using the specified states
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCreateInfo, nullptr, &_pipeline));
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCreateInfo, nullptr, &_pipeline));
 	}
 
 
