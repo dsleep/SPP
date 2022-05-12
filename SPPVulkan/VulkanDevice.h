@@ -245,6 +245,10 @@ namespace SPP
 		}
 
 
+		VkFramebuffer GetActiveFrameBuffer()
+		{
+			return frameBuffers[currentBuffer];
+		}
 
 		uint8_t GetActiveFrame()
 		{

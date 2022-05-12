@@ -659,52 +659,9 @@ namespace SPP
 		VkCommandBufferBeginInfo cmdBufInfo = {};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBufInfo.pNext = nullptr;
-
-		static float color = 0.0f;
-
-		// Set clear values for all framebuffer attachments with loadOp set to clear
-		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, color, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = width;
-		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-		// Set target frame buffer
-		renderPassBeginInfo.framebuffer = frameBuffers[currentBuffer];
-
+		
 		auto& commandBuffer = drawCmdBuffers[currentBuffer];
-
 		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
-
-		// Start the first sub pass specified in our default render pass setup by the base class
-		// This will clear the color and depth attachment
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		// Update dynamic viewport state
-		VkViewport viewport = {};
-		viewport.height = (float)height;
-		viewport.width = (float)width;
-		viewport.minDepth = (float)0.0f;
-		viewport.maxDepth = (float)1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-		// Update dynamic scissor state
-		VkRect2D scissor = {};
-		scissor.extent.width = width;
-		scissor.extent.height = height;
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
 
 		//// Bind descriptor sets describing shader binding points
 		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
@@ -840,7 +797,28 @@ namespace SPP
 			}
 			if (psSet.empty() == false)
 			{
-				setLayoutBindings.insert(setLayoutBindings.end(), psSet[0].bindings.begin(), psSet[0].bindings.end());
+				for (auto& newBinding : psSet[0].bindings)
+				{
+					bool bDoAdd = true;
+
+					for (auto& curBinding : setLayoutBindings)
+					{
+						if (curBinding.binding == newBinding.binding)
+						{
+							curBinding.stageFlags |= newBinding.stageFlags;
+							SE_ASSERT(curBinding.descriptorCount == curBinding.descriptorCount
+								&& curBinding.descriptorType == curBinding.descriptorType);
+
+							bDoAdd = false;
+							break;
+						}
+					}
+
+					if (bDoAdd)
+					{
+						setLayoutBindings.insert(setLayoutBindings.end(), newBinding);
+					}
+				}
 			}
 
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);

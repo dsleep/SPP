@@ -35,8 +35,18 @@ namespace SPP
 		GPUReferencer< PipelineState > _fullscreenRaySDFPSO, _fullscreenSkyBoxPSO;
 		GPUReferencer< GPUInputLayout > _fullscreenRayVSLayout;
 
-		GPUReferencer< class VulkanBuffer > _cameraBuffer;
+		
 		std::shared_ptr< ArrayResource > _cameraData;
+		GPUReferencer< class VulkanBuffer > _cameraBuffer;
+
+		std::shared_ptr< ArrayResource > _drawConstants;
+		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
+
+		std::shared_ptr< ArrayResource > _drawParams;
+		GPUReferencer< class VulkanBuffer > _drawParamsBuffer;
+
+		std::shared_ptr< ArrayResource > _shapes;
+		GPUReferencer< class VulkanBuffer > _shapesBuffer;
 
 		VkDescriptorSetLayout _perFrameSetLayout = VK_NULL_HANDLE;
 		VkDescriptorSetLayout _perDrawSetLayout = VK_NULL_HANDLE;
@@ -81,6 +91,9 @@ namespace SPP
 
 		virtual void AddToScene(Renderable* InRenderable) override;
 		virtual void RemoveFromScene(Renderable* InRenderable) override;
-		virtual void Draw() override;
+		
+		virtual void BeginFrame() override {} 
+		virtual void Draw() override;		
+		virtual void EndFrame() override {}
 	};
 }

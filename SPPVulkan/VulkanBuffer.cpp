@@ -123,18 +123,7 @@ namespace SPP
 	//TODO FIX UP THESE
 	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		switch (InType)
-		{
-		case GPUBufferType::Simple:
-			return Make_GPU<VulkanBuffer>(InType, InCpuData);
-			break;
-		case GPUBufferType::Index:
-			break;
-		case GPUBufferType::Vertex:
-			break;
-		}
-
-		return nullptr;
+		return Make_GPU<VulkanBuffer>(InType, InCpuData);
 	}
 
 	//
