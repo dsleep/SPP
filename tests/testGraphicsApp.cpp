@@ -102,8 +102,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		startingGroup->AddChild(startingSphere);
 		_renderableScene->AddChild(startingGroup);
 
-
-		SPP::MakeResidentAllGPUResources();
+		//SPP::MakeResidentAllGPUResources();
 
 		std::mutex tickMutex;
 		std::condition_variable cv;		
@@ -113,9 +112,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto msgLoop = [&]()
 		{
 			graphicsDevice->BeginFrame();
-			//mainScene->Draw();
+			{
+				_renderableScene->GetRenderScene()->BeginFrame();
+				_renderableScene->GetRenderScene()->Draw();
+				_renderableScene->GetRenderScene()->EndFrame();
+			}
 			graphicsDevice->EndFrame();
-			std::this_thread::sleep_for(0ms);
+			std::this_thread::sleep_for(16ms);
 		};
 
 		app->SetEvents({ msgLoop });

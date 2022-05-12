@@ -302,7 +302,7 @@ namespace SPP
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
-
+		
 		// [POI] Enable required extension features
 		VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
 
@@ -317,6 +317,9 @@ namespace SPP
 
 		// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
 		//getEnabledFeatures();
+
+
+		enabledFeatures.shaderFloat64 = true;
 
 		// Vulkan device creation
 		// This is handled by a separate class that gets a logical device representation
@@ -1355,7 +1358,7 @@ namespace vks
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;		
 
 		// If a pNext(Chain) has been passed, we need to add it to the device creation info
 		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};

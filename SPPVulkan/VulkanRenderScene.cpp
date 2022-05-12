@@ -550,8 +550,6 @@ namespace SPP
 		////	rootSig = _fullscreenRayVS->GetAs<D3D12Shader>().GetRootSignature();
 		////}
 
-	
-
 		uint32_t uniform_offsets[]  = {
 			(sizeof(GPUViewConstants)) * currentFrame,
 			(sizeof(DrawConstants))* currentFrame,
