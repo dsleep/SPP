@@ -38,7 +38,10 @@ struct _DrawConstants
 	double3 Translation;
 };
 
+[[vk::binding(0, 0)]]
 ConstantBuffer<_ViewConstants>  ViewConstants : register(b0);
+
+[[vk::binding(1, 0)]]
 ConstantBuffer<_DrawConstants>  DrawConstants : register(b1, space0);
 
 float4x4 GetLocalToWorldViewTranslated(in float4x4 InLTWSR, in double3 InTrans, in double3 InViewPosition)

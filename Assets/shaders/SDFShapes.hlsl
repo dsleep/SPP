@@ -7,23 +7,27 @@
 
 struct DrawParams
 {
+	float3  ShapeColor;
     uint    ShapeCount;
-    float3  ShapeColor;
 };
 
 struct SDFShape
 {
-    uint    shapeType;
-    float3  translation;    
+	float3  translation; 
+	float3  eulerRotation;  
     
-    uint    shapeOp;
-    float3  eulerRotation;    
     
     float4  shapeBlendAndScale;
     float4  params;
+	
+	uint    shapeType;
+    uint    shapeOp;
 };
 
+[[vk::binding(2, 0)]]
 ConstantBuffer<DrawParams>          DrawParams                : register(b3);
+
+[[vk::binding(3, 0)]]
 StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
 // slight expansion to a buffer of these shapes... very WIP

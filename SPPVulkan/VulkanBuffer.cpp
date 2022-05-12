@@ -101,9 +101,23 @@ namespace SPP
 		vkCmdCopyBuffer(cmdBuffer, WritableChunk.buffer, _buffer, 1, &copyRegion);
 	}
 
-	void VulkanBuffer::UpdateDirtyRegion(uint32_t Idx, uint32_t Count)
+	void VulkanBuffer::UpdateDirtyRegion(uint32_t Offset, uint32_t Count)
 	{
+		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto& cmdBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
+		auto eleSize = _cpuLink->GetPerElementSize();
+		auto startPos = Offset * eleSize;
+		auto writeAmount = Count * eleSize;
+
+		auto WritableChunk = perFrameScratchBuffer.Write(GetData() + startPos, writeAmount, activeFrame);
+
+		VkBufferCopy copyRegion{};
+		copyRegion.srcOffset = WritableChunk.offsetFromBase;
+		copyRegion.dstOffset = startPos;
+		copyRegion.size = writeAmount;
+		vkCmdCopyBuffer(cmdBuffer, WritableChunk.buffer, _buffer, 1, &copyRegion);
 	}
 
 	//TODO FIX UP THESE

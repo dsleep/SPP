@@ -4,6 +4,9 @@
 
 #pragma once
 
+
+#include "vulkan/vulkan.h"
+
 #include "SPPVulkan.h"
 #include "SPPSceneRendering.h"
 
@@ -31,6 +34,18 @@ namespace SPP
 
 		GPUReferencer< PipelineState > _fullscreenRaySDFPSO, _fullscreenSkyBoxPSO;
 		GPUReferencer< GPUInputLayout > _fullscreenRayVSLayout;
+
+		GPUReferencer< class VulkanBuffer > _cameraBuffer;
+		std::shared_ptr< ArrayResource > _cameraData;
+
+		VkDescriptorSetLayout _perFrameSetLayout = VK_NULL_HANDLE;
+		VkDescriptorSetLayout _perDrawSetLayout = VK_NULL_HANDLE;
+
+		VkDescriptorSet _perFrameDescriptorSet = VK_NULL_HANDLE;
+		VkDescriptorSet _perDrawDescriptorSet = VK_NULL_HANDLE;
+
+		// Descriptor set pool
+		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
 
 
 	public:

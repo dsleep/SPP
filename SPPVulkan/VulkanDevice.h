@@ -178,20 +178,10 @@ namespace SPP
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
 
-		GPUReferencer< class VulkanBuffer > _cameraBuffer;
-
-		VkDescriptorSetLayout _perFrameSetLayout = VK_NULL_HANDLE;
-		VkDescriptorSetLayout _perDrawSetLayout = VK_NULL_HANDLE;
-
-		VkDescriptorSet _perFrameDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet _perDrawDescriptorSet = VK_NULL_HANDLE;
+	
 
 		// Active frame buffer index
 		uint32_t currentBuffer = 0;
-		// Descriptor set pool
-		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
-		// List of shader modules created (stored for cleanup)
-		std::vector<VkShaderModule> shaderModules;
 		// Pipeline cache object
 		VkPipelineCache pipelineCache;
 		// Wraps the swap chain to present images (framebuffers) to the windowing system
@@ -254,9 +244,15 @@ namespace SPP
 			return vulkanDevice;
 		}
 
+
+
 		uint8_t GetActiveFrame()
 		{
 			return (uint8_t)currentBuffer;
+		}
+		uint8_t GetInFlightFrames()
+		{
+			return (uint8_t)swapChain.imageCount;
 		}
 
 		VkCommandBuffer& GetActiveCommandBuffer()
@@ -310,6 +306,14 @@ namespace SPP
 		VulkanPipelineState();
 		virtual ~VulkanPipelineState();
 
+		VkPipeline GetVkPipeline()
+		{
+			return _pipeline;
+		}
+		VkPipelineLayout GetVkPipelineLayout()
+		{
+			return _pipelineLayout;
+		}
 
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
 		virtual void UploadToGpu() {}

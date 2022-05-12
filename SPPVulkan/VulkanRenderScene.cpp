@@ -25,6 +25,18 @@ namespace SPP
 
 	static Vector3d HACKS_CameraPos;
 
+	_declspec(align(256u)) struct GPUViewConstants
+	{
+		//all origin centered
+		Matrix4x4 ViewMatrix;
+		Matrix4x4 ViewProjectionMatrix;
+		Matrix4x4 InvViewProjectionMatrix;
+		//real view position
+		Vector3d ViewPosition;
+		Vector4d FrustumPlanes[6];
+		float RecipTanHalfFovy;
+	};
+
 	VulkanRenderScene::VulkanRenderScene()
 	{
 		_debugVS = Vulkan_CreateShader(EShaderType::Vertex);
@@ -111,6 +123,100 @@ namespace SPP
 			nullptr,
 			nullptr,
 			nullptr);
+
+
+		//
+		extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
+
+		const auto InFlightFrames = GGlobalVulkanGI->GetInFlightFrames();
+
+		std::vector<VkDescriptorPoolSize> mainPool = {
+
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 32)
+		};
+
+		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(mainPool, 2);
+		poolCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+		VK_CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice, &poolCreateInfo, nullptr, &_descriptorPool));
+
+
+		_cameraData = std::make_shared< ArrayResource >();
+		auto CameraAccess = _cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
+
+		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _cameraData);
+
+		//
+
+		//PER FRAME DESCRIPTOR SET (1 set using VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		//{
+		//	std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
+		//		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_ALL_GRAPHICS, 0)
+		//	};
+		//	auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
+
+		//	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice, &layoutCreateInfo, nullptr, &_perFrameSetLayout));
+
+		//	//
+		//	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perFrameSetLayout, 1);
+		//	VkResult allocateCall = vkAllocateDescriptorSets(vulkanDevice, &allocInfo, &_perFrameDescriptorSet);
+
+		//	VkDescriptorBufferInfo perFrameInfo;
+		//	perFrameInfo.buffer = _cameraBuffer->GetBuffer();
+		//	perFrameInfo.offset = 0;
+		//	perFrameInfo.range = _cameraBuffer->GetPerElementSize();
+
+		//	VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(_perFrameDescriptorSet,
+		//		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo);
+		//	vkUpdateDescriptorSets(vulkanDevice, 1, &writeDescriptorSet, 0, nullptr);
+		//}
+
+		//PER DRAW DESCRIPTOR SET
+		{
+			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_ALL_GRAPHICS, 0), 
+
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 1),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 2),
+
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
+			};
+			auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
+
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice, &layoutCreateInfo, nullptr, &_perDrawSetLayout));
+
+			//
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perDrawSetLayout, 1);
+			VkResult allocateCall = vkAllocateDescriptorSets(vulkanDevice, &allocInfo, &_perDrawDescriptorSet);
+
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = _cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = _cameraBuffer->GetPerElementSize();
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo)
+			};
+
+			vkUpdateDescriptorSets(vulkanDevice,
+				static_cast<uint32_t>(writeDescriptorSets.size()), 
+				writeDescriptorSets.data(), 0, nullptr);
+		}
 	}
 
 	//void VulkanRenderScene::DrawDebug()
@@ -222,29 +328,11 @@ namespace SPP
 	void VulkanRenderScene::AddToScene(Renderable* InRenderable)
 	{
 		RenderScene::AddToScene(InRenderable);
-
-		//HACKS FIX
-
-	/*	auto thisMesh = (D3D12RenderableMesh*)InRenderable;
-		if (thisMesh->IsStatic())
-		{
-			_renderMeshes.push_back(thisMesh);
-			_bMeshInstancesDirty = true;
-		}	*/
 	}
 
 	void VulkanRenderScene::RemoveFromScene(Renderable* InRenderable)
 	{
 		RenderScene::RemoveFromScene(InRenderable);
-
-		//HACKS FIX
-
-		//auto thisMesh = (D3D12RenderableMesh*)InRenderable;
-		//if (thisMesh->IsStatic())
-		//{
-		//	//_renderMeshes.erase(thisMesh);
-		//	_bMeshInstancesDirty = true;
-		//}
 	}
 
 #define MAX_MESH_ELEMENTS 1024
@@ -271,25 +359,14 @@ namespace SPP
 		extern VkDevice GGlobalVulkanDevice;
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
+		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 				
 		// Bind scene matrices descriptor to set 0
 		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
-		_declspec(align(256u))
-		struct GPUViewConstants
-		{
-			//all origin centered
-			Matrix4x4 ViewMatrix;
-			Matrix4x4 ViewProjectionMatrix;
-			Matrix4x4 InvViewProjectionMatrix;
-			//real view position
-			Vector3d ViewPosition;
-			Vector4d FrustumPlanes[6];
-			float RecipTanHalfFovy;
-		};
 
 		_view.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
 		_view.BuildCameraMatrices();
@@ -297,25 +374,23 @@ namespace SPP
 		Planed frustumPlanes[6];
 		_view.GetFrustumPlanes(frustumPlanes);
 
-		// get first index
-//		_currentFrameMem = perDrawSratchMem->GetWritable(sizeof(GPUViewConstants), currentFrame);
-//
-//		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, ViewMatrix), _view.GetCameraMatrix());
-//		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, ViewProjectionMatrix), _view.GetViewProjMatrix());
-//		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, InvViewProjectionMatrix), _view.GetInvViewProjMatrix());
-//		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, ViewPosition), _view.GetCameraPosition());
-//
-//		// FIXME
-//		HACKS_CameraPos = _view.GetCameraPosition();
-//
-//		for (int32_t Iter = 0; Iter < ARRAY_SIZE(frustumPlanes); Iter++)
-//		{
-//			WriteMem(_currentFrameMem, offsetof(GPUViewConstants, FrustumPlanes[Iter]), frustumPlanes[Iter].coeffs());
-//		}
-//
-//		WriteMem(_currentFrameMem, offsetof(GPUViewConstants, RecipTanHalfFovy), _view.GetRecipTanHalfFovy());
-//			
-//
+		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
+
+		GPUViewConstants &curCam = cameraSpan[currentFrame];
+
+		curCam.ViewMatrix = _view.GetCameraMatrix();
+		curCam.ViewProjectionMatrix = _view.GetViewProjMatrix();
+		curCam.InvViewProjectionMatrix = _view.GetInvViewProjMatrix();
+		curCam.ViewPosition = _view.GetCameraPosition();
+		
+		for (int32_t Iter = 0; Iter < ARRAY_SIZE(frustumPlanes); Iter++)
+		{
+			curCam.FrustumPlanes[Iter] = frustumPlanes[Iter].coeffs();
+		}
+
+		curCam.RecipTanHalfFovy = _view.GetRecipTanHalfFovy();
+		_cameraBuffer->UpdateDirtyRegion(currentFrame, 1);
+
 #if 0
 		for (auto renderItem : _renderables)
 		{
@@ -324,7 +399,7 @@ namespace SPP
 		DrawDebug();
 #endif
 
-		if (_skyBox)
+		//if (_skyBox)
 		{
 			DrawSkyBox();
 		}
@@ -345,104 +420,27 @@ namespace SPP
 
 	void VulkanRenderScene::DrawSkyBox()
 	{
-		//auto pd3dDevice = GGraphicsDevice->GetDevice();
-		//auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-		//auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
-		//auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-		//auto cmdList = GGraphicsDevice->GetCommandList();
-		//auto currentFrame = GGraphicsDevice->GetFrameCount();
+		extern VkDevice GGlobalVulkanDevice;
+		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-		//extern VkDevice GGlobalVulkanDevice;
-		//extern VulkanGraphicsDevice* GGlobalVulkanGI;
+		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
-		//auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
-		//
-		////ID3D12RootSignature* rootSig = nullptr;
-
+		
 		////if (_fullscreenRayVS)
 		////{
 		////	rootSig = _fullscreenRayVS->GetAs<D3D12Shader>().GetRootSignature();
 		////}
 
-		//auto rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
-
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetPipelineObject());
-
-		//cmdList->SetGraphicsRootSignature(rootSig);
-
-		////table 0, shared all constant, scene stuff 
-		//{
-		//	cmdList->SetGraphicsRootConstantBufferView(0, GetGPUAddrOfViewConstants());
-
-		//	CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-		//	CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-		//	cmdList->RSSetViewports(1, &m_viewport);
-		//	cmdList->RSSetScissorRects(1, &m_scissorRect);
-		//}
-
-		////table 1, VS only constants
-		//{
-		//	auto pd3dDevice = GGraphicsDevice->GetDevice();
-
-		//	_declspec(align(256u))
-		//		struct GPUDrawConstants
-		//	{
-		//		//altered viewposition translated
-		//		Matrix4x4 LocalToWorldScaleRotation;
-		//		Vector3d Translation;
-		//	};
-
-		//	Matrix4x4 matId = Matrix4x4::Identity();
-		//	Vector3d dummyVec(0, 0, 0);
-
-		//	// write local to world
-		//	auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
-		//	WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
-		//	WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
-
-		//	cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
-		//}
-
-		//cmdList->SetPipelineState(_fullscreenSkyBoxPSO->GetState());
-		//cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		//auto SRVSlotBlock = perDrawDescriptorHeap->GetDescriptorSlots(1);
-		//auto SamplerSlotBlock = perDrawSamplerHeap->GetDescriptorSlots(1);
-
-		//{
-		//	auto psSRVDescriptor = SRVSlotBlock[0];
-		//	auto texRef = _skyBox->GetAs<D3D12Texture>();
-		//	pd3dDevice->CopyDescriptorsSimple(1,
-		//		psSRVDescriptor.cpuHandle,
-		//		texRef.GetCPUDescriptor()->GetCPUDescriptorHandleForHeapStart(),
-		//		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		//}
-	
-		//{
-		//	auto psSamplerDescriptor = SamplerSlotBlock[0];
-
-		//	D3D12_SAMPLER_DESC wrapSamplerDesc = {};
-		//	wrapSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-		//	wrapSamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		//	wrapSamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		//	wrapSamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		//	wrapSamplerDesc.MinLOD = 0;
-		//	wrapSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-		//	wrapSamplerDesc.MipLODBias = 0.0f;
-		//	wrapSamplerDesc.MaxAnisotropy = 1;
-		//	wrapSamplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-		//	wrapSamplerDesc.BorderColor[0] = wrapSamplerDesc.BorderColor[1] = wrapSamplerDesc.BorderColor[2] = wrapSamplerDesc.BorderColor[3] = 0;
-
-		//	pd3dDevice->CreateSampler(&wrapSamplerDesc, psSamplerDescriptor.cpuHandle);
-		//}
-
-		//cmdList->SetGraphicsRootDescriptorTable(7, SRVSlotBlock.gpuHandle);
-		//cmdList->SetGraphicsRootDescriptorTable(12, SamplerSlotBlock.gpuHandle);
-
-		//cmdList->DrawInstanced(4, 1, 0, 0);
-
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material.pipeline);
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &material.descriptorSet, 0, nullptr);
-		//vkCmdDrawIndexed(commandBuffer, 4, 1, 0, 0, 0);
+		auto rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipeline());
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
+			&_perFrameDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 1, 1,
+			&_perDrawDescriptorSet, 0, nullptr);
+		vkCmdDrawIndexed(commandBuffer, 4, 1, 0, 0, 0);
 	}
 }

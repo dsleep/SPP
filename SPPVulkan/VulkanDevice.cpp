@@ -627,92 +627,11 @@ namespace SPP
 #define MAX_TEXTURE_COUNT 2048
 #define DYNAMIC_MAX_COUNT 20 * 1024
 
-	_declspec(align(256u))
-	struct GPUViewConstants
-	{
-		//all origin centered
-		Matrix4x4 ViewMatrix;
-		Matrix4x4 ViewProjectionMatrix;
-		Matrix4x4 InvViewProjectionMatrix;
-		//real view position
-		Vector3d ViewPosition;
-		Vector4d FrustumPlanes[6];
-		float RecipTanHalfFovy;
-	};
+	
 
 	void VulkanGraphicsDevice::CreateDescriptorPool()
 	{
-		const auto InFlightFrames = swapChain.imageCount;
-
-		std::vector<VkDescriptorPoolSize> mainPool = {
-			
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURE_COUNT + DYNAMIC_MAX_COUNT),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 32)
-		};
-
-		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(mainPool, 2);
-		poolCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &_descriptorPool));
 		
-
-		auto CameraArray = std::make_shared< ArrayResource >();
-		auto CameraAccess = CameraArray->InitializeFromType< GPUViewConstants >(InFlightFrames);
-
-		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, CameraArray);
-
-		//
-
-		//PER FRAME DESCRIPTOR SET (1 set using VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		{
-			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_ALL_GRAPHICS, 0)
-			};
-			auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
-
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nullptr, &_perFrameSetLayout));
-
-			//
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perFrameSetLayout, 1);
-			VkResult allocateCall = vkAllocateDescriptorSets(device, &allocInfo, &_perFrameDescriptorSet);
-
-			VkDescriptorBufferInfo perFrameInfo;
-			perFrameInfo.buffer = _cameraBuffer->GetBuffer();
-			perFrameInfo.offset = 0;
-			perFrameInfo.range = _cameraBuffer->GetPerElementSize();
-
-			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(_perFrameDescriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo);
-			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
-		}
-
-		//PER DRAW DESCRIPTOR SET
-		{
-			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 0),
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT, 1),
-
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
-			};
-			auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
-
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &layoutCreateInfo, nullptr, &_perDrawSetLayout));
-
-			//
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perDrawSetLayout, 1);
-			VkResult allocateCall = vkAllocateDescriptorSets(device, &allocInfo, &_perDrawDescriptorSet);
-
-			VkDescriptorBufferInfo perFrameInfo;
-			perFrameInfo.buffer = _cameraBuffer->GetBuffer();
-			perFrameInfo.offset = 0;
-			perFrameInfo.range = _cameraBuffer->GetPerElementSize();
-
-			VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo);
-			vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
-		}
 
 	}
 
