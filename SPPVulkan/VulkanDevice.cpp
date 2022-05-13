@@ -38,9 +38,9 @@ namespace SPP
 		_vertexInputState = {};
 		_vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		_vertexInputState.vertexBindingDescriptionCount = (uint32_t)InputBindings.size();
-		_vertexInputState.pVertexBindingDescriptions = InputBindings.data();
+		_vertexInputState.pVertexBindingDescriptions = InputBindings.size() ? InputBindings.data() : nullptr;
 		_vertexInputState.vertexAttributeDescriptionCount = (uint32_t)InputAttributes.size();
-		_vertexInputState.pVertexAttributeDescriptions = InputAttributes.data();
+		_vertexInputState.pVertexAttributeDescriptions = InputAttributes.size() ? InputAttributes.data() : nullptr;
 	}
 
 	void VulkanInputLayout::InitializeLayout(const std::vector< InputLayoutElement>& eleList) 
@@ -302,6 +302,8 @@ namespace SPP
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+
+		enabledFeatures.shaderFloat64 = true;
 		
 		// [POI] Enable required extension features
 		VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
@@ -317,9 +319,6 @@ namespace SPP
 
 		// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
 		//getEnabledFeatures();
-
-
-		enabledFeatures.shaderFloat64 = true;
 
 		// Vulkan device creation
 		// This is handled by a separate class that gets a logical device representation
@@ -821,6 +820,18 @@ namespace SPP
 					{
 						setLayoutBindings.insert(setLayoutBindings.end(), newBinding);
 					}
+				}
+			}
+
+			for (auto& curBinding : setLayoutBindings)
+			{
+				if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+				{
+					curBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+				}
+				else if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+				{
+					curBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 				}
 			}
 

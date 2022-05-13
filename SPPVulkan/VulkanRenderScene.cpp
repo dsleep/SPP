@@ -121,14 +121,14 @@ namespace SPP
 			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();
 			FullscreenVertex dvPattern;
 			vulkanInputLayout.Begin();
-			vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position);
+			//vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position);
 			vulkanInputLayout.Finalize();
 		}
 
 		_fullscreenRaySDFPSO = GetVulkanPipelineState(EBlendState::Disabled,
 			ERasterizerState::NoCull,
 			EDepthState::Enabled,
-			EDrawingTopology::TriangleList,
+			EDrawingTopology::TriangleStrip,
 			_fullscreenRayVSLayout,
 			_fullscreenRayVS,
 			_fullscreenRaySDFPS,
@@ -220,7 +220,7 @@ namespace SPP
 		//PER DRAW DESCRIPTOR SET
 		{
 			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_ALL_GRAPHICS, 0), 
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
 
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
@@ -463,12 +463,10 @@ namespace SPP
 			_shapesBuffer->UpdateDirtyRegion(currentFrame, 1);
 		}
 
-		static float color = 0.0f;
-
 		// Set clear values for all framebuffer attachments with loadOp set to clear
 		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
 		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, color, 1.0f } };
+		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -490,8 +488,8 @@ namespace SPP
 
 		// Update dynamic viewport state
 		VkViewport viewport = {};
-		viewport.height = (float)DeviceExtents[0];
-		viewport.width = (float)DeviceExtents[1];
+		viewport.width = (float)DeviceExtents[0];
+		viewport.height = (float)DeviceExtents[1];		
 		viewport.minDepth = (float)0.0f;
 		viewport.maxDepth = (float)1.0f;
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -562,6 +560,6 @@ namespace SPP
 			//&_perFrameDescriptorSet, 0, nullptr);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
 			&_perDrawDescriptorSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);
-		vkCmdDrawIndexed(commandBuffer, 4, 1, 0, 0, 0);
+		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 	}
 }
