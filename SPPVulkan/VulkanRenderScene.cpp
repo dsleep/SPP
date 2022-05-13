@@ -502,9 +502,6 @@ namespace SPP
 		scissor.offset.y = 0;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 				
-		// Bind scene matrices descriptor to set 0
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-
 #if 0
 		for (auto renderItem : _renderables)
 		{
@@ -543,21 +540,15 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		
-		////if (_fullscreenRayVS)
-		////{
-		////	rootSig = _fullscreenRayVS->GetAs<D3D12Shader>().GetRootSignature();
-		////}
-
 		uint32_t uniform_offsets[]  = {
 			(sizeof(GPUViewConstants)) * currentFrame,
 			(sizeof(DrawConstants))* currentFrame,
 			(sizeof(DrawParams))* currentFrame,
 			(sizeof(SDFShape))* currentFrame,
 		};
+
 		auto &rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipeline());
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
-			//&_perFrameDescriptorSet, 0, nullptr);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
 			&_perDrawDescriptorSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDraw(commandBuffer, 4, 1, 0, 0);

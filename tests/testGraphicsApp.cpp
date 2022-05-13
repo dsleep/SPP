@@ -83,11 +83,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto graphicsDevice = GGI()->CreateGraphicsDevice();
 		graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
-		auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
-		SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
+		//auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
+		//SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
-		auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
-		SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
+		//auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
+		//SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
 		/////////////SCENE SETUP
 
@@ -109,7 +109,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		
 		auto LastTime = std::chrono::high_resolution_clock::now();
 		float DeltaTime = 0.016f;
-		auto msgLoop = [&]()
+
+		auto graphicsFrame = [&]()
 		{
 			graphicsDevice->BeginFrame();
 			{
@@ -118,10 +119,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				_renderableScene->GetRenderScene()->EndFrame();
 			}
 			graphicsDevice->EndFrame();
-			std::this_thread::sleep_for(16ms);
+			return true;
 		};
 
-		app->SetEvents({ msgLoop });
+		std::future<bool> graphicsResults;
+
+		auto engineFrame = [&]()
+		{
+			if (graphicsResults.valid())
+			{
+				graphicsResults.wait();
+			}
+			graphicsResults = GPUThreaPool->enqueue(graphicsFrame);
+
+			std::this_thread::sleep_for(16ms);
+		};
+		
+		app->SetEvents({ engineFrame });
 
 		ErrorCode = app->Run();
 	}

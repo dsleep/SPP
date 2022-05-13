@@ -1,5 +1,6 @@
 #include "SPPSDFO.h"
 #include "SPPGraphicsO.h"
+#include "ThreadPool.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -31,7 +32,12 @@ namespace SPP
 			_renderableSDF->SetShader(_shaderOverride);
 			_renderableSDF->GetShapes() = _shapeCache;
 			_renderableSDF->GetColor() = _color;
-			_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
+
+			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF, InScene]()
+				{
+					_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
+				});
+			
 		}
 	}
 
@@ -55,7 +61,10 @@ namespace SPP
 
 		if (_renderableSDF)
 		{
-			_renderableSDF->RemoveFromScene();
+			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF, InScene]()
+			{
+				_renderableSDF->RemoveFromScene();
+			});
 			_renderableSDF.reset();
 		}
 	}

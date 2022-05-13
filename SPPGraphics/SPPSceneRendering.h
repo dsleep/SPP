@@ -187,12 +187,14 @@ namespace SPP
 
 		virtual void AddToScene(Renderable *InRenderable)
 		{
+			SE_ASSERT(IsOnGPUThread());
 			_renderables.push_back(InRenderable);
 			_octree.AddElement(InRenderable);
 		}
 
 		virtual void RemoveFromScene(Renderable *InRenderable)
 		{
+			SE_ASSERT(IsOnGPUThread());
 			_renderables.remove(InRenderable);
 			_octree.RemoveElement(InRenderable);
 		}

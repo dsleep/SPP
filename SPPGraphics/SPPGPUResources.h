@@ -134,15 +134,23 @@ namespace SPP
     public:       
         GPUReferencer(T* obj = nullptr) : Referencer<T>(obj)
         {
+            SE_ASSERT(IsOnGPUThread());
             static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
         }
 
-        GPUReferencer(GPUReferencer<T>& orig) : Referencer<T>(orig) { }
-        GPUReferencer(const GPUReferencer<T>& orig) : Referencer<T>(orig) { }
+        GPUReferencer(GPUReferencer<T>& orig) : Referencer<T>(orig) 
+        { 
+            SE_ASSERT(IsOnGPUThread());
+        }
+        GPUReferencer(const GPUReferencer<T>& orig) : Referencer<T>(orig) 
+        { 
+            SE_ASSERT(IsOnGPUThread());
+        }
 
         template<typename K = T>
         GPUReferencer(const GPUReferencer<K>& orig) : Referencer<T>(orig)
         { 
+            SE_ASSERT(IsOnGPUThread());
             static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
         }
 
