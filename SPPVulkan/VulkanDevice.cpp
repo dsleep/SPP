@@ -644,6 +644,8 @@ namespace SPP
 
 	void VulkanGraphicsDevice::BeginFrame()
 	{
+		GraphicsDevice::BeginFrame();
+
 		// Acquire the next image from the swap chain
 		VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
@@ -723,6 +725,8 @@ namespace SPP
 			}
 		}
 		//VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+
+		GraphicsDevice::EndFrame();
 	}
 
 	void VulkanGraphicsDevice::MoveToNextFrame()

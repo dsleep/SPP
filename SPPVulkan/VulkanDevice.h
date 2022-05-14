@@ -283,8 +283,8 @@ namespace SPP
 		};
 
 
-		virtual void BeginFrame();
-		virtual void EndFrame();
+		virtual void BeginFrame() override;
+		virtual void EndFrame() override;
 		virtual void MoveToNextFrame();
 	};
 

@@ -93,6 +93,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
 
+		auto renderSceneShared = _renderableScene->GetRenderSceneShared();
+
 		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
 		cam.GetCameraPosition()[2] = -100;
 
@@ -110,14 +112,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto LastTime = std::chrono::high_resolution_clock::now();
 		float DeltaTime = 0.016f;
 
+		GPUThreaPool->enqueue([&]()
+			{
+				graphicsDevice->AddScene(renderSceneShared);
+			});
+
 		auto graphicsFrame = [&]()
 		{
 			graphicsDevice->BeginFrame();
-			{
-				_renderableScene->GetRenderScene()->BeginFrame();
-				_renderableScene->GetRenderScene()->Draw();
-				_renderableScene->GetRenderScene()->EndFrame();
-			}
+			graphicsDevice->Draw();
 			graphicsDevice->EndFrame();
 			return true;
 		};

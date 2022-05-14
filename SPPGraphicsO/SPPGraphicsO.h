@@ -41,6 +41,11 @@ namespace SPP
 			return _renderScene.get();
 		}
 
+		std::shared_ptr<RenderScene> GetRenderSceneShared()
+		{
+			return _renderScene;
+		}
+
 		virtual ~ORenderableScene() { }
 	};
 
