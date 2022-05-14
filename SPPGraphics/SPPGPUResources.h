@@ -131,8 +131,12 @@ namespace SPP
             Referencer<T>::DestroyObject();
         }
 
-    public:       
-        GPUReferencer(T* obj = nullptr) : Referencer<T>(obj)
+    public:
+        GPUReferencer() : Referencer<T>()
+        {
+        }
+
+        GPUReferencer(T* obj) : Referencer<T>(obj)
         {
             SE_ASSERT(IsOnGPUThread());
             static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
@@ -388,6 +392,7 @@ namespace SPP
     class SPP_GRAPHICS_API GraphicsDevice
     {
     protected:
+        std::vector< std::shared_ptr< class RenderScene > > _renderScenes;
 
     public:
         virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) = 0;
@@ -396,8 +401,11 @@ namespace SPP
         virtual int32_t GetDeviceWidth() const = 0;
         virtual int32_t GetDeviceHeight() const = 0;
 
-        virtual void BeginFrame() = 0;
-        virtual void EndFrame() = 0;
+        virtual void AddScene(std::shared_ptr< class RenderScene > InScene);
+        virtual void RemoveScene(std::shared_ptr< class RenderScene > InScene);
+        virtual void BeginFrame();
+        virtual void Draw();
+        virtual void EndFrame();
         virtual void MoveToNextFrame() { };
     };
 

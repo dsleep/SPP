@@ -80,6 +80,8 @@ namespace SPP
 			return _fullscreenRayVSLayout;
 		}
 
+		virtual void AddedToGraphicsDevice() override;
+
 		//void DrawDebug();
 
 		//virtual void Build() {};

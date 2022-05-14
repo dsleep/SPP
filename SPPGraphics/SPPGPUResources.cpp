@@ -7,6 +7,7 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 #include "SPPString.h"
+#include "SPPSceneRendering.h"
 
 #include <list>
 #include <mutex>		
@@ -121,6 +122,41 @@ namespace SPP
 	GPUTexture::~GPUTexture() 
 	{ 
 		GTextureAvailIDs.push_back(_uniqueID);
+	}
+
+
+	void GraphicsDevice::AddScene(std::shared_ptr< class RenderScene > InScene)
+	{
+		_renderScenes.push_back(InScene);
+		InScene->AddedToGraphicsDevice();
+	}
+
+	void GraphicsDevice::RemoveScene(std::shared_ptr< class RenderScene > InScene)
+	{
+		_renderScenes.erase(std::remove(_renderScenes.begin(), _renderScenes.end(), InScene), _renderScenes.end());
+		//InScene->removed();
+	}
+
+	void GraphicsDevice::BeginFrame()
+	{
+		for (auto& curScene : _renderScenes)
+		{
+			curScene->BeginFrame();
+		}
+	}
+	void GraphicsDevice::Draw()
+	{
+		for (auto& curScene : _renderScenes)
+		{
+			curScene->Draw();
+		}
+	}
+	void GraphicsDevice::EndFrame()
+	{
+		for (auto& curScene : _renderScenes)
+		{
+			curScene->EndFrame();
+		}
 	}
 
 	//GLOBAL GRAPHICS INTERFACE

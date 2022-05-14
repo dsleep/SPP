@@ -61,10 +61,14 @@ namespace SPP
 		uint32_t shapeOp;
 	};
 
-
-	
-
 	VulkanRenderScene::VulkanRenderScene()
+	{
+		//SE_ASSERT(I());
+
+
+	}
+
+	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
 		//_debugVS = Vulkan_CreateShader(EShaderType::Vertex);
 		//_debugVS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
@@ -160,7 +164,7 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		const auto InFlightFrames = GGlobalVulkanGI->GetInFlightFrames();
-			
+
 		_cameraData = std::make_shared< ArrayResource >();
 		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
 		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _cameraData);
@@ -267,7 +271,7 @@ namespace SPP
 			};
 
 			vkUpdateDescriptorSets(vulkanDevice,
-				static_cast<uint32_t>(writeDescriptorSets.size()), 
+				static_cast<uint32_t>(writeDescriptorSets.size()),
 				writeDescriptorSets.data(), 0, nullptr);
 		}
 	}
@@ -489,7 +493,7 @@ namespace SPP
 		// Update dynamic viewport state
 		VkViewport viewport = {};
 		viewport.width = (float)DeviceExtents[0];
-		viewport.height = (float)DeviceExtents[1];		
+		viewport.height = (float)DeviceExtents[1];
 		viewport.minDepth = (float)0.0f;
 		viewport.maxDepth = (float)1.0f;
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -501,7 +505,7 @@ namespace SPP
 		scissor.offset.x = 0;
 		scissor.offset.y = 0;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-				
+
 #if 0
 		for (auto renderItem : _renderables)
 		{
@@ -515,18 +519,18 @@ namespace SPP
 			DrawSkyBox();
 		}
 
-//#if 1
-//		_octree.WalkElements(frustumPlanes, [](const IOctreeElement* InElement) -> bool
-//			{
-//				((Renderable*)InElement)->Draw();
-//				return true;
-//			});
-//#else
-//		for (auto renderItem : _renderables)
-//		{
-//			renderItem->Draw();
-//		}
-//#endif
+		//#if 1
+		//		_octree.WalkElements(frustumPlanes, [](const IOctreeElement* InElement) -> bool
+		//			{
+		//				((Renderable*)InElement)->Draw();
+		//				return true;
+		//			});
+		//#else
+		//		for (auto renderItem : _renderables)
+		//		{
+		//			renderItem->Draw();
+		//		}
+		//#endif
 	};
 
 	void VulkanRenderScene::DrawSkyBox()
@@ -539,15 +543,15 @@ namespace SPP
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-		
-		uint32_t uniform_offsets[]  = {
+
+		uint32_t uniform_offsets[] = {
 			(sizeof(GPUViewConstants)) * currentFrame,
-			(sizeof(DrawConstants))* currentFrame,
-			(sizeof(DrawParams))* currentFrame,
-			(sizeof(SDFShape))* currentFrame,
+			(sizeof(DrawConstants)) * currentFrame,
+			(sizeof(DrawParams)) * currentFrame,
+			(sizeof(SDFShape)) * currentFrame,
 		};
 
-		auto &rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
+		auto& rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipeline());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
 			&_perDrawDescriptorSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);

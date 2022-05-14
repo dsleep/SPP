@@ -140,6 +140,8 @@ namespace SPP
 		}
 		virtual ~RenderScene() {}
 
+		virtual void AddedToGraphicsDevice() {};
+
 		void SetRenderToBackBuffer(bool bInRenderToBackBuffer)
 		{
 			_bRenderToBackBuffer = bInRenderToBackBuffer;
