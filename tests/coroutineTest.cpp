@@ -5,6 +5,7 @@
 #include "SPPCore.h"
 #include "SPPLogging.h"
 #include "SPPCoroutines.h"
+#include "ThreadPool.h"
 
 using namespace SPP;
 
@@ -60,6 +61,9 @@ LogEntry LOG_APP("APP");
 //    return simple_awaitable{ NewScheduler };
 //}
 
+static std::thread::id GPUFakeID;
+std::unique_ptr<ThreadPool> GPUFakePool;
+
 coroutine_refence<void> OneLowereven()
 {
     int thisCount = 0;
@@ -89,6 +93,55 @@ coroutine_refence<void> DoConnect()
     co_return;
 }
 
+class CPU_To_GPU;
+class gpu_coroutine_promise
+{
+public:
+    gpu_coroutine_promise() {}
+    
+    using coro_handle = std::coroutine_handle<gpu_coroutine_promise>;
+
+    auto initial_suspend() noexcept
+    {
+        auto currentThreadID = std::this_thread::get_id();
+        SE_ASSERT(GPUFakeID != currentThreadID);
+        return std::suspend_always{};        
+    }
+    auto final_suspend() noexcept
+    {
+        return std::suspend_always{};
+    }
+    void return_void() {}
+    void unhandled_exception() { std::terminate(); }
+    void result() {};
+
+    CPU_To_GPU get_return_object() noexcept;
+};
+
+class CPU_To_GPU
+{
+private:
+
+public:
+    using promise_type = gpu_coroutine_promise;
+    using coro_handle = std::coroutine_handle<promise_type>;
+    
+    coro_handle _handle;
+
+    CPU_To_GPU(coro_handle InHandle) : _handle(InHandle)
+    {
+        GPUFakePool->enqueue([InHandle]()
+            {
+                InHandle.resume();
+            });
+    }
+};
+
+CPU_To_GPU gpu_coroutine_promise::get_return_object() noexcept
+{
+    return CPU_To_GPU( coro_handle::from_promise(*this));
+}
+
 class TestThis
 {
 private:
@@ -96,24 +149,34 @@ private:
 
 public:
 
-    coroutine_refence<void> DoConnect(int32_t Incoming)
-    {
-        someData++;
 
-        SPP_LOG(LOG_APP, LOG_INFO, "Pass 1");
-        co_await GetData();
-        SPP_LOG(LOG_APP, LOG_INFO, "Pass 2");
+    CPU_To_GPU GPUCall()
+    {
+        SPP_LOG(LOG_APP, LOG_INFO, "ON GPU Thread");
         co_return;
     }
 };
+
 
 
 int main(int argc, char* argv[])
 {
     IntializeCore(nullptr);
 
+    GPUFakePool.reset(new ThreadPool(1));
+    auto valueWait = GPUFakePool->enqueue([]()
+        {
+            GPUFakeID = std::this_thread::get_id();
+            return true;
+        });
+    valueWait.wait();
 
-    //TestThis ourValue;
+
+    TestThis ourValue;
+
+    ourValue.GPUCall();
+
+
     //auto currentSlice = ourValue.DoConnect(0);
 
     //while (currentSlice.resume())
