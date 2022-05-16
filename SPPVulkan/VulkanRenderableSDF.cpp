@@ -21,7 +21,7 @@ namespace SPP
 	// lazy externs
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	
-	class VulkanSDF : public RenderableSignedDistanceField
+	class VulkanSDF : public GD_RenderableSignedDistanceField
 	{
 	protected:		
 		GPUReferencer< GPUBuffer > _shapeBuffer;
@@ -30,21 +30,20 @@ namespace SPP
 
 		GPUReferencer< PipelineState > _customPSO;
 
+		virtual void _AddToScene(class GD_RenderScene* InScene) override;
 	public:
-		VulkanSDF() = default;
-		virtual void AddToScene(class RenderScene* InScene) override;
 		virtual void Draw() override;
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
 
-	std::shared_ptr<RenderableSignedDistanceField> Vulkan_CreateSDF()
+	std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF(GD_RenderableSignedDistanceField::Args&& InArgs)
 	{
-		return std::make_shared< VulkanSDF >();
+		return std::make_shared< VulkanSDF >(InArgs);
 	}
 		
-	void VulkanSDF::AddToScene(class RenderScene* InScene)
+	void VulkanSDF::_AddToScene(class GD_RenderScene* InScene)
 	{
-		RenderableSignedDistanceField::AddToScene(InScene);
+		GD_RenderableSignedDistanceField::_AddToScene(InScene);
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();

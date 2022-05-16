@@ -16,7 +16,7 @@ namespace SPP
 	class SPP_GRAPHICS_API Renderable : public IOctreeElement
 	{
 	protected:
-		class RenderScene* _parentScene = nullptr;
+		class GD_RenderScene* _parentScene = nullptr;
 		OctreeLinkPtr _octreeLink = nullptr;
 		
 		float _radius = 1.0f;
@@ -29,13 +29,31 @@ namespace SPP
 
 		bool _bSelected = false;
 
+		virtual void _AddToScene(class GD_RenderScene* InScene);
+		virtual void _RemoveFromScene();
+
 	public:
+		struct Args
+		{
+			Vector3d position;
+			Vector3 eulerRotationYPR;
+			Vector3 scale;
+		};
+
 		Renderable()
 		{
 			_position = Vector3d(0, 0, 0);
 			_eulerRotationYPR = Vector3(0, 0, 0);
 			_scale = Vector3(1, 1, 1);
 		}
+
+		Renderable(Args &&InArgs)
+		{
+			_position = InArgs.position;
+			_eulerRotationYPR = InArgs.eulerRotationYPR;
+			_scale = InArgs.scale;
+		}
+
 		virtual ~Renderable() {}
 
 		void SetSelected(bool InSelect)
@@ -58,8 +76,17 @@ namespace SPP
 			return _scale;
 		}
 
-		virtual void AddToScene(class RenderScene* InScene);
-		virtual void RemoveFromScene();
+		GPU_CALL AddToScene(class GD_RenderScene* InScene)
+		{
+			this->_AddToScene(InScene);
+			co_return;
+		}
+		GPU_CALL RemoveFromScene()
+		{
+			this->_RemoveFromScene();
+			co_return;
+		}
+		
 
 		virtual void DrawDebug(std::vector< struct DebugVertex >& lines) { };
 		virtual void Draw() { };		
@@ -117,7 +144,7 @@ namespace SPP
 		}
 	};
 			
-	class SPP_GRAPHICS_API RenderScene
+	class SPP_GRAPHICS_API GD_RenderScene
 	{
 	protected:
 		Camera _view;
@@ -133,12 +160,12 @@ namespace SPP
 		GPUReferencer< GPUTexture > _skyBox;
 
 	public:
-		RenderScene() 
+		GD_RenderScene() 
 		{
 			_view.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 45.0f, 1.77f);
 			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
 		}
-		virtual ~RenderScene() {}
+		virtual ~GD_RenderScene() {}
 
 		virtual void AddedToGraphicsDevice() {};
 
@@ -216,4 +243,66 @@ namespace SPP
 		virtual void Draw() { };
 		virtual void EndFrame() { };
 	};	
+
+	enum class EShapeOp : uint32_t
+	{
+		Add = 0,
+		Subtract,
+		Intersect
+	};
+
+	enum class EShapeType : uint32_t
+	{
+		Unknown = 0,
+		Sphere,
+		Box
+	};
+
+	struct SPP_GRAPHICS_API SDFShape
+	{
+		EShapeType shapeType = EShapeType::Unknown;
+		Vector3 translation = { 0,0,0 };
+
+		EShapeOp shapeOp = EShapeOp::Add;
+		Vector3 eulerRotation = { 0,0,0 };
+
+		Vector4 shapeBlendAndScale = { 0,0,0,0 };
+		Vector4 params = { 0,0,0,0 };
+	};
+
+	class SPP_GRAPHICS_API GD_RenderableSignedDistanceField : public Renderable
+	{
+	protected:
+		std::vector< SDFShape > _shapes;
+		Vector3 _color = { 0,0,0 };
+		GPUReferencer< GPUShader > _customShader;
+
+	public:
+		struct Args : Renderable::Args
+		{
+			std::vector< SDFShape > shapes;
+			Vector3 color;
+		};
+
+		GD_RenderableSignedDistanceField(Args&& InArgs) : Renderable((Renderable::Args)InArgs)
+		{
+			_shapes = InArgs.shapes;
+			_color = InArgs.color;
+		}
+
+		GD_RenderableSignedDistanceField() : Renderable() {}
+
+		std::vector< SDFShape >& GetShapes()
+		{
+			return _shapes;
+		}
+		Vector3& GetColor()
+		{
+			return _color;
+		}
+		void SetShader(GPUReferencer< GPUShader > InShader)
+		{
+			_customShader = InShader;
+		}
+	};
 }

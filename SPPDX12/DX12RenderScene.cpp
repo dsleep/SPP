@@ -20,7 +20,7 @@ namespace SPP
 
 	// lazy externs
 	extern GPUReferencer< GPUShader > DX12_CreateShader(EShaderType InType);
-	extern std::shared_ptr< ComputeDispatch> DX_12CreateComputeDispatch(GPUReferencer< GPUShader> InCS);
+	extern std::shared_ptr< GD_ComputeDispatch> DX_12CreateComputeDispatch(GPUReferencer< GPUShader> InCS);
 	extern GPUReferencer< GPUBuffer > DX12_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	extern GPUReferencer< GPUInputLayout > DX12_CreateInputLayout();
 	extern GPUReferencer< GPURenderTarget > DX12_CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format);
@@ -211,7 +211,7 @@ namespace SPP
 
 	void D3D12RenderScene::AddToScene(Renderable* InRenderable)
 	{
-		RenderScene::AddToScene(InRenderable);
+		GD_RenderScene::AddToScene(InRenderable);
 
 		//HACKS FIX
 
@@ -225,7 +225,7 @@ namespace SPP
 
 	void D3D12RenderScene::RemoveFromScene(Renderable* InRenderable)
 	{
-		RenderScene::RemoveFromScene(InRenderable);
+		GD_RenderScene::RemoveFromScene(InRenderable);
 
 		//HACKS FIX
 

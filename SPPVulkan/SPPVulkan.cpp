@@ -46,7 +46,7 @@ namespace SPP
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
 	extern GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
-	extern std::shared_ptr<RenderableSignedDistanceField> Vulkan_CreateSDF();
+	extern std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF(GD_RenderableSignedDistanceField::Args&& InArgs);
 
 	struct VulkanGraphicInterface : public IGraphicsInterface
 	{
@@ -83,21 +83,21 @@ namespace SPP
 		{
 			return Vulkan_CreateGraphicsDevice();
 		}
-		virtual std::shared_ptr< ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
+		virtual std::shared_ptr< GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
 		{
 			return nullptr;
 		}
-		virtual std::shared_ptr<RenderScene> CreateRenderScene() override
+		virtual std::shared_ptr<GD_RenderScene> CreateRenderScene() override
 		{
 			return std::make_shared< VulkanRenderScene >();
 		}
-		virtual std::shared_ptr<RenderableMesh> CreateRenderableMesh() override
+		virtual std::shared_ptr<GD_RenderableMesh> CreateRenderableMesh() override
 		{
 			return nullptr;
 		}
-		virtual std::shared_ptr<RenderableSignedDistanceField> CreateRenderableSDF() override
+		virtual std::shared_ptr<GD_RenderableSignedDistanceField> CreateRenderableSDF(GD_RenderableSignedDistanceField::Args &&InArgs) override
 		{
-			return Vulkan_CreateSDF();
+			return Vulkan_CreateSDF(InArgs);
 		}
 		virtual void BeginResourceCopies() override
 		{

@@ -384,12 +384,12 @@ namespace SPP
 
 	void VulkanRenderScene::AddToScene(Renderable* InRenderable)
 	{
-		RenderScene::AddToScene(InRenderable);
+		GD_RenderScene::AddToScene(InRenderable);
 	}
 
 	void VulkanRenderScene::RemoveFromScene(Renderable* InRenderable)
 	{
-		RenderScene::RemoveFromScene(InRenderable);
+		GD_RenderScene::RemoveFromScene(InRenderable);
 	}
 
 #define MAX_MESH_ELEMENTS 1024

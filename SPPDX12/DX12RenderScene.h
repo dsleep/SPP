@@ -9,7 +9,7 @@
 
 namespace SPP
 {
-	class D3D12RenderScene : public RenderScene
+	class D3D12RenderScene : public GD_RenderScene
 	{
 	protected:
 		D3D12PartialResourceMemory _currentFrameMem;

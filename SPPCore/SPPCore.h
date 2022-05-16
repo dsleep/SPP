@@ -60,6 +60,8 @@ namespace SPP
 	static constexpr uint8_t const THREAD_ENGINE = 3;
 
 	SPP_CORE_API void IntializeCore(const char* Commandline);
+
+	SPP_CORE_API bool IsOnCPUThread();
 	
 	SPP_CORE_API extern std::unique_ptr<class ThreadPool> CPUThreaPool;
 

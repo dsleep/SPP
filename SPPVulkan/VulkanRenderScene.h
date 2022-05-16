@@ -12,7 +12,7 @@
 
 namespace SPP
 {
-	class VulkanRenderScene : public RenderScene
+	class VulkanRenderScene : public GD_RenderScene
 	{
 	protected:
 		//D3D12PartialResourceMemory _currentFrameMem;

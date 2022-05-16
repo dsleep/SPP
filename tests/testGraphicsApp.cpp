@@ -112,10 +112,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		auto LastTime = std::chrono::high_resolution_clock::now();
 		float DeltaTime = 0.016f;
 
-		GPUThreaPool->enqueue([&]()
-			{
-				graphicsDevice->AddScene(renderSceneShared);
-			});
+		graphicsDevice->AddScene(renderSceneShared);
 
 		auto graphicsFrame = [&]()
 		{

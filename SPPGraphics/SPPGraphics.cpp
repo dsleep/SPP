@@ -21,10 +21,11 @@ namespace SPP
 	{
 		SPP_LOG(LOG_GRAPHICS, LOG_INFO, "IntializeGraphics");
 		GPUThreaPool = std::make_unique< ThreadPool >(1);
-		GPUThreaPool->enqueue([]()
+		auto isSet = GPUThreaPool->enqueue([]()
 			{
 				GPUThread = std::this_thread::get_id();
 			});
+		isSet.wait();
 	}
 
 	bool IsOnGPUThread()
@@ -33,5 +34,27 @@ namespace SPP
 		SE_ASSERT(GPUThread != std::thread::id());
 		auto currentThreadID = std::this_thread::get_id();
 		return (GPUThread == currentThreadID);
+	}
+
+	GPU_CALL gpu_coroutine_promise::get_return_object() noexcept
+	{
+		return GPU_CALL(coro_handle::from_promise(*this));
+	}
+
+	GPU_CALL::GPU_CALL(coro_handle InHandle)
+	{
+		if (IsOnGPUThread())
+		{
+			InHandle.resume();
+			SE_ASSERT(InHandle.done());
+		}
+		else
+		{
+			GPUThreaPool->enqueue([InHandle]()
+				{
+					InHandle.resume();
+					SE_ASSERT(InHandle.done());
+				});
+		}
 	}
 }

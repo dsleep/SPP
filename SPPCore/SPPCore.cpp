@@ -105,6 +105,16 @@ namespace SPP
 		catch (std::exception&) {}
 	}
 
+	static std::thread::id CPUThread;
+
+	bool IsOnCPUThread()
+	{
+		// make sure its an initialized one
+		SE_ASSERT(CPUThread != std::thread::id());
+		auto currentThreadID = std::this_thread::get_id();
+		return (CPUThread == currentThreadID);
+	}
+
 	void IntializeCore(const char* Commandline)
 	{
 		appStarted = SystemClock::now();
@@ -160,6 +170,7 @@ namespace SPP
 		unsigned int nthreads = std::max<uint32_t>( std::thread::hardware_concurrency(), 2);
 
 		CPUThreaPool = std::make_unique< ThreadPool >(nthreads - 1);
+		CPUThread = std::this_thread::get_id();
 
 		auto Info = GetPlatformInfo();
 

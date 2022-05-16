@@ -11,6 +11,7 @@
 #include "SPPGraphics.h"
 #include "SPPMath.h"
 #include "SPPFileSystem.h"
+#include "SPPSceneRendering.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -389,10 +390,34 @@ namespace SPP
         virtual ~GPURenderTarget() { }
     };
 
+    class SPP_GRAPHICS_API GD_Shader
+    {
+    private:
+        GPUReferencer< GPUShader > _shader;
+    public:
+    };
+
+    class SPP_GRAPHICS_API GD_Texture
+    {
+    private:
+        GPUReferencer< GPUTexture > _texture;
+    public:
+    };
+
+    class SPP_GRAPHICS_API GD_Buffer
+    {
+    private:
+        GPUReferencer< GPUBuffer > _buffer;
+    public:
+    };
+
     class SPP_GRAPHICS_API GraphicsDevice
     {
     protected:
-        std::vector< std::shared_ptr< class RenderScene > > _renderScenes;
+        std::vector< std::shared_ptr< class GD_RenderScene > > _renderScenes;
+
+        virtual void INTERNAL_AddScene(std::shared_ptr< class GD_RenderScene > InScene);
+        virtual void INTERNAL_RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
 
     public:
         virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) = 0;
@@ -401,15 +426,33 @@ namespace SPP
         virtual int32_t GetDeviceWidth() const = 0;
         virtual int32_t GetDeviceHeight() const = 0;
 
-        virtual void AddScene(std::shared_ptr< class RenderScene > InScene);
-        virtual void RemoveScene(std::shared_ptr< class RenderScene > InScene);
+        GPU_CALL AddScene(std::shared_ptr< class GD_RenderScene > InScene);
+        GPU_CALL RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
+
         virtual void BeginFrame();
         virtual void Draw();
         virtual void EndFrame();
         virtual void MoveToNextFrame() { };
+
+        //virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) = 0;
+        //virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
+        //virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;
+        //virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
+        //virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) = 0;
+
+        //virtual std::shared_ptr< class GD_Material > CreateMaterial() = 0;
+
+        virtual std::shared_ptr< class GD_Texture > CreateTexture() = 0;
+        virtual std::shared_ptr< class GD_Shader > CreateShader(EShaderType InType) = 0;
+        virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) = 0;
+
+        virtual std::shared_ptr< class GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
+        virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() = 0;
+        virtual std::shared_ptr< class GD_RenderableMesh > CreateRenderableMesh() = 0;
+        virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateRenderableSDF() = 0;
     };
 
-    class SPP_GRAPHICS_API ComputeDispatch
+    class SPP_GRAPHICS_API GD_ComputeDispatch
     {
     protected:        
         std::vector< std::shared_ptr< ArrayResource> > _constants;
@@ -417,7 +460,7 @@ namespace SPP
         GPUReferencer< GPUShader > _compute;
 
     public:
-        ComputeDispatch(GPUReferencer< GPUShader> InCS) : _compute(InCS) { }
+        GD_ComputeDispatch(GPUReferencer< GPUShader> InCS) : _compute(InCS) { }
 
         void SetTextures(const std::vector< GPUReferencer<GPUTexture> > &InTextures)
         {
@@ -481,27 +524,15 @@ namespace SPP
 
     struct IGraphicsInterface
     {
-        virtual GPUReferencer< GPUShader > CreateShader(EShaderType InType) = 0;
-
-        virtual GPUReferencer< GPUBuffer > CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
-
-        virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;
-        virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
-        virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) = 0;
-
 
         virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
 
-        virtual std::shared_ptr< class ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
-        virtual std::shared_ptr< class RenderScene > CreateRenderScene() = 0;
-        virtual std::shared_ptr< class RenderableMesh > CreateRenderableMesh() = 0;
-        virtual std::shared_ptr< class RenderableSignedDistanceField > CreateRenderableSDF() = 0;
 
-        virtual void BeginResourceCopies() { }
-        virtual void EndResourceCopies() { }
+        //virtual void BeginResourceCopies() { }
+        //virtual void EndResourceCopies() { }
 
-        virtual bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
-        virtual bool UnregisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
+        //virtual bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
+        //virtual bool UnregisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
     };
 
     // global graphics interface

@@ -21,23 +21,14 @@ namespace SPP
 		if (!_shapeCache.empty() &&
 			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
 		{
-			_renderableSDF = GGI()->CreateRenderableSDF();
+			GD_RenderableSignedDistanceField::Args sdfArgs;
 
-			auto& pos = _renderableSDF->GetPosition();
-			pos = _translation;
-
-			auto& rot = _renderableSDF->GetRotation();
-			rot = _rotation;
-
-			//_renderableSDF->SetShader(_shaderOverride);
-			_renderableSDF->GetShapes() = _shapeCache;
-			_renderableSDF->GetColor() = _color;
-
-			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF, InScene]()
-				{
-					_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
-				});
-			
+			sdfArgs.position = _translation;
+			sdfArgs.eulerRotationYPR = _rotation;
+			sdfArgs.shapes = _shapeCache;
+			sdfArgs.color = _color;
+			_renderableSDF = GGI()->CreateRenderableSDF(std::move(sdfArgs));
+			_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
 		}
 	}
 

@@ -7,14 +7,14 @@
 
 namespace SPP
 {
-	void Renderable::AddToScene(class RenderScene* InScene)
+	void Renderable::_AddToScene(class GD_RenderScene* InScene)
 	{
 		SE_ASSERT(InScene);
 		SE_ASSERT(IsOnGPUThread());
 		_parentScene = InScene;
 		_parentScene->AddToScene(this);
 	};
-	void Renderable::RemoveFromScene()
+	void Renderable::_RemoveFromScene()
 	{
 		SE_ASSERT(_parentScene);
 		SE_ASSERT(IsOnGPUThread());

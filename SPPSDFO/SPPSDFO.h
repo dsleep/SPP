@@ -25,53 +25,9 @@
 
 namespace SPP
 {		
-	enum class EShapeOp : uint32_t
-	{
-		Add = 0,
-		Subtract,
-		Intersect
-	};
+	
 
-	enum class EShapeType : uint32_t
-	{
-		Unknown = 0,
-		Sphere,
-		Box
-	};
-
-	struct SPP_SDF_API SDFShape
-	{
-		EShapeType shapeType = EShapeType::Unknown;
-		Vector3 translation = { 0,0,0 };
-
-		EShapeOp shapeOp = EShapeOp::Add;
-		Vector3 eulerRotation = { 0,0,0 };
-
-		Vector4 shapeBlendAndScale = { 0,0,0,0 };
-		Vector4 params = { 0,0,0,0 };
-	};
-
-	class SPP_SDF_API RenderableSignedDistanceField : public Renderable
-	{
-	protected:
-		std::vector< SDFShape > _shapes;
-		Vector3 _color = { 0,0,0 };
-		GPUReferencer< GPUShader > _customShader;
-
-	public:
-		std::vector< SDFShape >& GetShapes()
-		{
-			return _shapes;
-		}
-		Vector3& GetColor()
-		{
-			return _color;
-		}
-		void SetShader(GPUReferencer< GPUShader > InShader)
-		{
-			_customShader = InShader;
-		}
-	};
+	
 
 	class SPP_SDF_API OShape : public OElement
 	{
@@ -106,7 +62,7 @@ namespace SPP
 
 	protected:
 		OShapeGroup(const MetaPath& InPath) : OElement(InPath) { }
-		std::shared_ptr<RenderableSignedDistanceField> _renderableSDF;
+		std::shared_ptr<GD_RenderableSignedDistanceField> _renderableSDF;
 		std::vector<SDFShape> _shapeCache;
 		Vector3 _color = { 0.5f,0.5f,0.5f };
 		GPUReferencer< GPUShader > _shaderOverride;

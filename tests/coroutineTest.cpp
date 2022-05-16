@@ -93,7 +93,7 @@ coroutine_refence<void> DoConnect()
     co_return;
 }
 
-class CPU_To_GPU;
+class GPU_CALL;
 class gpu_coroutine_promise
 {
 public:
@@ -115,10 +115,10 @@ public:
     void unhandled_exception() { std::terminate(); }
     void result() {};
 
-    CPU_To_GPU get_return_object() noexcept;
+    GPU_CALL get_return_object() noexcept;
 };
 
-class CPU_To_GPU
+class GPU_CALL
 {
 private:
 
@@ -128,7 +128,7 @@ public:
     
     coro_handle _handle;
 
-    CPU_To_GPU(coro_handle InHandle) : _handle(InHandle)
+    GPU_CALL(coro_handle InHandle) : _handle(InHandle)
     {
         GPUFakePool->enqueue([InHandle]()
             {
@@ -137,9 +137,9 @@ public:
     }
 };
 
-CPU_To_GPU gpu_coroutine_promise::get_return_object() noexcept
+GPU_CALL gpu_coroutine_promise::get_return_object() noexcept
 {
-    return CPU_To_GPU( coro_handle::from_promise(*this));
+    return GPU_CALL( coro_handle::from_promise(*this));
 }
 
 class TestThis
@@ -150,7 +150,7 @@ private:
 public:
 
 
-    CPU_To_GPU GPUCall()
+    GPU_CALL GPUCall()
     {
         SPP_LOG(LOG_APP, LOG_INFO, "ON GPU Thread");
         co_return;

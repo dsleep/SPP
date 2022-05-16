@@ -33,15 +33,15 @@ namespace SPP
 
 	protected:
 		ORenderableScene(const MetaPath& InPath);
-		std::shared_ptr<RenderScene> _renderScene;
+		std::shared_ptr<GD_RenderScene> _renderScene;
 
 	public:
-		RenderScene* GetRenderScene()
+		GD_RenderScene* GetRenderScene()
 		{
 			return _renderScene.get();
 		}
 
-		std::shared_ptr<RenderScene> GetRenderSceneShared()
+		std::shared_ptr<GD_RenderScene> GetRenderSceneShared()
 		{
 			return _renderScene;
 		}
@@ -101,7 +101,7 @@ namespace SPP
 		virtual ~ORenderableElement() { }
 	};
 
-	class SPP_GRAPHICSO_API RenderableMesh : public Renderable
+	class SPP_GRAPHICSO_API GD_RenderableMesh : public Renderable
 	{
 	protected:
 		std::vector< std::shared_ptr<MeshElement> > _meshElements;
@@ -122,7 +122,7 @@ namespace SPP
 		OMeshElement(const MetaPath& InPath) : ORenderableElement(InPath) { }
 		OMesh* _meshObj = nullptr;
 
-		std::shared_ptr<RenderableMesh> _renderableMesh;
+		std::shared_ptr<GD_RenderableMesh> _renderableMesh;
 
 	public:
 		void SetMesh(OMesh* InMesh)
