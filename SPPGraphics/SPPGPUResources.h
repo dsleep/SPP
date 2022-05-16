@@ -382,6 +382,7 @@ namespace SPP
        
     public:
         GD_Shader(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+        virtual ~GD_Shader() {}
         virtual void Initialize(EShaderType InType)
         {
             _shader = _owner->_gxCreateShader(InType);
@@ -403,12 +404,31 @@ namespace SPP
 
     public:
         GD_Texture(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
-
+        virtual ~GD_Texture() {}
         virtual void Initialize(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr)
         {
 
         }
     };
+
+    class SPP_GRAPHICS_API GD_Material : public GD_Resource
+    {
+    protected:
+        std::vector< GPUReferencer<GPUTexture> > _textureArray;
+
+        GPUReferencer<GPUShader> _vertexShader;
+        GPUReferencer<GPUShader> _pixelShader;
+
+        EBlendState _blendState = EBlendState::Disabled;
+        ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;
+        EDepthState _depthState = EDepthState::Enabled;
+
+    public:
+        GD_Material(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+        virtual ~GD_Material() {}
+    };
+
+   
 
     class SPP_GRAPHICS_API GD_Buffer : public GD_Resource
     {

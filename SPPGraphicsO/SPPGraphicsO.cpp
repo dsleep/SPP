@@ -60,7 +60,8 @@ namespace SPP
 			auto& scale = _renderableMesh->GetScale();
 			scale = Vector3(_scale, _scale, _scale);
 
-			_renderableMesh->SetMeshData(_meshObj->GetMesh()->GetMeshElements());
+			//TODO FIXME
+			//_renderableMesh->SetMeshData(_meshObj->GetMesh()->GetMeshElements());
 			_renderableMesh->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
 		}
 	}

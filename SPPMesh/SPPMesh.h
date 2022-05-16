@@ -342,6 +342,8 @@ namespace SPP
 		std::string Name;
 		//EDrawingTopology topology = EDrawingTopology::TriangleList;
 
+		//GPUReferencer<GPUInputLayout> layout;
+
 		Sphere Bounds;
 
 		int32_t MeshIndex = -1;
@@ -349,7 +351,7 @@ namespace SPP
 		std::shared_ptr< ArrayResource > VertexResource;
 		std::shared_ptr< ArrayResource > IndexResource;
 
-		//std::shared_ptr< struct MeshMaterial > material;
+		//std::shared_ptr< GD_Material > material;
 
 		virtual MeshTypes GetType() const
 		{

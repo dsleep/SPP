@@ -101,17 +101,7 @@ namespace SPP
 		virtual ~ORenderableElement() { }
 	};
 
-	class SPP_GRAPHICSO_API GD_RenderableMesh : public Renderable
-	{
-	protected:
-		std::vector< std::shared_ptr<MeshElement> > _meshElements;
-
-	public:
-		void SetMeshData(const std::vector< std::shared_ptr<MeshElement> >& InMeshData)
-		{
-			_meshElements = InMeshData;
-		}
-	};
+	
 
 	class SPP_GRAPHICSO_API OMeshElement : public ORenderableElement
 	{

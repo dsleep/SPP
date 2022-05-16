@@ -1162,10 +1162,6 @@ namespace SPP
 		return std::make_shared< GD_Buffer>(this);
 	}
 	
-	std::shared_ptr< class GD_RenderableMesh > VulkanGraphicsDevice::CreateStaticMesh()
-	{
-		return std::make_shared< GD_RenderableMesh>();
-	}
 	std::shared_ptr< class GD_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
 	{
 		return std::make_shared< GD_RenderableSignedDistanceField>();

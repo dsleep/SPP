@@ -139,6 +139,8 @@ namespace SPP
         virtual std::shared_ptr< class GD_Shader > CreateShader(EShaderType InType) = 0;
         virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) = 0;
 
+        virtual std::shared_ptr< class GD_Material > CreateMaterial() = 0;
+
         //virtual std::shared_ptr< class GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
         virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() = 0;
         virtual std::shared_ptr< class GD_RenderableMesh > CreateStaticMesh() = 0;

@@ -277,7 +277,7 @@ namespace SPP
 		Vector4 params = { 0,0,0,0 };
 	};
 
-	class SPP_GRAPHICS_API GD_RenderableSignedDistanceField : public Renderable
+	class SPP_GRAPHICS_API GD_RenderableSignedDistanceField : public Renderable, public GD_Resource
 	{
 	protected:
 		std::vector< SDFShape > _shapes;
@@ -291,6 +291,9 @@ namespace SPP
 			Vector3 color;
 		};
 
+
+		GD_RenderableSignedDistanceField(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+		virtual ~GD_RenderableSignedDistanceField() {}
 		GD_RenderableSignedDistanceField(Args&& InArgs) : Renderable((Renderable::Args)InArgs)
 		{
 			_shapes = InArgs.shapes;
@@ -311,5 +314,23 @@ namespace SPP
 		{
 			_customShader = InShader;
 		}
+	};
+
+	class SPP_GRAPHICS_API GD_RenderableMesh : public Renderable, public GD_Resource
+	{
+	protected:
+
+		EDrawingTopology _topology = EDrawingTopology::TriangleList;
+
+		GPUReferencer<GPUInputLayout> _layout;
+		//
+		std::shared_ptr< ArrayResource > _vertexResource;
+		std::shared_ptr< ArrayResource > _indexResource;
+
+		std::shared_ptr< GD_Material > _material;
+
+	public:
+		GD_RenderableMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+		virtual ~GD_RenderableMesh() {}
 	};
 }
