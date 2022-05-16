@@ -428,25 +428,25 @@ namespace SPP
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
 		//UPDATE UNIFORMS
-		_view.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
-		_view.BuildCameraMatrices();
+		_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
+		_viewGPU.BuildCameraMatrices();
 
 		Planed frustumPlanes[6];
-		_view.GetFrustumPlanes(frustumPlanes);
+		_viewGPU.GetFrustumPlanes(frustumPlanes);
 
 		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
 		GPUViewConstants& curCam = cameraSpan[currentFrame];
-		curCam.ViewMatrix = _view.GetCameraMatrix();
-		curCam.ViewProjectionMatrix = _view.GetViewProjMatrix();
-		curCam.InvViewProjectionMatrix = _view.GetInvViewProjMatrix();
-		curCam.ViewPosition = _view.GetCameraPosition();
+		curCam.ViewMatrix = _viewGPU.GetCameraMatrix();
+		curCam.ViewProjectionMatrix = _viewGPU.GetViewProjMatrix();
+		curCam.InvViewProjectionMatrix = _viewGPU.GetInvViewProjMatrix();
+		curCam.ViewPosition = _viewGPU.GetCameraPosition();
 
 		for (int32_t Iter = 0; Iter < ARRAY_SIZE(frustumPlanes); Iter++)
 		{
 			curCam.FrustumPlanes[Iter] = frustumPlanes[Iter].coeffs();
 		}
 
-		curCam.RecipTanHalfFovy = _view.GetRecipTanHalfFovy();
+		curCam.RecipTanHalfFovy = _viewGPU.GetRecipTanHalfFovy();
 		_cameraBuffer->UpdateDirtyRegion(currentFrame, 1);
 
 		{

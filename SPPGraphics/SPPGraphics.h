@@ -9,6 +9,8 @@
 #include <coroutine>
 #include <vector>
 #include <memory>
+#include <condition_variable>
+#include <future>
 
 #if _WIN32 && !defined(SPP_GRAPHICS_STATIC)
 	#ifdef SPP_GRAPHICSE_EXPORT
@@ -58,6 +60,7 @@ namespace SPP
         using coro_handle = std::coroutine_handle<promise_type>;
 
         GPU_CALL(coro_handle InHandle);
+        ~GPU_CALL(){}
     };
 
 
@@ -104,6 +107,7 @@ namespace SPP
         virtual void INTERNAL_AddScene(std::shared_ptr< class GD_RenderScene > InScene);
         virtual void INTERNAL_RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
 
+        std::future<bool> _currentFrame;
       
     public:
         virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) = 0;
@@ -115,10 +119,13 @@ namespace SPP
         GPU_CALL AddScene(std::shared_ptr< class GD_RenderScene > InScene);
         GPU_CALL RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
 
+        virtual void PrepareScenesToDraw();
         virtual void BeginFrame();
         virtual void Draw();
         virtual void EndFrame();
         virtual void MoveToNextFrame() { };
+
+        void RunFrame();
                
         virtual GPUReferencer< class GPUShader > _gxCreateShader(EShaderType InType) = 0;
         virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;

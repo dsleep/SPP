@@ -27,7 +27,7 @@
 #include "SPPPythonInterface.h"
 #include "ThreadPool.h"
 #include "SPPFileSystem.h"
-
+#include "SPPPlatformCore.h"
 
 #include "SPPSDFO.h"
 #include "SPPSceneO.h"
@@ -39,6 +39,209 @@
 
 using namespace SPP;
 using namespace std::chrono_literals;
+
+
+class SimpleViewer
+{
+	enum class ESelectionMode
+	{
+		None,
+		Gizmo,
+		Turn
+	};
+
+private:
+	std::shared_ptr<GraphicsDevice> _graphicsDevice;
+
+	HWND _mainDXWindow = nullptr;
+	Vector2 _mouseDelta = Vector2(0, 0);
+	uint8_t _keys[255] = { 0 };
+
+	Vector2i _mousePosition = { -1, -1 };
+	Vector2i _mouseCaptureSpot = { -1, -1 };
+	std::chrono::high_resolution_clock::time_point _lastTime;
+	//std::shared_ptr< SPP::MeshMaterial > _gizmoMat;	
+
+	bool _htmlReady = false;
+
+	ESelectionMode _selectionMode = ESelectionMode::None;
+	std::unique_ptr<SPP::ApplicationWindow> app;
+	std::shared_ptr<GD_RenderScene> renderableSceneShared;
+	std::future<bool> graphicsResults;
+
+public:
+	
+	void Initialize(HINSTANCE hInstance)
+	{
+		app = SPP::CreateApplication();
+		app->Initialize(1280, 720, hInstance);
+
+		_mainDXWindow = (HWND)app->GetOSWindow();
+
+		_graphicsDevice = GGI()->CreateGraphicsDevice();
+		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
+
+
+		/////////////SCENE SETUP
+
+		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
+
+		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+
+		auto& cam = renderableSceneShared->GetCamera();
+		cam.GetCameraPosition()[2] = -100;
+
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
+		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
+		startingSphere->SetRadius(10);
+		startingGroup->AddChild(startingSphere);
+		_renderableScene->AddChild(startingGroup);
+
+		//SPP::MakeResidentAllGPUResources();
+
+		std::mutex tickMutex;
+		std::condition_variable cv;
+
+		auto LastTime = std::chrono::high_resolution_clock::now();
+		float DeltaTime = 0.016f;
+
+		_graphicsDevice->AddScene(renderableSceneShared);
+			
+
+		auto ourAppEvents = ApplicationEvents{
+			._msgLoop = [this]()
+			{
+				this->Update();
+			} };
+		app->SetEvents(ourAppEvents);
+		auto ourInputEvents = InputEvents{
+			.mouseDown = [this](int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
+			{
+				this->MouseDown(mouseX, mouseY, mouseButton);
+			},
+			.mouseUp = [this](int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
+			{
+				this->MouseUp(mouseX, mouseY, mouseButton);
+			},
+			.mouseMove = [this](int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
+			{
+				this->MouseMove(mouseX, mouseY, mouseButton);
+			}
+		};
+		app->SetInputEvents(ourInputEvents);
+
+		_lastTime = std::chrono::high_resolution_clock::now();
+	}
+
+	void Run()
+	{
+		app->Run();
+	}
+
+	void Update()
+	{
+		if (!_graphicsDevice) return;
+
+		RECT rect;
+		GetClientRect(_mainDXWindow, &rect);
+
+		int32_t WindowSizeX = rect.right - rect.left;
+		int32_t WindowSizeY = rect.bottom - rect.top;
+
+		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
+
+		auto& cam = renderableSceneShared->GetCamera();
+
+		auto CurrentTime = std::chrono::high_resolution_clock::now();
+		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
+		_lastTime = CurrentTime;
+
+		auto DeltaTime = (float)secondTime * 1.0e-6f;
+
+		if (_mainDXWindow)
+		{
+			RECT rect;
+			GetClientRect(_mainDXWindow, &rect);
+
+			auto Width = rect.right - rect.left;
+			auto Height = rect.bottom - rect.top;
+
+			// will be ignored if same
+			_graphicsDevice->ResizeBuffers(Width, Height);
+		}
+
+		if (_selectionMode == ESelectionMode::Turn)
+		{
+			if (_keys[0x57])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Forward);
+			if (_keys[0x53])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Back);
+
+			if (_keys[0x41])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Left);
+			if (_keys[0x44])
+				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Right);
+		}
+
+		//
+		this->_graphicsDevice->RunFrame();
+	}
+
+	void KeyDown(uint8_t KeyValue)
+	{
+		//SPP_QL("kd: 0x%X", KeyValue);
+		_keys[KeyValue] = true;
+	}
+
+	void KeyUp(uint8_t KeyValue)
+	{
+		//SPP_QL("ku: 0x%X", KeyValue);
+		_keys[KeyValue] = false;
+
+	}
+
+	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
+	{
+		//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
+		if (mouseButton == 2)
+		{
+			CaptureWindow(_mainDXWindow);
+			_selectionMode = ESelectionMode::Turn;
+			_mouseCaptureSpot = Vector2i(mouseX, mouseY);
+		}
+	}
+
+	void MouseUp(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
+	{
+		//SPP_QL("mu: %d %d %d", mouseX, mouseY, mouseButton);
+		if (_selectionMode != ESelectionMode::None)
+		{
+			_selectionMode = ESelectionMode::None;
+			CaptureWindow(nullptr);
+		}
+	}
+
+	void MouseMove(int32_t mouseX, int32_t mouseY, uint8_t MouseState)
+	{
+		Vector2i currentMouse = { mouseX, mouseY };
+		//SPP_QL("mm: %d %d", mouseX, mouseY);
+		_mousePosition = currentMouse;
+
+		if (_selectionMode == ESelectionMode::Turn)
+		{
+			Vector2i Delta = (currentMouse - _mouseCaptureSpot);
+			_mouseCaptureSpot = _mousePosition;
+
+			auto& cam = renderableSceneShared->GetCamera();
+			cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
+		}		
+	}
+
+	void OnResize(int32_t InWidth, int32_t InHeight)
+	{
+		//_graphicsDevice->ResizeBuffers(InWidth, InHeight);
+	}
+};
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -75,69 +278,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	//SPP::CallPython();
 	int ErrorCode = 0;		
+
 	{
-		std::unique_ptr<SPP::ApplicationWindow> app = SPP::CreateApplication();
-
-		app->Initialize(1280, 720, hInstance);
-
-		auto graphicsDevice = GGI()->CreateGraphicsDevice();
-		graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
-
-		//auto SDFShaderVS = GGI()->CreateShader(EShaderType::Vertex);
-		//SDFShaderVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
-
-		//auto SDFShaderPS = GGI()->CreateShader(EShaderType::Pixel);
-		//SDFShaderPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
-
-		/////////////SCENE SETUP
-
-		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
-
-		auto renderSceneShared = _renderableScene->GetRenderSceneShared();
-
-		auto& cam = renderSceneShared->GetCamera();
-		cam.GetCameraPosition()[2] = -100;
-
-		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
-		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
-		startingSphere->SetRadius(10);
-		startingGroup->AddChild(startingSphere);
-		_renderableScene->AddChild(startingGroup);
-
-		//SPP::MakeResidentAllGPUResources();
-
-		std::mutex tickMutex;
-		std::condition_variable cv;		
-		
-		auto LastTime = std::chrono::high_resolution_clock::now();
-		float DeltaTime = 0.016f;
-
-		graphicsDevice->AddScene(renderSceneShared);
-
-		auto graphicsFrame = [&]()
-		{
-			graphicsDevice->BeginFrame();
-			graphicsDevice->Draw();
-			graphicsDevice->EndFrame();
-			return true;
-		};
-
-		std::future<bool> graphicsResults;
-
-		auto engineFrame = [&]()
-		{
-			if (graphicsResults.valid())
-			{
-				graphicsResults.wait();
-			}
-			graphicsResults = GPUThreaPool->enqueue(graphicsFrame);
-
-			std::this_thread::sleep_for(16ms);
-		};
-		
-		app->SetEvents({ engineFrame });
-
-		ErrorCode = app->Run();
+		SimpleViewer viewer;
+		viewer.Initialize(hInstance);
+		viewer.Run();
 	}
 
 	return ErrorCode;

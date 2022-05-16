@@ -147,7 +147,9 @@ namespace SPP
 	class SPP_GRAPHICS_API GD_RenderScene
 	{
 	protected:
-		Camera _view;
+		Camera _viewCPU;
+		Camera _viewGPU;
+
 		LooseOctree _octree;
 		std::list<Renderable*> _renderables;
 
@@ -162,7 +164,7 @@ namespace SPP
 	public:
 		GD_RenderScene() 
 		{
-			_view.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 45.0f, 1.77f);
+			_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 45.0f, 1.77f);
 			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
 		}
 		virtual ~GD_RenderScene() {}
@@ -230,7 +232,7 @@ namespace SPP
 
 		Camera& GetCamera()
 		{
-			return _view;
+			return _viewCPU;
 		}
 
 		template<typename T>
@@ -238,6 +240,11 @@ namespace SPP
 		{
 			return *(T*)this;
 		}
+
+		virtual void PrepareScenesToDraw()
+		{ 
+			_viewGPU = _viewCPU;
+		};
 
 		virtual void BeginFrame() { };
 		virtual void Draw() { };

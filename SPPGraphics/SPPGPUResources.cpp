@@ -8,6 +8,7 @@
 #include "SPPFileSystem.h"
 #include "SPPString.h"
 #include "SPPSceneRendering.h"
+#include "ThreadPool.h"
 
 #include <list>
 #include <mutex>		
@@ -151,8 +152,18 @@ namespace SPP
 		co_return;
 	}
 
+	void GraphicsDevice::PrepareScenesToDraw()
+	{
+		SE_ASSERT(IsOnCPUThread());
+		for (auto& curScene : _renderScenes)
+		{
+			curScene->PrepareScenesToDraw();
+		}
+	}
+
 	void GraphicsDevice::BeginFrame()
 	{
+		SE_ASSERT(IsOnGPUThread());
 		for (auto& curScene : _renderScenes)
 		{
 			curScene->BeginFrame();
@@ -160,6 +171,7 @@ namespace SPP
 	}
 	void GraphicsDevice::Draw()
 	{
+		SE_ASSERT(IsOnGPUThread());
 		for (auto& curScene : _renderScenes)
 		{
 			curScene->Draw();
@@ -167,10 +179,30 @@ namespace SPP
 	}
 	void GraphicsDevice::EndFrame()
 	{
+		SE_ASSERT(IsOnGPUThread());
 		for (auto& curScene : _renderScenes)
 		{
 			curScene->EndFrame();
 		}
+	}
+
+	void GraphicsDevice::RunFrame()
+	{
+		if (_currentFrame.valid())
+		{
+			_currentFrame.wait();
+		}
+
+		// tiny window in between gpu threah calls
+		PrepareScenesToDraw();
+
+		_currentFrame = GPUThreaPool->enqueue([this]()
+			{
+				BeginFrame();
+				Draw();
+				EndFrame();
+				return true;
+			});
 	}
 
 	//GLOBAL GRAPHICS INTERFACE

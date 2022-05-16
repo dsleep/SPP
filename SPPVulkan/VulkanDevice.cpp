@@ -296,13 +296,13 @@ namespace SPP
 		VkPhysicalDeviceFeatures2 deviceFeatures{};
 		deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		deviceFeatures.pNext = &indexingFeatures;
-		vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+		//vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 
-		if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray)
-		{
-			// all set to use unbound arrays of textures
-			SPP_LOG(LOG_VULKAN, LOG_INFO, "BOUNDLESS SUPPORT!");
-		}
+		//if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray)
+		//{
+		//	// all set to use unbound arrays of textures
+		//	SPP_LOG(LOG_VULKAN, LOG_INFO, "BOUNDLESS SUPPORT!");
+		//}
 
 		// [POI] Enable required extensions
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
