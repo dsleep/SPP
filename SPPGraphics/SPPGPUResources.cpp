@@ -79,7 +79,9 @@ namespace SPP
 	void MakeResidentAllGPUResources()
 	{
 		SE_ASSERT(GGI());
-		GGI()->BeginResourceCopies();
+		
+		//TODO FIXME
+		//GGI()->BeginResourceCopies();
 
 		auto CurResource = GRootResource;
 		while(CurResource)
@@ -90,13 +92,14 @@ namespace SPP
 			CurResource = CurResource->GetNext();
 		};
 
-		GGI()->EndResourceCopies();
+		//TODO FIXME
+		//GGI()->EndResourceCopies();
 	}
 
 	
 	void ShaderObject::LoadFromDisk(const AssetPath& FilePath, const char* EntryPoint, EShaderType InType)
 	{
-		_shader = GGI()->CreateShader(InType);
+		_shader = GGD()->CreateShader(InType);
 		SE_ASSERT(_shader);
 		_shader->CompileShaderFromFile(FilePath, EntryPoint);
 	}
@@ -172,6 +175,8 @@ namespace SPP
 
 	//GLOBAL GRAPHICS INTERFACE
 	static IGraphicsInterface* GGIPtr = nullptr;
+	static GraphicsDevice* GGDPtr = nullptr;
+
 	IGraphicsInterface* GGI()
 	{
 		return GGIPtr;
@@ -179,5 +184,14 @@ namespace SPP
 	void SET_GGI(IGraphicsInterface* InGraphicsIterface)
 	{
 		GGIPtr = InGraphicsIterface;
+	}
+
+	GraphicsDevice* GGD()
+	{
+		return GGDPtr;
+	}
+	void SET_GGD(GraphicsDevice* InGraphicsDevice)
+	{
+		GGDPtr = InGraphicsDevice;
 	}
 }

@@ -240,6 +240,11 @@ namespace SPP
 		void CreateDescriptorPool();
 
 	public:
+		VulkanGraphicsDevice()
+		{
+			SET_GGD(this);
+		}
+
 		vks::VulkanDevice* GetVKSVulkanDevice() {
 			return vulkanDevice;
 		}
@@ -286,6 +291,17 @@ namespace SPP
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;
 		virtual void MoveToNextFrame();
+
+		virtual GPUReferencer< class GPUShader > _gxCreateShader(EShaderType InType) override;
+		virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override;
+
+		//
+		virtual std::shared_ptr< class GD_Texture > CreateTexture() override;
+		virtual std::shared_ptr< class GD_Shader > CreateShader(EShaderType InType) override;
+		virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) override;
+		virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() override;
+		virtual std::shared_ptr< class GD_RenderableMesh > CreateStaticMesh() override;
+		virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() override;
 	};
 
 	class VulkanPipelineState : public PipelineState

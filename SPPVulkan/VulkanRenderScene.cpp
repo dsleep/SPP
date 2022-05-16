@@ -51,7 +51,7 @@ namespace SPP
 		uint32_t ShapeCount;
 	};
 
-	_declspec(align(256u)) struct SDFShape
+	_declspec(align(256u)) struct gxSDFShape
 	{
 		Vector3  translation;
 		Vector3  eulerRotation;
@@ -410,6 +410,11 @@ namespace SPP
 	//	{ HDT_Dynamic, DYNAMIC_MAX_COUNT },
 	//};
 	//
+
+	std::shared_ptr< class GD_RenderScene > VulkanGraphicsDevice::CreateRenderScene()
+	{
+		return std::make_shared<VulkanRenderScene>();
+	}
 
 	void VulkanRenderScene::Draw()
 	{

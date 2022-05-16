@@ -127,7 +127,8 @@ namespace SPP
 		_height = InHeight;
 		_format = InFormat;
 
-		_texture = GGI()->CreateTexture(_width, _height, _format);
+		//TODO FIXME
+		//_texture = GGI()->CreateTexture(_width, _height, _format);
 
 		return true;
 	}
@@ -163,7 +164,8 @@ namespace SPP
 				ddsmeta->bitSize = bitSize;
 
 				//_texture create gpu texture
-				_texture = GGI()->CreateTexture(_width, _height, TextureFormat::DDS_UNKNOWN, _rawImgData, ddsmeta);
+				//TODO FIXME
+				//_texture = GGI()->CreateTexture(_width, _height, TextureFormat::DDS_UNKNOWN, _rawImgData, ddsmeta);
 				SPP_LOG(LOG_TEXTURES, LOG_INFO, " - loaded dds");
 			}
 			else
@@ -208,7 +210,8 @@ namespace SPP
 				stbi_image_free(pixels);
 
 				//_texture create gpu texture				
-				_texture = GGI()->CreateTexture(_width, _height, TextureFormat::RGBA_8888, _rawImgData);
+				//TODO FIXME
+				//_texture = GGI()->CreateTexture(_width, _height, TextureFormat::RGBA_8888, _rawImgData);
 
 				return true;
 			}

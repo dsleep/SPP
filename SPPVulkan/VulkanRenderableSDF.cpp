@@ -36,9 +36,9 @@ namespace SPP
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
 
-	std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF(GD_RenderableSignedDistanceField::Args&& InArgs)
+	std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF()
 	{
-		return std::make_shared< VulkanSDF >(InArgs);
+		return std::make_shared< VulkanSDF >();
 	}
 		
 	void VulkanSDF::_AddToScene(class GD_RenderScene* InScene)

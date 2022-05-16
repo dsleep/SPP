@@ -95,7 +95,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		auto renderSceneShared = _renderableScene->GetRenderSceneShared();
 
-		auto& cam = _renderableScene->GetRenderScene()->GetCamera();
+		auto& cam = renderSceneShared->GetCamera();
 		cam.GetCameraPosition()[2] = -100;
 
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");

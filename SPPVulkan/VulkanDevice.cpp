@@ -13,6 +13,9 @@
 #include "VulkanDebug.h"
 #include <unordered_set>
 #include "SPPLogging.h"
+#include "SPPSceneRendering.h"
+#include "SPPGraphicsO.h"
+#include "SPPSDFO.h"
 
 namespace SPP
 {
@@ -21,6 +24,9 @@ namespace SPP
 	//TODO Get rid of this
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice *GGlobalVulkanGI;
+
+	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 
 	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
 	{
@@ -1132,6 +1138,67 @@ namespace SPP
 		return findKey->second;
 	}
 
+
+	GPUReferencer< class GPUShader > VulkanGraphicsDevice::_gxCreateShader(EShaderType InType)
+	{
+		return Vulkan_CreateShader(InType);
+	}
+
+	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	{
+		return Vulkan_CreateStaticBuffer(InType, InCpuData);
+	}
+
+	std::shared_ptr< class GD_Texture > VulkanGraphicsDevice::CreateTexture()
+	{
+		return std::make_shared< GD_Texture>(this);
+	}
+	std::shared_ptr< class GD_Shader > VulkanGraphicsDevice::CreateShader(EShaderType InType)
+	{
+		return std::make_shared< GD_Shader>(this);
+	}
+	std::shared_ptr< class GD_Buffer > VulkanGraphicsDevice::CreateBuffer(GPUBufferType InType)
+	{
+		return std::make_shared< GD_Buffer>(this);
+	}
+	
+	std::shared_ptr< class GD_RenderableMesh > VulkanGraphicsDevice::CreateStaticMesh()
+	{
+		return std::make_shared< GD_RenderableMesh>();
+	}
+	std::shared_ptr< class GD_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
+	{
+		return std::make_shared< GD_RenderableSignedDistanceField>();
+	}
+	//virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width,
+	//	int32_t Height,
+	//	TextureFormat Format,
+	//	std::shared_ptr< ArrayResource > RawData = nullptr,
+	//	std::shared_ptr< ImageMeta > InMetaInfo = nullptr) override
+	//{
+	//	return Vulkan_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
+	//}
+	//virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) override
+	//{
+	//	return nullptr;
+	//}
+	//virtual std::shared_ptr< GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
+	//{
+	//	return nullptr;
+	//}
+	//virtual std::shared_ptr<GD_RenderScene> CreateRenderScene() override
+	//{
+	//	return std::make_shared< VulkanRenderScene >();
+	//}
+	//virtual std::shared_ptr<GD_RenderableMesh> CreateRenderableMesh() override
+	//{
+	//	return nullptr;
+	//}
+	//virtual std::shared_ptr<GD_RenderableSignedDistanceField> CreateRenderableSDF(GD_RenderableSignedDistanceField::Args&& InArgs) override
+	//{
+	//	return Vulkan_CreateSDF(InArgs);
+	//}
+	
 }
 
 namespace vks

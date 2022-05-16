@@ -15,7 +15,7 @@ namespace SPP
 
 	ORenderableScene::ORenderableScene(const MetaPath& InPath) : OScene(InPath)
 	{
-		_renderScene = GGI()->CreateRenderScene();
+		_renderScene = GGD()->CreateRenderScene();
 	}
 
 	void ORenderableElement::UpdateSelection(bool IsSelected)
@@ -52,7 +52,7 @@ namespace SPP
 			!_meshObj->GetMesh()->GetMeshElements().empty() &&
 			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
 		{
-			_renderableMesh = GGI()->CreateRenderableMesh();
+			_renderableMesh = GGD()->CreateStaticMesh();
 
 			auto localToWorld = GenerateLocalToWorld(true);			 
 			auto& pos = _renderableMesh->GetPosition();
