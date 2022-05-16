@@ -640,10 +640,10 @@ namespace SPP
 				pApp->mouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), (uint8_t)EMouseButton::Middle);
 			return 0;
 
-			//case WM_MOUSEMOVE:
-			//	if (pApp->mouseMove)
-			//		pApp->mouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-			//	return 0;
+		case WM_MOUSEMOVE:
+			if (pApp->mouseMove)
+				pApp->mouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0);
+			return 0;
 
 		case WM_DESTROY:
 			PostQuitMessage(0);
