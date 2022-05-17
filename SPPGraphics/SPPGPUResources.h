@@ -441,8 +441,7 @@ namespace SPP
     {
     protected:
         GPUReferencer< GPUShader > _shader;
-
-       
+               
     public:
         GD_Shader(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
         virtual ~GD_Shader() {}
@@ -457,6 +456,11 @@ namespace SPP
         virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
         {
             return _shader->CompileShaderFromString(ShaderSource, ShaderName, EntryPoint, oErrorMsgs);
+        }
+
+        GPUReferencer< GPUShader > GetGPURef()
+        {
+            return _shader;
         }
     };
 
@@ -477,10 +481,10 @@ namespace SPP
     class SPP_GRAPHICS_API GD_Material : public GD_Resource
     {
     protected:
-        std::vector< GPUReferencer<GPUTexture> > _textureArray;
+        //std::vector< GPUReferencer<GPUTexture> > _textureArray;
 
-        GPUReferencer<GPUShader> _vertexShader;
-        GPUReferencer<GPUShader> _pixelShader;
+        std::shared_ptr< GD_Shader > _vertexShader;
+        std::shared_ptr< GD_Shader > _pixelShader;
 
         EBlendState _blendState = EBlendState::Disabled;
         ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;
@@ -489,6 +493,18 @@ namespace SPP
     public:
         GD_Material(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
         virtual ~GD_Material() {}
+
+        struct Args
+        {
+            std::shared_ptr< GD_Shader > vertexShader;
+            std::shared_ptr< GD_Shader > pixelShader;
+        };
+
+        void SetMaterialArgs(const Args &InArgs)
+        {
+            _vertexShader = InArgs.vertexShader;
+            _pixelShader = InArgs.pixelShader;
+        }
     };
 
    

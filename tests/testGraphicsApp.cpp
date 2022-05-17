@@ -85,6 +85,22 @@ public:
 		auto meshtest = std::make_shared< Mesh>();
 		meshtest->LoadMesh(*AssetPath("meshes/trianglesphere.obj"));
 
+		auto meshvertexShader = _graphicsDevice->CreateShader();
+		auto meshpixelShader = _graphicsDevice->CreateShader();
+
+		auto meshMaterial = _graphicsDevice->CreateMaterial();
+
+		meshMaterial->SetMaterialArgs({ .vertexShader = meshvertexShader, .pixelShader = meshpixelShader });
+
+		auto gpuCommand = GPUThreaPool->enqueue([meshvertexShader, meshpixelShader]()
+			{
+				meshvertexShader->Initialize(EShaderType::Vertex);
+				meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
+				meshpixelShader->Initialize(EShaderType::Pixel);
+				meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
+			});
+		gpuCommand.wait();
+		
 		/////////////SCENE SETUP
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
@@ -94,8 +110,12 @@ public:
 		auto loadedMesh = AllocateObject<OMesh>("simpleMesh");
 		loadedMesh->SetMesh(meshtest);
 
+		auto meshMat = AllocateObject<OMaterial>("simplerMaterial");
+		meshMat->SetMaterial(meshMaterial);
+
 		auto meshElement = AllocateObject<OMeshElement>("simpleMeshElement");
 		meshElement->SetMesh(loadedMesh);
+		meshElement->SetMaterial(meshMat);
 
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[2] = -100;

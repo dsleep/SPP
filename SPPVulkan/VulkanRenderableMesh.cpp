@@ -4,6 +4,7 @@
 
 #include "SPPVulkan.h"
 #include "VulkanDevice.h"
+#include "VulkanShaders.h"
 #include "SPPGraphics.h"
 #include "SPPGraphicsO.h"
 #include "SPPFileSystem.h"
@@ -62,14 +63,21 @@ namespace SPP
 		GPUReferencer < VulkanPipelineState > GetPipelineState(EDrawingTopology topology,
 			GPUReferencer<GPUInputLayout> layout)
 		{
+			SE_ASSERT(_vertexShader && _pixelShader);
+
+			auto vsRef = _vertexShader->GetGPURef();
+			auto psRef = _pixelShader->GetGPURef();
+
+			SE_ASSERT(vsRef && psRef);
+
 			return GetVulkanPipelineState(
 				_blendState,
 				_rasterizerState,
 				_depthState,
 				topology,
 				layout,
-				_vertexShader,
-				_pixelShader,
+				vsRef,
+				psRef,
 				nullptr,
 				nullptr,
 				nullptr,
@@ -94,10 +102,15 @@ namespace SPP
 
 		auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
 
+		SE_ASSERT(vulkanMat);
+
 		_layout = Vulkan_CreateInputLayout();
 		_layout->InitializeLayout(_vertexStreams);
 
 		_state = vulkanMat->GetPipelineState(_topology, _layout);
+
+		SE_ASSERT(_state);
+
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
 	}

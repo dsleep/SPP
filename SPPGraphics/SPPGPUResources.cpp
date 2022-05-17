@@ -46,7 +46,7 @@ namespace SPP
 	//		}			
 	//	}
 	//};
-	
+
 	static GPUResource* GRootResource = nullptr;
 
 	GPUResource::GPUResource()
@@ -100,8 +100,9 @@ namespace SPP
 	
 	void ShaderObject::LoadFromDisk(const AssetPath& FilePath, const char* EntryPoint, EShaderType InType)
 	{
-		_shader = GGD()->CreateShader(InType);
+		_shader = GGD()->CreateShader();
 		SE_ASSERT(_shader);
+		_shader->Initialize(InType);
 		_shader->CompileShaderFromFile(FilePath, EntryPoint);
 	}
 	

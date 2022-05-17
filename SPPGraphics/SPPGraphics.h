@@ -136,7 +136,7 @@ namespace SPP
         //virtual std::shared_ptr< class GD_Material > CreateMaterial() = 0;
 
         virtual std::shared_ptr< class GD_Texture > CreateTexture() = 0;
-        virtual std::shared_ptr< class GD_Shader > CreateShader(EShaderType InType) = 0;
+        virtual std::shared_ptr< class GD_Shader > CreateShader() = 0;
         virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) = 0;
 
         virtual std::shared_ptr< class GD_Material > CreateMaterial() = 0;

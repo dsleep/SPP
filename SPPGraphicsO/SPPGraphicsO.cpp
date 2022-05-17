@@ -62,6 +62,8 @@ namespace SPP
 			auto& scale = _renderableMesh->GetScale();
 			scale = Vector3(_scale, _scale, _scale);
 
+			SE_ASSERT(_materialObj);
+
 			std::vector<VertexStream> vertexStreams;
 
 			MeshVertex placeholder;
@@ -71,7 +73,7 @@ namespace SPP
 				.vertexStreams = vertexStreams,
 				.vertexResource = firstMesh->VertexResource,
 				.indexResource = firstMesh->IndexResource,
-				.material = nullptr,
+				.material = _materialObj->GetMaterial(),
 				});
 
 			_renderableMesh->SetArgs({
@@ -160,4 +162,10 @@ RTTR_REGISTRATION
 		.property("_meshObj", &OMeshElement::_meshObj)
 		;
 
+	rttr::registration::class_<OMaterial>("OMaterial")
+		.constructor<const MetaPath&>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		;
 }

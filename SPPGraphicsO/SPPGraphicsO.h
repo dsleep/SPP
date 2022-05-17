@@ -84,6 +84,28 @@ namespace SPP
 		virtual ~OMesh() { }
 	};
 
+	class SPP_GRAPHICSO_API OMaterial : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OMaterial(const MetaPath& InPath) : SPPObject(InPath) { }
+
+		std::shared_ptr<GD_Material> _material;
+
+	public:
+		void SetMaterial(std::shared_ptr<GD_Material> InMat)
+		{
+			_material = InMat;
+		}
+		std::shared_ptr<GD_Material> GetMaterial()
+		{
+			return _material;
+		}
+		virtual ~OMaterial() { }
+	};
+
 	class SPP_GRAPHICSO_API ORenderableElement : public OElement
 	{
 		RTTR_ENABLE(OElement);
@@ -101,7 +123,7 @@ namespace SPP
 		virtual ~ORenderableElement() { }
 	};
 
-	
+
 
 	class SPP_GRAPHICSO_API OMeshElement : public ORenderableElement
 	{
@@ -111,6 +133,7 @@ namespace SPP
 	protected:
 		OMeshElement(const MetaPath& InPath) : ORenderableElement(InPath) { }
 		OMesh* _meshObj = nullptr;
+		OMaterial* _materialObj = nullptr;
 
 		std::shared_ptr<GD_RenderableMesh> _renderableMesh;
 
@@ -118,6 +141,10 @@ namespace SPP
 		void SetMesh(OMesh* InMesh)
 		{
 			_meshObj = InMesh;
+		}
+		void SetMaterial(OMaterial* InMat)
+		{
+			_materialObj = InMat;
 		}
 		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const override;
 

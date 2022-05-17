@@ -1145,7 +1145,7 @@ namespace SPP
 	{
 		return std::make_shared< GD_Texture>(this);
 	}
-	std::shared_ptr< class GD_Shader > VulkanGraphicsDevice::CreateShader(EShaderType InType)
+	std::shared_ptr< class GD_Shader > VulkanGraphicsDevice::CreateShader()
 	{
 		return std::make_shared< GD_Shader>(this);
 	}

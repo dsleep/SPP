@@ -234,7 +234,7 @@ namespace SPP
 
 		//
 		virtual std::shared_ptr< class GD_Texture > CreateTexture() override;
-		virtual std::shared_ptr< class GD_Shader > CreateShader(EShaderType InType) override;
+		virtual std::shared_ptr< class GD_Shader > CreateShader() override;
 		virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) override;
 
 		virtual std::shared_ptr< class GD_Material > CreateMaterial() override;
