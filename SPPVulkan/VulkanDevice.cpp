@@ -64,8 +64,14 @@ namespace SPP
 				case InputLayoutElementType::Float:
 					Desc.format = VK_FORMAT_R32_SFLOAT;
 					break;
-				case InputLayoutElementType::UInt:
+				case InputLayoutElementType::UInt32:
 					Desc.format = VK_FORMAT_R32_UINT;
+					break;
+				case InputLayoutElementType::UInt8_4:
+					Desc.format = VK_FORMAT_R8G8B8A8_UNORM;
+					break;
+				default:
+					SE_ASSERT(false);
 					break;
 				}
 

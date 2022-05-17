@@ -333,7 +333,9 @@ namespace SPP
         Float3,
         Float2,
         Float,
-        UInt,
+        UInt32,
+        UInt8_4,
+        UInt8_3,
     };
 
     struct InputLayoutElement
@@ -370,11 +372,15 @@ namespace SPP
         }
         else if constexpr (std::is_same_v<T, uint32_t>)
         {
-            curAttribute.Type = InputLayoutElementType::UInt;
+            curAttribute.Type = InputLayoutElementType::UInt32;
         }
         else if constexpr (std::is_same_v<T, float>)
         {
             curAttribute.Type = InputLayoutElementType::Float;
+        }
+        else if constexpr (std::is_same_v<T, Color4>)
+        {
+            curAttribute.Type = InputLayoutElementType::UInt8_4;
         }
         else
         {

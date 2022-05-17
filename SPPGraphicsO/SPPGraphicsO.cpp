@@ -67,7 +67,7 @@ namespace SPP
 			std::vector<VertexStream> vertexStreams;
 
 			MeshVertex placeholder;
-			vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord));
+			vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord, placeholder.color));
 
 			_renderableMesh->SetMeshArgs({
 				.vertexStreams = vertexStreams,
