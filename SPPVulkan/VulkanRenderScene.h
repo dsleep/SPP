@@ -12,6 +12,42 @@
 
 namespace SPP
 {
+	_declspec(align(256u)) struct GPUViewConstants
+	{
+		//all origin centered
+		Matrix4x4 ViewMatrix;
+		Matrix4x4 ViewProjectionMatrix;
+		Matrix4x4 InvViewProjectionMatrix;
+		//real view position
+		Vector3d ViewPosition;
+		Vector4d FrustumPlanes[6];
+		float RecipTanHalfFovy;
+	};
+
+	_declspec(align(256u)) struct GPUDrawConstants
+	{
+		//altered viewposition translated
+		Matrix4x4 LocalToWorldScaleRotation;
+		Vector3d Translation;
+	};
+
+	_declspec(align(256u)) struct GPUDrawParams
+	{
+		//all origin centered
+		Vector3 ShapeColor;
+		uint32_t ShapeCount;
+	};
+
+	_declspec(align(256u)) struct GPUSDFShape
+	{
+		Vector3  translation;
+		Vector3  eulerRotation;
+		Vector4  shapeBlendAndScale;
+		Vector4  params;
+		uint32_t shapeType;
+		uint32_t shapeOp;
+	};
+
 	class VulkanRenderScene : public GD_RenderScene
 	{
 	protected:
@@ -79,6 +115,10 @@ namespace SPP
 		{
 			return _fullscreenRayVSLayout;
 		}
+		GPUReferencer< class VulkanBuffer > GetCameraBuffer()
+		{
+			return _cameraBuffer;
+		}
 
 		virtual void AddedToGraphicsDevice() override;
 
@@ -91,12 +131,10 @@ namespace SPP
 		//	return _currentFrameMem.gpuAddr;
 		//}
 
-
-
 		virtual void AddToScene(Renderable* InRenderable) override;
 		virtual void RemoveFromScene(Renderable* InRenderable) override;
 		
-		virtual void BeginFrame() override {} 
+		virtual void BeginFrame() override;
 		virtual void Draw() override;		
 		virtual void EndFrame() override {}
 	};

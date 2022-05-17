@@ -25,41 +25,7 @@ namespace SPP
 
 	static Vector3d HACKS_CameraPos;
 
-	_declspec(align(256u)) struct GPUViewConstants
-	{
-		//all origin centered
-		Matrix4x4 ViewMatrix;
-		Matrix4x4 ViewProjectionMatrix;
-		Matrix4x4 InvViewProjectionMatrix;
-		//real view position
-		Vector3d ViewPosition;
-		Vector4d FrustumPlanes[6];
-		float RecipTanHalfFovy;
-	};
-
-	_declspec(align(256u)) struct DrawConstants
-	{
-		//altered viewposition translated
-		Matrix4x4 LocalToWorldScaleRotation;
-		Vector3d Translation;
-	};
-
-	_declspec(align(256u)) struct DrawParams
-	{
-		//all origin centered
-		Vector3 ShapeColor;
-		uint32_t ShapeCount;
-	};
-
-	_declspec(align(256u)) struct gxSDFShape
-	{
-		Vector3  translation;
-		Vector3  eulerRotation;
-		Vector4  shapeBlendAndScale;
-		Vector4  params;
-		uint32_t shapeType;
-		uint32_t shapeOp;
-	};
+	
 
 	VulkanRenderScene::VulkanRenderScene()
 	{
@@ -167,11 +133,11 @@ namespace SPP
 		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _cameraData);
 
 		_drawConstants = std::make_shared< ArrayResource >();
-		_drawConstants->InitializeFromType< DrawConstants >(InFlightFrames);
+		_drawConstants->InitializeFromType< GPUDrawConstants >(InFlightFrames);
 		_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
 
 		_drawParams = std::make_shared< ArrayResource >();
-		_drawParams->InitializeFromType< DrawParams >(InFlightFrames);
+		_drawParams->InitializeFromType< GPUDrawParams >(InFlightFrames);
 		_drawParamsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawParams);
 
 		_shapes = std::make_shared< ArrayResource >();
@@ -413,6 +379,14 @@ namespace SPP
 		return std::make_shared<VulkanRenderScene>();
 	}
 
+	void VulkanRenderScene::BeginFrame()
+	{
+		for (auto renderItem : _renderables)
+		{
+			renderItem->PrepareToDraw();
+		}
+	}
+
 	void VulkanRenderScene::Draw()
 	{
 		extern VkDevice GGlobalVulkanDevice;
@@ -447,7 +421,7 @@ namespace SPP
 		_cameraBuffer->UpdateDirtyRegion(currentFrame, 1);
 
 		{
-			auto uniformData = _drawConstants->GetSpan< DrawConstants>();
+			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
 			auto& curData = uniformData[currentFrame];
 			curData.LocalToWorldScaleRotation = Matrix4x4::Identity();
 			curData.Translation = Vector3d(0, 0, 0);
@@ -455,7 +429,7 @@ namespace SPP
 		}
 
 		{
-			auto uniformData = _drawParams->GetSpan<DrawParams>();
+			auto uniformData = _drawParams->GetSpan<GPUDrawParams>();
 			auto& curData = uniformData[currentFrame];
 			curData.ShapeCount = 0;
 			curData.ShapeColor = Vector3(0, 0, 0);
@@ -533,6 +507,11 @@ namespace SPP
 		//			renderItem->Draw();
 		//		}
 		//#endif
+
+		for (auto renderItem : _renderables)
+		{
+			renderItem->Draw();
+		}
 	};
 
 	void VulkanRenderScene::DrawSkyBox()
@@ -548,8 +527,8 @@ namespace SPP
 
 		uint32_t uniform_offsets[] = {
 			(sizeof(GPUViewConstants)) * currentFrame,
-			(sizeof(DrawConstants)) * currentFrame,
-			(sizeof(DrawParams)) * currentFrame,
+			(sizeof(GPUDrawConstants)) * currentFrame,
+			(sizeof(GPUDrawParams)) * currentFrame,
 			(sizeof(SDFShape)) * currentFrame,
 		};
 

@@ -94,7 +94,7 @@ namespace SPP
 			co_return;
 		}
 		
-
+		virtual void PrepareToDraw() {}
 		virtual void DrawDebug(std::vector< struct DebugVertex >& lines) { };
 		virtual void Draw() { };		
 

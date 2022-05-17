@@ -115,7 +115,7 @@ namespace SPP
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
 
-	
+		std::atomic_bool bDrawPhase{ false };
 
 		// Active frame buffer index
 		uint32_t currentBuffer = 0;
@@ -158,6 +158,8 @@ namespace SPP
 		HINSTANCE windowInstance;
 #endif
 
+		std::vector< VkDescriptorPool >  _perDrawPools;
+
 
 		VkResult createInstance(bool enableValidation);
 		bool DeviceInitialize();
@@ -190,6 +192,11 @@ namespace SPP
 		VkFramebuffer GetActiveFrameBuffer()
 		{
 			return frameBuffers[currentBuffer];
+		}
+
+		VkDescriptorPool GetActiveDescriptorPool()
+		{
+			return _perDrawPools[currentBuffer];
 		}
 
 		uint8_t GetActiveFrame()
@@ -265,14 +272,19 @@ namespace SPP
 		VulkanPipelineState();
 		virtual ~VulkanPipelineState();
 
-		VkPipeline GetVkPipeline()
+		const VkPipeline &GetVkPipeline()
 		{
 			return _pipeline;
 		}
-		VkPipelineLayout GetVkPipelineLayout()
+		const VkDescriptorSetLayout& GetDescriptorSetLayout()
+		{
+			return _descriptorSetLayout;
+		}
+		const VkPipelineLayout &GetVkPipelineLayout()
 		{
 			return _pipelineLayout;
 		}
+		
 
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
 		virtual void UploadToGpu() {}

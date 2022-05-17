@@ -174,6 +174,8 @@ namespace SPP
 
     class SPP_GRAPHICS_API GPUResource : public ReferenceCounted
     {
+        NO_COPY_ALLOWED(GPUResource);
+
     protected:
         bool _gpuResident = false;
         GPUResource* _prevResource = nullptr;

@@ -5,6 +5,7 @@
 #include "SPPVulkan.h"
 #include "VulkanDevice.h"
 #include "VulkanShaders.h"
+#include "VulkanRenderScene.h"
 #include "SPPGraphics.h"
 #include "SPPGraphicsO.h"
 #include "SPPFileSystem.h"
@@ -14,6 +15,9 @@
 
 namespace SPP
 {	
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
 	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout();;
 
 	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(EBlendState InBlendState,
@@ -35,6 +39,10 @@ namespace SPP
 		bool _bIsStatic = false;
 		GPUReferencer < VulkanPipelineState > _state;
 
+		std::shared_ptr< ArrayResource > _drawConstants;
+		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
+		bool bPendingUpdate = false;
+
 	public:
 		GD_VulkanRenderableMesh(GraphicsDevice* InOwner, bool IsStatic) : GD_RenderableMesh(InOwner), _bIsStatic(IsStatic) {}
 		
@@ -45,6 +53,7 @@ namespace SPP
 		virtual void _AddToScene(class GD_RenderScene* InScene) override;
 		virtual void _RemoveFromScene() override {}
 
+		virtual void PrepareToDraw() override;
 		virtual void Draw() override;
 		//virtual void Draw() override;
 		//virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
@@ -113,6 +122,26 @@ namespace SPP
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
+
+		_drawConstants = std::make_shared< ArrayResource >();
+		_drawConstants->InitializeFromType< GPUDrawConstants >(1);
+		bPendingUpdate = true;		
+	}
+
+	void GD_VulkanRenderableMesh::PrepareToDraw() 
+	{
+		if (bPendingUpdate)
+		{
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
+
+			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
+			auto& curData = uniformData[0];
+			curData.LocalToWorldScaleRotation = _cachedRotationScale;
+			curData.Translation = _position;
+			_drawConstantsBuffer->UpdateDirtyRegion(0, 1);
+
+			bPendingUpdate = false;
+		}
 	}
 
 	//template<typename F>
@@ -186,27 +215,61 @@ namespace SPP
 
 	void GD_VulkanRenderableMesh::Draw()
 	{		
-		extern VkDevice GGlobalVulkanDevice;
-		extern VulkanGraphicsDevice* GGlobalVulkanGI;
-
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-
+		
 		auto gpuVertexBuffer = _vertexBuffer->GetGPUBuffer();
 		auto gpuIndexBuffer = _indexBuffer->GetGPUBuffer();
 
-		auto vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
-		auto vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
+		auto &vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
+		auto &vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
+
+		auto parentScene = (VulkanRenderScene*)_parentScene;
+		auto cameraBuffer = parentScene->GetCameraBuffer();
+		auto drawConstBuffer = parentScene->GetCameraBuffer();
 
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkVB.GetBuffer(), offsets);
 		vkCmdBindIndexBuffer(commandBuffer, vulkIB.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
+		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
+
+		VkDescriptorSet locaDrawSet = VK_NULL_HANDLE;
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &_state->GetDescriptorSetLayout(), 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, &locaDrawSet));
+
+		VkDescriptorBufferInfo perFrameInfo;
+		perFrameInfo.buffer = cameraBuffer->GetBuffer();
+		perFrameInfo.offset = 0;
+		perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+		VkDescriptorBufferInfo drawConstsInfo;
+		drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
+		drawConstsInfo.offset = 0;
+		drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			vks::initializers::writeDescriptorSet(locaDrawSet,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+			vks::initializers::writeDescriptorSet(locaDrawSet,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+		};
+
+		vkUpdateDescriptorSets(vulkanDevice,
+			static_cast<uint32_t>(writeDescriptorSets.size()),
+			writeDescriptorSets.data(), 0, nullptr);
+
+		uint32_t uniform_offsets[] = {
+			(sizeof(GPUViewConstants)) * currentFrame,
+			0,
+		};
+
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipeline());
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipelineLayout(), 1, 1, &material.descriptorSet, 0, nullptr);
-		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1,0, 0, 0);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipelineLayout(), 0, 1, &locaDrawSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);
+		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1, 0, 0, 0);
 	}
 }

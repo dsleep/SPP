@@ -637,8 +637,21 @@ namespace SPP
 
 	void VulkanGraphicsDevice::CreateDescriptorPool()
 	{
-		
+		SE_ASSERT(swapChain.imageCount);
 
+
+		std::vector<VkDescriptorPoolSize> simplePool = {
+
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10),
+		};
+		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 3);	
+
+		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
+		{
+			VkDescriptorPool curPool;
+			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &curPool));
+			_perDrawPools.push_back(curPool);
+		}
 	}
 
 	void VulkanGraphicsDevice::CreateInputLayout(GPUReferencer < GPUInputLayout > InLayout)
@@ -647,9 +660,7 @@ namespace SPP
 	}
 
 	void VulkanGraphicsDevice::BeginFrame()
-	{
-		GraphicsDevice::BeginFrame();
-
+	{		
 		// Acquire the next image from the swap chain
 		VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
@@ -666,6 +677,8 @@ namespace SPP
 
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
 
+		vkResetDescriptorPool(device, _perDrawPools[currentBuffer], 0);
+
 		VkCommandBufferBeginInfo cmdBufInfo = {};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBufInfo.pNext = nullptr;
@@ -673,28 +686,15 @@ namespace SPP
 		auto& commandBuffer = drawCmdBuffers[currentBuffer];
 		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
-		//// Bind descriptor sets describing shader binding points
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+		GraphicsDevice::BeginFrame();
 
-		//// Bind the rendering pipeline
-		//// The pipeline (state object) contains all states of the rendering pipeline, binding it will set all the states specified at pipeline creation time
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-		//// Bind triangle vertex buffer (contains position and colors)
-		//VkDeviceSize offsets[1] = { 0 };
-		//vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertices.buffer, offsets);
-
-		//// Bind triangle index buffer
-		//vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		//// Draw indexed triangle
-		//vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 1);
-
-
+		bDrawPhase = true;
 	}
 
 	void VulkanGraphicsDevice::EndFrame()
 	{
+		bDrawPhase = false;
+
 		auto& commandBuffer = drawCmdBuffers[currentBuffer];
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -791,7 +791,7 @@ namespace SPP
 	{
 		auto device = GGlobalVulkanDevice;
 		auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
-		auto inputLayout = InLayout->GetAs<VulkanInputLayout>();
+		auto &inputLayout = InLayout->GetAs<VulkanInputLayout>();
 
 		// Shaders
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
