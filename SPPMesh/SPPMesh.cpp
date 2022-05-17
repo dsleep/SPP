@@ -181,8 +181,8 @@ namespace SPP
 			for (auto& curLayer : loadedMeshes.Layers)
 			{
 				auto newMeshElement = std::make_shared<MeshElement>();
-				//newMeshElement->VertexResource = GGI()->CreateStaticBuffer(GPUBufferType::Vertex, curLayer.VertexResource);
-				//newMeshElement->IndexResource = GGI()->CreateStaticBuffer(GPUBufferType::Index, curLayer.IndexResource);				
+				newMeshElement->VertexResource = curLayer.VertexResource;
+				newMeshElement->IndexResource = curLayer.VertexResource;
 				newMeshElement->Bounds = curLayer.bounds;
 				newMeshElement->Name = curLayer.Name;
 

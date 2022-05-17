@@ -332,6 +332,7 @@ namespace SPP
     {
         Float3,
         Float2,
+        Float,
         UInt,
     };
 
@@ -341,6 +342,68 @@ namespace SPP
         InputLayoutElementType Type;
         uint16_t Offset;
     };
+
+    struct VertexAttribute
+    {
+        InputLayoutElementType Type;
+        uint16_t Offset;
+    };
+
+    struct VertexStream
+    {  
+        uint16_t Size;
+        std::vector<VertexAttribute> Attributes;
+    };
+
+    template <typename T, typename... Args>
+    void AddVertexAttributes(std::vector<VertexAttribute> &oAttributes, uintptr_t baseAddr, const T& first, const Args&... args)
+    {
+        VertexAttribute curAttribute;
+
+        if constexpr (std::is_same_v<T, Vector3>)
+        {
+            curAttribute.Type = InputLayoutElementType::Float3;
+        }
+        else if constexpr (std::is_same_v<T, Vector2>)
+        {
+            curAttribute.Type = InputLayoutElementType::Float2;
+        }
+        else if constexpr (std::is_same_v<T, uint32_t>)
+        {
+            curAttribute.Type = InputLayoutElementType::UInt;
+        }
+        else if constexpr (std::is_same_v<T, float>)
+        {
+            curAttribute.Type = InputLayoutElementType::Float;
+        }
+        else
+        {
+            struct DummyType {};
+            static_assert(std::is_same_v<T, DummyType>, "AddVertexAttributes: Unknown type");
+        }
+
+        curAttribute.Offset = (uint32_t)(reinterpret_cast<uintptr_t>(&first) - baseAddr);
+
+        // todo real proper check
+        SE_ASSERT(curAttribute.Offset < 128);
+
+        oAttributes.push_back(curAttribute);
+
+        if constexpr (sizeof...(args) >= 1)
+        {
+            AddVertexAttributes(oAttributes, baseAddr, args...);
+        }
+    }
+
+    template<class VertexType, typename... VertexMembers>
+    VertexStream CreateVertexStream(const VertexType& InType, const VertexMembers&... inMembers)
+    {
+        VertexStream currentStream = { .Size = sizeof(VertexType) };
+
+        AddVertexAttributes(currentStream.Attributes, reinterpret_cast<uintptr_t>(&InType), inMembers...);
+
+        return currentStream;
+    }
 
     class SPP_GRAPHICS_API GPUInputLayout : public GPUResource
     {

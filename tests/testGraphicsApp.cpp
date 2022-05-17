@@ -82,11 +82,20 @@ public:
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
 
+		auto meshtest = std::make_shared< Mesh>();
+		meshtest->LoadMesh(*AssetPath("meshes/trianglesphere.obj"));
+
 		/////////////SCENE SETUP
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
 
 		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+
+		auto loadedMesh = AllocateObject<OMesh>("simpleMesh");
+		loadedMesh->SetMesh(meshtest);
+
+		auto meshElement = AllocateObject<OMeshElement>("simpleMeshElement");
+		meshElement->SetMesh(loadedMesh);
 
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[2] = -100;
@@ -96,6 +105,7 @@ public:
 		startingSphere->SetRadius(10);
 		startingGroup->AddChild(startingSphere);
 		_renderableScene->AddChild(startingGroup);
+		_renderableScene->AddChild(meshElement);
 
 		//SPP::MakeResidentAllGPUResources();
 

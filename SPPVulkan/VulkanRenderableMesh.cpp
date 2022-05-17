@@ -81,7 +81,6 @@ namespace SPP
 		return std::make_shared<GD_Vulkan_Material>(this);
 	}
 
-
 	std::shared_ptr< class GD_RenderableMesh > VulkanGraphicsDevice::CreateStaticMesh()
 	{
 		return std::make_shared< GD_VulkanRenderableMesh>(this, true);
@@ -91,8 +90,7 @@ namespace SPP
 	{
 		GD_RenderableMesh::AddToScene(InScene);
 
-		auto vulkanMat = (GD_Vulkan_Material*)_material.get();
-		
+		auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
 		_state = vulkanMat->GetPipelineState(_topology, _layout);
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();

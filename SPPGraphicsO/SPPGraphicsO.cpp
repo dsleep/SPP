@@ -52,6 +52,8 @@ namespace SPP
 			!_meshObj->GetMesh()->GetMeshElements().empty() &&
 			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
 		{
+			auto firstMesh = _meshObj->GetMesh()->GetMeshElements().front();
+
 			_renderableMesh = GGD()->CreateStaticMesh();
 
 			auto localToWorld = GenerateLocalToWorld(true);			 
@@ -60,8 +62,19 @@ namespace SPP
 			auto& scale = _renderableMesh->GetScale();
 			scale = Vector3(_scale, _scale, _scale);
 
-			//TODO FIXME
-			//_renderableMesh->SetMeshData(_meshObj->GetMesh()->GetMeshElements());
+			std::vector<VertexStream> vertexStreams;
+			_renderableMesh->SetMeshArgs({
+				.vertexLayout = vertexStreams,
+				.vertexResource = firstMesh->VertexResource,
+				.indexResource = firstMesh->IndexResource,
+				.material = nullptr,
+				});
+
+			_renderableMesh->SetArgs({
+				.position = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTop()->GetPosition(),
+				.scale = Vector3(_scale, _scale, _scale),
+				});
+
 			_renderableMesh->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
 		}
 	}

@@ -54,6 +54,13 @@ namespace SPP
 			_scale = InArgs.scale;
 		}
 
+		void SetArgs(const Args& InArgs)
+		{
+			_position = InArgs.position;
+			_eulerRotationYPR = InArgs.eulerRotationYPR;
+			_scale = InArgs.scale;
+		}
+
 		virtual ~Renderable() {}
 
 		void SetSelected(bool InSelect)
@@ -322,15 +329,38 @@ namespace SPP
 
 		EDrawingTopology _topology = EDrawingTopology::TriangleList;
 
-		GPUReferencer<GPUInputLayout> _layout;
+		std::vector< VertexStream > _vertexLayout;
+
 		//
 		std::shared_ptr< ArrayResource > _vertexResource;
 		std::shared_ptr< ArrayResource > _indexResource;
 
 		std::shared_ptr< GD_Material > _material;
 
+
+		GPUReferencer<GPUInputLayout> _layout;
+
 	public:
+		struct Args 
+		{
+			EDrawingTopology topology = EDrawingTopology::TriangleList;
+			std::vector< VertexStream > vertexLayout;
+			std::shared_ptr< ArrayResource > vertexResource;
+			std::shared_ptr< ArrayResource > indexResource;
+			std::shared_ptr< GD_Material > material;
+		};
+
 		GD_RenderableMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+
+		void SetMeshArgs(const Args& InArgs)
+		{
+			_topology = InArgs.topology;
+			_vertexLayout = InArgs.vertexLayout;
+			_vertexResource = InArgs.vertexResource;
+			_indexResource = InArgs.indexResource;
+			_material = InArgs.material;
+		}
+
 		virtual ~GD_RenderableMesh() {}
 	};
 }
