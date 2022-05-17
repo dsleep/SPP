@@ -326,25 +326,19 @@ namespace SPP
 	class SPP_GRAPHICS_API GD_RenderableMesh : public Renderable, public GD_Resource
 	{
 	protected:
-
 		EDrawingTopology _topology = EDrawingTopology::TriangleList;
 
-		std::vector< VertexStream > _vertexLayout;
-
-		//
+		std::vector< VertexStream > _vertexStreams;
 		std::shared_ptr< ArrayResource > _vertexResource;
 		std::shared_ptr< ArrayResource > _indexResource;
-
 		std::shared_ptr< GD_Material > _material;
-
-
 		GPUReferencer<GPUInputLayout> _layout;
 
 	public:
 		struct Args 
 		{
 			EDrawingTopology topology = EDrawingTopology::TriangleList;
-			std::vector< VertexStream > vertexLayout;
+			std::vector< VertexStream > vertexStreams;
 			std::shared_ptr< ArrayResource > vertexResource;
 			std::shared_ptr< ArrayResource > indexResource;
 			std::shared_ptr< GD_Material > material;
@@ -355,7 +349,7 @@ namespace SPP
 		void SetMeshArgs(const Args& InArgs)
 		{
 			_topology = InArgs.topology;
-			_vertexLayout = InArgs.vertexLayout;
+			_vertexStreams = InArgs.vertexStreams;
 			_vertexResource = InArgs.vertexResource;
 			_indexResource = InArgs.indexResource;
 			_material = InArgs.material;

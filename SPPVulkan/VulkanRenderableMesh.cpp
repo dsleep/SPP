@@ -13,6 +13,8 @@
 
 namespace SPP
 {	
+	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout();;
+
 	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
@@ -88,9 +90,13 @@ namespace SPP
 
 	void GD_VulkanRenderableMesh::_AddToScene(class GD_RenderScene* InScene)
 	{
-		GD_RenderableMesh::AddToScene(InScene);
+		GD_RenderableMesh::_AddToScene(InScene);
 
 		auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
+
+		_layout = Vulkan_CreateInputLayout();
+		_layout->InitializeLayout(_vertexStreams);
+
 		_state = vulkanMat->GetPipelineState(_topology, _layout);
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();

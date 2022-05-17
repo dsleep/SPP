@@ -56,78 +56,15 @@ namespace SPP
 	class VulkanInputLayout : public GPUInputLayout
 	{
 	private:
-		std::vector<VkVertexInputAttributeDescription> _vertexInputAttributes;
 		VkPipelineVertexInputStateCreateInfo _vertexInputState;
+		std::vector< VkVertexInputBindingDescription > _inputBindings;
+		std::vector< VkVertexInputAttributeDescription > _inputAttributes;
 
 	public:
 		VkPipelineVertexInputStateCreateInfo& GetVertexInputState();
 		virtual void UploadToGpu() override {}
 		virtual ~VulkanInputLayout() {};
-
-		std::vector< VkVertexInputBindingDescription > InputBindings;
-		std::vector< VkVertexInputAttributeDescription > InputAttributes;
-
-		template <typename T, typename... Args>
-		void AddVertexAttribute(uintptr_t baseAddr, const T& first, const Args&... args)
-		{
-			VkVertexInputAttributeDescription Desc{};
-
-			if constexpr (std::is_same_v<T, Vector3>)
-			{
-				Desc.format = VK_FORMAT_R32G32B32_SFLOAT;
-			}
-			else if constexpr (std::is_same_v<T, Vector2>)
-			{
-				Desc.format = VK_FORMAT_R32G32_SFLOAT;
-			}
-			else if constexpr (std::is_same_v<T, uint32_t>)
-			{
-				Desc.format = VK_FORMAT_R32_UINT;
-			}
-			else if constexpr (std::is_same_v<T, float>)
-			{
-				Desc.format = VK_FORMAT_R32_SFLOAT;
-			}
-			else
-			{
-				struct DummyType {};
-				static_assert(std::is_same_v<T, DummyType>, "AddVertexAttribute: Unknown type");
-			}
-
-			Desc.binding = (uint32_t)InputBindings.size();
-			Desc.location = (uint32_t)InputAttributes.size();
-			Desc.offset = (uint32_t)(reinterpret_cast<uintptr_t>(&first) - baseAddr);
-
-			// todo real proper check
-			SE_ASSERT(Desc.offset < 128);
-
-			InputAttributes.push_back(Desc);
-
-			if constexpr (sizeof...(args) >= 1)
-			{
-				AddVertexAttribute(baseAddr, args...);
-			}
-		}
-
-		template<class VertexType, typename... VertexMembers>
-		void AddVertexStream(const VertexType& InType, const VertexMembers&... inMembers)
-		{
-			VkVertexInputBindingDescription vertexInputBinding = {};
-			vertexInputBinding.binding = (uint32_t)InputBindings.size();
-			vertexInputBinding.stride = sizeof(VertexType);
-			vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			AddVertexAttribute(reinterpret_cast<uintptr_t>(&InType), inMembers...);
-
-			InputBindings.push_back(vertexInputBinding);
-		}
-		void Begin()
-		{
-			InputBindings.clear();
-			InputAttributes.clear();
-		}
-		void Finalize();
-		virtual void InitializeLayout(const std::vector< InputLayoutElement>& eleList) override;
+		virtual void InitializeLayout(const std::vector<VertexStream>& vertexStreams) override;
 	};
 
 	class VulkanGraphicsDevice : public GraphicsDevice

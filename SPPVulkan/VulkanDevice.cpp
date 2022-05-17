@@ -38,62 +38,54 @@ namespace SPP
 		return _vertexInputState;
 	}
 
-	void VulkanInputLayout::Finalize()
+	void VulkanInputLayout::InitializeLayout(const std::vector<VertexStream>& vertexStreams)
 	{
-		// Vertex input state used for pipeline creation
-		_vertexInputState = {};
-		_vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		_vertexInputState.vertexBindingDescriptionCount = (uint32_t)InputBindings.size();
-		_vertexInputState.pVertexBindingDescriptions = InputBindings.size() ? InputBindings.data() : nullptr;
-		_vertexInputState.vertexAttributeDescriptionCount = (uint32_t)InputAttributes.size();
-		_vertexInputState.pVertexAttributeDescriptions = InputAttributes.size() ? InputAttributes.data() : nullptr;
-	}
-
-	void VulkanInputLayout::InitializeLayout(const std::vector< InputLayoutElement>& eleList) 
-	{
-		//testVErtex newVertex;
-		//AddVertexStream(newVertex, newVertex.yoyo, newVertex.thisValue);
-
-		_vertexInputAttributes.clear();
-
-		uint32_t location = 0;
-		for (auto& curele : eleList)
+		for (auto& curStream : vertexStreams)
 		{
-			VkVertexInputAttributeDescription Desc{};
+			VkVertexInputBindingDescription vertexInputBinding = {};
+			vertexInputBinding.binding = (uint32_t)_inputBindings.size();
+			vertexInputBinding.stride = curStream.Size;
+			vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-			switch (curele.Type)
+			_inputBindings.push_back(vertexInputBinding);
+
+			for (auto& curAttribute : curStream.Attributes)
 			{
-			case InputLayoutElementType::Float3:
-				Desc.format = VK_FORMAT_R32G32B32_SFLOAT;
-				break;
-			case InputLayoutElementType::Float2:
-				Desc.format = VK_FORMAT_R32G32_SFLOAT;
-				break;
-			case InputLayoutElementType::UInt:
-				Desc.format = VK_FORMAT_R32_UINT;
-				break;
-			}
+				VkVertexInputAttributeDescription Desc{};
 
-			Desc.binding = 0;
-			Desc.location = ++location;
-			Desc.offset = curele.Offset;
+				switch (curAttribute.Type)
+				{
+				case InputLayoutElementType::Float3:
+					Desc.format = VK_FORMAT_R32G32B32_SFLOAT;
+					break;
+				case InputLayoutElementType::Float2:
+					Desc.format = VK_FORMAT_R32G32_SFLOAT;
+					break;
+				case InputLayoutElementType::Float:
+					Desc.format = VK_FORMAT_R32_SFLOAT;
+					break;
+				case InputLayoutElementType::UInt:
+					Desc.format = VK_FORMAT_R32_UINT;
+					break;
+				}
 
-			_vertexInputAttributes.push_back(Desc);
+				Desc.binding = (uint32_t)_inputBindings.size();
+				Desc.location = (uint32_t)_inputAttributes.size();
+				Desc.offset = (uint32_t)(curAttribute.Offset);
+
+				// todo real proper check
+				SE_ASSERT(Desc.offset < 128);
+
+				_inputAttributes.push_back(Desc);
+			}			
 		}
 
-		VkVertexInputBindingDescription vertexInputBinding = {};
-		vertexInputBinding.binding = 0;
-		//vertexInputBinding.stride = sizeof(Vertex);
-		vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-
-		// Vertex input state used for pipeline creation
 		_vertexInputState = {};
 		_vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		_vertexInputState.vertexBindingDescriptionCount = 1;
-		_vertexInputState.pVertexBindingDescriptions = &vertexInputBinding;
-		_vertexInputState.vertexAttributeDescriptionCount = _vertexInputAttributes.size();
-		_vertexInputState.pVertexAttributeDescriptions = _vertexInputAttributes.data();
+		_vertexInputState.vertexBindingDescriptionCount = (uint32_t)_inputBindings.size();
+		_vertexInputState.pVertexBindingDescriptions = _inputBindings.size() ? _inputBindings.data() : nullptr;
+		_vertexInputState.vertexAttributeDescriptionCount = (uint32_t)_inputAttributes.size();
+		_vertexInputState.pVertexAttributeDescriptions = _inputAttributes.size() ? _inputAttributes.data() : nullptr;
 	}
 
 	//////////////////////////

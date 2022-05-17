@@ -418,7 +418,7 @@ namespace SPP
             return "InputLayout";
         }
 
-        virtual void InitializeLayout(const std::vector< InputLayoutElement>& eleList) = 0;
+        virtual void InitializeLayout(const std::vector<VertexStream>& vertexStreams) = 0;
         virtual ~GPUInputLayout() { }
     };
 

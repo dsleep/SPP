@@ -123,10 +123,7 @@ namespace SPP
 
 		{
 			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();
-			FullscreenVertex dvPattern;
-			vulkanInputLayout.Begin();
-			//vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position);
-			vulkanInputLayout.Finalize();
+			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
 		_fullscreenRaySDFPSO = GetVulkanPipelineState(EBlendState::Disabled,

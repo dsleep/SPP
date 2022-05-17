@@ -63,8 +63,12 @@ namespace SPP
 			scale = Vector3(_scale, _scale, _scale);
 
 			std::vector<VertexStream> vertexStreams;
+
+			MeshVertex placeholder;
+			vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord));
+
 			_renderableMesh->SetMeshArgs({
-				.vertexLayout = vertexStreams,
+				.vertexStreams = vertexStreams,
 				.vertexResource = firstMesh->VertexResource,
 				.indexResource = firstMesh->IndexResource,
 				.material = nullptr,
