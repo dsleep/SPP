@@ -527,6 +527,11 @@ namespace SPP
         {
             _buffer = _owner->_gxCreateBuffer(InType, InCpuData);
         }
+
+        GPUReferencer< GPUBuffer > GetGPUBuffer()
+        {
+            return _buffer;
+        }
     };
    
 

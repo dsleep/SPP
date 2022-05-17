@@ -186,13 +186,27 @@ namespace SPP
 
 	void GD_VulkanRenderableMesh::Draw()
 	{		
-		//auto pd3dDevice = GGraphicsDevice->GetDevice();
-		//auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-		//auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-		//auto perDrawSamplerHeap = GGraphicsDevice->GetDynamicSamplerHeap();
-		//auto cmdList = GGraphicsDevice->GetCommandList();
-		//auto currentFrame = GGraphicsDevice->GetFrameCount();
+		extern VkDevice GGlobalVulkanDevice;
+		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
+		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
+		auto gpuVertexBuffer = _vertexBuffer->GetGPUBuffer();
+		auto gpuIndexBuffer = _indexBuffer->GetGPUBuffer();
+
+		auto vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
+		auto vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
+
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkVB.GetBuffer(), offsets);
+		vkCmdBindIndexBuffer(commandBuffer, vulkIB.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipeline());
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipelineLayout(), 1, 1, &material.descriptorSet, 0, nullptr);
+		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1,0, 0, 0);
 	}
 }

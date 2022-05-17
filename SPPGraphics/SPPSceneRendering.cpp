@@ -21,4 +21,16 @@ namespace SPP
 		_parentScene->RemoveFromScene(this);
 		_parentScene = nullptr;
 	};
+
+
+	void GD_RenderableMesh::_AddToScene(class GD_RenderScene* InScene)
+	{
+		Renderable::_AddToScene(InScene);
+
+		_vertexBuffer = GGD()->CreateBuffer(GPUBufferType::Vertex);
+		_indexBuffer = GGD()->CreateBuffer(GPUBufferType::Index);
+		
+		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
+		_indexBuffer->Initialize(GPUBufferType::Vertex, _indexResource);
+	}
 }

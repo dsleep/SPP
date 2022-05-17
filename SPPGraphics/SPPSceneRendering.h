@@ -328,20 +328,26 @@ namespace SPP
 	protected:
 		EDrawingTopology _topology = EDrawingTopology::TriangleList;
 
-		std::vector< VertexStream > _vertexStreams;
-		std::shared_ptr< ArrayResource > _vertexResource;
-		std::shared_ptr< ArrayResource > _indexResource;
-		std::shared_ptr< GD_Material > _material;
+		std::vector<VertexStream> _vertexStreams;
+		std::shared_ptr<ArrayResource> _vertexResource;
+		std::shared_ptr<ArrayResource> _indexResource;
+		std::shared_ptr<GD_Material> _material;
+		
 		GPUReferencer<GPUInputLayout> _layout;
+
+		std::shared_ptr<GD_Buffer> _vertexBuffer;
+		std::shared_ptr<GD_Buffer> _indexBuffer;
+
+		virtual void _AddToScene(class GD_RenderScene* InScene) override;
 
 	public:
 		struct Args 
 		{
 			EDrawingTopology topology = EDrawingTopology::TriangleList;
-			std::vector< VertexStream > vertexStreams;
-			std::shared_ptr< ArrayResource > vertexResource;
-			std::shared_ptr< ArrayResource > indexResource;
-			std::shared_ptr< GD_Material > material;
+			std::vector<VertexStream> vertexStreams;
+			std::shared_ptr<ArrayResource> vertexResource;
+			std::shared_ptr<ArrayResource> indexResource;
+			std::shared_ptr<GD_Material> material;
 		};
 
 		GD_RenderableMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}

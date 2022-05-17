@@ -34,7 +34,7 @@ namespace SPP
 		virtual void UploadToGpu() override;
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
 
-		VkBuffer GetBuffer() const
+		VkBuffer &GetBuffer() 
 		{
 			SE_ASSERT(_buffer);
 			return _buffer;
