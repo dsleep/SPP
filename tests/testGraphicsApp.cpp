@@ -145,6 +145,14 @@ public:
 			} };
 		app->SetEvents(ourAppEvents);
 		auto ourInputEvents = InputEvents{
+			.keyDown = [this](uint8_t KeyValue) 
+			{
+				_keys[KeyValue] = true;
+			},
+			.keyUp = [this](uint8_t KeyValue) 
+			{
+				_keys[KeyValue] = false;
+			},
 			.mouseDown = [this](int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 			{
 				this->MouseDown(mouseX, mouseY, mouseButton);
