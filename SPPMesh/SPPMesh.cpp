@@ -182,7 +182,7 @@ namespace SPP
 			{
 				auto newMeshElement = std::make_shared<MeshElement>();
 				newMeshElement->VertexResource = curLayer.VertexResource;
-				newMeshElement->IndexResource = curLayer.VertexResource;
+				newMeshElement->IndexResource = curLayer.IndexResource;
 				newMeshElement->Bounds = curLayer.bounds;
 				newMeshElement->Name = curLayer.Name;
 

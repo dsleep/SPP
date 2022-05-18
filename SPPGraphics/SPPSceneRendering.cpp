@@ -30,6 +30,8 @@ namespace SPP
 		_vertexBuffer = GGD()->CreateBuffer(GPUBufferType::Vertex);
 		_indexBuffer = GGD()->CreateBuffer(GPUBufferType::Index);
 		
+		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
+
 		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
 		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);
 	}
