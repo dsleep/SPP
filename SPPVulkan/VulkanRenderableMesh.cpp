@@ -132,14 +132,11 @@ namespace SPP
 	{
 		if (bPendingUpdate)
 		{
-			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
-
 			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
 			auto& curData = uniformData[0];
 			curData.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.Translation = _position;
-			_drawConstantsBuffer->UpdateDirtyRegion(0, 1);
-
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
 			bPendingUpdate = false;
 		}
 	}

@@ -47,8 +47,6 @@ namespace SPP
 			vertexInputBinding.stride = curStream.Size;
 			vertexInputBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-			_inputBindings.push_back(vertexInputBinding);
-
 			for (auto& curAttribute : curStream.Attributes)
 			{
 				VkVertexInputAttributeDescription Desc{};
@@ -83,7 +81,9 @@ namespace SPP
 				SE_ASSERT(Desc.offset < 128);
 
 				_inputAttributes.push_back(Desc);
-			}			
+			}		
+
+			_inputBindings.push_back(vertexInputBinding);
 		}
 
 		_vertexInputState = {};
@@ -674,6 +674,9 @@ namespace SPP
 
 	VkCommandBuffer& VulkanGraphicsDevice::GetCopyCommandBuffer()
 	{
+		SE_ASSERT(IsOnGPUThread());
+		SE_ASSERT(!bDrawPhase);
+			
 		auto& curCopier = frameCopyList[currentBuffer];
 
 		if (!curCopier.bHasBegun)

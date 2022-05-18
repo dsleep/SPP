@@ -140,7 +140,7 @@ namespace SPP
 
 		std::string FullDXCPath = SPP::GRootPath + "3rdParty/dxc/bin/x64/dxc.exe";
 
-		std::string CommandString = std::string_format("\"%s\" -spirv -fspv-debug=line -fspv-reflect -Zi -T %s -E %s -I \"%s\" -Fo \"%s\"",
+		std::string CommandString = std::string_format("\"%s\" -spirv -fspv-debug=line -fspv-reflect -Zpr -Zi -T %s -E %s -I \"%s\" -Fo \"%s\"",
 			*FileName,
 			ReturnTargetString(_type),
 			EntryPoint,

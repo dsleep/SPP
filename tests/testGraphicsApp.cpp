@@ -118,7 +118,7 @@ public:
 		meshElement->SetMaterial(meshMat);
 
 		auto& cam = renderableSceneShared->GetCamera();
-		cam.GetCameraPosition()[2] = -100;
+		cam.GetCameraPosition()[2] = -20;
 
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
 		auto startingSphere = AllocateObject<OSDFSphere>("sphere");

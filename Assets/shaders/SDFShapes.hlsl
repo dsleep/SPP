@@ -136,7 +136,7 @@ float4 renderSDF( float3 ro, float3 rd )
 	else
 	{
         //no convergence
-        // clip(-1);
+        clip(-1);
 	}
 
 	return float4(rd * 0.5 + 0.5,hitDistance);
