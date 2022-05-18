@@ -385,10 +385,7 @@ namespace SPP
 		{
 			renderItem->PrepareToDraw();
 		}
-	}
 
-	void VulkanRenderScene::Draw()
-	{
 		extern VkDevice GGlobalVulkanDevice;
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
@@ -442,7 +439,16 @@ namespace SPP
 			memset(&curData, 0, sizeof(curData));
 			_shapesBuffer->UpdateDirtyRegion(currentFrame, 1);
 		}
+	}
 
+	void VulkanRenderScene::Draw()
+	{
+		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		
 		// Set clear values for all framebuffer attachments with loadOp set to clear
 		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
 		VkClearValue clearValues[2];

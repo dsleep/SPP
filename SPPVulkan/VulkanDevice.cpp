@@ -434,6 +434,18 @@ namespace SPP
 				static_cast<uint32_t>(drawCmdBuffers.size()));
 
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
+
+
+		frameCopyList.resize(swapChain.imageCount);
+
+		for (auto& curCopy : frameCopyList)
+		{
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &curCopy.cmdBuf ));
+
+			VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+			VK_CHECK_RESULT(vkCreateFence(device, &fenceInfo, nullptr, &curCopy.fence));
+		}
 	}
 
 	void VulkanGraphicsDevice::destroyCommandBuffers()
@@ -659,8 +671,51 @@ namespace SPP
 
 	}
 
+
+	VkCommandBuffer& VulkanGraphicsDevice::GetCopyCommandBuffer()
+	{
+		auto& curCopier = frameCopyList[currentBuffer];
+
+		if (!curCopier.bHasBegun)
+		{
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &curCopier.fence, VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &curCopier.fence));
+
+			VK_CHECK_RESULT(vkResetCommandBuffer(curCopier.cmdBuf, 0));
+			VkCommandBufferBeginInfo cmdBufInfo = {};
+			cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			cmdBufInfo.pNext = nullptr;
+			cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			VK_CHECK_RESULT(vkBeginCommandBuffer(curCopier.cmdBuf, &cmdBufInfo));
+
+			curCopier.bHasBegun = true;
+		}
+
+		return curCopier.cmdBuf;
+	}
+
+	void VulkanGraphicsDevice::SubmitCopyCommands()
+	{
+		auto& curCopier = frameCopyList[currentBuffer];
+		
+		if (curCopier.bHasBegun)
+		{
+			VK_CHECK_RESULT(vkEndCommandBuffer(curCopier.cmdBuf));
+
+			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &curCopier.cmdBuf;
+			// Submit to the queue
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, curCopier.fence));
+
+			curCopier.bHasBegun = false;
+		}
+	}
+
 	void VulkanGraphicsDevice::BeginFrame()
 	{		
+		SubmitCopyCommands();
+
 		// Acquire the next image from the swap chain
 		VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
@@ -670,20 +725,21 @@ namespace SPP
 		else {
 			VK_CHECK_RESULT(result);
 		}
-
+		
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
 		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
 
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
 
-		vkResetDescriptorPool(device, _perDrawPools[currentBuffer], 0);
+		VK_CHECK_RESULT(vkResetDescriptorPool(device, _perDrawPools[currentBuffer], 0));
 
+		auto& commandBuffer = drawCmdBuffers[currentBuffer];
+		VK_CHECK_RESULT(vkResetCommandBuffer(commandBuffer, 0));
 		VkCommandBufferBeginInfo cmdBufInfo = {};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBufInfo.pNext = nullptr;
-		
-		auto& commandBuffer = drawCmdBuffers[currentBuffer];
+		cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;		
 		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
 		GraphicsDevice::BeginFrame();

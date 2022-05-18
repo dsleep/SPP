@@ -213,6 +213,17 @@ namespace SPP
 			return drawCmdBuffers[currentBuffer];
 		}
 
+		struct CommandCall
+		{
+			VkFence fence = nullptr;
+			VkCommandBuffer cmdBuf = nullptr;
+			bool bHasBegun = false;
+		};
+
+		std::vector< CommandCall > frameCopyList;
+
+		VkCommandBuffer& GetCopyCommandBuffer();
+
 		PerFrameStagingBuffer& GetPerFrameScratchBuffer()
 		{
 			return _perFrameScratchBuffer;
@@ -231,6 +242,7 @@ namespace SPP
 			return Vector2i(width, height);
 		};
 
+		void SubmitCopyCommands();
 
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;

@@ -31,6 +31,6 @@ namespace SPP
 		_indexBuffer = GGD()->CreateBuffer(GPUBufferType::Index);
 		
 		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
-		_indexBuffer->Initialize(GPUBufferType::Vertex, _indexResource);
+		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);
 	}
 }

@@ -60,6 +60,9 @@ namespace SPP
 		
 		// Attach the memory to the buffer object
 		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
+
+		//
+		UploadToGpu();
 	}
 
 	VulkanBuffer::~VulkanBuffer()
@@ -89,7 +92,7 @@ namespace SPP
 	void VulkanBuffer::UploadToGpu()
 	{
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-		auto &cmdBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto &cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
 		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
 		auto WritableChunk = perFrameScratchBuffer.Write(GetData(), GetDataSize(), activeFrame);
@@ -104,7 +107,7 @@ namespace SPP
 	void VulkanBuffer::UpdateDirtyRegion(uint32_t Offset, uint32_t Count)
 	{
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-		auto& cmdBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
 		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
 		auto eleSize = _cpuLink->GetPerElementSize();
