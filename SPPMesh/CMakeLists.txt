@@ -48,7 +48,7 @@ target_include_directories(SPPMesh
 	PRIVATE  					
 		"${THIRD_PARTY}/assimp/include"
 		"${THIRD_PARTY}/eigen/include/eigen3"
-		"${THIRD_PARTY}/fbtBlendHeaderOnly/293_LTS"
+		"${THIRD_PARTY}/fbtBlendHeaderOnly/301"
 		"${THIRD_PARTY}/metis/include" )
 		
 target_link_directories(SPPMesh 

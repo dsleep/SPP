@@ -33,6 +33,8 @@
 #include "SPPSceneO.h"
 #include "SPPGraphicsO.h"
 
+#include "SPPBlenderFile.h"
+
 #include <condition_variable>
 
 #define MAX_LOADSTRING 100
@@ -81,6 +83,8 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
+		LoadedMeshes meshes;
+		LoadBlenderFile(*AssetPath("BlenderFiles/landscape.blend"), meshes);
 
 		auto meshtest = std::make_shared< Mesh>();
 		meshtest->LoadMesh(*AssetPath("meshes/trianglesphere.obj"));

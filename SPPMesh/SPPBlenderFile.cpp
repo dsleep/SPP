@@ -20,6 +20,8 @@
 #pragma warning(disable : 4267)
 #endif
 
+
+
 #define FBTBLEND_IMPLEMENTATION
 #include "fbtBlend.h"
 
@@ -1230,7 +1232,8 @@ namespace SPP
 
 				MeshVertex& vertex = pvertices[i];
 				vertex.position = BlenderHelper::ToVector3(v.co);
-				float corNorm[] = { v.no[0] / MAX_SHORT, v.no[1] / MAX_SHORT, v.no[2] / MAX_SHORT };
+				//TODO FIX ME
+				float corNorm[] = { 0,0,0 };// v.no[0] / MAX_SHORT, v.no[1] / MAX_SHORT, v.no[2] / MAX_SHORT};
 				vertex.normal = BlenderHelper::ToVector3(corNorm);
 			}
 
