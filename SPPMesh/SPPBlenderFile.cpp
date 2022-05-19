@@ -1207,19 +1207,8 @@ namespace SPP
 			}
 
 			auto& layer = oMeshes.Layers.emplace_back(LoadedMeshes::MeshLayer{ std::make_shared<ArrayResource >(),std::make_shared <ArrayResource >() });
-			float mMatrix[16]; // The one stored in ob->obmat, in float16 format
-
-			// Filling mMatrix
-			{
-				// Retrieve data from ob:
-				for (int i = 0; i < 4; i++)
-				{
-					for (int j = 0; j < 4; j++)
-					{
-						mMatrix[j * 4 + i] = ob->obmat[j][i];
-					}
-				}
-			}
+	
+			BlenderHelper::ToMatrix4(layer.Transform, ob->obmat);
 
 			// VERTS AND NORMS--(NOT MIRRORED)--------------------------
 			int numVerts = me->totvert;
@@ -1236,6 +1225,10 @@ namespace SPP
 				float corNorm[] = { 0,0,0 };// v.no[0] / MAX_SHORT, v.no[1] / MAX_SHORT, v.no[2] / MAX_SHORT};
 				vertex.normal = BlenderHelper::ToVector3(corNorm);
 			}
+
+			layer.bounds = MinimumBoundingSphere<MeshVertex>(pvertices.GetData(), numVerts);
+
+			
 
 			std::vector<uint32_t> indices;
 			if (hasFaces)

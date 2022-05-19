@@ -51,7 +51,7 @@
 		},
 		{
 			"Path": "fbtBlendHeaderOnly",
-			"Version": 2
+			"Version": 3
 		},
 		{
 			"Path": "stb",

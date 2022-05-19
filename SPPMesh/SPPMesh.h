@@ -196,7 +196,11 @@ namespace SPP
 			int32_t MaterialID = 0;
 			std::string Name;
 			Sphere bounds;
+
+			Matrix4x4 Transform;
 		};
+
+		 
 
 		std::vector< MeshLayer > Layers;
 	};
