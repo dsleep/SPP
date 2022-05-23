@@ -21,14 +21,15 @@ int main(int argc, char* argv[])
 
 	NumberedString testString("bigValue_0");
 
-	AllocateObject<OScene>("Scene0");
-	AllocateObject<OSDFBox>("dummyBox");
-	AllocateObject<OScene>("Scene5");
+	AllocateObject<OScene>("Scene0", nullptr);
+	AllocateObject<OSDFBox>("dummyBox", nullptr);
+	AllocateObject<OScene>("Scene5", nullptr);
 
-	auto EntityScene = AllocateObject<OScene>("Scene");
+	auto EntityScene = AllocateObject<OScene>("Scene", nullptr);
 
-	auto CurrentObject = AllocateObject<OSDFBox>("World.ShapeGroup_0.Box_0");
-	auto CurrentEntity = AllocateObject<OShapeGroup>("World.ShapeGroup_0");
+
+	auto CurrentEntity = AllocateObject<OShapeGroup>("ShapeGroup", EntityScene);
+	auto CurrentObject = AllocateObject<OSDFBox>("Box", CurrentEntity);
 	
 	CurrentEntity->AddChild(CurrentObject);
 	EntityScene->AddChild(CurrentEntity);
@@ -38,7 +39,7 @@ int main(int argc, char* argv[])
 	//RESET 
 	IterateObjects([](SPPObject *InObj) -> bool
 		{
-			SPP_LOG(LOG_APP, LOG_INFO, "object %s", InObj->GetPath().ToString().c_str());
+			SPP_LOG(LOG_APP, LOG_INFO, "object %s", InObj->GetName());
 			return true;
 		});
 	
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
 
 	IterateObjects([](SPPObject* InObj) -> bool
 		{
-			SPP_LOG(LOG_APP, LOG_INFO, "still remains object %s", InObj->GetPath().ToString().c_str());
+			SPP_LOG(LOG_APP, LOG_INFO, "still remains object %s", InObj->GetName());
 			return true;
 		});
 	EntityScene->RemoveChild(CurrentEntity);
@@ -55,7 +56,7 @@ int main(int argc, char* argv[])
 
 	IterateObjects([](SPPObject* InObj) -> bool
 		{
-			SPP_LOG(LOG_APP, LOG_INFO, "still remains!!! object %s", InObj->GetPath().ToString().c_str());
+			SPP_LOG(LOG_APP, LOG_INFO, "still remains!!! object %s", InObj->GetName());
 			return true;
 		});
 
@@ -64,7 +65,7 @@ int main(int argc, char* argv[])
 
 	IterateObjects([](SPPObject* InObj) -> bool
 		{
-			SPP_LOG(LOG_APP, LOG_INFO, "SHOULD NOT REMAIN object % s", InObj->GetPath().ToString().c_str());
+			SPP_LOG(LOG_APP, LOG_INFO, "SHOULD NOT REMAIN object % s", InObj->GetName());
 			return true;
 		});
 
