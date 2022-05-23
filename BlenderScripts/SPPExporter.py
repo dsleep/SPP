@@ -67,12 +67,13 @@ def writeFiles(context, props):
         #print("Has Mesh: ", obj.name)
         print(obj.matrix_world[0])
         
-        jsonOutMatrix = obj.matrix_world.transposed()
-        
-        matrixArray = [ list(jsonOutMatrix[0]),
-            list(jsonOutMatrix[1]),
-            list(jsonOutMatrix[2]),
-            list(jsonOutMatrix[3]) ]
+        loc, rot, scale = obj.matrix_world.decompose()
+    
+        transformJson = { 
+            "location" : list(loc),
+            "rotationQuat" : list(rot),
+            "scale" : list(scale)
+        }
         #print(dir(obj))
         #else:
         #    print("Has Mesh: ", obj.name)
@@ -90,7 +91,7 @@ def writeFiles(context, props):
                     "energy" : lightData.energy,
                     "color" : list(lightData.color),
                     "distance" : lightData.distance,
-                    "worldMatrix": list(matrixArray)
+                    "transform": transformJson,
                 }
                 outJson["lights"].append(newLight)
                 
@@ -110,7 +111,7 @@ def writeFiles(context, props):
             
             newMesh = {
                 "name" : obj.name,
-                "worldMatrix": list(matrixArray),
+                "transform": transformJson,
                 "relFilePath" : relFileName
             }
             outJson["meshes"].append(newMesh)
