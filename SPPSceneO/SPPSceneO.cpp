@@ -124,7 +124,7 @@ namespace SPP
 		return false;
 	}
 
-	OScene::OScene(const MetaPath& InPath) : OElement(InPath) 
+	OScene::OScene(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent)
 	{ 
 		_octree = std::make_unique<LooseOctree>();
 		_octree->Initialize(Vector3d(0, 0, 0), 8192, 1);
@@ -176,7 +176,7 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OElement>("OElement")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
@@ -188,7 +188,7 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OScene>("OScene")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)

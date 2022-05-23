@@ -37,7 +37,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OElement(const MetaPath& InPath) : SPPObject(InPath) { }
+		OElement(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
 		Sphere _bounds;
 		Vector3d _translation = { 0,0,0 };
@@ -117,7 +117,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OScene(const MetaPath& InPath);
+		OScene(const std::string& InName, SPPDirectory* InParent);
 
 		std::unique_ptr<LooseOctree> _octree;
 

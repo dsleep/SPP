@@ -17,6 +17,10 @@ target_sources(SPPGraphicsO
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPGraphicsO.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPGraphicsO.cpp"
+		
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonSceneImporter.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonSceneImporter.cpp"
 		)
 
 target_include_directories(SPPGraphicsO 

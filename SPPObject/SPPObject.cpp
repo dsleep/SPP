@@ -20,7 +20,109 @@ namespace SPP
 {
 	LogEntry LOG_OBJ("OBJECT");
 
-	std::unordered_map<GUID, SPPObject*> &GetObjGUIDMap()
+	static SPPDirectory* GRootDirectory = nullptr;
+	static bool bMakingRoot = false;
+
+	SPPDirectory* GetRootDirectory()
+	{
+		if (!GRootDirectory)
+		{
+			bMakingRoot = true;
+			GRootDirectory = new SPPDirectory("ROOT", nullptr);
+			bMakingRoot = false;
+		}
+		return GRootDirectory;
+	}
+
+	SPPEntry::SPPEntry(const std::string& InName, SPPDirectory* InParent) 
+	{
+		if (bMakingRoot)
+		{
+			_name = InName;
+			return;
+		}
+
+		if (InParent == nullptr)
+		{
+			InParent = GetRootDirectory();
+		}
+		SE_ASSERT(InParent);
+		
+		_parent = InParent;
+		SE_ASSERT(Rename(InName));
+		InParent->AddEntry(this);
+	}
+
+	SPPEntry::~SPPEntry()
+	{
+		if (_parent)
+		{
+			_parent->RemoveEntry(this);
+		}
+	}
+
+	bool SPPEntry::Rename(const std::string& InName)
+	{
+		if (_name == InName)
+		{
+			return true;
+		}
+		SE_ASSERT(_parent);
+		return _parent->RenameEntry(this, InName);
+	}
+
+	SPPDirectory::~SPPDirectory()
+	{
+		//hmmm
+	}
+
+	void SPPDirectory::AddEntry(SPPEntry* InEntry)
+	{
+		if (!_entries)
+		{
+			_entries = std::make_unique< std::vector< SPPEntry* > >();
+		}
+		_entries->push_back(InEntry);
+	}
+
+	void SPPDirectory::RemoveEntry(SPPEntry* InEntry)
+	{
+		SE_ASSERT(_entries);
+
+		bool bFoundEntry = false;
+		for (auto it = _entries->begin(); it != _entries->end(); ++it)
+		{
+			if (*it == InEntry)
+			{
+				bFoundEntry = true;
+				_entries->erase(it);
+				break;
+			}
+		}
+		SE_ASSERT(bFoundEntry);
+		if (_entries->empty())
+		{
+			_entries.reset();
+		}
+	}
+
+	bool SPPDirectory::RenameEntry(SPPEntry* InEntry, const std::string& InName) 
+	{
+		if (_entries)
+		{
+			for (auto curEntry : *_entries)
+			{
+				if (curEntry->_name == InName)
+				{
+					return false;
+				}
+			}
+		}
+		InEntry->_name = InName;
+		return true;
+	}
+
+	std::unordered_map<GUID, SPPObject*>& GetObjGUIDMap()
 	{
 		static std::unordered_map<GUID, SPPObject*> sO;
 		return sO;
@@ -96,7 +198,7 @@ namespace SPP
 		return true;
 	}
 
-	SPPObject::SPPObject(const MetaPath& InPath) : _path(InPath)
+	SPPObject::SPPObject(const std::string& InName, SPPDirectory* InParent) : SPPDirectory(InName, InParent)
 	{
 		//check for collisions?!?!
 		_guid = GUID::Create();		
@@ -227,7 +329,7 @@ namespace SPP
 		uint16_t _height = 0;
 		TextureFactors _factors;
 
-		OTexture(const MetaPath& InPath) : SPPObject(InPath) { }
+		OTexture(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
 	public:
 
@@ -237,13 +339,13 @@ namespace SPP
 		}
 	};	
 
-	SPPObject* AllocateObject(const rttr::type& InType, const MetaPath& InPath)
+	SPPObject* AllocateObject(const rttr::type& InType, const std::string& InName, SPPDirectory* InParent)
 	{
 		using namespace rttr;
 		
 		if (InType.is_derived_from(type::get<SPPObject>()))
 		{
-			variant obj = InType.create({ InPath });
+			variant obj = InType.create({ InName, InParent });
 			SE_ASSERT(obj.get_type().is_pointer());
 
 			if (obj.get_type().is_pointer())
@@ -255,12 +357,12 @@ namespace SPP
 		return nullptr;
 	}
 
-	SPPObject* AllocateObject(const char* ObjectType, const MetaPath& InPath)
+	SPPObject* AllocateObject(const char* ObjectType, const std::string& InName, SPPDirectory* InParent)
 	{
 		using namespace rttr;
 		// option 1
 		type class_type = type::get_by_name(ObjectType);
-		return AllocateObject(class_type, InPath);
+		return AllocateObject(class_type, InName, InParent);
 	}
 
 	

@@ -83,9 +83,6 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
-		LoadedMeshes meshes;
-		LoadBlenderFile(*AssetPath("BlenderFiles/landscape.blend"), meshes);
-
 		auto meshtest = std::make_shared< Mesh>();
 		meshtest->LoadMesh(*AssetPath("meshes/trianglesphere.obj"));
 
@@ -107,25 +104,25 @@ public:
 		
 		/////////////SCENE SETUP
 
-		auto _renderableScene = AllocateObject<ORenderableScene>("rScene");
+		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);
 
 		renderableSceneShared = _renderableScene->GetRenderSceneShared();
 
-		auto loadedMesh = AllocateObject<OMesh>("simpleMesh");
+		auto loadedMesh = AllocateObject<OMesh>("simpleMesh", nullptr);
 		loadedMesh->SetMesh(meshtest);
 
-		auto meshMat = AllocateObject<OMaterial>("simplerMaterial");
+		auto meshMat = AllocateObject<OMaterial>("simplerMaterial", nullptr);
 		meshMat->SetMaterial(meshMaterial);
 
-		auto meshElement = AllocateObject<OMeshElement>("simpleMeshElement");
+		auto meshElement = AllocateObject<OMeshElement>("simpleMeshElement", nullptr);
 		meshElement->SetMesh(loadedMesh);
 		meshElement->SetMaterial(meshMat);
 
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[2] = -20;
 
-		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
-		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup", nullptr);
+		auto startingSphere = AllocateObject<OSDFSphere>("sphere", startingGroup);
 		startingSphere->SetRadius(10);
 		startingGroup->AddChild(startingSphere);
 		_renderableScene->AddChild(startingGroup);

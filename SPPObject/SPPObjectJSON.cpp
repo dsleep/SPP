@@ -106,7 +106,7 @@ namespace SPP
 
 			if (objRef)
 			{
-				CurrentContainer["ObjName"] = objRef->GetPath().ToString();
+				CurrentContainer["ObjName"] = objRef->GetName();
 				CurrentContainer["ObjGUID"] = objRef->GetGUID().ToString();
 				if (depth != 0)
 				{

@@ -13,7 +13,7 @@ namespace SPP
 		return 1;
 	}
 
-	ORenderableScene::ORenderableScene(const MetaPath& InPath) : OScene(InPath)
+	ORenderableScene::ORenderableScene(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
 	{
 		_renderScene = GGD()->CreateRenderScene();
 	}
@@ -127,35 +127,35 @@ using namespace SPP;
 RTTR_REGISTRATION
 {	
 	rttr::registration::class_<ORenderableScene>("ORenderableScene")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
 		;
 
 	rttr::registration::class_<OMesh>("OMesh")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
 		;
 
 	rttr::registration::class_<OTexture>("OTexture")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 			)
 		;
 
 	rttr::registration::class_<ORenderableElement>("ORenderableElement")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
 		;
 
 	rttr::registration::class_<OMeshElement>("OMeshElement")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
@@ -163,7 +163,7 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OMaterial>("OMaterial")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)

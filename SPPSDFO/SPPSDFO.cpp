@@ -79,7 +79,7 @@ RTTR_REGISTRATION
 		);
 
 	rttr::registration::class_<OShape>("OShape")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
@@ -88,7 +88,7 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OSDFSphere>("OSDFSphere")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 			)
@@ -96,7 +96,7 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OSDFBox>("OSDFBox")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 			)
@@ -104,7 +104,7 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OShapeGroup>("OShapeGroup")
-		.constructor<const MetaPath&>()
+		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)

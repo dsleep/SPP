@@ -32,7 +32,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		ORenderableScene(const MetaPath& InPath);
+		ORenderableScene(const std::string& InName, SPPDirectory* InParent);
 		std::shared_ptr<GD_RenderScene> _renderScene;
 
 	public:
@@ -58,7 +58,7 @@ namespace SPP
 		std::unique_ptr<TextureAsset> _texture;
 
 	public:
-		OTexture(const MetaPath& InPath) : SPPObject(InPath) { }
+		OTexture(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
 		virtual ~OTexture() { }
 	};
@@ -69,7 +69,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OMesh(const MetaPath& InPath) : SPPObject(InPath) { }
+		OMesh(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 		std::shared_ptr<Mesh> _mesh;
 
 	public:
@@ -90,7 +90,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OMaterial(const MetaPath& InPath) : SPPObject(InPath) { }
+		OMaterial(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
 		std::shared_ptr<GD_Material> _material;
 
@@ -112,7 +112,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		ORenderableElement(const MetaPath& InPath) : OElement(InPath) { }
+		ORenderableElement(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
 		bool _selected = false;
 
 	public:
@@ -131,7 +131,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OMeshElement(const MetaPath& InPath) : ORenderableElement(InPath) { }
+		OMeshElement(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) { }
 		OMesh* _meshObj = nullptr;
 		OMaterial* _materialObj = nullptr;
 

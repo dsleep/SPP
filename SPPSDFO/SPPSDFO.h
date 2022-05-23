@@ -39,7 +39,7 @@ namespace SPP
 		EShapeOp _shapeOp = EShapeOp::Add;
 		float _shapeBlendFactor = 0.0f;
 
-		OShape(const MetaPath& InPath) : OElement(InPath) { }
+		OShape(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
 
 	public:
 		virtual SDFShape GenerateShape() const
@@ -61,7 +61,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OShapeGroup(const MetaPath& InPath) : OElement(InPath) { }
+		OShapeGroup(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
 		std::shared_ptr<GD_RenderableSignedDistanceField> _renderableSDF;
 		std::vector<SDFShape> _shapeCache;
 		Vector3 _color = { 0.5f,0.5f,0.5f };
@@ -88,7 +88,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OSDFSphere(const MetaPath& InPath) : OShape(InPath) 
+		OSDFSphere(const std::string& InName, SPPDirectory* InParent) : OShape(InName, InParent)
 		{
 			_shapeType = EShapeType::Sphere;
 		}
@@ -115,7 +115,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OSDFBox(const MetaPath& InPath) : OShape(InPath) 
+		OSDFBox(const std::string& InName, SPPDirectory* InParent) : OShape(InName, InParent)
 		{
 			_shapeType = EShapeType::Box;
 		}
