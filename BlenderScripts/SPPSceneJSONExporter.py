@@ -55,6 +55,19 @@ from bpy.types import (
 
 from bpy import context
 
+def exportImage(curImage, RootPath):
+
+    orgFilePath = curImage.filepath
+    filePathStem = os.path.basename(curImage.filepath) 
+    
+    writeFilePath = os.path.join(RootPath, curImage.name)
+    
+    print("Saving...", curImage.name, curImage.file_format, writeFilePath)
+    
+    try:
+        curImage.save_render(writeFilePath)
+    except:
+        print("An exception occurred")
 
 def WalkUpNodes(InCurNode, FuncNotTraverse):
     FuncNotTraverse(InCurNode)
@@ -172,8 +185,7 @@ def do_export(context, props, filepath):
     outJson = { 
         "lights": [],
         "meshes" : [], 
-        "materials" : [],
-        "textures" : [],
+        "materials" : []
     }
     
     allMaterials = set()
@@ -184,12 +196,14 @@ def do_export(context, props, filepath):
         #print("Has Mesh: ", obj.name)
         print(obj.matrix_world[0])
         
-        jsonOutMatrix = obj.matrix_world.transposed()
+        loc, rot, scale = obj.matrix_world.decompose()
+    
+        transformJson = { 
+            "location" : list(loc),
+            "rotationQuat" : list(rot),
+            "scale" : list(scale)
+        }
         
-        matrixArray = [ list(jsonOutMatrix[0]),
-            list(jsonOutMatrix[1]),
-            list(jsonOutMatrix[2]),
-            list(jsonOutMatrix[3]) ]
         #print(dir(obj))
         #else:
         #    print("Has Mesh: ", obj.name)
@@ -207,7 +221,7 @@ def do_export(context, props, filepath):
                     "energy" : lightData.energy,
                     "color" : list(lightData.color),
                     "distance" : lightData.distance,
-                    "worldMatrix": list(matrixArray)
+                    "transform": transformJson
                 }
                 outJson["lights"].append(newLight)
                 
@@ -241,7 +255,7 @@ def do_export(context, props, filepath):
                     
             newMesh = {
                 "name" : obj.name,
-                "worldMatrix": list(matrixArray),
+                "transform": transformJson,
                 "relFilePath" : relFileName,
                 "materials" : list(localJsonMats)
             }
@@ -296,7 +310,7 @@ def do_export(context, props, filepath):
 
     print("Found textures! total:", len(allTextures))    
     for curTexture in allTextures:
-        print("do something")    
+        exportImage(curTexture, rootOfWrite)  
                 
     with open(filepath, "w") as text_file:
         text_file.write(json.dumps(outJson,indent=4, sort_keys=True))
