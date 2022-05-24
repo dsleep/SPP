@@ -42,7 +42,7 @@ namespace SPP
 		Sphere _bounds;
 		Vector3d _translation = { 0,0,0 };
 		Vector3 _rotation = { 0, 0, 0 };
-		float _scale = 1.0f;
+		Vector3 _scale = { 1.0f, 1.0f, 1.0f };
 		OctreeLinkPtr _octreeLink = nullptr;
 
 		class OElement* _parent = nullptr;
@@ -59,8 +59,11 @@ namespace SPP
 		{
 			return _translation;
 		}
-
-		float& GetScale()
+		Vector3& GetRotation()
+		{
+			return _rotation;
+		}
+		Vector3& GetScale()
 		{
 			return _scale;
 		}

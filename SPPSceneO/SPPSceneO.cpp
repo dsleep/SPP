@@ -88,9 +88,9 @@ namespace SPP
 		Eigen::Quaternion<float> q = rollAngle * yawAngle * pitchAngle;
 
 		Matrix3x3 scaleMatrix = Matrix3x3::Identity();
-		scaleMatrix(0, 0) = _scale;
-		scaleMatrix(1, 1) = _scale;
-		scaleMatrix(2, 2) = _scale;
+		scaleMatrix(0, 0) = _scale[0];
+		scaleMatrix(1, 1) = _scale[1];
+		scaleMatrix(2, 2) = _scale[2];
 		Matrix3x3 rotationMatrix = q.matrix();
 
 		Matrix4x4 transform = Matrix4x4::Identity();

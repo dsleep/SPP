@@ -254,10 +254,15 @@ def do_export(context, props, filepath):
         print(obj.matrix_world[0])
         
         loc, rot, scale = obj.matrix_world.decompose()
+        rot = rot.to_euler()
+        
+        rot.x *= 57.2958
+        rot.y *= 57.2958
+        rot.z *= 57.2958
     
         transformJson = { 
             "location" : list(loc),
-            "rotationQuat" : list(rot),
+            "rotation" : list(rot),
             "scale" : list(scale)
         }
         

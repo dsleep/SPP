@@ -88,6 +88,28 @@ namespace SPP
 				{
 					auto meshElement = AllocateObject<OMeshElement>(jName.asCString(), FileScene);
 
+					Json::Value jLocation = jTransform.get("location", Json::Value::nullSingleton());
+					Json::Value jRot = jTransform.get("rotation", Json::Value::nullSingleton());
+					Json::Value jScale = jTransform.get("scale", Json::Value::nullSingleton());
+					
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						auto& curPos = meshElement->GetPosition();
+						curPos[Iter] = jLocation[Iter].asDouble();
+					}
+
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						auto& curRot = meshElement->GetRotation();
+						curRot[Iter] = jRot[Iter].asFloat();
+					}
+
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						auto& curScale = meshElement->GetScale();
+						curScale[Iter] = jScale[Iter].asFloat();
+					}
+
 					std::string MeshName = jMesh.asCString();
 					auto foundMesh = MeshMap.find(MeshName);
 					if (foundMesh == MeshMap.end())

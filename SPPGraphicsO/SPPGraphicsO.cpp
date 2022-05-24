@@ -56,11 +56,7 @@ namespace SPP
 
 			_renderableMesh = GGD()->CreateStaticMesh();
 
-			auto localToWorld = GenerateLocalToWorld(true);			 
-			auto& pos = _renderableMesh->GetPosition();
-			pos = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTop()->GetPosition();
-			auto& scale = _renderableMesh->GetScale();
-			scale = Vector3(_scale, _scale, _scale);
+			auto localToWorld = GenerateLocalToWorld(true);	
 
 			SE_ASSERT(_materialObj);
 
@@ -78,7 +74,8 @@ namespace SPP
 
 			_renderableMesh->SetArgs({
 				.position = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTop()->GetPosition(),
-				.scale = Vector3(_scale, _scale, _scale),
+				.eulerRotationYPR = _rotation,
+				.scale = _scale,
 				});
 
 			_renderableMesh->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
