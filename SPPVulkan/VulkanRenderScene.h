@@ -138,8 +138,8 @@ namespace SPP
 		//	return _currentFrameMem.gpuAddr;
 		//}
 
-		virtual void AddToScene(Renderable* InRenderable) override;
-		virtual void RemoveFromScene(Renderable* InRenderable) override;
+		virtual void AddRenderable(Renderable* InRenderable) override;
+		virtual void RemoveRenderable(Renderable* InRenderable) override;
 		
 		virtual void BeginFrame() override;
 		virtual void Draw() override;		

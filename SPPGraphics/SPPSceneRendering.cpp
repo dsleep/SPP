@@ -12,13 +12,13 @@ namespace SPP
 		SE_ASSERT(InScene);
 		SE_ASSERT(IsOnGPUThread());
 		_parentScene = InScene;
-		_parentScene->AddToScene(this);
+		_parentScene->AddRenderable(this);
 	};
 	void Renderable::_RemoveFromScene()
 	{
 		SE_ASSERT(_parentScene);
 		SE_ASSERT(IsOnGPUThread());
-		_parentScene->RemoveFromScene(this);
+		_parentScene->RemoveRenderable(this);
 		_parentScene = nullptr;
 	};
 

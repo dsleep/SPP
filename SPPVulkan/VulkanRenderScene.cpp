@@ -359,14 +359,14 @@ namespace SPP
 	//}
 
 
-	void VulkanRenderScene::AddToScene(Renderable* InRenderable)
+	void VulkanRenderScene::AddRenderable(Renderable* InRenderable)
 	{
-		GD_RenderScene::AddToScene(InRenderable);
+		GD_RenderScene::AddRenderable(InRenderable);
 	}
 
-	void VulkanRenderScene::RemoveFromScene(Renderable* InRenderable)
+	void VulkanRenderScene::RemoveRenderable(Renderable* InRenderable)
 	{
-		GD_RenderScene::RemoveFromScene(InRenderable);
+		GD_RenderScene::RemoveRenderable(InRenderable);
 	}
 
 #define MAX_MESH_ELEMENTS 1024

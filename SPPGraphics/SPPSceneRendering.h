@@ -225,14 +225,14 @@ namespace SPP
 			_activeDepth.Reset();
 		}
 
-		virtual void AddToScene(Renderable *InRenderable)
+		virtual void AddRenderable(Renderable *InRenderable)
 		{
 			SE_ASSERT(IsOnGPUThread());
 			_renderables.push_back(InRenderable);
 			_octree.AddElement(InRenderable);
 		}
 
-		virtual void RemoveFromScene(Renderable *InRenderable)
+		virtual void RemoveRenderable(Renderable *InRenderable)
 		{
 			SE_ASSERT(IsOnGPUThread());
 			_renderables.remove(InRenderable);

@@ -33,7 +33,6 @@ namespace SPP
 
 	}
 
-
 	void OMeshElement::UpdateSelection(bool IsSelected)
 	{
 		if (_renderableMesh)
@@ -52,6 +51,8 @@ namespace SPP
 			!_meshObj->GetMesh()->GetMeshElements().empty() &&
 			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
 		{
+			auto thisRenderableScene = (ORenderableScene*)InScene;
+
 			auto firstMesh = _meshObj->GetMesh()->GetMeshElements().front();
 
 			_renderableMesh = GGD()->CreateStaticMesh();
@@ -78,7 +79,7 @@ namespace SPP
 				.scale = _scale,
 				});
 
-			_renderableMesh->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
+			_renderableMesh->AddToScene(thisRenderableScene->GetRenderScene());
 		}
 	}
 	void OMeshElement::RemovedFromScene(class OScene* InScene)
