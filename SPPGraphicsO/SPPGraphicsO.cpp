@@ -118,6 +118,21 @@ namespace SPP
 		}
 		return false;
 	}
+
+	bool OTexture::LoadFromDisk(const char* FileName)
+	{		
+		TextureAsset testTexture;
+		
+		if (testTexture.LoadFromDisk(FileName))
+		{
+			_width = testTexture.width;
+			_height = testTexture.height;
+			_rawImgData = testTexture.rawImgData;
+			_texture = GGD()->CreateTexture();
+		}			
+
+		return false;
+	}
 }
 
 using namespace SPP;

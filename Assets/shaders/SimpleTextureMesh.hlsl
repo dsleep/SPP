@@ -2,8 +2,10 @@
 
 struct VertexShaderInput
 {
-	float3 position  : POSITION;
-	float2 uv		  : TEXCOORD;
+	[[vk::location(0)]] float3 position		: POSITION;
+	[[vk::location(1)]] float3 normal		: NORMAL;
+	[[vk::location(2)]] float2 uv		 	: TEXCOORD;
+	[[vk::location(3)]] float3 color		: COLOR0;
 };
 
 struct PixelShaderInput
@@ -12,9 +14,10 @@ struct PixelShaderInput
 	float2 uv				: TEXCOORD;
 };
 
+[[vk::binding(0, 1)]]
 Texture2D diffuseTexture : register(t0, space0);
+[[vk::binding(1, 1)]]
 SamplerState dSampler : register(s0);
-
 
 // Vertex shader
 [RootSignature(MESH_SIG)]

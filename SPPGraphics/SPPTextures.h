@@ -26,25 +26,16 @@ namespace SPP
         const uint8_t* ImageData
     );
 
-    class SPP_GRAPHICS_API TextureAsset
+    struct SPP_GRAPHICS_API TextureAsset
     {
-    private:
-        int32_t _width;
-        int32_t _height;
-        TextureFormat _format;
+        int32_t width;
+        int32_t height;
+        TextureFormat format;
                 
-        std::shared_ptr< ArrayResource > _rawImgData;
-        std::shared_ptr< ImageMeta > _metaInfo;
+        std::shared_ptr< ArrayResource > rawImgData;
+        std::shared_ptr< ImageMeta > metaInfo;
 
-        GPUReferencer<GPUTexture> _texture;
-
-    public:
-        bool LoadFromDisk(const AssetPath& FileName);
+        bool LoadFromDisk(const char* FileName);
         bool Generate(int32_t InWidth, int32_t InHeight, TextureFormat InFormat );
-
-        GPUReferencer<GPUTexture> GetGPUTexture()
-        {
-            return _texture;
-        }
     };
 }

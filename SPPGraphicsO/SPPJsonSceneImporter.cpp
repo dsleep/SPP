@@ -4,6 +4,9 @@
 
 #include "SPPJsonSceneImporter.h"
 #include "SPPJsonUtils.h"
+#include "SPPGraphics.h"
+
+#include "ThreadPool.h"
 
 namespace SPP
 {
@@ -28,6 +31,23 @@ namespace SPP
 		std::map<std::string, OTexture*> TextureMap;
 		std::map<std::string, OMesh*> MeshMap;
 
+		//UGLY CHEATS
+		auto meshvertexShader = GGD()->CreateShader();
+		auto meshpixelShader = GGD()->CreateShader();
+
+		auto meshMaterial = GGD()->CreateMaterial();
+
+		meshMaterial->SetMaterialArgs({ .vertexShader = meshvertexShader, .pixelShader = meshpixelShader });
+
+		auto gpuCommand = GPUThreaPool->enqueue([meshvertexShader, meshpixelShader]()
+			{
+				meshvertexShader->Initialize(EShaderType::Vertex);
+				meshvertexShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_vs");
+				meshpixelShader->Initialize(EShaderType::Pixel);
+				meshpixelShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_ps");
+			});
+		gpuCommand.wait();
+
 		if (!materials.isNull() && materials.isArray())
 		{
 			for (int32_t Iter = 0; Iter < materials.size(); Iter++)
@@ -39,6 +59,8 @@ namespace SPP
 
 				std::string MatName = jName.asCString();
 				auto meshMat = AllocateObject<OMaterial>(MatName + ".mat", FileScene);
+
+				meshMat->SetMaterial(meshMaterial);
 
 				MaterialMap[jName.asCString()] = meshMat;
 
@@ -55,6 +77,9 @@ namespace SPP
 							if (foundTexture == TextureMap.end())
 							{
 								auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
+
+								curTexture->LoadFromDisk( ((ParentPath + "/") + CurTextureName).c_str() );
+
 								TextureMap[CurTextureName] = curTexture;
 								meshMat->SetTexture(curTexture, 0);
 							}

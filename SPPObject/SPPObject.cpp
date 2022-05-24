@@ -316,29 +316,7 @@ namespace SPP
 		int32_t MipSomething = 0;
 		float Scalar = 1.0f;
 	};
-
-	
-
-	class OTexture : public SPPObject
-	{
-		RTTR_ENABLE(SPPObject);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		uint16_t _width = 0;
-		uint16_t _height = 0;
-		TextureFactors _factors;
-
-		OTexture(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
-
-	public:
-
-		virtual ~OTexture()
-		{
-
-		}
-	};	
-
+		
 	SPPObject* AllocateObject(const rttr::type& InType, const std::string& InName, SPPDirectory* InParent)
 	{
 		using namespace rttr;
@@ -399,27 +377,6 @@ namespace SPP
 	}
 }
 
-
-//using namespace SPP;
-//
-//RTTR_REGISTRATION
-//{
-//	rttr::registration::class_<TextureFactors>("TextureFactors")
-//		.property("MipSomething", &TextureFactors::MipSomething)
-//		.property("Scalar", &TextureFactors::Scalar)
-//	;
-//
-//	rttr::registration::class_<OTexture>("OTexture")
-//		.constructor<const MetaPath&>()
-//		(
-//			rttr::policy::ctor::as_raw_ptr
-//		)
-//		.property("_width", &OTexture::_width)
-//		.property("_width", &OTexture::_height)
-//		.property("_factors", &OTexture::_factors)
-//	;
-//
-//}
 //
 //
 //template<typename Ser>

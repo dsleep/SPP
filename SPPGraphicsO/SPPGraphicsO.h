@@ -55,10 +55,19 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		std::unique_ptr<TextureAsset> _texture;
+		int32_t _width;
+		int32_t _height;
+		TextureFormat _format;
+
+		std::shared_ptr< ArrayResource > _rawImgData;
+		std::shared_ptr< ImageMeta > _metaInfo;
+
+		std::shared_ptr< class GD_Texture > _texture;
 
 	public:
 		OTexture(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
+
+		bool LoadFromDisk(const char *FileName);
 
 		virtual ~OTexture() { }
 	};

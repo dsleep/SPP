@@ -27,8 +27,8 @@ namespace SPP
 	{
 		Renderable::_AddToScene(InScene);
 
-		_vertexBuffer = GGD()->CreateBuffer(GPUBufferType::Vertex);
-		_indexBuffer = GGD()->CreateBuffer(GPUBufferType::Index);
+		_vertexBuffer = _owner->CreateBuffer(GPUBufferType::Vertex);
+		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
 		
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
 

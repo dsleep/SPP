@@ -237,7 +237,7 @@ namespace SPP
 				assert(p_set == p_set2);
 				(void)p_set2;
 
-				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sSET :%d", tt, index);
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sSET : GPU IDX %d", tt, p_set->set);
 				PrintDescriptorSet(*p_set, tt);
 			}
 

@@ -123,9 +123,9 @@ namespace SPP
 
 	bool TextureAsset::Generate(int32_t InWidth, int32_t InHeight, TextureFormat InFormat)
 	{
-		_width = InWidth;
-		_height = InHeight;
-		_format = InFormat;
+		width = InWidth;
+		height = InHeight;
+		format = InFormat;
 
 		//TODO FIXME
 		//_texture = GGI()->CreateTexture(_width, _height, _format);
@@ -133,30 +133,30 @@ namespace SPP
 		return true;
 	}
 
-	bool TextureAsset::LoadFromDisk(const AssetPath& FileName)
+	bool TextureAsset::LoadFromDisk(const char* FileName)
 	{
 		static_assert(sizeof(SimpleRGB) == 3);
 		static_assert(sizeof(SimpleRGBA) == 4);
 
-		_width = 0;
-		_height = 0;
-		_rawImgData = std::make_shared< ArrayResource >();
+		width = 0;
+		height = 0;
+		rawImgData = std::make_shared< ArrayResource >();
 
-		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", *FileName);
+		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", FileName);
 
-		auto extension = FileName.GetExtension();
+		auto extension = stdfs::path(FileName).extension().generic_string();
 
 		if (str_equals(extension, ".dds"))
 		{
 			const DirectX::DDS_HEADER* header = nullptr;
 			const uint8_t* bitData = nullptr;
 			size_t bitSize = 0;
-			auto& ddsData = _rawImgData->GetRawByteArray();
+			auto& ddsData = rawImgData->GetRawByteArray();
 
-			if (LoadDDSTextureDataFromFile(*FileName, ddsData, &header, &bitData, &bitSize))
+			if (LoadDDSTextureDataFromFile(FileName, ddsData, &header, &bitData, &bitSize))
 			{
-				_width = header->width;
-				_height = header->height;
+				width = header->width;
+				height = header->height;
 
 				auto ddsmeta = std::make_shared< DDSImageMeta>();
 				ddsmeta->header = header;
@@ -176,20 +176,20 @@ namespace SPP
 		else
 		{
 			int x, y, n;
-			unsigned char* pixels = stbi_load(*FileName, &x, &y, &n, 0);
+			unsigned char* pixels = stbi_load(FileName, &x, &y, &n, 0);
 
 			SE_ASSERT(pixels);
 
 			if (pixels)
 			{
-				_width = x;
-				_height = y;
+				width = x;
+				height = y;
 
-				auto data = _rawImgData->InitializeFromType<SimpleRGBA>(x * y);
+				auto data = rawImgData->InitializeFromType<SimpleRGBA>(x * y);
 
 				if (n == 4)
 				{
-					memcpy(data, pixels, _rawImgData->GetTotalSize());
+					memcpy(data, pixels, rawImgData->GetTotalSize());
 				}
 				else
 				{
