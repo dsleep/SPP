@@ -55,6 +55,72 @@ from bpy.types import (
 
 from bpy import context
 
+
+def triangulate_mesh(curMesh):
+    # Get a BMesh representation
+    newMesh = bmesh.new()
+    newMesh.from_mesh(curMesh)
+
+    bmesh.ops.triangulate(newMesh, faces=newMesh.faces[:], quad_method='BEAUTY', ngon_method='BEAUTY' )
+
+    newMesh.to_mesh(curMesh)
+    newMesh.free()  
+
+
+def exportMesh(curMesh, RootPath):
+
+    triangulate_mesh(curMesh)
+    
+    # this works only in object mode,
+    verts = curMesh.vertices
+    uv_layer = curMesh.uv_layers.active.data
+    curMesh.calc_loop_triangles()  
+    # tangents have to be pre-calculated
+    # this will also calculate loop normal
+    curMesh.calc_tangents()
+            
+    fileVertTypes = 0b00000001 | 0b00000010 | 0b00000100 | 0b00001000 #has position, UV, normal, tangent
+            
+    relFileName = curMesh.name + ".bin"
+    # if hasattr(curMesh, 'vertex_colors'):
+    # if curMesh.vertex_colors:
+        # color_layer = curMesh.vertex_colors["Col"]
+        # fileVertTypes |= 0b000010000 #and color
+    
+    with open( os.path.join(RootPath, relFileName),'wb') as f:       # write file in binary mode
+        # version 1.0
+        f.write(ctypes.c_uint(1)) 
+        f.write(ctypes.c_uint(0)) 
+        
+        f.write(ctypes.c_uint(fileVertTypes))
+        
+        f.write(ctypes.c_uint(len(curMesh.loop_triangles)*3))   
+        print("Writing out verts:", len(curMesh.loop_triangles)*3)
+        for tri in curMesh.loop_triangles:
+            
+            for loop_index in (tri.loops):
+                curLoop = curMesh.loops[loop_index]
+                curVertex = curMesh.vertices[curLoop.vertex_index]
+                curUV = uv_layer[loop_index].uv
+                curNormal = curLoop.normal
+                curTangent = curLoop.tangent
+                
+                f.write(ctypes.c_float(curVertex.co[0]))
+                f.write(ctypes.c_float(curVertex.co[1]))
+                f.write(ctypes.c_float(curVertex.co[2]))
+                
+                f.write(ctypes.c_float(uv_layer[loop_index].uv[0]))
+                f.write(ctypes.c_float(uv_layer[loop_index].uv[1]))
+                
+                f.write(ctypes.c_float(curNormal[0]))
+                f.write(ctypes.c_float(curNormal[1]))
+                f.write(ctypes.c_float(curNormal[2]))
+                
+                f.write(ctypes.c_float(curTangent[0]))
+                f.write(ctypes.c_float(curTangent[1]))
+                f.write(ctypes.c_float(curTangent[2]))
+    
+
 def exportImage(curImage, RootPath):
 
     orgFilePath = curImage.filepath
@@ -159,16 +225,6 @@ def ExportMaterial(InMat, InGlobalTextureSet, oJson):
 
 
 
-def triangulate_object(obj):
-    # Get a BMesh representation
-    newMesh = bmesh.new()
-    newMesh.from_mesh(obj.data)
-
-    bmesh.ops.triangulate(newMesh, faces=newMesh.faces[:], quad_method='BEAUTY', ngon_method='BEAUTY' )
-
-    newMesh.to_mesh(obj.data)
-    newMesh.free()  
-
 
 def do_export(context, props, filepath):
 
@@ -189,6 +245,7 @@ def do_export(context, props, filepath):
     }
     
     allMaterials = set()
+    allMeshes = set()
 
     for obj in bpy.context.scene.objects: 
         print(obj.name, obj, obj.mode, obj.type)
@@ -228,21 +285,12 @@ def do_export(context, props, filepath):
         if obj.type == 'MESH': 
             print("---")
             
-            triangulate_object(obj)
             curMesh = obj.data
             
-            if hasattr(curMesh, 'vertices') == False:
+            if curMesh == None or hasattr(curMesh, 'vertices') == False:
                 continue;
-            
-            # this works only in object mode,
-            verts = curMesh.vertices
-            uv_layer = curMesh.uv_layers.active.data
-            curMesh.calc_loop_triangles()  
-            # tangents have to be pre-calculated
-            # this will also calculate loop normal
-            curMesh.calc_tangents()
-            
-            relFileName = rootSceneName + "." + obj.name + ".bin" 
+                
+            allMeshes.add(curMesh)
             
             localJsonMats = []
             
@@ -256,51 +304,15 @@ def do_export(context, props, filepath):
             newMesh = {
                 "name" : obj.name,
                 "transform": transformJson,
-                "relFilePath" : relFileName,
+                "mesh" : curMesh.name,
                 "materials" : list(localJsonMats)
             }
             outJson["meshes"].append(newMesh)
                             
-            fileVertTypes = 0b00000001 | 0b00000010 | 0b00000100 | 0b00001000 #has position, UV, normal, tangent
             
-            # if hasattr(curMesh, 'vertex_colors'):
-            # if curMesh.vertex_colors:
-                # color_layer = curMesh.vertex_colors["Col"]
-                # fileVertTypes |= 0b000010000 #and color
-            
-            with open( os.path.join(rootOfWrite, relFileName),'wb') as f:       # write file in binary mode
-                # version 1.0
-                f.write(ctypes.c_uint(1)) 
-                f.write(ctypes.c_uint(0)) 
-                
-                f.write(ctypes.c_uint(fileVertTypes))
-                
-                f.write(ctypes.c_uint(len(curMesh.loop_triangles)*3))   
-                print("Writing out verts:", len(curMesh.loop_triangles)*3)
-                for tri in curMesh.loop_triangles:
-                    
-                    for loop_index in (tri.loops):
-                        curLoop = curMesh.loops[loop_index]
-                        curVertex = curMesh.vertices[curLoop.vertex_index]
-                        curUV = uv_layer[loop_index].uv
-                        curNormal = curLoop.normal
-                        curTangent = curLoop.tangent
-                        
-                        f.write(ctypes.c_float(curVertex.co[0]))
-                        f.write(ctypes.c_float(curVertex.co[1]))
-                        f.write(ctypes.c_float(curVertex.co[2]))
-                        
-                        f.write(ctypes.c_float(uv_layer[loop_index].uv[0]))
-                        f.write(ctypes.c_float(uv_layer[loop_index].uv[1]))
-                        
-                        f.write(ctypes.c_float(curNormal[0]))
-                        f.write(ctypes.c_float(curNormal[1]))
-                        f.write(ctypes.c_float(curNormal[2]))
-                        
-                        f.write(ctypes.c_float(curTangent[0]))
-                        f.write(ctypes.c_float(curTangent[1]))
-                        f.write(ctypes.c_float(curTangent[2]))
-                        
+    print("Found meshes! total:", len(allMeshes))    
+    for curMesh in allMeshes:
+        exportMesh(curMesh, rootOfWrite)                    
              
     allTextures = set()
 
