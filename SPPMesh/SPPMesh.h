@@ -397,6 +397,7 @@ namespace SPP
 
 	public:
 		bool LoadMesh(const char* FileName);
+		bool LoadSimpleBinaryMesh(const char* FileName);
 
 		std::vector< std::shared_ptr<MeshElement> >& GetMeshElements()
 		{

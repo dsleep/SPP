@@ -92,9 +92,18 @@ namespace SPP
 	protected:
 		OMaterial(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
+		std::vector<OTexture*> _textures;
 		std::shared_ptr<GD_Material> _material;
 
 	public:
+		void SetTexture(OTexture* InTexture, uint8_t CurrentIdx)
+		{
+			if (_textures.size() <= CurrentIdx)
+			{
+				_textures.resize(CurrentIdx + 1);
+			}
+			_textures[CurrentIdx] = InTexture;
+		}
 		void SetMaterial(std::shared_ptr<GD_Material> InMat)
 		{
 			_material = InMat;

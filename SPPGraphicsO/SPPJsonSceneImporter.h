@@ -9,6 +9,6 @@
 
 namespace SPP
 {
-
+	SPP_GRAPHICSO_API ORenderableScene* LoadJsonScene(const char* FilePath);
 }
 

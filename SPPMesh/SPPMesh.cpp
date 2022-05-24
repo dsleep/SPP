@@ -12,6 +12,7 @@
 
 #include "SPPAssetImporterFile.h"
 #include "SPPBlenderFile.h"
+#include "SPPFileSystem.h"
 
 namespace SPP
 {
@@ -75,6 +76,72 @@ namespace SPP
 	{
 		Storage << Value.packed;
 		return Storage;
+	}
+
+	bool Mesh::LoadSimpleBinaryMesh(const char* FileName)
+	{
+		std::vector<uint8_t> fileData;
+		if (!LoadFileToArray(FileName, fileData))
+		{
+			return false;
+		}
+
+		_bounds = Sphere();
+
+		BinaryBlobSerializer binaryData(fileData);
+
+		uint32_t MajorVersion = 0;
+		binaryData >> MajorVersion;
+		uint32_t MinorVersion = 0;
+		binaryData >> MinorVersion;
+
+		uint32_t VertFlags = 0;
+		binaryData >> VertFlags;
+
+		uint32_t VertCount = 0;
+		binaryData >> VertCount;
+
+		auto VertexResource = std::make_shared< ArrayResource >();
+		auto IndexResource = std::make_shared< ArrayResource >();
+
+		auto curVerts = VertexResource->InitializeFromType<MeshVertex>(VertCount);
+		auto curIndices = IndexResource->InitializeFromType<uint32_t>(VertCount * 3);
+
+		for (uint32_t Iter = 0; Iter < VertCount; Iter++)
+		{
+			MeshVertex& vertex = curVerts[Iter];
+
+			binaryData >> vertex.position[0];
+			binaryData >> vertex.position[1];
+			binaryData >> vertex.position[2];
+
+			binaryData >> vertex.texcoord[0];
+			binaryData >> vertex.texcoord[1];
+
+			binaryData >> vertex.normal[0];
+			binaryData >> vertex.normal[1];
+			binaryData >> vertex.normal[2];
+
+			binaryData >> vertex.tangent[0];
+			binaryData >> vertex.tangent[1];
+			binaryData >> vertex.tangent[2];
+
+			//calc bitagent
+
+			//setup indices
+			curIndices[Iter] = Iter;
+		}
+
+		auto newMeshElement = std::make_shared<MeshElement>();
+		newMeshElement->VertexResource = VertexResource;
+		newMeshElement->IndexResource = IndexResource;
+		newMeshElement->Bounds = MinimumBoundingSphere< MeshVertex>(curVerts.GetData(), VertCount);
+		newMeshElement->Name = "smbin";
+
+		_elements.push_back(newMeshElement);
+		_bounds += newMeshElement->Bounds;
+
+		return true;
 	}
 	
 	bool Mesh::LoadMesh(const char *FileName)

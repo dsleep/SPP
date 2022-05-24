@@ -109,6 +109,11 @@ namespace SPP
 	{
 		GD_RenderableMesh::_AddToScene(InScene);
 
+		if (!_material)
+		{
+			_material = InScene->GetDefaultMaterial();
+		}
+
 		auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
 
 		SE_ASSERT(vulkanMat);

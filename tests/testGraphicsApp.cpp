@@ -35,6 +35,8 @@
 
 #include "SPPBlenderFile.h"
 
+#include "SPPJsonSceneImporter.h"
+
 #include <condition_variable>
 
 #define MAX_LOADSTRING 100
@@ -104,6 +106,11 @@ public:
 		
 		/////////////SCENE SETUP
 
+#if 1
+		auto _renderableScene = LoadJsonScene(*AssetPath("testscene/drone-city.spj"));
+		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+#else
+
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);
 
 		renderableSceneShared = _renderableScene->GetRenderSceneShared();
@@ -128,6 +135,9 @@ public:
 		_renderableScene->AddChild(startingGroup);
 		_renderableScene->AddChild(meshElement);
 
+		_graphicsDevice->AddScene(renderableSceneShared);
+#endif
+
 		//SPP::MakeResidentAllGPUResources();
 
 		std::mutex tickMutex;
@@ -135,9 +145,6 @@ public:
 
 		auto LastTime = std::chrono::high_resolution_clock::now();
 		float DeltaTime = 0.016f;
-
-		_graphicsDevice->AddScene(renderableSceneShared);
-			
 
 		auto ourAppEvents = ApplicationEvents{
 			._msgLoop = [this]()

@@ -191,6 +191,8 @@ namespace SPP
 			_skyBox = InSkyBox;
 		}
 
+		virtual std::shared_ptr<GD_Material> GetDefaultMaterial() { return nullptr; }
+
 		template<typename... T>
 		void SetColorTargets(T... args)
 		{

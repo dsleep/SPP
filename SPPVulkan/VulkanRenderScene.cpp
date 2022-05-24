@@ -31,11 +31,25 @@ namespace SPP
 	{
 		//SE_ASSERT(I());
 
+		
 
 	}
 
 	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
+		_defaultMaterial = GGD()->CreateMaterial();
+		
+		auto meshvertexShader = GGD()->CreateShader();
+		auto meshpixelShader = GGD()->CreateShader();
+
+		_defaultMaterial->SetMaterialArgs({ .vertexShader = meshvertexShader, .pixelShader = meshpixelShader });
+
+		meshvertexShader->Initialize(EShaderType::Vertex);
+		meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
+		meshpixelShader->Initialize(EShaderType::Pixel);
+		meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
+			
+
 		//_debugVS = Vulkan_CreateShader(EShaderType::Vertex);
 		//_debugVS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
 

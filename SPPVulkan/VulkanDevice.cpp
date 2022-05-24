@@ -643,20 +643,17 @@ namespace SPP
 
 #define MAX_MESH_ELEMENTS 1024
 #define MAX_TEXTURE_COUNT 2048
-#define DYNAMIC_MAX_COUNT 20 * 1024
-
-	
+#define DYNAMIC_MAX_COUNT 20 * 1024	
 
 	void VulkanGraphicsDevice::CreateDescriptorPool()
 	{
 		SE_ASSERT(swapChain.imageCount);
 
-
 		std::vector<VkDescriptorPoolSize> simplePool = {
 
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
 		};
-		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 3);	
+		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);	
 
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{

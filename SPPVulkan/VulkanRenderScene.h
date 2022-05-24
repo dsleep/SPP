@@ -92,7 +92,8 @@ namespace SPP
 
 		// Descriptor set pool
 		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
-
+		
+		std::shared_ptr<GD_Material> _defaultMaterial;
 
 	public:
 		VulkanRenderScene();
@@ -121,6 +122,12 @@ namespace SPP
 		}
 
 		virtual void AddedToGraphicsDevice() override;
+
+
+		virtual std::shared_ptr<GD_Material> GetDefaultMaterial() override
+		{
+			return _defaultMaterial;
+		}
 
 		//void DrawDebug();
 
