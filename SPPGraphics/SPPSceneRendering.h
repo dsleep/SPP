@@ -352,7 +352,7 @@ namespace SPP
 			std::shared_ptr<GD_Material> material;
 		};
 
-		GD_RenderableMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+		GD_RenderableMesh(GraphicsDevice* InOwner);
 
 		void SetMeshArgs(const Args& InArgs)
 		{

@@ -94,6 +94,7 @@ namespace SPP
 		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
 		
 		std::shared_ptr<GD_Material> _defaultMaterial;
+		std::shared_ptr< class GD_Shader > _meshvertexShader, _meshpixelShader;
 
 	public:
 		VulkanRenderScene();

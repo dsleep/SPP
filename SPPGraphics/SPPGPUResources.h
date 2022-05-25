@@ -247,21 +247,7 @@ namespace SPP
         virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) = 0;
     };
 
-    enum class TextureFormat
-    {
-        UNKNOWN,
-        RGB_888,
-        RGBA_8888,
-        RGBA_BC7,
-        DDS_UNKNOWN,
-        RG_BC5,
-        GRAY_BC4,
-        RGB_BC1,
-        D24_S8,
-        R32G32B32A32F,
-        R32G32B32A32
-    };
-
+   
     class SPP_GRAPHICS_API GPUTexture : public GPUResource
     {
     protected:
@@ -482,7 +468,7 @@ namespace SPP
         virtual ~GD_Texture() {}
         virtual void Initialize(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr)
         {
-
+            _texture = _owner->_gxCreateTexture(Width, Height, Format, RawData, InMetaInfo);
         }
     };
 

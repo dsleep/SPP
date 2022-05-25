@@ -84,6 +84,22 @@ namespace SPP
         Vertex
     };
 
+    enum class TextureFormat
+    {
+        UNKNOWN,
+        RGB_888,
+        RGBA_8888,
+        RGBA_BC7,
+        DDS_UNKNOWN,
+        RG_BC5,
+        GRAY_BC4,
+        RGB_BC1,
+        D24_S8,
+        R32G32B32A32F,
+        R32G32B32A32
+    };
+
+
     class GraphicsDevice;
 
     template<typename T>
@@ -95,8 +111,14 @@ namespace SPP
         GraphicsDevice* _owner = nullptr;
 
     public:
-        GD_Resource() {}
-        GD_Resource(GraphicsDevice* InOwner) : _owner(InOwner) {}
+        GD_Resource() 
+        {
+            SE_ASSERT(IsOnCPUThread());
+        }
+        GD_Resource(GraphicsDevice* InOwner) : _owner(InOwner) 
+        {
+            SE_ASSERT(IsOnCPUThread());
+        }
     };
 
     class SPP_GRAPHICS_API GraphicsDevice
@@ -128,6 +150,7 @@ namespace SPP
         void RunFrame();
                
         virtual GPUReferencer< class GPUShader > _gxCreateShader(EShaderType InType) = 0;
+        virtual GPUReferencer< class GPUTexture > _gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< struct ImageMeta > InMetaInfo = nullptr) = 0;
         virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
 
         //virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;

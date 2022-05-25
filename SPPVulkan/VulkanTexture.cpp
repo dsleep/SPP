@@ -9,6 +9,7 @@
 namespace SPP
 {
 	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 	void VulkanTextureBase::updateDescriptor()
 	{
@@ -351,7 +352,16 @@ namespace SPP
 	* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 	* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	*/
-	void VulkanTexture::fromBuffer(void* buffer, VkDeviceSize bufferSize, VkFormat format, uint32_t texWidth, uint32_t texHeight, vks::VulkanDevice *device, VkQueue copyQueue, VkFilter filter, VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout)
+	void VulkanTexture::fromBuffer(void* buffer, 
+		VkDeviceSize bufferSize, 
+		VkFormat format,
+		uint32_t texWidth, 
+		uint32_t texHeight, 
+		vks::VulkanDevice *device, 
+		VkQueue copyQueue,
+		VkFilter filter, 
+		VkImageUsageFlags imageUsageFlags, 
+		VkImageLayout imageLayout)
 	{
 		assert(buffer);
 
@@ -506,7 +516,8 @@ namespace SPP
 	VulkanTexture::VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
 		: GPUTexture(Width, Height, Format, RawData, InMetaInfo)
 	{
-		
+		fromBuffer(RawData->GetElementData(), RawData->GetTotalSize(), VK_FORMAT_R8G8B8A8_UNORM,
+			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetDeviceQueue());
 	}
 
 	///**

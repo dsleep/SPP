@@ -3,6 +3,7 @@
 // recognized in your jurisdiction.
 
 #include "SPPGraphicsO.h"
+#include "ThreadPool.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -129,6 +130,11 @@ namespace SPP
 			_height = testTexture.height;
 			_rawImgData = testTexture.rawImgData;
 			_texture = GGD()->CreateTexture();
+
+			GPUThreaPool->enqueue([this]() 
+				{
+				_texture->Initialize(_width, _height, _format, _rawImgData);
+				});
 		}			
 
 		return false;

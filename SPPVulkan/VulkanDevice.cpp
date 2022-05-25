@@ -27,6 +27,7 @@ namespace SPP
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
 	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
 	{
@@ -1201,6 +1202,11 @@ namespace SPP
 	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
 		return Vulkan_CreateStaticBuffer(InType, InCpuData);
+	}
+
+	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) 
+	{
+		return Vulkan_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
 	}
 
 	std::shared_ptr< class GD_Texture > VulkanGraphicsDevice::CreateTexture()

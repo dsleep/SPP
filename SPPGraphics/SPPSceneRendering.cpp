@@ -22,16 +22,17 @@ namespace SPP
 		_parentScene = nullptr;
 	};
 
+	GD_RenderableMesh::GD_RenderableMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner)
+	{
+		_vertexBuffer = _owner->CreateBuffer(GPUBufferType::Vertex);
+		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
+	}
 
 	void GD_RenderableMesh::_AddToScene(class GD_RenderScene* InScene)
 	{
 		Renderable::_AddToScene(InScene);
 
-		_vertexBuffer = _owner->CreateBuffer(GPUBufferType::Vertex);
-		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
-		
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
-
 		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
 		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);
 	}
