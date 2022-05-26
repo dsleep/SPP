@@ -276,7 +276,8 @@ namespace SPP
 
 		// The descriptor set layout describes the shader binding layout (without actually referencing descriptor)
 		// Like the pipeline layout it's pretty much a blueprint and can be used with different descriptor sets as long as their layout matches
-		VkDescriptorSetLayout _descriptorSetLayout = nullptr;
+		std::vector<VkDescriptorSetLayout> _descriptorSetLayouts;
+		uint8_t _startSetIdx = 0;
 
 		// Pipelines (often called "pipeline state objects") are used to bake all states that affect a pipeline
 		// While in OpenGL every state can be changed at (almost) any time, Vulkan requires to layout the graphics (and compute) pipeline states upfront
@@ -292,9 +293,13 @@ namespace SPP
 		{
 			return _pipeline;
 		}
-		const VkDescriptorSetLayout& GetDescriptorSetLayout()
+		auto GetStartIdx() const
 		{
-			return _descriptorSetLayout;
+			return _startSetIdx;
+		}
+		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts()
+		{
+			return _descriptorSetLayouts;
 		}
 		const VkPipelineLayout &GetVkPipelineLayout()
 		{

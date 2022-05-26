@@ -58,8 +58,6 @@ namespace SPP
 		//virtual void Draw() override;
 		//virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
-
-	
 		
 	class GD_Vulkan_Material : public GD_Material
 	{
@@ -240,38 +238,65 @@ namespace SPP
 
 		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
 
-		VkDescriptorSet locaDrawSet = VK_NULL_HANDLE;
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &_state->GetDescriptorSetLayout(), 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, &locaDrawSet));
+		auto& descriptorSetLayouts = _state->GetDescriptorSetLayouts();
+		auto setStartIdx = _state->GetStartIdx();
 
-		VkDescriptorBufferInfo perFrameInfo;
-		perFrameInfo.buffer = cameraBuffer->GetBuffer();
-		perFrameInfo.offset = 0;
-		perFrameInfo.range = cameraBuffer->GetPerElementSize();
+		std::vector<VkDescriptorSet> locaDrawSets;
+		locaDrawSets.resize(descriptorSetLayouts.size());
 
-		VkDescriptorBufferInfo drawConstsInfo;
-		drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
-		drawConstsInfo.offset = 0;
-		drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(locaDrawSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-			vks::initializers::writeDescriptorSet(locaDrawSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
-		};
+		//set 0
+		{
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
-		vkUpdateDescriptorSets(vulkanDevice,
-			static_cast<uint32_t>(writeDescriptorSets.size()),
-			writeDescriptorSets.data(), 0, nullptr);
+			VkDescriptorBufferInfo drawConstsInfo;
+			drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
+			drawConstsInfo.offset = 0;
+			drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(locaDrawSets[0],
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(locaDrawSets[0],
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+			};
+
+			vkUpdateDescriptorSets(vulkanDevice,
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+		}
+		//set 1
+		{
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(locaDrawSets[1],
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &perFrameInfo),
+			};
+
+			vkUpdateDescriptorSets(vulkanDevice,
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+		}
 
 		uint32_t uniform_offsets[] = {
 			(sizeof(GPUViewConstants)) * currentFrame,
-			0,
+			0
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipeline());
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipelineLayout(), 0, 1, &locaDrawSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+			_state->GetVkPipelineLayout(),
+			setStartIdx,
+			locaDrawSets.size(), locaDrawSets.data(), ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1, 0, 0, 0);
 	}
 }

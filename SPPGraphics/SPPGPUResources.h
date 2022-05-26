@@ -475,10 +475,10 @@ namespace SPP
     class SPP_GRAPHICS_API GD_Material : public GD_Resource
     {
     protected:
-        //std::vector< GPUReferencer<GPUTexture> > _textureArray;
-
         std::shared_ptr< GD_Shader > _vertexShader;
         std::shared_ptr< GD_Shader > _pixelShader;
+
+        std::vector< std::shared_ptr<GD_Texture> > _textureArray;
 
         EBlendState _blendState = EBlendState::Disabled;
         ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;
@@ -492,12 +492,14 @@ namespace SPP
         {
             std::shared_ptr< GD_Shader > vertexShader;
             std::shared_ptr< GD_Shader > pixelShader;
+            std::vector< std::shared_ptr<GD_Texture> > textureArray;
         };
 
         void SetMaterialArgs(const Args &InArgs)
         {
             _vertexShader = InArgs.vertexShader;
             _pixelShader = InArgs.pixelShader;
+            _textureArray = InArgs.textureArray;
         }
     };
 

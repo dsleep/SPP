@@ -47,6 +47,12 @@ namespace SPP
 
 		void updateDescriptor();
 		void destroy();	
+
+	public:
+		const VkDescriptorImageInfo& GetDescriptor()
+		{
+			return descriptor;
+		}
 	};
 
 	class VulkanTexture : public VulkanTextureBase, public GPUTexture

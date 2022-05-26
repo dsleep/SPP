@@ -220,9 +220,9 @@ namespace SPP
 					layout_binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
 				}
 				layout.set_number = refl_set.set;
-				layout.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-				layout.create_info.bindingCount = refl_set.binding_count;
-				layout.create_info.pBindings = layout.bindings.data();
+				//layout.create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+				//layout.create_info.bindingCount = refl_set.binding_count;
+				//layout.create_info.pBindings = layout.bindings.data();
 			}
 
 			const char* tt = "  ";

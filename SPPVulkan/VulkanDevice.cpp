@@ -821,15 +821,57 @@ namespace SPP
 			vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
 			_pipelineLayout = nullptr;
 		}
-		if (_descriptorSetLayout)
+		
+		for (auto& curSetLayout : _descriptorSetLayouts)
 		{
-			vkDestroyDescriptorSetLayout(device, _descriptorSetLayout, nullptr);
-			_descriptorSetLayout = nullptr;
+			vkDestroyDescriptorSetLayout(device, curSetLayout, nullptr);
 		}
+		_descriptorSetLayouts.clear();
+		
+
 		//vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
 		//vkDestroyPipelineCache(device, pipelineCache, nullptr);
 	}
 
+	void MergeBindingSet(const std::vector<DescriptorSetLayoutData>& InDescriptorSet,
+		std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > &oSetLayoutBindings)
+	{
+		for (auto& curSet : InDescriptorSet)
+		{
+			auto foundEle = oSetLayoutBindings.find(curSet.set_number);
+			if (foundEle != oSetLayoutBindings.end())
+			{
+				std::vector<VkDescriptorSetLayoutBinding> &setLayoutBindings = foundEle->second;
+
+				for (auto& newBinding : curSet.bindings)
+				{
+					bool bDoAdd = true;
+
+					for (auto& curBinding : setLayoutBindings)
+					{
+						if (curBinding.binding == newBinding.binding)
+						{
+							curBinding.stageFlags |= newBinding.stageFlags;
+							SE_ASSERT(curBinding.descriptorCount == curBinding.descriptorCount
+								&& curBinding.descriptorType == curBinding.descriptorType);
+
+							bDoAdd = false;
+							break;
+						}
+					}
+
+					if (bDoAdd)
+					{
+						setLayoutBindings.insert(setLayoutBindings.end(), newBinding);
+					}
+				}
+			}
+			else
+			{
+				oSetLayoutBindings[(uint8_t)curSet.set_number] = curSet.bindings;
+			}
+		}
+	}
 
 	void VulkanPipelineState::Initialize(EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
@@ -859,52 +901,47 @@ namespace SPP
 			auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
 
 			// Deferred shading layout
-			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings;
-			if (vsSet.empty() == false)
+			std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > setLayoutBindings;
+
+			MergeBindingSet(vsSet, setLayoutBindings);
+			MergeBindingSet(psSet, setLayoutBindings);
+
+			for (auto& curSet : setLayoutBindings)
 			{
-				setLayoutBindings.insert(setLayoutBindings.end(), vsSet[0].bindings.begin(), vsSet[0].bindings.end());
-			}
-			if (psSet.empty() == false)
-			{
-				for (auto& newBinding : psSet[0].bindings)
+				std::vector<VkDescriptorSetLayoutBinding>& curBindingSet = curSet.second;
+
+				for (auto& curBinding : curBindingSet)
 				{
-					bool bDoAdd = true;
-
-					for (auto& curBinding : setLayoutBindings)
+					if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 					{
-						if (curBinding.binding == newBinding.binding)
-						{
-							curBinding.stageFlags |= newBinding.stageFlags;
-							SE_ASSERT(curBinding.descriptorCount == curBinding.descriptorCount
-								&& curBinding.descriptorType == curBinding.descriptorType);
-
-							bDoAdd = false;
-							break;
-						}
+						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 					}
-
-					if (bDoAdd)
+					else if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
 					{
-						setLayoutBindings.insert(setLayoutBindings.end(), newBinding);
+						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 					}
 				}
 			}
 
-			for (auto& curBinding : setLayoutBindings)
+			_descriptorSetLayouts.resize(setLayoutBindings.size());
+			
+			//ugly
+			for (int32_t Iter = 0, foundIdx = 0; Iter < 5; Iter++)
 			{
-				if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+				auto foundSet = setLayoutBindings.find(Iter);
+				if(foundSet != setLayoutBindings.end())
 				{
-					curBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-				}
-				else if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-				{
-					curBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
+					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[foundIdx]));
+					
+					if (!foundIdx)
+					{
+						_startSetIdx = Iter;
+					}
+
+					foundIdx++;
 				}
 			}
-
-			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayout));
-
 
 			SE_ASSERT(InVS->GetAs<VulkanShader>().GetModule());
 			SE_ASSERT(InPS->GetAs<VulkanShader>().GetModule());
@@ -943,8 +980,8 @@ namespace SPP
 		VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
 		pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pPipelineLayoutCreateInfo.pNext = nullptr;
-		pPipelineLayoutCreateInfo.setLayoutCount = 1;
-		pPipelineLayoutCreateInfo.pSetLayouts = &_descriptorSetLayout;
+		pPipelineLayoutCreateInfo.setLayoutCount = _descriptorSetLayouts.size();
+		pPipelineLayoutCreateInfo.pSetLayouts = _descriptorSetLayouts.data();
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 
