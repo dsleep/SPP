@@ -78,7 +78,15 @@ namespace SPP
 
 		bool LoadFromDisk(const char *FileName);
 
+		std::shared_ptr< class GD_Texture > GetDeviceTexture()
+		{
+			return _texture;
+		}
+
 		virtual ~OTexture() { }
+
+		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void UinitializeGraphicsDeviceResources();
 	};
 
 	class SPP_GRAPHICSO_API OMesh : public SPPObject
@@ -123,6 +131,19 @@ namespace SPP
 			_entryPoint = EntryPoint;
 		}
 		virtual ~OShader() { }
+
+		EShaderType GetShaderType() const
+		{
+			return _shaderType;
+		}
+		
+		std::shared_ptr<GD_Shader> GetShader()
+		{
+			return _shader;
+		}
+
+		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void UinitializeGraphicsDeviceResources();
 	};
 
 	class SPP_GRAPHICSO_API OMaterial : public SPPObject
@@ -139,6 +160,9 @@ namespace SPP
 		std::shared_ptr<GD_Material> _material;
 
 	public:
+		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void UinitializeGraphicsDeviceResources();
+
 		void SetTexture(OTexture* InTexture, uint8_t CurrentIdx)
 		{
 			if (_textures.size() <= CurrentIdx)

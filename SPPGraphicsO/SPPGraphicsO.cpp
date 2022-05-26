@@ -32,7 +32,7 @@ namespace SPP
 			AddChild(child);
 		}
 
-		SE_ASSERT(childCopy == _children);
+		SE_ASSERT(childCopy.size() == _children.size());
 
 		InGraphicsDevice->AddScene(_renderScene);
 	}
@@ -98,6 +98,8 @@ namespace SPP
 
 			SE_ASSERT(_materialObj);
 
+			_materialObj->InitializeGraphicsDeviceResources(sceneGD);
+
 			std::vector<VertexStream> vertexStreams;
 
 			MeshVertex placeholder;
@@ -159,6 +161,49 @@ namespace SPP
 		return false;
 	}
 
+	void OMaterial::InitializeGraphicsDeviceResources(GraphicsDevice* InGD)
+	{
+		if (!_material)
+		{
+			std::shared_ptr< GD_Shader > vertexShader;
+			std::shared_ptr< GD_Shader > pixelShader;
+			std::vector< std::shared_ptr<GD_Texture> > textureArray;
+
+			for (auto& shader : _shaders)
+			{
+				shader->InitializeGraphicsDeviceResources(InGD);
+
+				if (shader->GetShaderType() == EShaderType::Vertex)
+				{
+					vertexShader = shader->GetShader();
+				}
+				else if (shader->GetShaderType() == EShaderType::Pixel)
+				{
+					pixelShader = shader->GetShader();
+				}
+			}
+
+			for (auto& texture : _textures)
+			{
+				texture->InitializeGraphicsDeviceResources(InGD);
+				textureArray.push_back(texture->GetDeviceTexture());
+			}
+
+			_material = InGD->CreateMaterial();
+			_material->SetMaterialArgs(
+				{
+					.vertexShader = vertexShader,
+					.pixelShader = pixelShader,
+					.textureArray = textureArray
+				}
+			);
+		}
+	}
+	void OMaterial::UinitializeGraphicsDeviceResources()
+	{
+		_material.reset();
+	}
+
 	bool OTexture::LoadFromDisk(const char* FileName)
 	{		
 		TextureAsset testTexture;
@@ -168,15 +213,49 @@ namespace SPP
 			_width = testTexture.width;
 			_height = testTexture.height;
 			_rawImgData = testTexture.rawImgData;
-			_texture = GGD()->CreateTexture();
-
-			GPUThreaPool->enqueue([this]() 
-				{
-				_texture->Initialize(_width, _height, _format, _rawImgData);
-				});
 		}			
 
 		return false;
+	}
+
+	void OTexture::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
+	{
+		if (!_texture)
+		{
+			_texture = GGD()->CreateTexture();
+
+			GPUThreaPool->enqueue([this]()
+				{
+					_texture->Initialize(_width, _height, _format, _rawImgData);
+				});
+		}
+	}
+
+	void OTexture::UinitializeGraphicsDeviceResources()
+	{
+		_texture.reset();
+	}
+
+	void OShader::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
+	{
+		if (!_shader)
+		{
+			_shader = InOwner->CreateShader();
+
+			GPUThreaPool->enqueue([shader =_shader, 
+				shaderType = _shaderType, 
+				filePath = _filePath,
+				entryPoint = _entryPoint]()
+				{
+					shader->Initialize(shaderType);
+					shader->CompileShaderFromFile(filePath.c_str(), entryPoint.c_str());
+				});
+		}
+	}
+
+	void OShader::UinitializeGraphicsDeviceResources()
+	{
+		_shader.reset();
 	}
 }
 
