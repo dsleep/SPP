@@ -547,37 +547,6 @@ namespace SPP
         virtual void Dispatch(const Vector3i& ThreadGroupCounts) = 0;
     };
 
-    class SPP_GRAPHICS_API ShaderObject 
-    {
-    private:
-        std::shared_ptr<GD_Shader> _shader;
-
-    public:
-        void LoadFromDisk(const AssetPath &FileName, const char* EntryPoint, EShaderType InType);
-        auto GetShader()
-        {
-            return _shader;
-        }
-    };
-
-    class SPP_GRAPHICS_API MaterialObject 
-    {
-    public:
-        EBlendState blendState = EBlendState::Disabled;
-        ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
-        EDepthState depthState = EDepthState::Enabled;
-
-        ShaderObject* meshShader = nullptr;
-        ShaderObject* vertexShader = nullptr;
-        ShaderObject* pixelShader = nullptr;
-    };
-
-    class SPP_GRAPHICS_API TesslationMaterialObject 
-    {
-    public:
-        ShaderObject* domainShader = nullptr;
-        ShaderObject* hullShader = nullptr;
-    };
    
     struct SimpleColoredLine
     {

@@ -73,7 +73,7 @@ namespace SPP
         Domain,
         Mesh,
         Amplification,
-        NumValues
+        NumValues,        
     };
 
     enum class GPUBufferType

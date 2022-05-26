@@ -77,7 +77,7 @@ namespace SPP
 		}
 		
 		virtual void AddedToScene(class OScene* InScene) override;
-		virtual void RemovedFromScene(class OScene* InScene) override;
+		virtual void RemovedFromScene() override;
 
 		virtual ~OShapeGroup() { }
 	};

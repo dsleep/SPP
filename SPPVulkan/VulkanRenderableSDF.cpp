@@ -30,7 +30,7 @@ namespace SPP
 
 		GPUReferencer< PipelineState > _customPSO;
 
-		virtual void _AddToScene(class GD_RenderScene* InScene) override;
+		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
 	public:
 		virtual void Draw() override;
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
@@ -41,9 +41,9 @@ namespace SPP
 		return std::make_shared< VulkanSDF >();
 	}
 		
-	void VulkanSDF::_AddToScene(class GD_RenderScene* InScene)
+	void VulkanSDF::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
-		GD_RenderableSignedDistanceField::_AddToScene(InScene);
+		GD_RenderableSignedDistanceField::_AddToRenderScene(InScene);
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();

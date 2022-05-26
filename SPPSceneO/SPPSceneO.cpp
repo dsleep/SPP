@@ -38,6 +38,22 @@ namespace SPP
 		InChild->_parent = nullptr;
 	}
 
+	void OElement::AddedToScene(class OScene* InScene)
+	{
+		for (auto& curChild : _children)
+		{
+			curChild->AddedToScene(InScene);
+		}
+	}
+
+	void OElement::RemovedFromScene()
+	{
+		for (auto& curChild : _children)
+		{
+			curChild->RemovedFromScene();
+		}
+	}
+
 	void OElement::UpdateTransform()
 	{
 		OElement* lastFromTop = this;
@@ -148,7 +164,7 @@ namespace SPP
 		{
 			_octree->RemoveElement(InChild);
 		}
-		InChild->RemovedFromScene(this);
+		InChild->RemovedFromScene();
 	}
 }
 

@@ -34,6 +34,7 @@ namespace SPP
 	protected:
 		ORenderableScene(const std::string& InName, SPPDirectory* InParent);
 		std::shared_ptr<GD_RenderScene> _renderScene;
+		class GraphicsDevice* _owningDevice = nullptr;
 
 	public:
 		GD_RenderScene* GetRenderScene()
@@ -45,6 +46,14 @@ namespace SPP
 		{
 			return _renderScene;
 		}
+
+		class GraphicsDevice *GetGraphicsDevice()
+		{
+			return _owningDevice;
+		}
+
+		virtual void AddToGraphicsDevice(GraphicsDevice* InGraphicsDevice);
+		virtual void RemoveFromGraphicsDevice(GraphicsDevice* InGraphicsDevice);
 
 		virtual ~ORenderableScene() { }
 	};
@@ -93,6 +102,29 @@ namespace SPP
 		virtual ~OMesh() { }
 	};
 
+	class SPP_GRAPHICSO_API OShader : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OShader(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
+
+		EShaderType _shaderType;
+		std::string _filePath;
+		std::string _entryPoint;
+		std::shared_ptr<GD_Shader> _shader;
+
+	public:
+		void Initialize(EShaderType InType, const char *InFilePath, const char* EntryPoint = "main")
+		{
+			_shaderType = InType;
+			_filePath = InFilePath;
+			_entryPoint = EntryPoint;
+		}
+		virtual ~OShader() { }
+	};
+
 	class SPP_GRAPHICSO_API OMaterial : public SPPObject
 	{
 		RTTR_ENABLE(SPPObject);
@@ -101,7 +133,9 @@ namespace SPP
 	protected:
 		OMaterial(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
+		std::vector<OShader*> _shaders;
 		std::vector<OTexture*> _textures;
+
 		std::shared_ptr<GD_Material> _material;
 
 	public:
@@ -116,6 +150,10 @@ namespace SPP
 		void SetMaterial(std::shared_ptr<GD_Material> InMat)
 		{
 			_material = InMat;
+		}
+		std::vector<OShader*> &GetShaders()
+		{
+			return _shaders;
 		}
 		std::shared_ptr<GD_Material> GetMaterial()
 		{
@@ -134,10 +172,7 @@ namespace SPP
 		bool _selected = false;
 
 	public:
-		virtual void UpdateSelection(bool IsSelected);
-		virtual void AddedToScene(class OScene* InScene) override;
-		virtual void RemovedFromScene(class OScene* InScene) override;
-
+		virtual void UpdateSelection(bool IsSelected);			
 		virtual ~ORenderableElement() { }
 	};
 
@@ -168,7 +203,7 @@ namespace SPP
 
 		virtual void UpdateSelection(bool IsSelected);
 		virtual void AddedToScene(class OScene* InScene) override;
-		virtual void RemovedFromScene(class OScene* InScene) override;
+		virtual void RemovedFromScene() override;
 
 		virtual ~OMeshElement() { }
 	};

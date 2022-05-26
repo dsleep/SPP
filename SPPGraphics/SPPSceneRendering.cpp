@@ -7,14 +7,14 @@
 
 namespace SPP
 {
-	void Renderable::_AddToScene(class GD_RenderScene* InScene)
+	void Renderable::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
 		SE_ASSERT(InScene);
 		SE_ASSERT(IsOnGPUThread());
 		_parentScene = InScene;
 		_parentScene->AddRenderable(this);
 	};
-	void Renderable::_RemoveFromScene()
+	void Renderable::_RemoveFromRenderScene()
 	{
 		SE_ASSERT(_parentScene);
 		SE_ASSERT(IsOnGPUThread());
@@ -28,9 +28,9 @@ namespace SPP
 		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
 	}
 
-	void GD_RenderableMesh::_AddToScene(class GD_RenderScene* InScene)
+	void GD_RenderableMesh::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
-		Renderable::_AddToScene(InScene);
+		Renderable::_AddToRenderScene(InScene);
 
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
 		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);

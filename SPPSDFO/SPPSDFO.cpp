@@ -29,7 +29,7 @@ namespace SPP
 			sdfArgs.color = _color;
 			_renderableSDF = GGD()->CreateSignedDistanceField();
 			//TODO FIXME add setting of sdf
-			_renderableSDF->AddToScene(((ORenderableScene*)InScene)->GetRenderScene());
+			_renderableSDF->AddToRenderScene(((ORenderableScene*)InScene)->GetRenderScene());
 		}
 	}
 
@@ -47,15 +47,13 @@ namespace SPP
 		}
 	}
 
-	void OShapeGroup::RemovedFromScene(class OScene* InScene)
+	void OShapeGroup::RemovedFromScene()
 	{
-		if (!InScene) return;
-
 		if (_renderableSDF)
 		{
-			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF, InScene]()
+			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF]()
 			{
-				_renderableSDF->RemoveFromScene();
+				_renderableSDF->RemoveFromRenderScene();
 			});
 			_renderableSDF.reset();
 		}

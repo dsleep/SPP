@@ -22,8 +22,6 @@ namespace SPP
 		std::string SimpleSceneName = stdfs::path(FilePath).stem().generic_string();
 		auto FileScene = AllocateObject<ORenderableScene>(SimpleSceneName, nullptr);
 
-		GGD()->AddScene(FileScene->GetRenderSceneShared());
-
 		Json::Value materials = JsonScene.get("materials", Json::Value::nullSingleton());
 		Json::Value meshes = JsonScene.get("meshes", Json::Value::nullSingleton());
 
@@ -31,22 +29,11 @@ namespace SPP
 		std::map<std::string, OTexture*> TextureMap;
 		std::map<std::string, OMesh*> MeshMap;
 
-		//UGLY CHEATS
-		auto meshvertexShader = GGD()->CreateShader();
-		auto meshpixelShader = GGD()->CreateShader();
+		auto vsShader = AllocateObject<OShader>("MeshVS", FileScene);
+		auto psShader = AllocateObject<OShader>("MeshPS", FileScene);
 
-		auto meshMaterial = GGD()->CreateMaterial();
-
-		meshMaterial->SetMaterialArgs({ .vertexShader = meshvertexShader, .pixelShader = meshpixelShader });
-
-		auto gpuCommand = GPUThreaPool->enqueue([meshvertexShader, meshpixelShader]()
-			{
-				meshvertexShader->Initialize(EShaderType::Vertex);
-				meshvertexShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_vs");
-				meshpixelShader->Initialize(EShaderType::Pixel);
-				meshpixelShader->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_ps");
-			});
-		gpuCommand.wait();
+		vsShader->Initialize(EShaderType::Vertex, "shaders/SimpleTextureMesh.hlsl", "main_vs");
+		psShader->Initialize(EShaderType::Pixel, "shaders/SimpleTextureMesh.hlsl", "main_ps");
 
 		if (!materials.isNull() && materials.isArray())
 		{
@@ -60,7 +47,9 @@ namespace SPP
 				std::string MatName = jName.asCString();
 				auto meshMat = AllocateObject<OMaterial>(MatName + ".mat", FileScene);
 
-				meshMat->SetMaterial(meshMaterial);
+				auto &matshaders = meshMat->GetShaders();
+				matshaders.push_back(vsShader);
+				matshaders.push_back(psShader);
 
 				MaterialMap[jName.asCString()] = meshMat;
 

@@ -82,8 +82,8 @@ namespace SPP
 
 		virtual ~OElement() { }
 
-		virtual void AddedToScene(class OScene* InScene) {}
-		virtual void RemovedFromScene(class OScene* InScene) {};
+		virtual void AddedToScene(class OScene* InScene);
+		virtual void RemovedFromScene();
 
 		virtual void UpdateTransform();
 

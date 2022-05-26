@@ -50,8 +50,8 @@ namespace SPP
 			return _bIsStatic;
 		}
 
-		virtual void _AddToScene(class GD_RenderScene* InScene) override;
-		virtual void _RemoveFromScene() override {}
+		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
+		virtual void _RemoveFromRenderScene() override {}
 
 		virtual void PrepareToDraw() override;
 		virtual void Draw() override;
@@ -103,9 +103,9 @@ namespace SPP
 		return std::make_shared< GD_VulkanRenderableMesh>(this, true);
 	}
 
-	void GD_VulkanRenderableMesh::_AddToScene(class GD_RenderScene* InScene)
+	void GD_VulkanRenderableMesh::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
-		GD_RenderableMesh::_AddToScene(InScene);
+		GD_RenderableMesh::_AddToRenderScene(InScene);
 
 		if (!_material)
 		{
@@ -272,14 +272,11 @@ namespace SPP
 		}
 		//set 1
 		{
-			VkDescriptorBufferInfo perFrameInfo;
-			perFrameInfo.buffer = cameraBuffer->GetBuffer();
-			perFrameInfo.offset = 0;
-			perFrameInfo.range = cameraBuffer->GetPerElementSize();
+			VkDescriptorImageInfo textureInfo;			
 
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 				vks::initializers::writeDescriptorSet(locaDrawSets[1],
-					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &perFrameInfo),
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureInfo),
 			};
 
 			vkUpdateDescriptorSets(vulkanDevice,

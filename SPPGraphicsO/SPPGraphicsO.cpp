@@ -16,22 +16,51 @@ namespace SPP
 
 	ORenderableScene::ORenderableScene(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
 	{
-		_renderScene = GGD()->CreateRenderScene();
+	}
+
+	void ORenderableScene::AddToGraphicsDevice(GraphicsDevice *InGraphicsDevice)
+	{
+		_owningDevice = InGraphicsDevice;
+		_renderScene = InGraphicsDevice->CreateRenderScene();
+
+		std::vector<OElement*> childCopy = _children;
+		
+		// reinit properly
+		for (auto& child : childCopy)
+		{
+			RemoveChild(child);
+			AddChild(child);
+		}
+
+		SE_ASSERT(childCopy == _children);
+
+		InGraphicsDevice->AddScene(_renderScene);
+	}
+
+	void ORenderableScene::RemoveFromGraphicsDevice(GraphicsDevice* InGraphicsDevice)
+	{		
+		auto sceneRef = _renderScene;
+
+		_renderScene.reset();
+		_owningDevice = nullptr;
+
+		std::vector<OElement*> childCopy = _children;
+
+		// reinit properly
+		for (auto& child : childCopy)
+		{
+			RemoveChild(child);
+			AddChild(child);
+		}
+
+		SE_ASSERT(childCopy == _children);
+
+		InGraphicsDevice->RemoveScene(sceneRef);
 	}
 
 	void ORenderableElement::UpdateSelection(bool IsSelected)
 	{
 		_selected = IsSelected;
-	}
-
-	void ORenderableElement::AddedToScene(class OScene* InScene)
-	{
-
-	}
-
-	void ORenderableElement::RemovedFromScene(class OScene* InScene)
-	{
-
 	}
 
 	void OMeshElement::UpdateSelection(bool IsSelected)
@@ -44,6 +73,8 @@ namespace SPP
 
 	void OMeshElement::AddedToScene(class OScene* InScene)
 	{
+		ORenderableElement::AddedToScene(InScene);
+
 		if (!InScene) return;
 
 		auto SceneType = InScene->get_type();
@@ -54,9 +85,14 @@ namespace SPP
 		{
 			auto thisRenderableScene = (ORenderableScene*)InScene;
 
+			// not ready yet
+			if (!thisRenderableScene->GetGraphicsDevice() 
+				|| !thisRenderableScene->GetRenderScene()) return;
+
+			auto sceneGD = thisRenderableScene->GetGraphicsDevice();
 			auto firstMesh = _meshObj->GetMesh()->GetMeshElements().front();
 
-			_renderableMesh = GGD()->CreateStaticMesh();
+			_renderableMesh = sceneGD->CreateStaticMesh();
 
 			auto localToWorld = GenerateLocalToWorld(true);	
 
@@ -80,15 +116,18 @@ namespace SPP
 				.scale = _scale,
 				});
 
-			_renderableMesh->AddToScene(thisRenderableScene->GetRenderScene());
+			_renderableMesh->AddToRenderScene(thisRenderableScene->GetRenderScene());
 		}
 	}
-	void OMeshElement::RemovedFromScene(class OScene* InScene)
+	void OMeshElement::RemovedFromScene()
 	{
-		if (!InScene) return;
+		ORenderableElement::RemovedFromScene();
 
-		_renderableMesh->RemoveFromScene();
-		_renderableMesh.reset();
+		if (_renderableMesh)
+		{
+			_renderableMesh->RemoveFromRenderScene();
+			_renderableMesh.reset();
+		}
 	}
 
 	bool OMeshElement::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
@@ -182,6 +221,15 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<OMaterial>("OMaterial")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_shaders", &OMaterial::_shaders)
+		.property("_textures", &OMaterial::_textures)
+		;
+
+	rttr::registration::class_<OShader>("OShader")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr

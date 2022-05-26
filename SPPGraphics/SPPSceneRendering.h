@@ -29,8 +29,8 @@ namespace SPP
 
 		bool _bSelected = false;
 
-		virtual void _AddToScene(class GD_RenderScene* InScene);
-		virtual void _RemoveFromScene();
+		virtual void _AddToRenderScene(class GD_RenderScene* InScene);
+		virtual void _RemoveFromRenderScene();
 
 	public:
 		struct Args
@@ -83,14 +83,14 @@ namespace SPP
 			return _scale;
 		}
 
-		GPU_CALL AddToScene(class GD_RenderScene* InScene)
+		GPU_CALL AddToRenderScene(class GD_RenderScene* InScene)
 		{
-			this->_AddToScene(InScene);
+			this->_AddToRenderScene(InScene);
 			co_return;
 		}
-		GPU_CALL RemoveFromScene()
+		GPU_CALL RemoveFromRenderScene()
 		{
-			this->_RemoveFromScene();
+			this->_RemoveFromRenderScene();
 			co_return;
 		}
 		
@@ -340,7 +340,7 @@ namespace SPP
 		std::shared_ptr<GD_Buffer> _vertexBuffer;
 		std::shared_ptr<GD_Buffer> _indexBuffer;
 
-		virtual void _AddToScene(class GD_RenderScene* InScene) override;
+		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
 
 	public:
 		struct Args 

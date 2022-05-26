@@ -108,7 +108,11 @@ public:
 
 #if 1
 		auto _renderableScene = LoadJsonScene(*AssetPath("testscene/drone-city.spj"));
-		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+
+		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
+
+		//renderableSceneShared = _renderableScene->GetRenderSceneShared();
+		//_graphicsDevice->AddScene(renderableSceneShared);
 #else
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);

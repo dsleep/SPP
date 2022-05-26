@@ -95,16 +95,7 @@ namespace SPP
 
 		//TODO FIXME
 		//GGI()->EndResourceCopies();
-	}
-
-	
-	void ShaderObject::LoadFromDisk(const AssetPath& FilePath, const char* EntryPoint, EShaderType InType)
-	{
-		_shader = GGD()->CreateShader();
-		SE_ASSERT(_shader);
-		_shader->Initialize(InType);
-		_shader->CompileShaderFromFile(FilePath, EntryPoint);
-	}
+	}	
 	
 	static uint32_t GHighestTextureID = 0;
 	static std::list<uint32_t> GTextureAvailIDs;
