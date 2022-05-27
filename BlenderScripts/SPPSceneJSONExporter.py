@@ -71,13 +71,13 @@ def exportMesh(curMesh, RootPath):
 
     triangulate_mesh(curMesh)
     
-    # this works only in object mode,
-    verts = curMesh.vertices
-    uv_layer = curMesh.uv_layers.active.data
     curMesh.calc_loop_triangles()  
     # tangents have to be pre-calculated
     # this will also calculate loop normal
-    curMesh.calc_tangents()
+    curMesh.calc_tangents()    
+    
+    # fix for uv, needed after calc's
+    uv_layer = curMesh.uv_layers.active.data
             
     fileVertTypes = 0b00000001 | 0b00000010 | 0b00000100 | 0b00001000 #has position, UV, normal, tangent
             
@@ -109,8 +109,8 @@ def exportMesh(curMesh, RootPath):
                 f.write(ctypes.c_float(curVertex.co[1]))
                 f.write(ctypes.c_float(curVertex.co[2]))
                 
-                f.write(ctypes.c_float(uv_layer[loop_index].uv[0]))
-                f.write(ctypes.c_float(uv_layer[loop_index].uv[1]))
+                f.write(ctypes.c_float(curUV[0]))
+                f.write(ctypes.c_float(curUV[1]))
                 
                 f.write(ctypes.c_float(curNormal[0]))
                 f.write(ctypes.c_float(curNormal[1]))

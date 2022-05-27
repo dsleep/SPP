@@ -109,6 +109,8 @@ public:
 #if 1
 		auto _renderableScene = LoadJsonScene(*AssetPath("scenes/materialtest/materialtest.spj"));
 		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
+
+		renderableSceneShared = _renderableScene->GetRenderSceneShared();
 #else
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);

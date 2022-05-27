@@ -6,12 +6,14 @@
 #include "VulkanDevice.h"
 #include "VulkanShaders.h"
 #include "VulkanRenderScene.h"
+#include "VulkanTexture.h"
 #include "SPPGraphics.h"
 #include "SPPGraphicsO.h"
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
 #include "SPPLogging.h"
+
 
 namespace SPP
 {	
@@ -272,11 +274,17 @@ namespace SPP
 		}
 		//set 1
 		{
-			VkDescriptorImageInfo textureInfo;			
+			auto& textures = _material->GetTextureArray();
+			auto gpuTexture = textures[0]->GetGPUTexture();
+			auto &currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
+
+			VkDescriptorImageInfo textureInfo = currentVulkanTexture.GetDescriptor();
 
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 				vks::initializers::writeDescriptorSet(locaDrawSets[1],
-					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureInfo),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &textureInfo),
+				vks::initializers::writeDescriptorSet(locaDrawSets[1],
+					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &textureInfo),
 			};
 
 			vkUpdateDescriptorSets(vulkanDevice,

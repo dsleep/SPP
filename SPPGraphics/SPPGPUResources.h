@@ -470,6 +470,10 @@ namespace SPP
         {
             _texture = _owner->_gxCreateTexture(Width, Height, Format, RawData, InMetaInfo);
         }
+        GPUReferencer< GPUTexture > GetGPUTexture()
+        {
+            return _texture;
+        }
     };
 
     class SPP_GRAPHICS_API GD_Material : public GD_Resource
@@ -500,6 +504,11 @@ namespace SPP
             _vertexShader = InArgs.vertexShader;
             _pixelShader = InArgs.pixelShader;
             _textureArray = InArgs.textureArray;
+        }
+
+        std::vector< std::shared_ptr<GD_Texture> > &GetTextureArray()
+        {
+            return _textureArray;
         }
     };
 
