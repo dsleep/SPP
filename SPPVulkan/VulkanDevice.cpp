@@ -436,7 +436,6 @@ namespace SPP
 
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
 
-
 		frameCopyList.resize(swapChain.imageCount);
 
 		for (auto& curCopy : frameCopyList)
@@ -452,6 +451,14 @@ namespace SPP
 	void VulkanGraphicsDevice::destroyCommandBuffers()
 	{
 		vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
+
+		for (auto& curCopy : frameCopyList)
+		{
+			vkFreeCommandBuffers(device, cmdPool, 1, &curCopy.cmdBuf);
+			vkDestroyFence(device, curCopy.fence, nullptr);
+		}
+
+		frameCopyList.clear();
 	}
 
 	void VulkanGraphicsDevice::setupDepthStencil()
@@ -612,10 +619,11 @@ namespace SPP
 		windowInstance = GetModuleHandle(NULL);
 #endif
 
-		DeviceInitialize();
-		initSwapchain();
 		width = InitialWidth;
 		height = InitialHeight;
+
+		DeviceInitialize();
+		initSwapchain();
 
 		cmdPool = vulkanDevice->createCommandPool(swapChain.queueNodeIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 		setupSwapChain();
@@ -630,7 +638,23 @@ namespace SPP
 
 	void VulkanGraphicsDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
 	{
+		if (width != NewWidth || height != NewHeight)
+		{
+			// Ensure all operations on the device have been finished before destroying resources
+			vkDeviceWaitIdle(device);
 
+			// Recreate swap chain
+			width = NewWidth;
+			height = NewHeight;
+			setupSwapChain();
+
+			//DESTROY AND REMAKE FRAME BUFFERS
+
+			destroyCommandBuffers();
+			createCommandBuffers();
+
+			vkDeviceWaitIdle(device);
+		}
 	}
 
 	int32_t VulkanGraphicsDevice::GetDeviceWidth() const
@@ -651,8 +675,9 @@ namespace SPP
 		SE_ASSERT(swapChain.imageCount);
 
 		std::vector<VkDescriptorPoolSize> simplePool = {
-
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 100),
 		};
 		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);	
 
