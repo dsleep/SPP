@@ -27,14 +27,14 @@ namespace SPP
 
 	
 
-	VulkanRenderScene::VulkanRenderScene()
+	VulkanRenderScene::VulkanRenderScene(GraphicsDevice* InOwner) : GD_RenderScene(InOwner)
 	{
 		//SE_ASSERT(I());
 
-		_defaultMaterial = GGD()->CreateMaterial();
+		_defaultMaterial = _owner->CreateMaterial();
 		
-		_meshvertexShader = GGD()->CreateShader();
-		_meshpixelShader = GGD()->CreateShader();
+		_meshvertexShader = _owner->CreateShader();
+		_meshpixelShader = _owner->CreateShader();
 	}
 
 	void VulkanRenderScene::AddedToGraphicsDevice()
@@ -387,7 +387,7 @@ namespace SPP
 
 	std::shared_ptr< class GD_RenderScene > VulkanGraphicsDevice::CreateRenderScene()
 	{
-		return std::make_shared<VulkanRenderScene>();
+		return std::make_shared<VulkanRenderScene>(this);
 	}
 
 	void VulkanRenderScene::BeginFrame()

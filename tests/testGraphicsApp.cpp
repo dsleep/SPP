@@ -111,6 +111,9 @@ public:
 		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
 
 		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+
+		auto& cam = renderableSceneShared->GetCamera();
+		cam.GetCameraPosition()[2] = -100;
 #else
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);
@@ -281,7 +284,7 @@ public:
 			_mouseCaptureSpot = _mousePosition;
 
 			auto& cam = renderableSceneShared->GetCamera();
-			cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
+			cam.TurnCamera(Vector2(-Delta[0], Delta[1]));
 		}		
 	}
 

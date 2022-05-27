@@ -129,12 +129,14 @@ namespace SPP
 			Eigen::AngleAxisf rollAngle(_eulerRotationYPR[2]  * degToRad, Vector3::UnitZ());
 			Eigen::Quaternion<float> q = rollAngle * yawAngle * pitchAngle;
 
-			Matrix3x3 rotationMatrix = q.matrix();
-			rotationMatrix(0, 0) *= _scale[0];
-			rotationMatrix(1, 1) *= _scale[1];
-			rotationMatrix(2, 2) *= _scale[2];
+			Matrix3x3 scaleMatrix = Matrix3x3::Identity();
+			scaleMatrix(0, 0) = _scale[0];
+			scaleMatrix(1, 1) = _scale[1];
+			scaleMatrix(2, 2) = _scale[2];
 
-			return rotationMatrix;
+			Matrix3x3 rotationMatrix = q.matrix();
+
+			return scaleMatrix * rotationMatrix;
 		}
 
 		virtual Spherei GetBounds() const
@@ -168,8 +170,11 @@ namespace SPP
 
 		GPUReferencer< GPUTexture > _skyBox;
 
+		GraphicsDevice* _owner = nullptr;
+
 	public:
-		GD_RenderScene() 
+
+		GD_RenderScene(GraphicsDevice* InOwner) : _owner(InOwner)
 		{
 			_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 45.0f, 1.77f);
 			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);

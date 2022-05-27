@@ -222,7 +222,7 @@ namespace SPP
 	{
 		if (!_texture)
 		{
-			_texture = GGD()->CreateTexture();
+			_texture = InOwner->CreateTexture();
 
 			GPUThreaPool->enqueue([this]()
 				{

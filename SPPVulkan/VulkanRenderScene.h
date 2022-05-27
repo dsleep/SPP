@@ -97,6 +97,7 @@ namespace SPP
 		std::shared_ptr< class GD_Shader > _meshvertexShader, _meshpixelShader;
 
 	public:
+		VulkanRenderScene(GraphicsDevice* InOwner);
 		VulkanRenderScene();
 
 		void DrawSkyBox();

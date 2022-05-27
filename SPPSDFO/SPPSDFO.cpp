@@ -27,9 +27,10 @@ namespace SPP
 			sdfArgs.eulerRotationYPR = _rotation;
 			sdfArgs.shapes = _shapeCache;
 			sdfArgs.color = _color;
-			_renderableSDF = GGD()->CreateSignedDistanceField();
+			
 			//TODO FIXME add setting of sdf
-			_renderableSDF->AddToRenderScene(((ORenderableScene*)InScene)->GetRenderScene());
+			//_renderableSDF = GGD()->CreateSignedDistanceField();
+			//_renderableSDF->AddToRenderScene(((ORenderableScene*)InScene)->GetRenderScene());
 		}
 	}
 

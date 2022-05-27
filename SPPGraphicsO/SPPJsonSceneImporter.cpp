@@ -106,21 +106,27 @@ namespace SPP
 					Json::Value jRot = jTransform.get("rotation", Json::Value::nullSingleton());
 					Json::Value jScale = jTransform.get("scale", Json::Value::nullSingleton());
 					
+					auto& curRot = meshElement->GetRotation();
+					auto& curPos = meshElement->GetPosition();
+					auto& curScale = meshElement->GetScale();
+
 					for (int32_t Iter = 0; Iter < 3; Iter++)
-					{
-						auto& curPos = meshElement->GetPosition();
+					{						
 						curPos[Iter] = jLocation[Iter].asDouble();
 					}
 
 					for (int32_t Iter = 0; Iter < 3; Iter++)
-					{
-						auto& curRot = meshElement->GetRotation();
+					{						
 						curRot[Iter] = jRot[Iter].asFloat();
 					}
+										
+					std::swap(curRot[0], curRot[1]);
+					curRot[1] = -curRot[1];
+					std::swap(curRot[0], curRot[2]);
+					curRot[0] = -curRot[0];
 
 					for (int32_t Iter = 0; Iter < 3; Iter++)
-					{
-						auto& curScale = meshElement->GetScale();
+					{						
 						curScale[Iter] = jScale[Iter].asFloat();
 					}
 

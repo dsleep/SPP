@@ -210,12 +210,4 @@ namespace SPP
 		GGIPtr = InGraphicsIterface;
 	}
 
-	GraphicsDevice* GGD()
-	{
-		return GGDPtr;
-	}
-	void SET_GGD(GraphicsDevice* InGraphicsDevice)
-	{
-		GGDPtr = InGraphicsDevice;
-	}
 }

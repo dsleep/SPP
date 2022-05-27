@@ -31,6 +31,7 @@ import ctypes
 import json
 import os
 import time
+import mathutils
 
 from pathlib import Path
 
@@ -54,6 +55,12 @@ from bpy.types import (
 )
 
 from bpy import context
+
+
+flipMatrix = mathutils.Matrix(((1.0, 0.0, 0.0, 0.0),
+                                (0.0, 0.0, -1.0, 0.0),
+                                (0.0, 1.0, 0.0, 0.0),
+                                (0.0, 0.0, 0.0, 1.0)))
 
 
 def triangulate_mesh(curMesh):
@@ -251,9 +258,11 @@ def do_export(context, props, filepath):
         print(obj.name, obj, obj.mode, obj.type)
         #if obj.type == 'MESH': 
         #print("Has Mesh: ", obj.name)
-        print(obj.matrix_world[0])
+        #print(obj.matrix_world[0])
         
-        loc, rot, scale = obj.matrix_world.decompose()
+        correctedWorld = flipMatrix @ obj.matrix_world
+        
+        loc, rot, scale = correctedWorld.decompose()
         rot = rot.to_euler()
         
         rot.x *= 57.2958

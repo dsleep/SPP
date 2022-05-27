@@ -575,7 +575,4 @@ namespace SPP
     // global graphics interface
     SPP_GRAPHICS_API IGraphicsInterface* GGI();
     SPP_GRAPHICS_API void SET_GGI(IGraphicsInterface *InGraphicsIterface);
-    // should this be handled better?
-    SPP_GRAPHICS_API GraphicsDevice* GGD();
-    SPP_GRAPHICS_API void SET_GGD(GraphicsDevice* InGraphicsDevice);
 }

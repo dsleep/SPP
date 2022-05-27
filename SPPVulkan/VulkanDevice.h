@@ -181,7 +181,6 @@ namespace SPP
 	public:
 		VulkanGraphicsDevice()
 		{
-			SET_GGD(this);
 		}
 
 		vks::VulkanDevice* GetVKSVulkanDevice() {
