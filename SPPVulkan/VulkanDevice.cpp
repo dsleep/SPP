@@ -393,9 +393,10 @@ namespace SPP
 	{
 		// Wait fences to sync command buffer access
 		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-		waitFences.resize(drawCmdBuffers.size());
-		for (auto& fence : waitFences) {
-			VK_CHECK_RESULT(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence));
+
+		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
+		{
+			_waitFences[Iter].reset(new SafeVkFence(device, fenceCreateInfo));
 		}
 	}
 
@@ -425,40 +426,35 @@ namespace SPP
 
 	void VulkanGraphicsDevice::createCommandBuffers()
 	{
-		// Create one command buffer for each swap chain image and reuse for rendering
-		drawCmdBuffers.resize(swapChain.imageCount);
-
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo =
 			vks::initializers::commandBufferAllocateInfo(
 				cmdPool,
 				VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-				static_cast<uint32_t>(drawCmdBuffers.size()));
+				1);
 
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.data()));
+		VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 
-		frameCopyList.resize(swapChain.imageCount);
-
-		for (auto& curCopy : frameCopyList)
+		// Create one command buffer for each swap chain image and reuse for rendering
+		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(cmdPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &curCopy.cmdBuf ));
-
-			VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-			VK_CHECK_RESULT(vkCreateFence(device, &fenceInfo, nullptr, &curCopy.fence));
+			_drawCmdBuffers[Iter].reset(new SafeVkCommandBuffer(device, cmdBufAllocateInfo));
+			_copyCmdBuffers[Iter].cmdBuf.reset(new SafeVkCommandBuffer(device, cmdBufAllocateInfo));
+			_copyCmdBuffers[Iter].fence.reset(new SafeVkFence(device, fenceInfo));
 		}
 	}
 
 	void VulkanGraphicsDevice::destroyCommandBuffers()
 	{
-		vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.size()), drawCmdBuffers.data());
-
-		for (auto& curCopy : frameCopyList)
+		for (auto& curBuf : _drawCmdBuffers)
 		{
-			vkFreeCommandBuffers(device, cmdPool, 1, &curCopy.cmdBuf);
-			vkDestroyFence(device, curCopy.fence, nullptr);
+			curBuf.reset();
 		}
-
-		frameCopyList.clear();
+		for (auto& curCopy : _copyCmdBuffers)
+		{
+			curCopy.cmdBuf.reset();
+			curCopy.fence.reset();
+			curCopy.bHasBegun = false;
+		}
 	}
 
 	void VulkanGraphicsDevice::setupDepthStencil()
@@ -474,21 +470,23 @@ namespace SPP
 		imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-		VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &depthStencil.image));
+		depthStencil.image.reset(new SafeVkImage(device, imageCI));
+
 		VkMemoryRequirements memReqs{};
-		vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
+		vkGetImageMemoryRequirements(device, depthStencil.image->Get(), &memReqs);
 
 		VkMemoryAllocateInfo memAllloc{};
 		memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memAllloc.allocationSize = memReqs.size;
 		memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device, &memAllloc, nullptr, &depthStencil.mem));
-		VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0));
+		depthStencil.mem.reset(new SafeVkDeviceMemory(device, memAllloc));
+
+		VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image->Get(), depthStencil.mem->Get(), 0));
 
 		VkImageViewCreateInfo imageViewCI{};
 		imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCI.image = depthStencil.image;
+		imageViewCI.image = depthStencil.image->Get();
 		imageViewCI.format = depthFormat;
 		imageViewCI.subresourceRange.baseMipLevel = 0;
 		imageViewCI.subresourceRange.levelCount = 1;
@@ -499,7 +497,7 @@ namespace SPP
 		if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
 			imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
-		VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &depthStencil.view));
+		depthStencil.view.reset(new SafeVkImageView(device, imageViewCI));
 	}
 
 	void VulkanGraphicsDevice::setupRenderPass()
@@ -580,7 +578,7 @@ namespace SPP
 		VkImageView attachments[2];
 
 		// Depth/Stencil attachment is the same for all frame buffers
-		attachments[1] = depthStencil.view;
+		attachments[1] = depthStencil.view->Get();
 
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -700,39 +698,39 @@ namespace SPP
 		SE_ASSERT(IsOnGPUThread());
 		SE_ASSERT(!bDrawPhase);
 			
-		auto& curCopier = frameCopyList[currentBuffer];
+		auto& curCopier = _copyCmdBuffers[currentBuffer];
 
 		if (!curCopier.bHasBegun)
 		{
-			VK_CHECK_RESULT(vkWaitForFences(device, 1, &curCopier.fence, VK_TRUE, UINT64_MAX));
-			VK_CHECK_RESULT(vkResetFences(device, 1, &curCopier.fence));
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &curCopier.fence->Get(), VK_TRUE, UINT64_MAX));
+			VK_CHECK_RESULT(vkResetFences(device, 1, &curCopier.fence->Get()));
 
-			VK_CHECK_RESULT(vkResetCommandBuffer(curCopier.cmdBuf, 0));
+			VK_CHECK_RESULT(vkResetCommandBuffer(curCopier.cmdBuf->Get(), 0));
 			VkCommandBufferBeginInfo cmdBufInfo = {};
 			cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			cmdBufInfo.pNext = nullptr;
 			cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-			VK_CHECK_RESULT(vkBeginCommandBuffer(curCopier.cmdBuf, &cmdBufInfo));
+			VK_CHECK_RESULT(vkBeginCommandBuffer(curCopier.cmdBuf->Get(), &cmdBufInfo));
 
 			curCopier.bHasBegun = true;
 		}
 
-		return curCopier.cmdBuf;
+		return curCopier.cmdBuf->Get();
 	}
 
 	void VulkanGraphicsDevice::SubmitCopyCommands()
 	{
-		auto& curCopier = frameCopyList[currentBuffer];
+		auto& curCopier = _copyCmdBuffers[currentBuffer];
 		
 		if (curCopier.bHasBegun)
 		{
-			VK_CHECK_RESULT(vkEndCommandBuffer(curCopier.cmdBuf));
+			VK_CHECK_RESULT(vkEndCommandBuffer(curCopier.cmdBuf->Get()));
 
 			VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &curCopier.cmdBuf;
+			submitInfo.pCommandBuffers = &curCopier.cmdBuf->Get();
 			// Submit to the queue
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, curCopier.fence));
+			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, curCopier.fence->Get()));
 
 			curCopier.bHasBegun = false;
 		}
@@ -745,22 +743,24 @@ namespace SPP
 		// Acquire the next image from the swap chain
 		VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
 		// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR))
+		{
 			//windowResize();
 		}
-		else {
+		else 
+		{
 			VK_CHECK_RESULT(result);
 		}
 		
 		// Use a fence to wait until the command buffer has finished execution before using it again
-		VK_CHECK_RESULT(vkWaitForFences(device, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-		VK_CHECK_RESULT(vkResetFences(device, 1, &waitFences[currentBuffer]));
+		VK_CHECK_RESULT(vkWaitForFences(device, 1, &_waitFences[currentBuffer]->Get(), VK_TRUE, UINT64_MAX));
+		VK_CHECK_RESULT(vkResetFences(device, 1, &_waitFences[currentBuffer]->Get()));
 
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
 
 		VK_CHECK_RESULT(vkResetDescriptorPool(device, _perDrawPools[currentBuffer], 0));
 
-		auto& commandBuffer = drawCmdBuffers[currentBuffer];
+		auto& commandBuffer = _drawCmdBuffers[currentBuffer]->Get();
 		VK_CHECK_RESULT(vkResetCommandBuffer(commandBuffer, 0));
 		VkCommandBufferBeginInfo cmdBufInfo = {};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -777,7 +777,7 @@ namespace SPP
 	{
 		bDrawPhase = false;
 
-		auto& commandBuffer = drawCmdBuffers[currentBuffer];
+		auto& commandBuffer = _drawCmdBuffers[currentBuffer]->Get();
 		vkCmdEndRenderPass(commandBuffer);
 
 		// Ending the render pass will add an implicit barrier transitioning the frame buffer color attachment to
@@ -795,20 +795,23 @@ namespace SPP
 		submitInfo.waitSemaphoreCount = 1;                           // One wait semaphore
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;     // Semaphore(s) to be signaled when command buffers have completed
 		submitInfo.signalSemaphoreCount = 1;                         // One signal semaphore
-		submitInfo.pCommandBuffers = &drawCmdBuffers[currentBuffer]; // Command buffers(s) to execute in this batch (submission)
+		submitInfo.pCommandBuffers = &_drawCmdBuffers[currentBuffer]->Get(); // Command buffers(s) to execute in this batch (submission)
 		submitInfo.commandBufferCount = 1;                           // One command buffer
 
 		// Submit to the graphics queue passing a wait fence
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, waitFences[currentBuffer]));
+		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, _waitFences[currentBuffer]->Get()));
 
 		VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-		if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-			if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) 
+		{
+			if (result == VK_ERROR_OUT_OF_DATE_KHR) 
+			{
 				// Swap chain is no longer compatible with the surface and needs to be recreated
 				//windowResize();
 				return;
 			}
-			else {
+			else 
+			{
 				VK_CHECK_RESULT(result);
 			}
 		}

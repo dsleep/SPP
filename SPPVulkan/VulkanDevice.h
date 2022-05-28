@@ -31,6 +31,8 @@ namespace vks
 	struct VulkanDevice;
 }
 
+#define MAX_IN_FLIGHT 3
+
 namespace SPP
 {
 	struct VulkanPipelineStateKey
@@ -67,6 +69,157 @@ namespace SPP
 		virtual void InitializeLayout(const std::vector<VertexStream>& vertexStreams) override;
 	};
 
+	class SafeVkCommandBuffer
+	{
+	private:
+		VkDevice _owningDevice = nullptr;
+		VkCommandBuffer _cmdBuf = nullptr;
+		VkCommandPool _owningPool = nullptr;
+
+	public:
+		SafeVkCommandBuffer(VkDevice InDevice, const VkCommandBufferAllocateInfo& info)
+		{
+			SE_ASSERT(_cmdBuf == nullptr);
+			_owningDevice = InDevice;
+			_owningPool = info.commandPool;
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(_owningDevice, &info, &_cmdBuf));
+		}
+		~SafeVkCommandBuffer()
+		{
+			if (_cmdBuf)
+			{
+				vkFreeCommandBuffers(_owningDevice, _owningPool, 1, &_cmdBuf);
+			}
+		}
+		VkCommandBuffer &Get()
+		{
+			return _cmdBuf;
+		}
+	};
+
+	class SafeVkFence
+	{
+	private:
+		VkDevice _owningDevice = nullptr;
+		VkFence _fence = nullptr;
+		
+	public:
+		SafeVkFence(VkDevice InDevice, const VkFenceCreateInfo &info)
+		{
+			SE_ASSERT(_fence == nullptr);
+			_owningDevice = InDevice;
+			VK_CHECK_RESULT(vkCreateFence(_owningDevice, &info, nullptr, &_fence));
+		}
+		~SafeVkFence()
+		{
+			if (_fence)
+			{
+				vkDestroyFence(_owningDevice, _fence, nullptr);
+				_fence = nullptr;
+			}
+			_owningDevice = nullptr;
+		}
+		VkFence &Get()
+		{
+			return _fence;
+		}
+	};
+
+	//VkImage image;
+	//VkDeviceMemory mem;
+	//VkImageView view;
+
+	class SafeVkImage
+	{
+	private:
+		VkDevice _owningDevice = nullptr;
+		VkImage _resource = nullptr;
+
+	public:
+		SafeVkImage(VkDevice InDevice, const VkImageCreateInfo& info)
+		{
+			SE_ASSERT(_resource == nullptr);
+			_owningDevice = InDevice;
+			VK_CHECK_RESULT(vkCreateImage(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkImage()
+		{
+			if (_resource)
+			{
+				vkDestroyImage(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+			_owningDevice = nullptr;
+		}
+		VkImage& Get()
+		{
+			return _resource;
+		}
+	};
+
+	class SafeVkDeviceMemory
+	{
+	private:
+		VkDevice _owningDevice = nullptr;
+		VkDeviceMemory _resource = nullptr;
+
+	public:
+		SafeVkDeviceMemory(VkDevice InDevice, const VkMemoryAllocateInfo& info)
+		{
+			SE_ASSERT(_resource == nullptr);
+			_owningDevice = InDevice;
+			VK_CHECK_RESULT(vkAllocateMemory(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkDeviceMemory()
+		{
+			if (_resource)
+			{
+				vkFreeMemory(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+			_owningDevice = nullptr;
+		}
+		VkDeviceMemory& Get()
+		{
+			return _resource;
+		}
+	};
+
+	class SafeVkImageView
+	{
+	private:
+		VkDevice _owningDevice = nullptr;
+		VkImageView _resource = nullptr;
+
+	public:
+		SafeVkImageView(VkDevice InDevice, const VkImageViewCreateInfo& info)
+		{
+			SE_ASSERT(_resource == nullptr);
+			_owningDevice = InDevice;
+			VK_CHECK_RESULT(vkCreateImageView(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkImageView()
+		{
+			if (_resource)
+			{
+				vkDestroyImageView(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+			_owningDevice = nullptr;
+		}
+		VkImageView& Get()
+		{
+			return _resource;
+		}
+	};
+
+	struct SafeVkCommandAndFence
+	{
+		std::unique_ptr<SafeVkFence> fence;
+		std::unique_ptr<SafeVkCommandBuffer> cmdBuf;
+		bool bHasBegun = false;
+	};
+
 	class VulkanGraphicsDevice : public GraphicsDevice
 	{
 	private:
@@ -99,21 +252,25 @@ namespace SPP
 		VkQueue queue;
 		// Depth buffer format (selected during Vulkan initialization)
 		VkFormat depthFormat;
-		// Command buffer pool
-		VkCommandPool cmdPool;
+		
 		/** @brief Pipeline stages used to wait at for graphics queue submissions */
 		VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		// Contains command buffers and semaphores to be presented to the queue
 		VkSubmitInfo submitInfo;
-		// Command buffers used for rendering
-		std::vector<VkCommandBuffer> drawCmdBuffers;
 		// Global render pass for frame buffer writes
 		VkRenderPass renderPass = VK_NULL_HANDLE;
+
+		// Command buffer pool
+		VkCommandPool cmdPool;
 		// List of available frame buffers (same as number of swap chain images)
-		std::vector<VkFramebuffer>frameBuffers;
+		std::vector<VkFramebuffer> frameBuffers;
+		
 
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
+		// Command buffers used for rendering
+		std::array< std::unique_ptr<SafeVkCommandBuffer>, MAX_IN_FLIGHT > _drawCmdBuffers;
+		std::array< SafeVkCommandAndFence, MAX_IN_FLIGHT > _copyCmdBuffers;
 
 		std::atomic_bool bDrawPhase{ false };
 
@@ -123,6 +280,7 @@ namespace SPP
 		VkPipelineCache pipelineCache;
 		// Wraps the swap chain to present images (framebuffers) to the windowing system
 		VulkanSwapChain swapChain;
+
 		// Synchronization semaphores
 		struct {
 			// Swap chain image presentation
@@ -130,12 +288,13 @@ namespace SPP
 			// Command buffer submission and execution
 			VkSemaphore renderComplete;
 		} semaphores;
-		std::vector<VkFence> waitFences;
+
+		std::array< std::unique_ptr<SafeVkFence>, MAX_IN_FLIGHT > _waitFences;
 
 		struct {
-			VkImage image;
-			VkDeviceMemory mem;
-			VkImageView view;
+			std::unique_ptr<SafeVkImage> image;
+			std::unique_ptr<SafeVkDeviceMemory> mem;
+			std::unique_ptr<SafeVkImageView> view;
 		} depthStencil;
 
 		/** @brief Encapsulated physical and logical vulkan device */
@@ -212,17 +371,8 @@ namespace SPP
 
 		VkCommandBuffer& GetActiveCommandBuffer()
 		{
-			return drawCmdBuffers[currentBuffer];
+			return _drawCmdBuffers[currentBuffer]->Get();
 		}
-
-		struct CommandCall
-		{
-			VkFence fence = nullptr;
-			VkCommandBuffer cmdBuf = nullptr;
-			bool bHasBegun = false;
-		};
-
-		std::vector< CommandCall > frameCopyList;
 
 		VkCommandBuffer& GetCopyCommandBuffer();
 
