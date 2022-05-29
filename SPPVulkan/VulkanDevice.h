@@ -213,6 +213,34 @@ namespace SPP
 		}
 	};
 
+	class SafeVkFrameBuffer
+	{
+	private:
+		VkDevice _owningDevice = nullptr;
+		VkFramebuffer _resource = nullptr;
+
+	public:
+		SafeVkFrameBuffer(VkDevice InDevice, const VkFramebufferCreateInfo& info)
+		{
+			SE_ASSERT(_resource == nullptr);
+			_owningDevice = InDevice;
+			VK_CHECK_RESULT(vkCreateFramebuffer(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkFrameBuffer()
+		{
+			if (_resource)
+			{
+				vkDestroyFramebuffer(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+			_owningDevice = nullptr;
+		}
+		VkFramebuffer& Get()
+		{
+			return _resource;
+		}
+	};
+
 	struct SafeVkCommandAndFence
 	{
 		std::unique_ptr<SafeVkFence> fence;
@@ -262,12 +290,11 @@ namespace SPP
 
 		// Command buffer pool
 		VkCommandPool cmdPool;
-		// List of available frame buffers (same as number of swap chain images)
-		std::vector<VkFramebuffer> frameBuffers;
-		
 
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
+		// List of available frame buffers (same as number of swap chain images)
+		std::array< std::unique_ptr<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
 		// Command buffers used for rendering
 		std::array< std::unique_ptr<SafeVkCommandBuffer>, MAX_IN_FLIGHT > _drawCmdBuffers;
 		std::array< SafeVkCommandAndFence, MAX_IN_FLIGHT > _copyCmdBuffers;
@@ -319,7 +346,6 @@ namespace SPP
 
 		std::vector< VkDescriptorPool >  _perDrawPools;
 
-
 		VkResult createInstance(bool enableValidation);
 		bool DeviceInitialize();
 		void nextFrame();
@@ -331,9 +357,14 @@ namespace SPP
 		void setupSwapChain();
 		void createCommandBuffers();
 		void destroyCommandBuffers();
-		void setupDepthStencil();
+		
 		void setupRenderPass();
+
+		void setupDepthStencil();
+		void destroyDepthStencil();
+
 		void setupFrameBuffer();
+		void destroyFrameBuffer();
 
 		void CreateDescriptorPool();
 
@@ -352,7 +383,7 @@ namespace SPP
 
 		VkFramebuffer GetActiveFrameBuffer()
 		{
-			return frameBuffers[currentBuffer];
+			return _frameBuffers[currentBuffer]->Get();
 		}
 
 		VkDescriptorPool GetActiveDescriptorPool()
