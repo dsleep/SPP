@@ -1,12 +1,8 @@
-/*
-* Vulkan device class
-*
-* Encapsulates a physical Vulkan device and its logical representation
-*
-* Copyright (C) by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+// Copyright(c) David Sleeper(Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
+//
+// Modified original code from Sascha Willems - www.saschawillems.de
 
 #include <VulkanDevice.h>
 #include "VulkanShaders.h"

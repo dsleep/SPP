@@ -1,12 +1,8 @@
-/*
-* Vulkan device class
-*
-* Encapsulates a physical Vulkan device and its logical representation
-*
-* Copyright (C) by Sascha Willems - www.saschawillems.de
-*
-* This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
-*/
+// Copyright(c) David Sleeper(Sleeping Robot LLC)
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
+//
+// Modified original code from Sascha Willems - www.saschawillems.de
 
 #pragma once
 
@@ -97,49 +93,49 @@ namespace SPP
 		}
 	};
 
-	class SafeVkFence
+	template<typename ResourceType>
+	class SafeVkResource
 	{
-	private:
+	protected:
 		VkDevice _owningDevice = nullptr;
-		VkFence _fence = nullptr;
-		
+		ResourceType _resource = nullptr;
+
 	public:
-		SafeVkFence(VkDevice InDevice, const VkFenceCreateInfo &info)
+		SafeVkResource(VkDevice InDevice) : _owningDevice(InDevice)
 		{
-			SE_ASSERT(_fence == nullptr);
-			_owningDevice = InDevice;
-			VK_CHECK_RESULT(vkCreateFence(_owningDevice, &info, nullptr, &_fence));
+			SE_ASSERT(InDevice);
 		}
-		~SafeVkFence()
+		~SafeVkResource() { _owningDevice = nullptr; }
+		ResourceType& Get()
 		{
-			if (_fence)
-			{
-				vkDestroyFence(_owningDevice, _fence, nullptr);
-				_fence = nullptr;
-			}
-			_owningDevice = nullptr;
-		}
-		VkFence &Get()
-		{
-			return _fence;
+			return _resource;
 		}
 	};
 
-	//VkImage image;
-	//VkDeviceMemory mem;
-	//VkImageView view;
-
-	class SafeVkImage
-	{
-	private:
-		VkDevice _owningDevice = nullptr;
-		VkImage _resource = nullptr;
-
+	class SafeVkFence : public SafeVkResource< VkFence >
+	{	
 	public:
-		SafeVkImage(VkDevice InDevice, const VkImageCreateInfo& info)
+		SafeVkFence(VkDevice InDevice, const VkFenceCreateInfo &info) :
+			SafeVkResource< VkFence >(InDevice)
 		{
-			SE_ASSERT(_resource == nullptr);
-			_owningDevice = InDevice;
+			VK_CHECK_RESULT(vkCreateFence(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkFence()
+		{
+			if (_resource)
+			{
+				vkDestroyFence(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+		}
+	};
+
+	class SafeVkImage : public SafeVkResource< VkImage >
+	{
+	public:
+		SafeVkImage(VkDevice InDevice, const VkImageCreateInfo& info) :
+			SafeVkResource< VkImage >(InDevice)
+		{
 			VK_CHECK_RESULT(vkCreateImage(_owningDevice, &info, nullptr, &_resource));
 		}
 		~SafeVkImage()
@@ -149,11 +145,6 @@ namespace SPP
 				vkDestroyImage(_owningDevice, _resource, nullptr);
 				_resource = nullptr;
 			}
-			_owningDevice = nullptr;
-		}
-		VkImage& Get()
-		{
-			return _resource;
 		}
 	};
 
@@ -213,17 +204,12 @@ namespace SPP
 		}
 	};
 
-	class SafeVkFrameBuffer
+	class SafeVkFrameBuffer : public SafeVkResource< VkFramebuffer >
 	{
-	private:
-		VkDevice _owningDevice = nullptr;
-		VkFramebuffer _resource = nullptr;
-
 	public:
-		SafeVkFrameBuffer(VkDevice InDevice, const VkFramebufferCreateInfo& info)
+		SafeVkFrameBuffer(VkDevice InDevice, const VkFramebufferCreateInfo& info) : 
+			SafeVkResource< VkFramebuffer >(InDevice)
 		{
-			SE_ASSERT(_resource == nullptr);
-			_owningDevice = InDevice;
 			VK_CHECK_RESULT(vkCreateFramebuffer(_owningDevice, &info, nullptr, &_resource));
 		}
 		~SafeVkFrameBuffer()
@@ -233,13 +219,45 @@ namespace SPP
 				vkDestroyFramebuffer(_owningDevice, _resource, nullptr);
 				_resource = nullptr;
 			}
-			_owningDevice = nullptr;
-		}
-		VkFramebuffer& Get()
-		{
-			return _resource;
 		}
 	};
+
+	class SafeVkRenderPass : public SafeVkResource< VkRenderPass >
+	{
+	public:
+		SafeVkRenderPass(VkDevice InDevice, const VkRenderPassCreateInfo& info) :
+			SafeVkResource< VkRenderPass >(InDevice)
+		{
+			VK_CHECK_RESULT(vkCreateRenderPass(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkRenderPass()
+		{
+			if (_resource)
+			{
+				vkDestroyRenderPass(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+		}
+	};
+
+	class SafeVkSampler : public SafeVkResource< VkSampler >
+	{
+	public:
+		SafeVkSampler(VkDevice InDevice, const VkSamplerCreateInfo& info) :
+			SafeVkResource< VkSampler >(InDevice)
+		{
+			VK_CHECK_RESULT(vkCreateSampler(_owningDevice, &info, nullptr, &_resource));
+		}
+		~SafeVkSampler()
+		{
+			if (_resource)
+			{
+				vkDestroySampler(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+		}
+	};
+
 
 	struct SafeVkCommandAndFence
 	{
