@@ -139,7 +139,7 @@ namespace std
 				if (curEquals == std::string::npos)
 				{
 					auto curKey = trimmed.substr(1);
-					oMap[curKey] = "";
+					oMap[curKey] = "true";
 				}
 				else if (curEquals != std::string::npos &&
 					curEquals > 1)

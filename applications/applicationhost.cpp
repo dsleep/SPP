@@ -566,59 +566,23 @@ IPv4_SocketAddress RemoteCoordAddres;
 std::string StunURL;
 uint16_t StunPort;
 
-int main(int argc, char* argv[])
+void MainWithLanOnly(const std::string& ThisRUNGUID,
+	const std::string& SimpleAppName,
+	const std::string& AppCommandline,
+	std::string ClientRequestCommandline,
+	const std::string& AppPath,
+	IPCMappedMemory& ipcMem)
 {
-	IntializeCore(nullptr);
 
-	std::vector<MonitorInfo> Infos;
-	GetMonitorInfo(Infos);
+}
 
-	{
-		Json::Value JsonConfig;
-		SE_ASSERT(FileToJson("config.txt", JsonConfig));
-		
-		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
-		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
-		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
-		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
-
-		SE_ASSERT(!STUN_URL.isNull());
-		SE_ASSERT(!STUN_PORT.isNull());
-		SE_ASSERT(!COORDINATOR_IP.isNull());
-		SE_ASSERT(!COORD_PASS.isNull());
-
-		StunURL = STUN_URL.asCString();
-		StunPort = STUN_PORT.asUInt();
-		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());		
-		CoordPWD = COORD_PASS.asCString();
-	}
-
-	auto ThisRUNGUID = std::generate_hex(3);
-	AddDLLSearchPath("../3rdParty/libav_CUDA/bin");
-
-	std::string ClientRequestCommandline;
-
-	auto CCMap = std::BuildCCMap(argc, argv);
-	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
-	auto AppPath = MapFindOrDefault(CCMap, "APP");
-	auto AppCommandline = MapFindOrDefault(CCMap, "CMDLINE");
-
-	SE_ASSERT(IPMemoryID);
-
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
-
-	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 1 * 1024 * 1024, false);
-
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
-	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
-
-	// START OS NETWORKING
-	GetOSNetwork();
-
-	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
-
+void MainWithNatTraverasl(const std::string &ThisRUNGUID, 
+	const std::string& SimpleAppName,
+	const std::string& AppCommandline,
+	std::string ClientRequestCommandline,
+	const std::string& AppPath,
+	IPCMappedMemory &ipcMem)
+{
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
 
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
@@ -630,43 +594,43 @@ int main(int argc, char* argv[])
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
 	coordinator->SetKeyPair("APPCL", AppCommandline);
 
-	coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get(), &ClientRequestCommandline](const std::string &InValue)
+	coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get(), &ClientRequestCommandline](const std::string& InValue)
+	{
+		SPP_LOG(LOG_APP, LOG_INFO, "CALLBACK: %s", InValue.c_str());
+
+		if (juiceSocket->HasRemoteSDP() == false)
 		{
-			SPP_LOG(LOG_APP, LOG_INFO, "CALLBACK: %s", InValue.c_str());
+			Json::Value root;
+			Json::CharReaderBuilder Builder;
+			Json::CharReader* reader = Builder.newCharReader();
+			std::string Errors;
 
-			if (juiceSocket->HasRemoteSDP() == false)
+			bool parsingSuccessful = reader->parse((char*)InValue.data(), (char*)(InValue.data() + InValue.length()), &root, &Errors);
+			delete reader;
+			if (!parsingSuccessful)
 			{
-				Json::Value root;
-				Json::CharReaderBuilder Builder;
-				Json::CharReader* reader = Builder.newCharReader();
-				std::string Errors;
+				return;
+			}
 
-				bool parsingSuccessful = reader->parse((char*)InValue.data(), (char*)(InValue.data() + InValue.length()), &root, &Errors);
-				delete reader;
-				if (!parsingSuccessful)
+			for (int32_t Iter = 0; Iter < root.size(); Iter++)
+			{
+				auto CurrentEle = root[Iter];
+
+				Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
+				Json::Value ConnectToValue = CurrentEle.get("GUIDCONNECTTO", Json::Value::nullSingleton());
+				Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
+				Json::Value APPCLValue = CurrentEle.get("APPCL", Json::Value(""));
+
+				if (!ConnectToValue.isNull() && !SDPValue.isNull() && !GUIDValue.isNull())
 				{
+					localCoord->SetKeyPair("GUIDCONNECTTO", GUIDValue.asCString());
+					ClientRequestCommandline = APPCLValue.asCString();
+					juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
 					return;
 				}
-
-				for (int32_t Iter = 0; Iter < root.size(); Iter++)
-				{
-					auto CurrentEle = root[Iter];
-
-					Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
-					Json::Value ConnectToValue = CurrentEle.get("GUIDCONNECTTO", Json::Value::nullSingleton());
-					Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
-					Json::Value APPCLValue = CurrentEle.get("APPCL", Json::Value(""));
-
-					if (!ConnectToValue.isNull() && !SDPValue.isNull() && !GUIDValue.isNull())
-					{
-						localCoord->SetKeyPair("GUIDCONNECTTO", GUIDValue.asCString());
-						ClientRequestCommandline = APPCLValue.asCString();
-						juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
-						return;
-					}					
-				}
 			}
-		});
+		}
+	});
 
 	std::shared_ptr< VideoConnection > videoConnection;
 
@@ -685,7 +649,7 @@ int main(int argc, char* argv[])
 		auto CurrentTime = std::chrono::steady_clock::now();
 		if (juiceSocket->IsReady())
 		{
-			coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));			
+			coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
 
 			if (!videoConnection &&
 				std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
@@ -723,7 +687,7 @@ int main(int argc, char* argv[])
 			{
 				JsonMessage["CONNSTATUS"] = 0;
 			}
-			
+
 
 			Json::StreamWriterBuilder wbuilder;
 			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
@@ -743,9 +707,9 @@ int main(int argc, char* argv[])
 			{
 				videoConnection.reset();
 				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-				SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");				
+				SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
 			}
-			else if(videoConnection->IsConnected())
+			else if (videoConnection->IsConnected())
 			{
 				coordinator->SetKeyPair("GUIDCONNECTTO", "");
 			}
@@ -760,7 +724,7 @@ int main(int argc, char* argv[])
 			else if (juiceSocket->IsConnected())
 			{
 				auto appCLArgs = std::str_split(AppCommandline, ';');
-				
+
 				std::string CLToUse = appCLArgs.empty() ? AppCommandline : appCLArgs[0];
 				for (auto& appCL : appCLArgs)
 				{
@@ -781,6 +745,80 @@ int main(int argc, char* argv[])
 		}
 
 		std::this_thread::sleep_for(1ms);
+	}
+}
+
+int main(int argc, char* argv[])
+{
+	IntializeCore(nullptr);
+
+	std::vector<MonitorInfo> Infos;
+	GetMonitorInfo(Infos);
+
+	{
+		Json::Value JsonConfig;
+		SE_ASSERT(FileToJson("config.txt", JsonConfig));
+		
+		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
+		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
+		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
+		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
+
+		SE_ASSERT(!STUN_URL.isNull());
+		SE_ASSERT(!STUN_PORT.isNull());
+		SE_ASSERT(!COORDINATOR_IP.isNull());
+		SE_ASSERT(!COORD_PASS.isNull());
+
+		StunURL = STUN_URL.asCString();
+		StunPort = STUN_PORT.asUInt();
+		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());		
+		CoordPWD = COORD_PASS.asCString();
+	}
+
+	auto ThisRUNGUID = std::generate_hex(3);
+	AddDLLSearchPath("../3rdParty/libav_CUDA/bin");
+
+	std::string ClientRequestCommandline;
+
+	auto CCMap = std::BuildCCMap(argc, argv);
+	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
+	auto AppPath = MapFindOrDefault(CCMap, "APP");
+	auto AppCommandline = MapFindOrDefault(CCMap, "CMDLINE");
+	auto lanonlyCC = MapFindOrDefault(CCMap, "lanonly");
+
+	SE_ASSERT(IPMemoryID);
+
+	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
+	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
+	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
+
+	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 1 * 1024 * 1024, false);
+
+	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
+	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
+
+	// START OS NETWORKING
+	GetOSNetwork();
+
+	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
+
+	if (lanonlyCC.length())
+	{
+		MainWithLanOnly(ThisRUNGUID,
+			SimpleAppName,
+			AppCommandline,
+			ClientRequestCommandline,
+			AppPath,
+			ipcMem);
+	}
+	else
+	{
+		MainWithNatTraverasl(ThisRUNGUID,
+			SimpleAppName,
+			AppCommandline,
+			ClientRequestCommandline,
+			AppPath,
+			ipcMem);
 	}
 
 	return 0;

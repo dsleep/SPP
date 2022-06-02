@@ -97,13 +97,19 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 	}
 	else if (InFunc == "StartupHost")
 	{
-		extern void HostThread();
-		if (!GWorkerThread)GWorkerThread.reset(new std::thread(HostThread));
+		auto jsonParamValue = InValue[0];
+		bool IsLanOnly = (bool)jsonParamValue.asInt();
+
+		extern void HostThread(bool);
+		if (!GWorkerThread)GWorkerThread.reset(new std::thread(HostThread, IsLanOnly));
 	}
 	else if (InFunc == "StartupClient")
 	{
-		extern void ClientThread();
-		if (!GWorkerThread)GWorkerThread.reset(new std::thread(ClientThread));
+		auto jsonParamValue = InValue[0]; 
+		bool IsLanOnly = (bool)jsonParamValue.asInt();
+
+		extern void ClientThread(bool);
+		if (!GWorkerThread)GWorkerThread.reset(new std::thread(ClientThread, IsLanOnly));
 	}
 
 }
@@ -157,10 +163,11 @@ void UpdateStatus(Json::Value &InJSON)
 /// <summary>
 /// Thread started up if you click host....
 /// </summary>
-void HostThread()
+void HostThread(bool bLanOnly)
 {
 	GIPCMemoryID = std::generate_hex(3);
-	std::string ArgString = std::string_format("-MEM=%s",GIPCMemoryID.c_str());
+	std::string ArgString = std::string_format("-MEM=%s %s",
+		GIPCMemoryID.c_str(), bLanOnly ? "-lanonly" : "");
 	GIPCMem.reset(new IPCMappedMemory(GIPCMemoryID.c_str(), MemSize, true));
 
 #if _DEBUG
@@ -210,12 +217,13 @@ void HostThread()
 /// <summary>
 /// Thread started up if you click connect to host
 /// </summary>
-void ClientThread()
+void ClientThread(bool bLanOnly)
 {
 	GIPCMemoryID = std::generate_hex(3);
 	GIPCMem.reset(new IPCMappedMemory(GIPCMemoryID.c_str(), MemSize, true));
 
-	std::string ArgString = std::string_format("-MEM=%s", GIPCMemoryID.c_str());
+	std::string ArgString = std::string_format("-MEM=%s %s",
+		GIPCMemoryID.c_str(), bLanOnly ? "-lanonly" : "");
 
 #if _DEBUG
 	GProcessID = CreateChildProcess("remoteviewerd",

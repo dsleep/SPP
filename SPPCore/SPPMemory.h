@@ -19,6 +19,8 @@ namespace SPP
 
 	class SPP_CORE_API IPCMappedMemory
 	{
+		NO_COPY_ALLOWED(IPCMappedMemory);
+
 	private:
 		struct PlatImpl;
 		std::unique_ptr<PlatImpl> _impl;

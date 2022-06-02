@@ -143,6 +143,12 @@ a:hover { color:white; }
 	display: inline-block;
 }
 
+#isLan {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+  }
+
 .ListAndStatusArea {
 	flex: 1 1 auto;
 	display: flex;
@@ -168,6 +174,10 @@ p
   <body>
   
 	  <div id="initialArea">  
+	  
+	  <div id="isLan"> 
+		Local Network Only <input type="checkbox" id="CB_Lan" checked>
+	  </div>
 			 <a href="javascript:IsHost();">
 		<div class="initialChoice" >
 		  Host Connection
@@ -224,8 +234,6 @@ p
 		
 		</div>
 		
-		
-	
 		  
 		<div id="serverBrowser" class="ListAndStatusArea" style="display: none;" > 
 		    <div style="flex: 0; "> <h2>Select server: </h2> </div> 
@@ -312,9 +320,12 @@ p
 					var subArea = document.getElementById("serverStatus");
 					subArea.style.display = null;
 					
+					
+					var IsLanSet = document.getElementById("isLan").checked ? 1 : 0
+					 
 					if(window.CallNativeWithJSON)
 					{
-						window.CallNativeWithJSON(JSON.stringify({ func: "StartupHost" }));
+						window.CallNativeWithJSON(JSON.stringify({ func: "StartupHost", args: [ IsLanSet ] }));
 					}
 				  },
 				  onExit(NextState) {
@@ -339,9 +350,12 @@ p
 					var subArea = document.getElementById("serverBrowser");
 					subArea.style.display = null;
 					
+					
+					var IsLanSet = document.getElementById("isLan").checked ? 1 : 0
+					
 					if(window.CallNativeWithJSON)
 					{
-						window.CallNativeWithJSON(JSON.stringify({ func: "StartupClient" }));
+						window.CallNativeWithJSON(JSON.stringify({ func: "StartupClient", args: [ IsLanSet ] }));
 					}	
 				  },
 				  onExit(NextState) {
