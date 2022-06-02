@@ -91,6 +91,11 @@
 		{
 			"Path": "PhysX1.4",
 			"Version": 1
+		},
+		{
+			"Path": "ffmpeg",
+			"Version": 1,
+			"BinCopy": [ "bin/*.dll" ]
 		}
 	]
 }

@@ -17,10 +17,12 @@
 
 extern "C"
 {
+
+#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/opt.h>
 #include <libavutil/mathematics.h>
-#include <libavresample/avresample.h>
+#include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
 }
 
@@ -40,59 +42,63 @@ namespace SPP
 	};
 
 
-	void InitLibAV()
+	void InitVideoLib()
 	{
 		static bool bIsReady = false;
 
 		if (bIsReady == false)
 		{
-			/* initialize libavcodec, and register all codecs and formats */
-			av_register_all();
 			bIsReady = true;
-
-			AVCodec * codec = NULL;
-			while (codec = av_codec_next(codec))
+			const AVCodec* codec = nullptr;
+			void* i = nullptr;
+			while ((codec = av_codec_iterate(&i)))
 			{
-				SPP_LOG(LOG_LAV, LOG_VERBOSE, "Found LIBAV Codec: %s type %s", codec->name, av_codec_is_encoder(codec) ? "encoder" : "decoder");
+				SPP_LOG(LOG_LAV, LOG_INFO, "Found LIBAV Codec: %s type %s", codec->name, av_codec_is_encoder(codec) ? "encoder" : "decoder");				
+			}
+
+			AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
+			while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
+			{
+				SPP_LOG(LOG_LAV, LOG_INFO, "Found LIBAV Hardware type %s", av_hwdevice_get_type_name(type));
 			}
 		}
 	}
 
 	RRMpegFileWriter::RRMpegFileWriter(const std::string &FileName, bool IsH265, int32_t Width, int32_t Height, int32_t InFPS) : _impl(new Impl())
 	{
-		InitLibAV();
+		InitVideoLib();
 
-		_impl->oc = avformat_alloc_context();
-		_impl->nFps = InFPS;
+		//_impl->oc = avformat_alloc_context();
+		//_impl->nFps = InFPS;
 
-		// Set format on oc
-		AVOutputFormat *fmt = av_guess_format("mpegts", NULL, NULL);
-		fmt->video_codec = IsH265 ? AV_CODEC_ID_HEVC : AV_CODEC_ID_H264;
+		//// Set format on oc
+		//AVOutputFormat *fmt = av_guess_format("mpegts", NULL, NULL);
+		//fmt->video_codec = IsH265 ? AV_CODEC_ID_HEVC : AV_CODEC_ID_H264;
 
-		_impl->oc->oformat = fmt;
-		//_impl->oc->url = av_strdup(szInFilePath);
-		//LOG(INFO) << "Streaming destination: " << oc->url;
+		//_impl->oc->oformat = fmt;
+		////_impl->oc->url = av_strdup(szInFilePath);
+		////LOG(INFO) << "Streaming destination: " << oc->url;
 
-		// Add video stream to oc
-		_impl->vs = avformat_new_stream(_impl->oc, NULL);
+		//// Add video stream to oc
+		//_impl->vs = avformat_new_stream(_impl->oc, NULL);
 
-		_impl->vs->id = 0;
+		//_impl->vs->id = 0;
 
-		// Set video parameters
-		auto *vpar = _impl->vs->codec;
-		vpar->codec_id = fmt->video_codec;
-		vpar->codec_type = AVMEDIA_TYPE_VIDEO;
-		vpar->width = Width;
-		vpar->height = Height;
+		//// Set video parameters
+		//auto *vpar = _impl->vs->codec;
+		//vpar->codec_id = fmt->video_codec;
+		//vpar->codec_type = AVMEDIA_TYPE_VIDEO;
+		//vpar->width = Width;
+		//vpar->height = Height;
 
-		// Everything is ready. Now open the output stream.
-		if (avio_open(&_impl->oc->pb, FileName.c_str(), AVIO_FLAG_WRITE) < 0) {
-		}
+		//// Everything is ready. Now open the output stream.
+		//if (avio_open(&_impl->oc->pb, FileName.c_str(), AVIO_FLAG_WRITE) < 0) {
+		//}
 
-		// Write the container header
-		if (avformat_write_header(_impl->oc, NULL)) {
+		//// Write the container header
+		//if (avformat_write_header(_impl->oc, NULL)) {
 
-		}
+		//}
 	}
 	RRMpegFileWriter::~RRMpegFileWriter()
 	{
@@ -245,43 +251,43 @@ namespace SPP
 
 	RRMpegFileReader::RRMpegFileReader(const uint8_t *InData, int64_t DataSize) : _impl(new Impl()), _data(InData), _dataSize(DataSize) 
 	{
-		InitLibAV();		
+		InitVideoLib();
 
-		_impl->memoryContext = std::make_shared< AVIOMemoryContext >(InData, DataSize);
-		_impl->ctx = avformat_alloc_context();
-		_impl->ctx->pb = _impl->memoryContext->get_avio();
+		//_impl->memoryContext = std::make_shared< AVIOMemoryContext >(InData, DataSize);
+		//_impl->ctx = avformat_alloc_context();
+		//_impl->ctx->pb = _impl->memoryContext->get_avio();
 
-		int ret = 0;
-		if ((ret = avformat_open_input(&_impl->ctx, "memory", NULL, NULL)) < 0)
-		{
-			SPP_LOG(LOG_LAV, LOG_INFO, "avformat_open_input failed!!!");
-			return;
-		}
-		if ((ret = avformat_find_stream_info(_impl->ctx, NULL)) < 0)
-		{
-			SPP_LOG(LOG_LAV, LOG_INFO, "avformat_find_stream_info failed!!!");
-			return;
-		}
+		//int ret = 0;
+		//if ((ret = avformat_open_input(&_impl->ctx, "memory", NULL, NULL)) < 0)
+		//{
+		//	SPP_LOG(LOG_LAV, LOG_INFO, "avformat_open_input failed!!!");
+		//	return;
+		//}
+		//if ((ret = avformat_find_stream_info(_impl->ctx, NULL)) < 0)
+		//{
+		//	SPP_LOG(LOG_LAV, LOG_INFO, "avformat_find_stream_info failed!!!");
+		//	return;
+		//}
 
-		for (int32_t Iter = 0; Iter < (int32_t)_impl->ctx->nb_streams; Iter++)
-		{
-			if (_impl->ctx->streams[Iter]->codec &&
-				_impl->ctx->streams[Iter]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-			{
-				// found video stream
-				SPP_LOG(LOG_LAV, LOG_INFO, "Found Video Stream");
-				SPP_LOG(LOG_LAV, LOG_INFO, " - Width: %d", _impl->ctx->streams[Iter]->codec->width);
-				SPP_LOG(LOG_LAV, LOG_INFO, " - Height: %d", _impl->ctx->streams[Iter]->codec->height);
-				SPP_LOG(LOG_LAV, LOG_INFO, " - Frames: %d", _impl->ctx->streams[Iter]->codec_info_nb_frames);
+		//for (int32_t Iter = 0; Iter < (int32_t)_impl->ctx->nb_streams; Iter++)
+		//{
+		//	if (_impl->ctx->streams[Iter]->codec &&
+		//		_impl->ctx->streams[Iter]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+		//	{
+		//		// found video stream
+		//		SPP_LOG(LOG_LAV, LOG_INFO, "Found Video Stream");
+		//		SPP_LOG(LOG_LAV, LOG_INFO, " - Width: %d", _impl->ctx->streams[Iter]->codec->width);
+		//		SPP_LOG(LOG_LAV, LOG_INFO, " - Height: %d", _impl->ctx->streams[Iter]->codec->height);
+		//		SPP_LOG(LOG_LAV, LOG_INFO, " - Frames: %d", _impl->ctx->streams[Iter]->codec_info_nb_frames);
 
-				_impl->c = _impl->ctx->streams[Iter]->codec;
-				_impl->parser = av_parser_init(_impl->ctx->streams[Iter]->codec->codec_id);
+		//		_impl->c = _impl->ctx->streams[Iter]->codec;
+		//		_impl->parser = av_parser_init(_impl->ctx->streams[Iter]->codec->codec_id);
 
-				break;
-			}
-		} 
+		//		break;
+		//	}
+		//} 
 
-		_impl->pkt = av_packet_alloc();
+		//_impl->pkt = av_packet_alloc();
 	}
 		
 
@@ -334,7 +340,7 @@ namespace SPP
 	{
 	protected:
 		SwsContext *convertCtx = nullptr;
-		AVCodec* _codec = NULL;
+		const AVCodec* _codec = NULL;
 		AVCodecContext* _codecContext = NULL;
 		AVCodecParserContext *_parser = nullptr;
 		AVFrame *yuvpic = nullptr;
@@ -358,7 +364,7 @@ namespace SPP
 			, _latency(latency)
 			, _bitrate(bitrate)
 		{
-			InitLibAV();
+			InitVideoLib();
 			
 			if (bIsEncoder)
 			{
@@ -373,7 +379,7 @@ namespace SPP
 				_codec = avcodec_find_decoder(AV_CODEC_ID_HEVC);
 			}
 
-			SE_ASSERT(_codec);		//No CPU encoder due to legal restrictions, use the GPU.
+			SE_ASSERT(_codec);		
 			_parser = av_parser_init(_codec->id); //codec was nullptr
 			
 			SPP_LOG(LOG_LAV, LOG_INFO, "USING Codec: %s", _codec->name);
@@ -381,12 +387,13 @@ namespace SPP
 			_codecContext = avcodec_alloc_context3(_codec);
 			SE_ASSERT(_codecContext);
 			
-			avcodec_get_context_defaults3(_codecContext, _codec);
+			//deprecated
+			//avcodec_get_context_defaults3(_codecContext, _codec);
 			_codecContext->codec = _codec;			
 			_codecContext->codec_id = _codec->id;
 			_codecContext->codec_type = _codec->type;
 
-			//av_opt_show2(_codecContext->priv_data, NULL, bIsEncoder ? AV_OPT_FLAG_ENCODING_PARAM : AV_OPT_FLAG_DECODING_PARAM, 0);
+			av_opt_show2(_codecContext->priv_data, NULL, bIsEncoder ? AV_OPT_FLAG_ENCODING_PARAM : AV_OPT_FLAG_DECODING_PARAM, 0);
 						
 			_codecContext->bit_rate = 120000;
 			_codecContext->width = _width;

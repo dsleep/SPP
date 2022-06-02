@@ -14,6 +14,17 @@ set_property(TARGET objectGeneralTests PROPERTY VS_DPI_AWARE "PerMonitor")
 
 if(OS_WINDOWS)
 
+add_executable( testVideo "")
+add_dependencies( testVideo SPPEngine SPPVideo )			
+target_sources( testVideo 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/testVideo.cpp" )		
+target_link_libraries( testVideo SPPEngine SPPVideo )
+set_target_properties( testVideo PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET testVideo PROPERTY FOLDER "TESTS")
+set_property(TARGET testVideo PROPERTY VS_DPI_AWARE "PerMonitor")
+
+
 ##########
 add_executable( coroutineTest "")
 add_dependencies( coroutineTest SPPCoroutines )			
