@@ -176,7 +176,8 @@ list(APPEND SPPProjects
 if(OS_WINDOWS)
 	list(APPEND SPPProjects			
 				"SPPCapture" 
-				"SPPVideo" )
+				"SPPVideo"
+				"SPPPhysX" )
 				
 	if(INCLUE_WEBSERVER)
 		list(APPEND SPPProjects

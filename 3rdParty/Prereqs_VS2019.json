@@ -87,6 +87,10 @@
 			"Path": "libdatachannel",
 			"Version": 1,
 			"BinCopy": [ "bin/*.dll" ]
+		},
+		{
+			"Path": "PhysX1.4",
+			"Version": 1
 		}
 	]
 }
