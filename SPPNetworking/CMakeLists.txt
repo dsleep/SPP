@@ -100,5 +100,9 @@ endif()
 
 install(TARGETS SPPNetworking DESTINATION "${SPP_ROOT}/INSTALL")
 
-
+if(OS_WINDOWS)
+    set_target_properties(SPPNetworking PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:datachannel.dll" )
+    set_target_properties(SPPNetworking PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:datachannel.dll" )
+    set_target_properties(SPPNetworking PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:datachanneld.dll" )
+endif()
 

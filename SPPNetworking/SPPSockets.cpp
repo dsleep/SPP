@@ -300,7 +300,7 @@ namespace SPP
 		return DataRecv;
 	}
 
-	UDPSocket::UDPSocket(uint16_t InPort, UDPSocketOptions::Value InSocketType) : _impl(new PlatImpl()), _socketType(InSocketType)
+	UDPSocket::UDPSocket(uint16_t InPort, UDPSocketOptions InSocketType) : _impl(new PlatImpl()), _socketType(InSocketType)
 	{
 		SPP_LOG(LOG_UDP, LOG_INFO, "Create UDPSocket Port %d Type %d", InPort, InSocketType);
 
@@ -793,7 +793,7 @@ namespace SPP
 		PlatImpl(SOCKET InSocket) : Socket(InSocket) { }
 	};
 
-	Active_UDP_Socket::Active_UDP_Socket(uint16_t InPort, UDPSocketOptions::Value InSocketType) :
+	Active_UDP_Socket::Active_UDP_Socket(uint16_t InPort, UDPSocketOptions InSocketType) :
 		_impl(new PlatImpl())
 	{
 		_socketType = InSocketType;

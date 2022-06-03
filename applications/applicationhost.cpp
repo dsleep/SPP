@@ -25,6 +25,8 @@
 
 #include "SPPFileSystem.h"
 
+#include "SPPHandledTimers.h"
+
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace SPP;
@@ -480,10 +482,13 @@ public:
 
 	virtual void Tick() override
 	{
-		int32_t recvAmmount = 0;
-		while ((recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size())) > 0)
+		if (!_peerLink->IsWrappedPeer())
 		{
-			ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
+			int32_t recvAmmount = 0;
+			while ((recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size())) > 0)
+			{
+				ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
+			}
 		}
 
 		if (ProcessID)
@@ -573,7 +578,124 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	const std::string& AppPath,
 	IPCMappedMemory& ipcMem)
 {
+	std::unique_ptr<UDPSocket> broadcaster = std::make_unique<UDPSocket>(2022, UDPSocketOptions::Broadcast);
+	
+	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>(RemoteCoordAddres.Port);
+	std::shared_ptr< UDPSendWrapped > videoSocket;
+	std::shared_ptr< VideoConnection > videoConnection;
 
+	using namespace std::chrono_literals;
+
+	std::vector<uint8_t> BufferRead;
+	BufferRead.resize(1024);
+
+
+	TimerController mainController(16ms);
+
+	//IPC UPDATES
+	mainController.AddTimer(500ms, true, [&]()
+		{
+			bool IsConnectedToCoord = false;
+
+			Json::Value JsonMessage;
+			JsonMessage["COORD"] = IsConnectedToCoord;
+			JsonMessage["RESOLVEDSDP"] = false;
+
+			if (videoConnection)
+			{
+				if (videoConnection->IsConnected())
+				{
+					JsonMessage["CONNSTATUS"] = 2;
+					auto& stats = videoConnection->GetStats();
+					JsonMessage["KBIN"] = stats.LastKBsIncoming;
+					JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
+					JsonMessage["CONNNAME"] = videoConnection->ToString();
+				}
+				else
+				{
+					JsonMessage["CONNSTATUS"] = 1;
+				}
+			}
+			else
+			{
+				JsonMessage["CONNSTATUS"] = 0;
+			}
+
+
+			Json::StreamWriterBuilder wbuilder;
+			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
+
+			BinaryBlobSerializer outData;
+			outData << (uint32_t)StrMessage.length();
+			outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
+			ipcMem.WriteMemory(outData.GetData(), outData.Size());
+		});
+
+	//UDP BEACON
+	mainController.AddTimer(1s, true, [&]()
+		{
+			if (!videoConnection)
+			{
+				//broadcaster->SendTo()
+			}
+		});
+
+	//IPC UPDATES
+	mainController.AddTimer(16ms, true, [&]()
+		{
+			IPv4_SocketAddress recvAddr;
+			int32_t DataRecv = 0;
+			while ((DataRecv = serverSocket->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
+			{
+				if (!videoConnection)
+				{
+					auto appCLArgs = std::str_split(AppCommandline, ';');
+
+					std::string CLToUse = appCLArgs.empty() ? AppCommandline : appCLArgs[0];
+					for (auto& appCL : appCLArgs)
+					{
+						if (ClientRequestCommandline == appCL)
+						{
+							CLToUse = appCL;
+							break;
+						}
+					}
+
+					videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
+					videoConnection = std::make_shared< VideoConnection >(videoSocket, AppPath, CLToUse);
+					videoConnection->CreateTranscoderStack(
+						// allow reliability to UDP
+						std::make_shared< ReliabilityTranscoder >(),
+						// push on the splitter so we can ignore sizes
+						std::make_shared< MessageSplitTranscoder >());
+				}
+
+				SE_ASSERT(videoSocket && videoConnection);
+
+				if (videoSocket->GetRemoteAddress() == recvAddr)
+				{
+					videoConnection->ReceivedRawData(BufferRead.data(), DataRecv, 0);
+				}
+			}
+
+			// if we have a connection it handles it all
+			if (videoConnection)
+			{
+				videoConnection->Tick();
+
+				if (videoConnection->IsValid() == false)
+				{
+					videoConnection.reset();
+					SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped...");
+				}
+				else if (videoConnection->IsConnected())
+				{
+					// we are connected
+				}
+			}
+		});
+
+	mainController.Run();
 }
 
 void MainWithNatTraverasl(const std::string &ThisRUNGUID, 

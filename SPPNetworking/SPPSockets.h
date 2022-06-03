@@ -65,6 +65,7 @@ namespace SPP
 	class Interface_PeerConnection
 	{
 	public:
+		virtual bool IsWrappedPeer() const { return false; }
 		virtual bool InterallyReliableOrdered() const { return false; }
 		virtual bool IsBroken() const { return false; }
 		virtual void Report() { }
@@ -73,28 +74,25 @@ namespace SPP
 		virtual ~Interface_PeerConnection() {};
 	};
 
-	namespace UDPSocketOptions
+	enum class UDPSocketOptions
 	{
-		enum Value
-		{
-			None = 0,
-			Broadcast = 1
-		};
-	}
+		None = 0,
+		Broadcast = 1
+	};
 
 	// async recv thread
 	class SPP_NETWORKING_API UDPSocket
 	{
 	private:
 		IPv4_SocketAddress _addr;
-		UDPSocketOptions::Value _socketType = { UDPSocketOptions::None };
+		UDPSocketOptions _socketType = { UDPSocketOptions::None };
 		bool _IsValid = false;
 
 		struct PlatImpl;
 		std::unique_ptr<PlatImpl> _impl;
 				
 	public:
-		UDPSocket(uint16_t InPort = 0, UDPSocketOptions::Value InSocketType = UDPSocketOptions::None);
+		UDPSocket(uint16_t InPort = 0, UDPSocketOptions InSocketType = UDPSocketOptions::None);
 		virtual ~UDPSocket();
 		bool IsValid() const;
 		const IPv4_SocketAddress &GetLocalAddress() const { return _addr; }
@@ -113,9 +111,19 @@ namespace SPP
 		UDPSendWrapped(std::shared_ptr< UDPSocket > InSocket, const IPv4_SocketAddress &InAddr) : _SocketLink(InSocket), _AddressLink(InAddr) {}
 		virtual ~UDPSendWrapped() { }
 
+		virtual bool IsWrappedPeer() const
+		{
+			return true;
+		}
+
 		virtual void Send(const void *buf, uint16_t BufferSize)
 		{
 			_SocketLink->SendTo(_AddressLink, buf, BufferSize);
+		}
+
+		const IPv4_SocketAddress& GetRemoteAddress()
+		{
+			return _AddressLink;
 		}
 
 		//UDP has no unique per address receive
@@ -210,7 +218,7 @@ namespace SPP
 	{
 	protected:
 		IPv4_SocketAddress _addr;
-		UDPSocketOptions::Value _socketType = { UDPSocketOptions::None };
+		UDPSocketOptions _socketType = { UDPSocketOptions::None };
 		bool _IsValid = false;
 		bool _bRunning = false;
 
@@ -223,7 +231,7 @@ namespace SPP
 		void _RunThread();
 
 	public:
-		Active_UDP_Socket(uint16_t InPort = 0, UDPSocketOptions::Value InSocketType = UDPSocketOptions::None);
+		Active_UDP_Socket(uint16_t InPort = 0, UDPSocketOptions InSocketType = UDPSocketOptions::None);
 		~Active_UDP_Socket();
 
 		bool IsValid();
