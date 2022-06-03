@@ -96,6 +96,11 @@
 			"Path": "ffmpeg",
 			"Version": 1,
 			"BinCopy": [ "bin/*.dll" ]
+		},
+		{
+			"Path": "openssl",
+			"Version": 1,
+			"BinCopy": [ "bin/*.dll" ]
 		}
 	]
 }
