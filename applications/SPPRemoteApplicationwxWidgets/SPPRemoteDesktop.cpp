@@ -176,7 +176,7 @@ void HostThread(bool bLanOnly)
 	GProcessID = CreateChildProcess("applicationhost",
 #endif
 		ArgString.c_str(),
-		false);
+		true);
 
 #if _DEBUG
 	CreateChildProcess("simpleconnectioncoordinatord", "", true);
@@ -231,7 +231,7 @@ void ClientThread(bool bLanOnly)
 	GProcessID = CreateChildProcess("remoteviewer",
 #endif
 
-		ArgString.c_str(), false);
+		ArgString.c_str(), true);
 
 	while (true)
 	{

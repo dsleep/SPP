@@ -137,6 +137,18 @@ namespace SPP
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, " - netmask %s", inet_ntoa(pAddress->sin_addr));
 
 
+			auto mainAddr = ToIPv4_SocketAddress(*(sockaddr_in*)&(InterfaceList[i].iiAddress));
+			auto broadcastAddr = ToIPv4_SocketAddress(*(sockaddr_in*)&(InterfaceList[i].iiBroadcastAddress));
+			auto subnetMask = ToIPv4_SocketAddress(*(sockaddr_in*)&(InterfaceList[i].iiNetmask));
+
+			mainAddr.UIPAddr.IPAddr &= subnetMask.UIPAddr.IPAddr;
+			broadcastAddr.UIPAddr.IPAddr &= ~subnetMask.UIPAddr.IPAddr;
+			mainAddr.UIPAddr.IPAddr |= broadcastAddr.UIPAddr.IPAddr;
+			auto broadCastSubnet = ToSockAddr_In(mainAddr);
+
+			SPP_LOG(LOG_SOCKETS, LOG_INFO, " - subnet broadcast %s", inet_ntoa(broadCastSubnet.sin_addr));
+
+
 			u_long nFlags = InterfaceList[i].iiFlags;
 
 			SPP_LOG(LOG_SOCKETS, LOG_INFO, " Iface is %s", (nFlags & IFF_UP) ? "up" : "down");
@@ -153,7 +165,7 @@ namespace SPP
 			else
 			{
 				auto ipaddr = (sockaddr_in*)&(InterfaceList[i].iiAddress);
-				InMaster->InterfaceAddresses.push_back(ToIPv4_SocketAddress(*ipaddr));
+				InMaster->InterfaceAddresses.push_back({ ToIPv4_SocketAddress(*ipaddr), ToIPv4_SocketAddress(broadCastSubnet) });
 			}
 
 			if (nFlags & IFF_BROADCAST)
@@ -213,7 +225,7 @@ namespace SPP
 				{
 					auto IPAddr = ToIPv4_SocketAddress(*pAddress);
 					SPP_LOG(LOG_SOCKETS, LOG_INFO, "LOCAL %s IP Address %s", ifa->ifa_name, IPAddr.ToString().c_str());
-					InMaster->InterfaceAddresses.push_back(IPAddr);
+					InMaster->InterfaceAddresses.push_back({ IPAddr, IPv4_SocketAddress()});
 				}
 			}
 		}

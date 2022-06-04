@@ -578,9 +578,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	const std::string& AppPath,
 	IPCMappedMemory& ipcMem)
 {
-	std::unique_ptr<UDPSocket> broadcaster = std::make_unique<UDPSocket>(2022, UDPSocketOptions::Broadcast);
-	
-	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>(RemoteCoordAddres.Port);
+	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
 	std::shared_ptr< UDPSendWrapped > videoSocket;
 	std::shared_ptr< VideoConnection > videoConnection;
 
@@ -632,11 +630,15 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 		});
 
 	//UDP BEACON
+	IPv4_SocketAddress broadcastAddr("255.255.255.255", RemoteCoordAddres.Port);
+	IPv4_SocketAddress localAddr = serverSocket->GetLocalAddress();
+	auto curSockAddr = localAddr.ToString();
+
 	mainController.AddTimer(1s, true, [&]()
 		{
 			if (!videoConnection)
-			{
-				//broadcaster->SendTo()
+			{	
+				serverSocket->SendTo(broadcastAddr, curSockAddr.c_str(), curSockAddr.length());
 			}
 		});
 
@@ -687,10 +689,6 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 				{
 					videoConnection.reset();
 					SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped...");
-				}
-				else if (videoConnection->IsConnected())
-				{
-					// we are connected
 				}
 			}
 		});

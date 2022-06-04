@@ -265,6 +265,12 @@ namespace SPP
 	};
 #endif
 
+	struct NetworkInterface
+	{
+		IPv4_SocketAddress address;
+		IPv4_SocketAddress subnetBroadcastAddress;
+	};
+
 	class SPP_NETWORKING_API OSNetwork
 	{
 		friend SPP_NETWORKING_API OSNetwork& GetOSNetwork();
@@ -275,7 +281,7 @@ namespace SPP
 
 	public:
 		std::string HostName;
-		std::vector< IPv4_SocketAddress> InterfaceAddresses;
+		std::vector<NetworkInterface> InterfaceAddresses;
 	};
 
 

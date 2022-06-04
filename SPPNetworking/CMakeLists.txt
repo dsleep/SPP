@@ -12,6 +12,14 @@ target_compile_definitions(SPPNetworking
 	PRIVATE
 		SPP_NETWORKING_EXPORT=1)
 				
+set(EXTRA_SOURCE "")
+
+if(USE_LIBDATACHANNEL)
+	list(append EXTRA_SOURCE 
+		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.h")
+endif()
+
 target_sources(SPPNetworking
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNetworking.h"
@@ -30,8 +38,7 @@ target_sources(SPPNetworking
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNetworkConnection.h"
 		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.h"
+		"${EXTRA_SOURCE}"
 		)
 
 target_include_directories(SPPNetworking 
@@ -99,10 +106,4 @@ else()
 endif()
 
 install(TARGETS SPPNetworking DESTINATION "${SPP_ROOT}/INSTALL")
-
-if(OS_WINDOWS)
-    set_target_properties(SPPNetworking PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:datachannel.dll" )
-    set_target_properties(SPPNetworking PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:datachannel.dll" )
-    set_target_properties(SPPNetworking PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:datachanneld.dll" )
-endif()
 
