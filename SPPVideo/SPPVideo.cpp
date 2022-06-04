@@ -400,22 +400,25 @@ namespace SPP
 			_codecContext->height = _height;
 			_codecContext->time_base = { 1, _fps }; // {1,4} 
 			_codecContext->framerate = { _fps, 1 };
+
+			_codecContext->gop_size = 10;
+			_codecContext->max_b_frames = 1;
 			_codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 
-			if (bIsEncoder)
-			{
-				int error;				
-				
-				if (error = av_opt_set(_codecContext->priv_data, "preset", "llhp", 0) != 0)
-				{
-					SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed llhp");
-				}
+			//if (bIsEncoder)
+			//{
+			//	int error;				
+			//	
+			//	if (error = av_opt_set(_codecContext->priv_data, "preset", "llhp", 0) != 0)
+			//	{
+			//		SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed llhp");
+			//	}
 
-				if (error = av_opt_set(_codecContext->priv_data, "zerolatency", "1", 0) != 0)
-				{
-					SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed zerolatency");
-				}
-			}
+			//	if (error = av_opt_set(_codecContext->priv_data, "zerolatency", "1", 0) != 0)
+			//	{
+			//		SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed zerolatency");
+			//	}
+			//}
 			
 			auto ret = avcodec_open2(_codecContext, _codec, nullptr);
 			if (ret < 0)
@@ -470,6 +473,7 @@ namespace SPP
 
 		void EncodingFrame(const void *InData, int32_t DataSize, std::function<void(const void*, int32_t)> cbFunc)
 		{
+			SE_ASSERT(DataSize == _width * _height * 4);
 			if (InData)
 			{
 				memcpy(rgbpic->data[0], InData, DataSize);
@@ -478,6 +482,10 @@ namespace SPP
 
 			yuvpic->pts = frameCounter++;
 			auto ret = avcodec_send_frame(_codecContext, InData ? yuvpic : nullptr);
+
+			if (ret < 0) {
+				SPP_LOG(LOG_LAV, LOG_INFO, "avcodec_send_frame error: %d", ret);
+			}
 
 			//SPP_LOG(LOG_LAV, LOG_VERBOSE, "yuvpic->pts %d", yuvpic->pts);
 
@@ -490,7 +498,7 @@ namespace SPP
 				}
 				else if (ret < 0)
 				{
-					SPP_LOG(LOG_LAV, LOG_INFO, "avcodec_send_frame error: %d", ret);
+					SPP_LOG(LOG_LAV, LOG_INFO, "avcodec_receive_packet error: %d", ret);
 				}
 
 				//SPP_LOG(LOG_LAV, LOG_VERBOSE, "avcodec_receive_packet size: %d", pkt->size);

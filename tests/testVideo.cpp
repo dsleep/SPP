@@ -25,9 +25,24 @@ int main(int argc, char* argv[])
 
 	auto VideoEncoder = CreateVideoEncoder([](const void* InData, int32_t InDataSize)
 		{
-		
+			SPP_QL("datachunk");
 
 		}, VideoSettings{ 512, 512, 4, 3, 32 }, {});
 
-    return 0;
+	struct DummyColor
+	{
+		uint8_t R, G, B, A;
+	};
+
+
+	DummyColor color;
+	std::vector< DummyColor > colors;
+	colors.resize(512 * 512);
+
+	while (true)
+	{
+		VideoEncoder->Encode(colors.data(), colors.size()*sizeof(DummyColor));
+		std::this_thread::sleep_for(100ms);
+	}
+	return 0;
 }

@@ -578,6 +578,8 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	const std::string& AppPath,
 	IPCMappedMemory& ipcMem)
 {
+
+	std::shared_ptr<UDPSocket> broadcastSocket = std::make_shared<UDPSocket>(0, UDPSocketOptions::Broadcast);
 	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
 	std::shared_ptr< UDPSendWrapped > videoSocket;
 	std::shared_ptr< VideoConnection > videoConnection;
@@ -638,7 +640,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 		{
 			if (!videoConnection)
 			{	
-				serverSocket->SendTo(broadcastAddr, curSockAddr.c_str(), curSockAddr.length());
+				broadcastSocket->SendTo(broadcastAddr, curSockAddr.c_str(), curSockAddr.length());
 			}
 		});
 

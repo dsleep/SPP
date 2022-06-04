@@ -780,7 +780,10 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 	std::unique_ptr<UDPSocket> broadReceiver = std::make_unique<UDPSocket>(RemoteCoordAddres.Port, 
 		UDPSocketOptions::Broadcast);
 
-	std::shared_ptr<UDPSocket> serverSocket; 
+	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
+
+	std::shared_ptr< UDPSendWrapped > videoSocket;
+
 	std::shared_ptr< VideoConnection > videoConnection;
 	TimerController mainController(16ms);
 
@@ -796,7 +799,18 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 			while ((DataRecv = broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
 			{
 				SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
-				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + BufferRead.size());
+				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
+				IPv4_SocketAddress hostPort(HostString.c_str());
+
+				recvAddr.Port = hostPort.Port;
+				auto realAddrOfConnection = recvAddr.ToString();
+
+				Hosts[realAddrOfConnection] = RemoteClient{
+					std::chrono::steady_clock::now(),
+					realAddrOfConnection,
+					std::string(""),
+					std::string("")
+				};
 			}
 		});
 
@@ -887,16 +901,14 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 
 					IPv4_SocketAddress recvAddr(IPString.c_str());
 
-					SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", IPString.c_str(), AppCLStr.c_str());
+					SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST %s!!!", recvAddr.ToString().c_str());
 
 					for (auto& [key, value] : Hosts)
 					{
 						if (key == IPString)
 						{
 							// connect to this host
-
-							auto videoBaseUDP = std::make_shared<UDPSocket>();
-							auto videoSocket = std::make_shared<UDPSendWrapped>(videoBaseUDP, recvAddr);
+							videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
 
 							videoConnection = std::make_shared< VideoConnection >(videoSocket, [](const void*, uint16_t) {});
 							videoConnection->CreateTranscoderStack(
@@ -920,6 +932,18 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 	mainController.AddTimer(41.6ms, true, [&]()
 		{
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
+
+			IPv4_SocketAddress recvAddr;
+			int32_t DataRecv = 0;
+			while ((DataRecv = serverSocket->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
+			{
+				if (videoConnection &&
+					videoSocket->GetRemoteAddress() == recvAddr)
+				{
+					videoConnection->ReceivedRawData(BufferRead.data(), DataRecv, 0);
+				}
+			}
+
 			// if we have a connection it handles it all
 			if (videoConnection)
 			{

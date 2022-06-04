@@ -50,7 +50,7 @@ namespace SPP
 
 		std::string ToString() const
 		{
-			return std::string_format("%hhu.%hhu.%hhu.%hhu:%hhu", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4, Port);
+			return std::string_format("%d.%d.%d.%d:%d", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4, Port);
 		}
 
 		bool operator==(const IPv4_SocketAddress &InCompare) const

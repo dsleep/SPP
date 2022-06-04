@@ -340,8 +340,6 @@ namespace SPP
 		address.sin_family = AF_INET;
 		address.sin_addr.s_addr = INADDR_ANY;
 		address.sin_port = htons(InPort);
-
-		if (InPort)
 		{
 			// Forcefully attaching socket to the port  
 			if (bind(_impl->Socket, (struct sockaddr*)&address, sizeof(address)) < 0)
@@ -377,7 +375,7 @@ namespace SPP
 			_addr = ToIPv4_SocketAddress(address);
 		}
 
-		SPP_LOG(LOG_UDP, LOG_WARNING, " - socket created!!!");
+		SPP_LOG(LOG_UDP, LOG_WARNING, " - socket created!!! %s", _addr.ToString().c_str());
 
 		_IsValid = true;
 	}

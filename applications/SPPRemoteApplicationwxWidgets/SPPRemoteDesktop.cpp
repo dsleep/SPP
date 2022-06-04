@@ -179,7 +179,10 @@ void HostThread(bool bLanOnly)
 		true);
 
 #if _DEBUG
-	CreateChildProcess("simpleconnectioncoordinatord", "", true);
+	if (!bLanOnly)
+	{
+		CreateChildProcess("simpleconnectioncoordinatord", "", true);
+	}
 #endif
 
 	while (true)
