@@ -1,0 +1,40 @@
+run x86_x64 Cross Tools Command Prompt for VS 2017
+set MSYS2_PATH_TYPE=inherit
+run msys2 from inside VS command promp
+
+pacman -Syu
+pacman -Su
+pacman -S --needed base-devel mingw-w64-x86_64-toolchain
+
+pacman -S mingw-w64-x86_64-make
+Make sure you have "pkg-config"
+pacman -S mingw-w64-x86_64-pkg-config
+
+./configure --prefix=LIBAV_CUDA --toolchain=msvc --arch=x86_64 --disable-programs --extra-ldflags="-LIBPATH:/D/Programming_Projects/CUDALINK/lib/x64 -LIBPATH:/D/Programming_Projects/NvCodec/lib/x64" --extra-cflags="-I/D/Programming_Projects/CUDALINK/include -I/D/Programming_Projects/NvCodec/include" --enable-nvenc --enable-cuda --enable-nonfree --logfile="libavconfig.txt" --enable-shared --disable-network
+
+
+./configure --prefix=FFMPEGBUILD --toolchain=msvc --arch=x86_64 --disable-programs --extra-ldflags="-LIBPATH:/D/Programming_Projects/CUDALINK/lib/x64 -LIBPATH:/D/Programming_Projects/NvCodec/lib/x64" --extra-cflags="-I/D/Programming_Projects/CUDALINK/include -I/D/Programming_Projects/NvCodec/include" --enable-nvenc --enable-cuda --enable-nonfree --logfile="ffmpegbuild.txt" --enable-shared --disable-static --disable-network
+
+/usr/lib/pkgconfig:/usr/share/pkgconfig:/lib/pkgconfig
+
+PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/D/Programming_Projects/x265_git/INSTALL/lib/pkgconfig
+
+./configure --prefix=FFMPEGBUILD_2022 --toolchain=msvc --arch=x86_64 --disable-programs --enable-nvenc --enable-nvdec --enable-libx265 --enable-ffnvcodec --enable-cuda --enable-gpl --logfile="ffmpegbuild_2022.txt" --enable-shared --disable-static --disable-network --extra-cflags="-I/D/Programming_Projects/x265_git/INSTALL/include"  --extra-ldflags="-LIBPATH:/D/Programming_Projects/x265_git/INSTALL/lib"
+
+make install -j32
+
+
+./../../sources/ffmpeg/configure \
+             --prefix=./../../installed \
+             --toolchain=msvc \
+             --arch=x86_64 \
+             --enable-yasm  \
+             --enable-asm \
+             --enable-shared \
+             --disable-static \
+             --disable-programs \
+             --enable-avresample \
+             --enable-libx264 \
+             --enable-gpl \
+             --extra-ldflags="-LIBPATH:./../../installed/lib/" \
+             --extra-cflags="-I./../../installed/include/"

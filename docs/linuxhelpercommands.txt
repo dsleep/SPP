@@ -1,0 +1,6 @@
+make PREFIX=/cryptopp DESTDIR=/home/ec2-user/SPPTIPS/3rdParty libcryptopp.so install
+
+
+cmake . -BCMAKEBUILD -DCMAKE_INSTALL_PREFIX=/home/ec2-user/SPPTIPS/3rdParty/rttr -DCMAKE_INSTALL_PREFIX=/home/ec2-user/SPPTIPS/3rdParty/rttr -DBUILD_UNIT_TESTS=off -DBUILD_EXAMPLES=off
+
+ LD_LIBRARY_PATH=. ./a.out
