@@ -15,7 +15,7 @@ target_compile_definitions(SPPNetworking
 set(EXTRA_SOURCE "")
 
 if(USE_LIBDATACHANNEL)
-	list(append EXTRA_SOURCE 
+	set(EXTRA_SOURCE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPWebSockets.h")
 endif()

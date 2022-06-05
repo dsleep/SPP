@@ -85,7 +85,7 @@ set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
 set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
 set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
 set(USE_WINRT ON CACHE BOOL "Use C++/WinRt")
-set(USE_LIBDATACHANNEL ON CACHE BOOL "Use libdatachannel")
+set(USE_LIBDATACHANNEL OFF CACHE BOOL "Use libdatachannel")
 
 if(OS_WINDOWS)
 	set(WIN_SDK_REG "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0")

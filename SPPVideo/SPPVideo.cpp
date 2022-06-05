@@ -6,6 +6,8 @@
 #include "SPPLogging.h"
 #include "SPPString.h"
 
+#include "SPPPlatformCore.h"
+
 #if _WIN32
 
 	#include "Windows.h"
@@ -48,6 +50,8 @@ namespace SPP
 
 		if (bIsReady == false)
 		{
+			//AddDLLSearchPath("../3rdParty/ffmpeg/bin");
+
 			bIsReady = true;
 			const AVCodec* codec = nullptr;
 			void* i = nullptr;

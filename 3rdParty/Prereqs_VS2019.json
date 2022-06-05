@@ -94,7 +94,7 @@
 		},
 		{
 			"Path": "ffmpeg",
-			"Version": 1,
+			"Version": 2,
 			"BinCopy": [ "bin/*.dll" ]
 		},
 		{
