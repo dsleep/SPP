@@ -39,10 +39,12 @@ int main(int argc, char* argv[])
 	std::vector< DummyColor > colors;
 	colors.resize(512 * 512);
 
-	while (true)
+	for (int32_t Iter = 0; Iter < 100;Iter++)
 	{
 		VideoEncoder->Encode(colors.data(), colors.size()*sizeof(DummyColor));
 		std::this_thread::sleep_for(100ms);
 	}
+
+	VideoEncoder->Finalize();
 	return 0;
 }

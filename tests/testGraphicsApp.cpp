@@ -84,6 +84,18 @@ public:
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
+		
+		/////////////SCENE SETUP
+
+#if 1
+		auto _renderableScene = LoadJsonScene(*AssetPath("scenes/materialtest/materialtest.spj"));
+		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
+
+		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+
+		auto& cam = renderableSceneShared->GetCamera();
+		cam.GetCameraPosition()[2] = -100;
+#else
 
 		auto meshtest = std::make_shared< Mesh>();
 		meshtest->LoadMesh(*AssetPath("meshes/trianglesphere.obj"));
@@ -103,18 +115,6 @@ public:
 				meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
 			});
 		gpuCommand.wait();
-		
-		/////////////SCENE SETUP
-
-#if 1
-		auto _renderableScene = LoadJsonScene(*AssetPath("scenes/materialtest/materialtest.spj"));
-		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
-
-		renderableSceneShared = _renderableScene->GetRenderSceneShared();
-
-		auto& cam = renderableSceneShared->GetCamera();
-		cam.GetCameraPosition()[2] = -100;
-#else
 
 		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);
 

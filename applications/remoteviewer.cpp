@@ -665,10 +665,13 @@ public:
 			return;
 		}
 
-		int32_t recvAmmount = 0;
-		while( (recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size())) > 0 )
+		if (!_peerLink->IsWrappedPeer())
 		{
-			ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
+			int32_t recvAmmount = 0;
+			while ((recvAmmount = _peerLink->Receive(recvBuffer.data(), recvBuffer.size())) > 0)
+			{
+				ReceivedRawData(recvBuffer.data(), recvAmmount, 0);
+			}
 		}
 
 		NetworkConnection::Tick();
@@ -789,7 +792,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 
 
 	std::vector<uint8_t> BufferRead;
-	BufferRead.resize(1024);
+	BufferRead.resize(std::numeric_limits<uint16_t>::max());
 
 	//CHECK BROADCASTS
 	mainController.AddTimer(100ms, true, [&]()
@@ -798,7 +801,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 			int32_t DataRecv = 0;
 			while ((DataRecv = broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
 			{
-				SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
+				//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
 				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
 				IPv4_SocketAddress hostPort(HostString.c_str());
 
@@ -929,7 +932,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 		});
 
 	//VIDEO UPDATES
-	mainController.AddTimer(41.6ms, true, [&]()
+	mainController.AddTimer(16.6666ms, true, [&]()
 		{
 			auto CurrentTime = std::chrono::high_resolution_clock::now();
 
@@ -1012,7 +1015,7 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
 
 	std::vector<uint8_t> BufferRead;
-	BufferRead.resize(1024);
+	BufferRead.resize(std::numeric_limits<uint16_t>::max());
 
 	std::map<std::string, RemoteClient> Hosts;
 

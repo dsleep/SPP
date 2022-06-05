@@ -57,13 +57,13 @@ namespace SPP
 			void* i = nullptr;
 			while ((codec = av_codec_iterate(&i)))
 			{
-				SPP_LOG(LOG_LAV, LOG_INFO, "Found LIBAV Codec: %s type %s", codec->name, av_codec_is_encoder(codec) ? "encoder" : "decoder");				
+				SPP_LOG(LOG_LAV, LOG_VERBOSE, "Found LIBAV Codec: %s type %s", codec->name, av_codec_is_encoder(codec) ? "encoder" : "decoder");				
 			}
 
 			AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE;
 			while ((type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE)
 			{
-				SPP_LOG(LOG_LAV, LOG_INFO, "Found LIBAV Hardware type %s", av_hwdevice_get_type_name(type));
+				SPP_LOG(LOG_LAV, LOG_VERBOSE, "Found LIBAV Hardware type %s", av_hwdevice_get_type_name(type));
 			}
 		}
 	}
@@ -477,7 +477,7 @@ namespace SPP
 
 		void EncodingFrame(const void *InData, int32_t DataSize, std::function<void(const void*, int32_t)> cbFunc)
 		{
-			SE_ASSERT(DataSize == _width * _height * 4);
+			SE_ASSERT(!InData || (DataSize == (_width * _height * 4)));
 			if (InData)
 			{
 				memcpy(rgbpic->data[0], InData, DataSize);

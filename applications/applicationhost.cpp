@@ -587,8 +587,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	using namespace std::chrono_literals;
 
 	std::vector<uint8_t> BufferRead;
-	BufferRead.resize(1024);
-
+	BufferRead.resize(std::numeric_limits<uint16_t>::max());
 
 	TimerController mainController(16ms);
 
@@ -644,8 +643,8 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 			}
 		});
 
-	//IPC UPDATES
-	mainController.AddTimer(16ms, true, [&]()
+	//NET UPDATES
+	mainController.AddTimer(16.6666ms, true, [&]()
 		{
 			IPv4_SocketAddress recvAddr;
 			int32_t DataRecv = 0;
@@ -759,7 +758,7 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 	using namespace std::chrono_literals;
 
 	std::vector<uint8_t> BufferRead;
-	BufferRead.resize(1024);
+	BufferRead.resize(std::numeric_limits<uint16_t>::max());
 
 	//auto LastSentTime = std::chrono::steady_clock::now();
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
