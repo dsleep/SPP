@@ -1,54 +1,72 @@
 cmake_minimum_required(VERSION 3.5)
-project(SPPPhysx_API VERSION 1.0.0 LANGUAGES CXX)
+project(SPPPhysX_API VERSION 1.0.0 LANGUAGES CXX)
 
-add_library(SPPPhysx SHARED "")
+add_library(SPPPhysX SHARED "")
 
-set_target_properties(SPPPhysx PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_target_properties(SPPPhysX PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies(SPPPhysx SPPCore )
+add_dependencies(SPPPhysX SPPCore )
 
 # will need define to not create empty dll export
-target_compile_definitions(SPPPhysx
+target_compile_definitions(SPPPhysX
 	PRIVATE
 		SPP_PHYSX_EXPORT=1)
 				
-target_sources(SPPPhysx
+target_sources(SPPPhysX
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPhysX.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPhysX.cpp" 
 		)
 
-target_include_directories(SPPPhysx 
+target_include_directories(SPPPhysX 
 	PUBLIC  	
 		"${CMAKE_CURRENT_LIST_DIR}" )
 			
-target_link_libraries(SPPPhysx 
+target_link_libraries(SPPPhysX 
 	PUBLIC
 		SPPCore 
 		)
 		
-target_include_directories(SPPPhysx 
+target_include_directories(SPPPhysX 
 	PRIVATE  			
 		"${THIRD_PARTY}/PhysX1.4/PhysX/include"
 		"${THIRD_PARTY}/PhysX1.4/PxShared/include" )
 		
-target_link_directories(SPPPhysx 
+target_link_directories(SPPPhysX 
 	PRIVATE
 		debug "${THIRD_PARTY}/PhysX1.4/PhysX/bin/win.x86_64.vc143.md/debug" optimized "${THIRD_PARTY}/PhysX1.4/PhysX/bin/win.x86_64.vc143.md/release" )
 		
-target_link_libraries(SPPPhysx 
-	PRIVATE
-		PhysX_64 
-		PhysXCommon_64
-		PhysXCooking_64
-		PhysXFoundation_64
-		PhysXCharacterKinematic_static_64
-		PhysXTask_static_64 
-		PhysXVehicle_static_64 
-		PhysXExtensions_static_64 
-		PhysXPvdSDK_static_64 )
+list(APPEND 
+		PhysxDependencies 
+			"PhysX_64"
+			"PhysXCommon_64"
+			"PhysXCooking_64"
+			"PhysXFoundation_64"
+			"PhysXCharacterKinematic_static_64"
+			"PhysXTask_static_64"
+			"PhysXVehicle_static_64"
+			"PhysXExtensions_static_64"
+			"PhysXPvdSDK_static_64" )
 
-install(TARGETS SPPPhysx DESTINATION "${SPP_ROOT}/INSTALL")
+target_link_libraries(SPPPhysX 
+	PRIVATE
+		${PhysxDependencies} )
+
+install(TARGETS SPPPhysX DESTINATION "${SPP_ROOT}/INSTALL")
+
+if(OS_WINDOWS)
+
+	set(delayLoads "")
+
+	foreach(curDepend ${PhysxDependencies})
+		set(delayLoads "${delayLoads} /DELAYLOAD:${curDepend}.dll")
+	endforeach()
+
+	set_target_properties(SPPPhysX PROPERTIES LINK_FLAGS_RELWITHDEBINFO "${delayLoads}" )
+	set_target_properties(SPPPhysX PROPERTIES LINK_FLAGS_RELEASE "${delayLoads}" )
+	set_target_properties(SPPPhysX PROPERTIES LINK_FLAGS_DEBUG "${delayLoads}" )
+
+endif() 
 
 
 

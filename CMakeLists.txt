@@ -177,7 +177,8 @@ if(OS_WINDOWS)
 	list(APPEND SPPProjects			
 				"SPPCapture" 
 				"SPPVideo"
-				"SPPPhysX" )
+				"SPPPhysX"
+				"SPPGameEngine" )
 				
 	if(INCLUE_WEBSERVER)
 		list(APPEND SPPProjects
@@ -245,6 +246,8 @@ list(APPEND SPPProjects "applications" )
 
 if(OS_WINDOWS)
 	list(APPEND SPPProjects "tests" ) 
+
+	list(APPEND SPPProjects "Games/TestGame" ) 
 endif()
 
 

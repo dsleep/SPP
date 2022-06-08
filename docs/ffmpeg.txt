@@ -1,6 +1,6 @@
 run x86_x64 Cross Tools Command Prompt for VS 2017
 set MSYS2_PATH_TYPE=inherit
-run msys2 from inside VS command promp
+run msys2 from inside VS command prompw
 
 pacman -Syu
 pacman -Su
@@ -10,18 +10,20 @@ pacman -S mingw-w64-x86_64-make
 Make sure you have "pkg-config"
 pacman -S mingw-w64-x86_64-pkg-config
 
-./configure --prefix=LIBAV_CUDA --toolchain=msvc --arch=x86_64 --disable-programs --extra-ldflags="-LIBPATH:/D/Programming_Projects/CUDALINK/lib/x64 -LIBPATH:/D/Programming_Projects/NvCodec/lib/x64" --extra-cflags="-I/D/Programming_Projects/CUDALINK/include -I/D/Programming_Projects/NvCodec/include" --enable-nvenc --enable-cuda --enable-nonfree --logfile="libavconfig.txt" --enable-shared --disable-network
-
-
-./configure --prefix=FFMPEGBUILD --toolchain=msvc --arch=x86_64 --disable-programs --extra-ldflags="-LIBPATH:/D/Programming_Projects/CUDALINK/lib/x64 -LIBPATH:/D/Programming_Projects/NvCodec/lib/x64" --extra-cflags="-I/D/Programming_Projects/CUDALINK/include -I/D/Programming_Projects/NvCodec/include" --enable-nvenc --enable-cuda --enable-nonfree --logfile="ffmpegbuild.txt" --enable-shared --disable-static --disable-network
-
-/usr/lib/pkgconfig:/usr/share/pkgconfig:/lib/pkgconfig
+LIBx264
+./configure --toolchain=msvc --arch=x86_64 --disable-cli --enable-static --prefix=x264_INSTALL
 
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/D/Programming_Projects/x265_git/INSTALL/lib/pkgconfig
 
-./configure --prefix=FFMPEGBUILD_2022 --toolchain=msvc --arch=x86_64 --disable-programs --enable-nvenc --enable-nvdec --enable-libx265 --enable-ffnvcodec --enable-cuda --enable-gpl --logfile="ffmpegbuild_2022.txt" --enable-shared --disable-static --disable-network --extra-cflags="-I/D/Programming_Projects/x265_git/INSTALL/include"  --extra-ldflags="-LIBPATH:/D/Programming_Projects/x265_git/INSTALL/lib"
+PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/D/Programming_Projects/x264/x264_INSTALL/lib/pkgconfig
+
+./configure --prefix=FFMPEGBUILD_2022 --enable-yasm --enable-asm --toolchain=msvc --arch=x86_64 --disable-programs --enable-nvenc --enable-nvdec --enable-libx264 --enable-libx265 --enable-ffnvcodec --enable-cuda --enable-gpl --logfile="ffmpegbuild_2022.txt" --enable-shared --disable-static --disable-network --extra-cflags="-I/D/Programming_Projects/x265_git/INSTALL/include -I/D/Programming_Projects/x264/x264_INSTALL/include"  --extra-ldflags="-LIBPATH:/D/Programming_Projects/x265_git/INSTALL/lib -LIBPATH:/D/Programming_Projects/x264/x264_INSTALL/lib"
+
+pkg-config --exists --print-errors x264
+pkg-config --exists --print-errors x265
 
 make install -j32
+
 
 
 ./../../sources/ffmpeg/configure \

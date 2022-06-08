@@ -29,7 +29,6 @@
 #include "SPPFileSystem.h"
 #include "SPPPlatformCore.h"
 
-#include "SPPSDFO.h"
 #include "SPPSceneO.h"
 #include "SPPGraphicsO.h"
 #include "SPPPhysX.h"
