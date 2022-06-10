@@ -571,6 +571,15 @@ IPv4_SocketAddress RemoteCoordAddres;
 std::string StunURL;
 uint16_t StunPort;
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="ThisRUNGUID"></param>
+/// <param name="SimpleAppName"></param>
+/// <param name="AppCommandline"></param>
+/// <param name="ClientRequestCommandline"></param>
+/// <param name="AppPath"></param>
+/// <param name="ipcMem"></param>
 void MainWithLanOnly(const std::string& ThisRUNGUID,
 	const std::string& SimpleAppName,
 	const std::string& AppCommandline,
@@ -697,6 +706,15 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	mainController.Run();
 }
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="ThisRUNGUID"></param>
+/// <param name="SimpleAppName"></param>
+/// <param name="AppCommandline"></param>
+/// <param name="ClientRequestCommandline"></param>
+/// <param name="AppPath"></param>
+/// <param name="ipcMem"></param>
 void MainWithNatTraverasl(const std::string &ThisRUNGUID, 
 	const std::string& SimpleAppName,
 	const std::string& AppCommandline,

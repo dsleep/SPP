@@ -129,6 +129,7 @@ namespace SPP
 		//UDP has no unique per address receive
 		virtual int32_t Receive(void *buf, uint16_t InBufferSize)
 		{
+			SE_ASSERT(false);
 			return 0;
 		}		
 	};
