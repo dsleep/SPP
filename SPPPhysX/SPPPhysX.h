@@ -6,6 +6,7 @@
 
 #include "SPPCore.h"
 #include "SPPReferenceCounter.h"
+#include "SPPMath.h"
 #include <coroutine>
 #include <list>
 
@@ -27,4 +28,81 @@ namespace SPP
 {		
 	SPP_PHYSX_API uint32_t GetPhysXVersion();
 	SPP_PHYSX_API void InitializePhysX();
+
+	struct DataView
+	{
+		void* Data = nullptr;
+		size_t DataSize = 0;
+	};
+
+	class PhysicsTriangleMesh
+	{
+	protected:
+	public:
+		virtual DataView GetData() = 0;
+	};
+
+	enum class PrimitiveType
+	{
+		Box,
+		Sphere,
+		Plane,
+		Capsule,
+		TriangleMesh,
+		Convex
+	};
+
+	class PhysicsPrimitive
+	{
+	protected:
+
+	public:
+		virtual ~PhysicsPrimitive() {}
+
+		virtual bool IsDynamic() = 0;
+
+		virtual Vector3d GetPosition() = 0;
+		virtual Vector3 GetRotation() = 0;
+		virtual Vector3 GetScale() = 0;
+
+		virtual void SetPosition(const Vector3d &InValue) = 0;
+		virtual void SetRotation(const Vector3 &InValue) = 0;
+		virtual void SetScale(const Vector3& InValue) = 0;
+	};
+
+	class PhysicsScene
+	{
+	protected:
+
+	public:
+
+		virtual ~PhysicsScene() {}
+
+		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition, 
+			const Vector3& InRotationEuler,
+			const Vector3& Extents,
+			bool bIsDynamic = false) = 0;
+
+		virtual std::shared_ptr< PhysicsPrimitive > CreateTriangleMeshPrimitive(const Vector3d& InPosition,
+			const Vector3& InRotationEuler,
+			const Vector3& InScale,
+			std::shared_ptr< PhysicsTriangleMesh > InTriMesh) = 0;
+
+	};
+
+	class PhysicsAPI
+	{
+	protected:
+
+	public:
+		virtual ~PhysicsAPI() {}
+		virtual std::shared_ptr< PhysicsScene > CreatePhysicsScene() = 0;
+
+		virtual std::shared_ptr< PhysicsTriangleMesh > CreateTriangleMesh(uint32_t numVertices,
+			const void* vertData,
+			uint32_t stride,
+			uint32_t numTriangles,
+			const uint32_t* indices, 
+			uint32_t indexStride ) = 0;
+	};
 }

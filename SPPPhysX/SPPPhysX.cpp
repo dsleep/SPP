@@ -26,6 +26,9 @@ namespace SPP
 	PxFoundation* gFoundation = NULL;
 	PxPhysics* gPhysics = NULL;
 	PxCooking* gCooking = NULL;
+	PxDefaultCpuDispatcher* gDispatcher = NULL;
+
+	PxMaterial* gMaterial = NULL;
 
 	PxPvd* gPvd = NULL;
 	
@@ -67,21 +70,51 @@ namespace SPP
 		bool meshSizePerfTradeoff = false;
 	};
 
-	void createTriangleMesh(PxU32 numVertices, 
-		const PxVec3* vertices,
-		PxU32 numTriangles, 
-		const PxU32* indices,
+	class PhysXTriangleMesh : public PhysicsTriangleMesh
+	{
+	protected:
+		PxTriangleMesh* _triMesh = nullptr;
+		std::vector<uint8_t> _buffer;
+
+	public:
+		PhysXTriangleMesh(PxTriangleMesh* InMesh, const void *InData, uint32_t DataSize) : _triMesh(InMesh) 
+		{
+			_buffer.resize(DataSize);
+			memcpy(_buffer.data(), InData, DataSize);
+		}
+
+		virtual DataView GetData() override
+		{
+			return { _buffer.data(), _buffer.size() };
+		}
+		
+		virtual ~PhysXTriangleMesh()
+		{
+			_triMesh->release();
+		}
+		PxTriangleMesh* GetTriMesh()
+		{
+			return _triMesh;
+		}
+	};
+
+	std::shared_ptr<PhysXTriangleMesh> createTriangleMesh(uint32_t numVertices,
+		const void* vertData,
+		uint32_t stride,
+		uint32_t numTriangles,
+		const uint32_t* indices,
+		uint32_t indexStride,
 		const MeshCreationSettings &meshSettings)
 	{
 		auto startTime = std::chrono::steady_clock::now();
 
 		PxTriangleMeshDesc meshDesc;
 		meshDesc.points.count = numVertices;
-		meshDesc.points.data = vertices;
-		meshDesc.points.stride = sizeof(PxVec3);
+		meshDesc.points.data = vertData;
+		meshDesc.points.stride = stride;
 		meshDesc.triangles.count = numTriangles;
 		meshDesc.triangles.data = indices;
-		meshDesc.triangles.stride = 3 * sizeof(PxU32);
+		meshDesc.triangles.stride = indexStride;
 
 		PxCookingParams params = gCooking->getParams();
 
@@ -123,15 +156,10 @@ namespace SPP
 
 		PxTriangleMesh* triMesh = NULL;
 		PxU32 meshSize = 0;
+		PxDefaultMemoryOutputStream outBuffer;
 
 		// The cooked mesh may either be saved to a stream for later loading, or inserted directly into PxPhysics.
-		if (meshSettings.inserted)
-		{
-			triMesh = gCooking->createTriangleMesh(meshDesc, gPhysics->getPhysicsInsertionCallback());
-		}
-		else
-		{
-			PxDefaultMemoryOutputStream outBuffer;
+		{			
 			gCooking->cookTriangleMesh(meshDesc, outBuffer);
 
 			PxDefaultMemoryInputData stream(outBuffer.getData(), outBuffer.getSize());
@@ -155,7 +183,7 @@ namespace SPP
 			printf("\t Mesh size: %d \n", meshSize);
 		}
 
-		triMesh->release();
+		return std::make_shared< PhysXTriangleMesh >(triMesh, outBuffer.getData(), outBuffer.getSize());
 	}
 
 //	// Creates a triangle mesh using BVH34 midphase with different settings.
@@ -340,6 +368,8 @@ namespace SPP
 		gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
 		SE_ASSERT(gPhysics);
 		gCooking = PxCreateCooking(PX_PHYSICS_VERSION, *gFoundation, PxCookingParams(PxTolerancesScale()));
+		gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
+		gDispatcher = PxDefaultCpuDispatcherCreate(2);
 	}
 
 	void ShutdownPhysX()
@@ -348,4 +378,174 @@ namespace SPP
 		gCooking->release();
 		gFoundation->release();
 	}
+
+	
+
+	class PhysXPrimitive : public PhysicsPrimitive
+	{
+	protected:
+		PxRigidActor* _pxActor = nullptr;
+
+	public:
+		PhysXPrimitive(PxRigidActor* InActor) : _pxActor(InActor)
+		{
+
+		}
+
+		virtual ~PhysXPrimitive() 
+		{
+		}
+
+		virtual bool IsDynamic() override
+		{
+			return false;// _pxActor->
+		}
+
+		virtual Vector3d GetPosition() override
+		{
+			auto globalPose = _pxActor->getGlobalPose();
+			return Vector3d(globalPose.p.x, globalPose.p.y, globalPose.p.z);
+		}
+		virtual Vector3 GetRotation() override
+		{
+			const float RadToDegree = 57.295755f;
+			auto globalPose = _pxActor->getGlobalPose();
+			Eigen::Quaternion<float> q(&globalPose.q.x);
+			auto euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
+			return Vector3(euler[0] * RadToDegree, euler[1] * RadToDegree, euler[2] * RadToDegree);
+		}
+		virtual Vector3 GetScale() override
+		{
+			return Vector3(1, 1, 1);
+		}
+
+		virtual void SetPosition(const Vector3d& InValue) override
+		{
+
+		}
+		virtual void SetRotation(const Vector3& InValue) override
+		{
+
+		}
+		virtual void SetScale(const Vector3& InValue) override
+		{
+
+		}
+	};
+
+	class PhysXScene : public PhysicsScene
+	{
+	protected:
+		PxScene* _scene = NULL;
+
+	public:
+		PhysXScene()
+		{
+			PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
+			sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
+			sceneDesc.cpuDispatcher = gDispatcher;
+			sceneDesc.filterShader = PxDefaultSimulationFilterShader;
+			_scene = gPhysics->createScene(sceneDesc);
+
+#if _DEBUG
+			PxPvdSceneClient* pvdClient = _scene->getScenePvdClient();
+			if (pvdClient)
+			{
+				pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONSTRAINTS, true);
+				pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_CONTACTS, true);
+				pvdClient->setScenePvdFlag(PxPvdSceneFlag::eTRANSMIT_SCENEQUERIES, true);
+			}
+#endif
+		}
+
+		virtual ~PhysXScene()
+		{
+			_scene->release();
+		}
+
+		Eigen::Quaternion<float> ToQuaterionFromEuler(const Vector3& InRotationEulerYPRDegrees)
+		{
+			const float degToRad = 0.0174533f;
+			Eigen::AngleAxisf yawAngle(InRotationEulerYPRDegrees[0] * degToRad, Vector3::UnitY());
+			Eigen::AngleAxisf pitchAngle(InRotationEulerYPRDegrees[1] * degToRad, Vector3::UnitX());
+			Eigen::AngleAxisf rollAngle(InRotationEulerYPRDegrees[2] * degToRad, Vector3::UnitZ());
+			return Eigen::Quaternion<float>(rollAngle * yawAngle * pitchAngle);
+		}
+
+		PxTransform ToPxTransform(const Vector3d& InPosition, const Vector3& InRotationEulerYPRDegrees)
+		{
+			auto q = ToQuaterionFromEuler(InRotationEulerYPRDegrees);
+			return PxTransform(PxVec3(InPosition[0], InPosition[1], InPosition[2]), PxQuat(q.coeffs()[0], q.coeffs()[1], q.coeffs()[2], q.coeffs()[3]));
+		}		
+
+		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition,
+			const Vector3& InRotationEuler,
+			const Vector3& Extents,
+			bool bIsDynamic = false) override
+		{
+			auto actorTransform = ToPxTransform(InPosition, InRotationEuler);
+
+			PxBoxGeometry Geom(Extents[0], Extents[1], Extents[2]);
+			PxRigidActor* newPxActor = nullptr;
+			if (bIsDynamic)
+			{
+				newPxActor = PxCreateDynamic(*gPhysics, actorTransform, Geom, *gMaterial, 1.0f);
+			}
+			else
+			{
+				newPxActor = PxCreateStatic(*gPhysics, actorTransform, Geom, *gMaterial);
+			}
+			_scene->addActor(*newPxActor);
+
+			return std::make_shared< PhysXPrimitive >(newPxActor);
+		}
+
+		virtual std::shared_ptr< PhysicsPrimitive > CreateTriangleMeshPrimitive(const Vector3d& InPosition,
+			const Vector3& InRotationEuler,
+			const Vector3& InScale,
+			std::shared_ptr< PhysicsTriangleMesh > InTriMesh) override
+		{
+			SE_ASSERT(InTriMesh);
+
+			auto actorTransform = ToPxTransform(InPosition, InRotationEuler);
+
+			PxTriangleMeshGeometry Geom;
+
+			auto triMeshCast = std::dynamic_pointer_cast<PhysXTriangleMesh>(InTriMesh);
+			Geom.triangleMesh = triMeshCast->GetTriMesh();
+
+			PxRigidActor* newPxActor = PxCreateStatic(*gPhysics, actorTransform, Geom, *gMaterial);
+			_scene->addActor(*newPxActor);
+
+			return std::make_shared< PhysXPrimitive >(newPxActor);
+		}
+	};
+
+
+	class PhysXAPI : public PhysicsAPI
+	{
+	protected:
+
+	public:
+		virtual std::shared_ptr< PhysicsScene > CreatePhysicsScene() override
+		{
+			return std::make_shared< PhysXScene >();
+		}
+
+		virtual std::shared_ptr< PhysicsTriangleMesh > CreateTriangleMesh(uint32_t numVertices,
+			const void* vertData,
+			uint32_t stride,
+			uint32_t numTriangles,
+			const uint32_t* indices,
+			uint32_t indexStride) override
+		{
+			return createTriangleMesh(numVertices,
+				vertData,
+				stride,
+				numTriangles,
+				indices,
+				indexStride,
+				MeshCreationSettings{});
+		}
+	};
 }

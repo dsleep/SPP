@@ -32,7 +32,6 @@
 #include "SPPSDFO.h"
 #include "SPPSceneO.h"
 #include "SPPGraphicsO.h"
-#include "SPPPhysX.h"
 
 #include "SPPBlenderFile.h"
 
@@ -87,8 +86,6 @@ public:
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 		
 		/////////////SCENE SETUP
-
-		InitializePhysX();
 
 #if 1
 		auto _renderableScene = LoadJsonScene(*AssetPath("scenes/walkingtest/testwalkable.spj"));
