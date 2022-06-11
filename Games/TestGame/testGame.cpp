@@ -35,7 +35,7 @@
 
 #include "SPPBlenderFile.h"
 
-#include "SPPJsonSceneImporter.h"
+#include "SPPJsonEnvironmentImporter.h"
 
 #include <condition_variable>
 
@@ -90,7 +90,7 @@ public:
 		InitializePhysX();
 
 #if 1
-		auto _renderableScene = LoadJsonScene(*AssetPath("scenes/walkingtest/testwalkable.spj"));
+		auto _renderableScene = LoadJsonGameScene(*AssetPath("scenes/materialtest/materialtest.spj"));
 		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
 
 		renderableSceneShared = _renderableScene->GetRenderSceneShared();

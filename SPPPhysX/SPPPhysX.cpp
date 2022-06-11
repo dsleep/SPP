@@ -6,7 +6,10 @@
 
 #include "PxPhysicsAPI.h"
 #include "SPPPlatformCore.h"
+#include "SPPMemory.h"
 
+#include <mutex>
+#include <condition_variable>
 #include <chrono>
 
 SPP_OVERLOAD_ALLOCATORS
@@ -31,8 +34,364 @@ namespace SPP
 	PxMaterial* gMaterial = NULL;
 
 	PxPvd* gPvd = NULL;
+
+#define PVD_HOST "127.0.0.1"
+
+
+	struct StepperCallbacks
+	{
+		std::function<void(float)> onSubstepStart;
+		std::function<void(void)> onSubstepPreFetchResult;
+		std::function<void(float)> onSubstep;
+		std::function<void(float, PxBaseTask*)> onSubstepSetup;
+	};
+
+	////////////////////
+	class Stepper
+	{
+	public:
+		Stepper() {}
+		virtual					~Stepper() {}
+
+		virtual	bool			advance(PxScene* scene, PxReal dt, void* scratchBlock, PxU32 scratchBlockSize) = 0;
+		virtual	void			wait(PxScene* scene) = 0;
+		virtual void			substepStrategy(const PxReal stepSize, PxU32& substepCount, PxReal& substepSize) = 0;
+		virtual void			postRender(const PxReal stepSize) = 0;
+
+		virtual void			setSubStepper(const PxReal stepSize, const PxU32 maxSteps) {}
+		virtual	void			renderDone() {}
+		virtual	void			shutdown() {}
+
+		PxReal					getSimulationTime()	const { return mSimulationTime; }
+		StepperCallbacks& getCallbacks() { return _callbacks; }
+	protected:
+		StepperCallbacks		_callbacks;
+		PxReal					mSimulationTime;
+	};
+
+	class MultiThreadStepper;
+	class StepperTask : public physx::PxLightCpuTask
+	{
+	public:
+		void setStepper(MultiThreadStepper* stepper) { mStepper = stepper; }
+		MultiThreadStepper* getStepper() { return mStepper; }
+		const MultiThreadStepper* getStepper() const { return mStepper; }
+		const char* getName() const { return "Stepper Task"; }
+		void run();
+	protected:
+		MultiThreadStepper* mStepper;
+	};
+
+	class StepperTaskSimulate : public StepperTask
+	{
+
+	public:
+		StepperTaskSimulate() {}
+		void run();
+
+	};
 	
-	#define PVD_HOST "127.0.0.1"
+	class STDElapsedTimer
+	{
+	private:
+		std::chrono::high_resolution_clock::time_point _lastTime;
+
+	public:
+		STDElapsedTimer()
+		{
+			_lastTime = std::chrono::high_resolution_clock::now();
+		}
+
+		float getElapsedSeconds()
+		{
+			auto currentTime = std::chrono::high_resolution_clock::now();
+			auto elaspedTime = (float)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastTime).count() / 1000.0f;
+			_lastTime = currentTime;
+			return elaspedTime;
+		}
+	};
+
+	class MultiThreadStepper : public Stepper
+	{
+	public:
+		MultiThreadStepper()
+			: mFirstCompletionPending(false)
+			, mScene(NULL)
+			, mCurrentSubStep(0)
+			, mNbSubSteps(0)
+		{
+			mCompletion0.setStepper(this);
+			mCompletion1.setStepper(this);
+			mSimulateTask.setStepper(this);
+		}
+
+		~MultiThreadStepper() {}
+
+		virtual bool advance(PxScene* scene, PxReal dt, void* scratchBlock, PxU32 scratchBlockSize)
+		{
+			mScratchBlock = scratchBlock;
+			mScratchBlockSize = scratchBlockSize;
+
+			substepStrategy(dt, mNbSubSteps, mSubStepSize);
+
+			if (mNbSubSteps == 0) return false;
+
+			mScene = scene;
+
+			ready = false;
+
+			mCurrentSubStep = 1;
+
+			mCompletion0.setContinuation(*mScene->getTaskManager(), NULL);
+
+			mSimulationTime = 0.0f;
+			mTimer.getElapsedSeconds();
+
+			// take first substep
+			substep(mCompletion0);
+			mFirstCompletionPending = true;
+
+			return true;
+		}
+		virtual void substepDone(StepperTask* ownerTask)
+		{
+			_callbacks.onSubstepPreFetchResult();
+
+			{
+#if !PX_PROFILE
+				PxSceneWriteLock writeLock(*mScene);
+#endif
+				mScene->fetchResults(true);
+			}
+
+			PxReal delta = (PxReal)mTimer.getElapsedSeconds();
+			mSimulationTime += delta;
+
+			_callbacks.onSubstep(mSubStepSize);
+
+			if (mCurrentSubStep >= mNbSubSteps)
+			{
+				{
+					std::lock_guard lk(m);
+					ready = true;
+				}
+				cv.notify_one();
+			}
+			else
+			{
+				StepperTask& s = ownerTask == &mCompletion0 ? mCompletion1 : mCompletion0;
+				s.setContinuation(*mScene->getTaskManager(), NULL);
+				mCurrentSubStep++;
+
+				mTimer.getElapsedSeconds();
+
+				substep(s);
+
+				// after the first substep, completions run freely
+				s.removeReference();
+			}
+		}
+		virtual void renderDone()
+		{
+			if (mFirstCompletionPending)
+			{
+				mCompletion0.removeReference();
+				mFirstCompletionPending = false;
+			}
+		}
+
+		virtual void postRender(const PxReal stepSize) {}
+
+		// if mNbSubSteps is 0 then the sync will never 
+		// be set so waiting would cause a deadlock
+		virtual void wait(PxScene* scene) 
+		{
+			if (mNbSubSteps)
+			{
+				std::unique_lock lk(m);
+				cv.wait(lk, [&] {return ready; });
+			}
+		}
+		virtual void shutdown() { }
+		virtual void reset() = 0;
+		virtual void substepStrategy(const PxReal stepSize, PxU32& substepCount, PxReal& substepSize) = 0;
+		virtual void simulate(physx::PxBaseTask* ownerTask)
+		{
+			PxSceneWriteLock writeLock(*mScene);
+			mScene->simulate(mSubStepSize, ownerTask, mScratchBlock, mScratchBlockSize);
+		}
+		PxReal getSubStepSize() const { return mSubStepSize; }
+
+	protected:
+		void substep(StepperTask& completionTask)
+		{
+			// setup any tasks that should run in parallel to simulate()
+			_callbacks.onSubstepSetup(mSubStepSize, &completionTask);
+
+			// step
+			{
+				mSimulateTask.setContinuation(&completionTask);
+				mSimulateTask.removeReference();
+			}
+			// parallel sample tasks are started in mSolveTask (after solve was called which acquires a write lock).
+		}
+
+		// we need two completion tasks because when multistepping we can't submit completion0 from the
+		// substepDone function which is running inside completion0
+		bool				mFirstCompletionPending;
+		StepperTaskSimulate	mSimulateTask;
+		StepperTask			mCompletion0, mCompletion1;
+		PxScene* mScene;
+
+		STDElapsedTimer		mTimer;
+
+		PxU32				mCurrentSubStep;
+		PxU32				mNbSubSteps;
+		PxReal				mSubStepSize;
+		void* mScratchBlock;
+		PxU32				mScratchBlockSize;
+
+
+		bool ready = false;
+		std::mutex m;
+		std::condition_variable cv;
+	};
+
+	void StepperTask::run()
+	{
+		mStepper->substepDone(this);
+		release();
+	}
+
+	void StepperTaskSimulate::run()
+	{
+		mStepper->simulate(mCont);
+		mStepper->getCallbacks().onSubstepStart(mStepper->getSubStepSize());
+	}
+
+	class DebugStepper : public Stepper
+	{
+	public:
+		DebugStepper(const PxReal stepSize) : mStepSize(stepSize) {}
+
+		virtual void substepStrategy(const PxReal stepSize, PxU32& substepCount, PxReal& substepSize)
+		{
+			substepCount = 1;
+			substepSize = mStepSize;
+		}
+
+		virtual bool advance(PxScene* scene, PxReal dt, void* scratchBlock, PxU32 scratchBlockSize);
+
+		virtual void postRender(const PxReal stepSize)
+		{
+		}
+
+		virtual void setSubStepper(const PxReal stepSize, const PxU32 maxSteps)
+		{
+			mStepSize = stepSize;
+		}
+
+		virtual void wait(PxScene* scene);
+
+		PxReal mStepSize;
+	};
+
+	// The way this should be called is:
+	// bool stepped = advance(dt)
+	//
+	// ... reads from the scene graph for rendering
+	//
+	// if(stepped) renderDone()
+	//
+	// ... anything that doesn't need access to the physics scene
+	//
+	// if(stepped) sFixedStepper.wait()
+	//
+	// Note that per-substep callbacks to the sample need to be issued out of here, 
+	// between fetchResults and simulate
+
+	class FixedStepper : public MultiThreadStepper
+	{
+	public:
+		FixedStepper(const PxReal subStepSize, const PxU32 maxSubSteps)
+			: MultiThreadStepper()
+			, mAccumulator(0)
+			, mFixedSubStepSize(subStepSize)
+			, mMaxSubSteps(maxSubSteps)
+		{
+		}
+
+		virtual void substepStrategy(const PxReal stepSize, PxU32& substepCount, PxReal& substepSize)
+		{
+			if (mAccumulator > mFixedSubStepSize)
+				mAccumulator = 0.0f;
+
+			// don't step less than the step size, just accumulate
+			mAccumulator += stepSize;
+			if (mAccumulator < mFixedSubStepSize)
+			{
+				substepCount = 0;
+				return;
+			}
+
+			substepSize = mFixedSubStepSize;
+			substepCount = PxMin(PxU32(mAccumulator / mFixedSubStepSize), mMaxSubSteps);
+
+			mAccumulator -= PxReal(substepCount) * substepSize;
+		}
+		virtual void reset() { mAccumulator = 0.0f; }
+
+		virtual void setSubStepper(const PxReal stepSize, const PxU32 maxSteps) { mFixedSubStepSize = stepSize; mMaxSubSteps = maxSteps; }
+
+		virtual void postRender(const PxReal stepSize)
+		{
+		}
+
+		PxReal	mAccumulator;
+		PxReal	mFixedSubStepSize;
+		PxU32	mMaxSubSteps;
+	};
+
+
+	class VariableStepper : public MultiThreadStepper
+	{
+	public:
+		VariableStepper(const PxReal minSubStepSize, const PxReal maxSubStepSize, const PxU32 maxSubSteps)
+			: MultiThreadStepper()
+			, mAccumulator(0)
+			, mMinSubStepSize(minSubStepSize)
+			, mMaxSubStepSize(maxSubStepSize)
+			, mMaxSubSteps(maxSubSteps)
+		{
+		}
+
+		virtual void substepStrategy(const PxReal stepSize, PxU32& substepCount, PxReal& substepSize)
+		{
+			if (mAccumulator > mMaxSubStepSize)
+				mAccumulator = 0.0f;
+
+			// don't step less than the min step size, just accumulate
+			mAccumulator += stepSize;
+			if (mAccumulator < mMinSubStepSize)
+			{
+				substepCount = 0;
+				return;
+			}
+
+			substepCount = PxMin(PxU32(PxCeil(mAccumulator / mMaxSubStepSize)), mMaxSubSteps);
+			substepSize = PxMin(mAccumulator / substepCount, mMaxSubStepSize);
+
+			mAccumulator -= PxReal(substepCount) * substepSize;
+		}
+		virtual void	reset() { mAccumulator = 0.0f; }
+
+	private:
+		VariableStepper& operator=(const VariableStepper&);
+		PxReal	mAccumulator;
+		const	PxReal	mMinSubStepSize;
+		const	PxReal	mMaxSubStepSize;
+		const	PxU32	mMaxSubSteps;
+	};
 
 	// Setup common cooking params
 	void setupCommonCookingParams(PxCookingParams& params, bool skipMeshCleanup, bool skipEdgeData)
@@ -77,7 +436,7 @@ namespace SPP
 		std::vector<uint8_t> _buffer;
 
 	public:
-		PhysXTriangleMesh(PxTriangleMesh* InMesh, const void *InData, uint32_t DataSize) : _triMesh(InMesh) 
+		PhysXTriangleMesh(PxTriangleMesh* InMesh, const void* InData, uint32_t DataSize) : _triMesh(InMesh)
 		{
 			_buffer.resize(DataSize);
 			memcpy(_buffer.data(), InData, DataSize);
@@ -87,7 +446,7 @@ namespace SPP
 		{
 			return { _buffer.data(), _buffer.size() };
 		}
-		
+
 		virtual ~PhysXTriangleMesh()
 		{
 			_triMesh->release();
@@ -102,9 +461,9 @@ namespace SPP
 		const void* vertData,
 		uint32_t stride,
 		uint32_t numTriangles,
-		const uint32_t* indices,
+		const void* indices,
 		uint32_t indexStride,
-		const MeshCreationSettings &meshSettings)
+		const MeshCreationSettings& meshSettings)
 	{
 		auto startTime = std::chrono::steady_clock::now();
 
@@ -159,7 +518,7 @@ namespace SPP
 		PxDefaultMemoryOutputStream outBuffer;
 
 		// The cooked mesh may either be saved to a stream for later loading, or inserted directly into PxPhysics.
-		{			
+		{
 			gCooking->cookTriangleMesh(meshDesc, outBuffer);
 
 			PxDefaultMemoryInputData stream(outBuffer.getData(), outBuffer.getSize());
@@ -186,170 +545,170 @@ namespace SPP
 		return std::make_shared< PhysXTriangleMesh >(triMesh, outBuffer.getData(), outBuffer.getSize());
 	}
 
-//	// Creates a triangle mesh using BVH34 midphase with different settings.
-//	void createBV34TriangleMesh(PxU32 numVertices, const PxVec3* vertices, PxU32 numTriangles, const PxU32* indices,
-//		bool skipMeshCleanup, bool skipEdgeData, bool inserted, const PxU32 numTrisPerLeaf)
-//	{
-//		PxU64 startTime = SnippetUtils::getCurrentTimeCounterValue();
-//
-//		PxTriangleMeshDesc meshDesc;
-//		meshDesc.points.count = numVertices;
-//		meshDesc.points.data = vertices;
-//		meshDesc.points.stride = sizeof(PxVec3);
-//		meshDesc.triangles.count = numTriangles;
-//		meshDesc.triangles.data = indices;
-//		meshDesc.triangles.stride = 3 * sizeof(PxU32);
-//
-//		PxCookingParams params = gCooking->getParams();
-//
-//		// Create BVH34 midphase
-//		params.midphaseDesc = PxMeshMidPhase::eBVH34;
-//
-//		// setup common cooking params
-//		setupCommonCookingParams(params, skipMeshCleanup, skipEdgeData);
-//
-//		// Cooking mesh with less triangles per leaf produces larger meshes with better runtime performance
-//		// and worse cooking performance. Cooking time is better when more triangles per leaf are used.
-//		params.midphaseDesc.mBVH34Desc.numPrimsPerLeaf = numTrisPerLeaf;
-//
-//		gCooking->setParams(params);
-//
-//#if defined(PX_CHECKED) || defined(PX_DEBUG)
-//		// If DISABLE_CLEAN_MESH is set, the mesh is not cleaned during the cooking. 
-//		// We should check the validity of provided triangles in debug/checked builds though.
-//		if (skipMeshCleanup)
-//		{
-//			PX_ASSERT(gCooking->validateTriangleMesh(meshDesc));
-//		}
-//#endif // DEBUG
-//
-//
-//		PxTriangleMesh* triMesh = NULL;
-//		PxU32 meshSize = 0;
-//
-//		// The cooked mesh may either be saved to a stream for later loading, or inserted directly into PxPhysics.
-//		if (inserted)
-//		{
-//			triMesh = gCooking->createTriangleMesh(meshDesc, gPhysics->getPhysicsInsertionCallback());
-//		}
-//		else
-//		{
-//			PxDefaultMemoryOutputStream outBuffer;
-//			gCooking->cookTriangleMesh(meshDesc, outBuffer);
-//
-//			PxDefaultMemoryInputData stream(outBuffer.getData(), outBuffer.getSize());
-//			triMesh = gPhysics->createTriangleMesh(stream);
-//
-//			meshSize = outBuffer.getSize();
-//		}
-//
-//		// Print the elapsed time for comparison
-//		PxU64 stopTime = SnippetUtils::getCurrentTimeCounterValue();
-//		float elapsedTime = SnippetUtils::getElapsedTimeInMilliseconds(stopTime - startTime);
-//		printf("\t -----------------------------------------------\n");
-//		printf("\t Create triangle mesh with %d triangles: \n", numTriangles);
-//		inserted ? printf("\t\t Mesh inserted on\n") : printf("\t\t Mesh inserted off\n");
-//		!skipEdgeData ? printf("\t\t Precompute edge data on\n") : printf("\t\t Precompute edge data off\n");
-//		!skipMeshCleanup ? printf("\t\t Mesh cleanup on\n") : printf("\t\t Mesh cleanup off\n");
-//		printf("\t\t Num triangles per leaf: %d \n", numTrisPerLeaf);
-//		printf("\t Elapsed time in ms: %f \n", double(elapsedTime));
-//		if (!inserted)
-//		{
-//			printf("\t Mesh size: %d \n", meshSize);
-//		}
-//
-//		triMesh->release();
-//	}
+	//	// Creates a triangle mesh using BVH34 midphase with different settings.
+	//	void createBV34TriangleMesh(PxU32 numVertices, const PxVec3* vertices, PxU32 numTriangles, const PxU32* indices,
+	//		bool skipMeshCleanup, bool skipEdgeData, bool inserted, const PxU32 numTrisPerLeaf)
+	//	{
+	//		PxU64 startTime = SnippetUtils::getCurrentTimeCounterValue();
+	//
+	//		PxTriangleMeshDesc meshDesc;
+	//		meshDesc.points.count = numVertices;
+	//		meshDesc.points.data = vertices;
+	//		meshDesc.points.stride = sizeof(PxVec3);
+	//		meshDesc.triangles.count = numTriangles;
+	//		meshDesc.triangles.data = indices;
+	//		meshDesc.triangles.stride = 3 * sizeof(PxU32);
+	//
+	//		PxCookingParams params = gCooking->getParams();
+	//
+	//		// Create BVH34 midphase
+	//		params.midphaseDesc = PxMeshMidPhase::eBVH34;
+	//
+	//		// setup common cooking params
+	//		setupCommonCookingParams(params, skipMeshCleanup, skipEdgeData);
+	//
+	//		// Cooking mesh with less triangles per leaf produces larger meshes with better runtime performance
+	//		// and worse cooking performance. Cooking time is better when more triangles per leaf are used.
+	//		params.midphaseDesc.mBVH34Desc.numPrimsPerLeaf = numTrisPerLeaf;
+	//
+	//		gCooking->setParams(params);
+	//
+	//#if defined(PX_CHECKED) || defined(PX_DEBUG)
+	//		// If DISABLE_CLEAN_MESH is set, the mesh is not cleaned during the cooking. 
+	//		// We should check the validity of provided triangles in debug/checked builds though.
+	//		if (skipMeshCleanup)
+	//		{
+	//			PX_ASSERT(gCooking->validateTriangleMesh(meshDesc));
+	//		}
+	//#endif // DEBUG
+	//
+	//
+	//		PxTriangleMesh* triMesh = NULL;
+	//		PxU32 meshSize = 0;
+	//
+	//		// The cooked mesh may either be saved to a stream for later loading, or inserted directly into PxPhysics.
+	//		if (inserted)
+	//		{
+	//			triMesh = gCooking->createTriangleMesh(meshDesc, gPhysics->getPhysicsInsertionCallback());
+	//		}
+	//		else
+	//		{
+	//			PxDefaultMemoryOutputStream outBuffer;
+	//			gCooking->cookTriangleMesh(meshDesc, outBuffer);
+	//
+	//			PxDefaultMemoryInputData stream(outBuffer.getData(), outBuffer.getSize());
+	//			triMesh = gPhysics->createTriangleMesh(stream);
+	//
+	//			meshSize = outBuffer.getSize();
+	//		}
+	//
+	//		// Print the elapsed time for comparison
+	//		PxU64 stopTime = SnippetUtils::getCurrentTimeCounterValue();
+	//		float elapsedTime = SnippetUtils::getElapsedTimeInMilliseconds(stopTime - startTime);
+	//		printf("\t -----------------------------------------------\n");
+	//		printf("\t Create triangle mesh with %d triangles: \n", numTriangles);
+	//		inserted ? printf("\t\t Mesh inserted on\n") : printf("\t\t Mesh inserted off\n");
+	//		!skipEdgeData ? printf("\t\t Precompute edge data on\n") : printf("\t\t Precompute edge data off\n");
+	//		!skipMeshCleanup ? printf("\t\t Mesh cleanup on\n") : printf("\t\t Mesh cleanup off\n");
+	//		printf("\t\t Num triangles per leaf: %d \n", numTrisPerLeaf);
+	//		printf("\t Elapsed time in ms: %f \n", double(elapsedTime));
+	//		if (!inserted)
+	//		{
+	//			printf("\t Mesh size: %d \n", meshSize);
+	//		}
+	//
+	//		triMesh->release();
+	//	}
 
 
 
-	//class Jump
-	//{
-	//public:
-	//	Jump();
+		//class Jump
+		//{
+		//public:
+		//	Jump();
 
-	//	PxF32		mV0;
-	//	PxF32		mJumpTime;
-	//	bool		mJump;
+		//	PxF32		mV0;
+		//	PxF32		mJumpTime;
+		//	bool		mJump;
 
-	//	void		startJump(PxF32 v0);
-	//	void		stopJump();
-	//	PxF32		getHeight(PxF32 elapsedTime);
-	//};
-
-
-	//static PxF32 gJumpGravity = -50.0f;
-
-	//Jump::Jump() :
-	//	mV0(0.0f),
-	//	mJumpTime(0.0f),
-	//	mJump(false)
-	//{
-	//}
-
-	//void Jump::startJump(PxF32 v0)
-	//{
-	//	if (mJump)	return;
-	//	mJumpTime = 0.0f;
-	//	mV0 = v0;
-	//	mJump = true;
-	//}
-
-	//void Jump::stopJump()
-	//{
-	//	if (!mJump)	return;
-	//	mJump = false;
-	//	//mJumpTime = 0.0f;
-	//	//mV0	= 0.0f;
-	//}
-
-	//PxF32 Jump::getHeight(PxF32 elapsedTime)
-	//{
-	//	if (!mJump)	return 0.0f;
-	//	mJumpTime += elapsedTime;
-	//	const PxF32 h = gJumpGravity * mJumpTime * mJumpTime + mV0 * mJumpTime;
-	//	return h * elapsedTime;
-	//}
+		//	void		startJump(PxF32 v0);
+		//	void		stopJump();
+		//	PxF32		getHeight(PxF32 elapsedTime);
+		//};
 
 
+		//static PxF32 gJumpGravity = -50.0f;
 
-	//class ControlledActor 
-	//{
-	//protected:
-	//	PhysXSample& mOwner;
-	//	PxControllerShapeType::Enum	mType;
-	//	Jump						mJump;
+		//Jump::Jump() :
+		//	mV0(0.0f),
+		//	mJumpTime(0.0f),
+		//	mJump(false)
+		//{
+		//}
 
-	//	PxExtendedVec3				mInitialPosition;
-	//	PxVec3						mDelta;
-	//	bool						mTransferMomentum;
+		//void Jump::startJump(PxF32 v0)
+		//{
+		//	if (mJump)	return;
+		//	mJumpTime = 0.0f;
+		//	mV0 = v0;
+		//	mJump = true;
+		//}
 
-	//	PxController* mController;
-	//	PxReal						mStandingSize;
-	//	PxReal						mCrouchingSize;
-	//	PxReal						mControllerRadius;
-	//	bool						mDoStandup;
-	//	bool						mIsCrouching;
+		//void Jump::stopJump()
+		//{
+		//	if (!mJump)	return;
+		//	mJump = false;
+		//	//mJumpTime = 0.0f;
+		//	//mV0	= 0.0f;
+		//}
 
-	//public:
-	//	ControlledActor(PhysXSample& owner);
-	//	virtual										~ControlledActor();
+		//PxF32 Jump::getHeight(PxF32 elapsedTime)
+		//{
+		//	if (!mJump)	return 0.0f;
+		//	mJumpTime += elapsedTime;
+		//	const PxF32 h = gJumpGravity * mJumpTime * mJumpTime + mV0 * mJumpTime;
+		//	return h * elapsedTime;
+		//}
 
-	//	PxController* init(const ControlledActorDesc& desc, PxControllerManager* manager);
-	//	PxExtendedVec3				getFootPosition()	const;
-	//	void						reset();
-	//	void						teleport(const PxVec3& pos);
-	//	void						sync();
-	//	void						tryStandup();
-	//	void						resizeController(PxReal height);
-	//	void						resizeStanding() { resizeController(mStandingSize); }
-	//	void						resizeCrouching() { resizeController(mCrouchingSize); }
-	//	void						jump(float force) { mJump.startJump(force); }
 
-	//	PX_FORCE_INLINE	PxController* getController() { return mController; }
 
-	//	const Jump& getJump() const { return mJump; }
-	//};
+		//class ControlledActor 
+		//{
+		//protected:
+		//	PhysXSample& mOwner;
+		//	PxControllerShapeType::Enum	mType;
+		//	Jump						mJump;
+
+		//	PxExtendedVec3				mInitialPosition;
+		//	PxVec3						mDelta;
+		//	bool						mTransferMomentum;
+
+		//	PxController* mController;
+		//	PxReal						mStandingSize;
+		//	PxReal						mCrouchingSize;
+		//	PxReal						mControllerRadius;
+		//	bool						mDoStandup;
+		//	bool						mIsCrouching;
+
+		//public:
+		//	ControlledActor(PhysXSample& owner);
+		//	virtual										~ControlledActor();
+
+		//	PxController* init(const ControlledActorDesc& desc, PxControllerManager* manager);
+		//	PxExtendedVec3				getFootPosition()	const;
+		//	void						reset();
+		//	void						teleport(const PxVec3& pos);
+		//	void						sync();
+		//	void						tryStandup();
+		//	void						resizeController(PxReal height);
+		//	void						resizeStanding() { resizeController(mStandingSize); }
+		//	void						resizeCrouching() { resizeController(mCrouchingSize); }
+		//	void						jump(float force) { mJump.startJump(force); }
+
+		//	PX_FORCE_INLINE	PxController* getController() { return mController; }
+
+		//	const Jump& getJump() const { return mJump; }
+		//};
 
 	void InitializePhysX()
 	{
@@ -379,7 +738,7 @@ namespace SPP
 		gFoundation->release();
 	}
 
-	
+
 
 	class PhysXPrimitive : public PhysicsPrimitive
 	{
@@ -392,7 +751,7 @@ namespace SPP
 
 		}
 
-		virtual ~PhysXPrimitive() 
+		virtual ~PhysXPrimitive()
 		{
 		}
 
@@ -437,10 +796,18 @@ namespace SPP
 	{
 	protected:
 		PxScene* _scene = NULL;
+		VariableStepper _stepper;
+
+		float _simulationTime = 0.0f;
+
+		static const PxU32 SCRATCH_BLOCK_SIZE = 1024 * 128;
+		std::vector<uint8_t> _scratchBlock;
 
 	public:
-		PhysXScene()
+		PhysXScene() : _stepper(1.0f / 80.0f, 1.0f / 40.0f, 8)
 		{
+			_scratchBlock.resize(SCRATCH_BLOCK_SIZE);
+
 			PxSceneDesc sceneDesc(gPhysics->getTolerancesScale());
 			sceneDesc.gravity = PxVec3(0.0f, -9.81f, 0.0f);
 			sceneDesc.cpuDispatcher = gDispatcher;
@@ -476,7 +843,7 @@ namespace SPP
 		{
 			auto q = ToQuaterionFromEuler(InRotationEulerYPRDegrees);
 			return PxTransform(PxVec3(InPosition[0], InPosition[1], InPosition[2]), PxQuat(q.coeffs()[0], q.coeffs()[1], q.coeffs()[2], q.coeffs()[3]));
-		}		
+		}
 
 		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition,
 			const Vector3& InRotationEuler,
@@ -519,6 +886,54 @@ namespace SPP
 
 			return std::make_shared< PhysXPrimitive >(newPxActor);
 		}
+
+		virtual void Update(float DeltaTime) override
+		{
+			// in profile builds we run the whole frame sequentially
+			// simulate, wait, update render objects, render			
+			auto waitForResults = _stepper.advance(_scene, DeltaTime, _scratchBlock.data(), _scratchBlock.size());
+			_stepper.renderDone();
+			if (waitForResults)
+			{
+				_stepper.wait(_scene);
+				_simulationTime = _stepper.getSimulationTime();
+			
+				UpdateTransforms();
+			}
+		}
+
+		void UpdateTransforms()
+		{
+			PxSceneReadLock scopedLock(*_scene);
+
+			uint32_t activeTransformCount = 0;
+			PxActor** activeTransforms = _scene->getActiveActors(activeTransformCount);
+
+			for (uint32_t Iter = 0; Iter < activeTransformCount; Iter++)
+			{
+				PxActor* actor = activeTransforms[Iter];
+				const PxType actorType = actor->getConcreteType();
+				if (actorType == PxConcreteType::eRIGID_DYNAMIC || 
+					actorType == PxConcreteType::eRIGID_STATIC || 
+					actorType == PxConcreteType::eARTICULATION_LINK || 
+					actorType == PxConcreteType::eARTICULATION_JOINT)
+				{
+					PxRigidActor* rigidActor = static_cast<PxRigidActor*>(actor);
+					PxU32 nbShapes = rigidActor->getNbShapes();
+					for (PxU32 i = 0; i < nbShapes; i++)
+					{
+						PxShape* shape;
+						PxU32 n = rigidActor->getShapes(&shape, 1, i);
+						PX_ASSERT(n == 1);
+						PX_UNUSED(n);
+						
+						//
+						//rigidActor->userData
+						//shape->userData
+					}
+				}
+			}
+		}
 	};
 
 
@@ -536,7 +951,7 @@ namespace SPP
 			const void* vertData,
 			uint32_t stride,
 			uint32_t numTriangles,
-			const uint32_t* indices,
+			const void* indices,
 			uint32_t indexStride) override
 		{
 			return createTriangleMesh(numVertices,
@@ -548,4 +963,10 @@ namespace SPP
 				MeshCreationSettings{});
 		}
 	};
+
+	PhysicsAPI* GetPhysicsAPI()
+	{
+		static PhysXAPI sO;
+		return &sO;
+	}
 }

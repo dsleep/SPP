@@ -75,16 +75,16 @@ namespace SPP
 	{
 		ORenderableElement::AddedToScene(InScene);
 
-		if (!InScene) return;
+		if (!InScene) return; 
+
+		auto thisRenderableScene = dynamic_cast<ORenderableScene*>(InScene);
+		SE_ASSERT(thisRenderableScene);
 
 		auto SceneType = InScene->get_type();
 		if (_meshObj &&
 			_meshObj->GetMesh() &&
-			!_meshObj->GetMesh()->GetMeshElements().empty() &&
-			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
+			!_meshObj->GetMesh()->GetMeshElements().empty())
 		{
-			auto thisRenderableScene = (ORenderableScene*)InScene;
-
 			// not ready yet
 			if (!thisRenderableScene->GetGraphicsDevice() 
 				|| !thisRenderableScene->GetRenderScene()) return;
@@ -313,5 +313,12 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
+		;
+
+	rttr::registration::class_<ODebugScene>("ODebugScene")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
 		;
 }

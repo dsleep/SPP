@@ -26,6 +26,21 @@
 
 namespace SPP
 {
+	class SPP_GRAPHICSO_API ODebugScene : public OScene
+	{
+		RTTR_ENABLE(OScene);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		ODebugScene(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
+		{
+		}
+	
+	public:
+
+		virtual ~ODebugScene() { }
+	};
+
 	class SPP_GRAPHICSO_API ORenderableScene : public OScene
 	{
 		RTTR_ENABLE(OScene);

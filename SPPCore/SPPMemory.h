@@ -13,6 +13,10 @@
 #include <stdexcept>
 #include <math.h>
 
+#define	DELETESINGLE(x)	if(x){ delete x; x = NULL;		}
+#define	DELETEARRAY(x)	if(x){ delete []x; x = NULL;	}
+#define	SAFE_RELEASE(x)	if(x){ x->release(); x = NULL;	}
+
 namespace SPP
 {
 	extern SPP_CORE_API LogEntry LOG_MEM;

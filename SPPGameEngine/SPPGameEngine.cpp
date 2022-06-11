@@ -9,16 +9,17 @@ SPP_OVERLOAD_ALLOCATORS
 
 namespace SPP
 {
-	OEntity::OEntity(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent)
+	VgEntity::VgEntity(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent)
 	{
 	}
-	OEnvironment::OEnvironment(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
+	VgEnvironment::VgEnvironment(const std::string& InName, SPPDirectory* InParent) : ORenderableScene(InName, InParent)
 	{
+		_physicsScene = GetPhysicsAPI()->CreatePhysicsScene();
 	}
 
-	void OEnvironment::Update(float DeltaTime)
+	void VgEnvironment::Update(float DeltaTime)
 	{
-		std::list< OEntity* > copyEntities = _entities;
+		std::list< VgEntity* > copyEntities = _entities;
 
 		for (auto& curEntity : copyEntities)
 		{
@@ -27,6 +28,47 @@ namespace SPP
 				curEntity->Update(DeltaTime);
 			}
 		}
+
+		_physicsScene->Update(DeltaTime);
+	}
+
+	void VgMeshElement::AddedToScene(class OScene* InScene)
+	{
+		OMeshElement::AddedToScene(InScene);
+
+		auto thisEnvironment = dynamic_cast<VgEnvironment*>(InScene);
+		SE_ASSERT(thisEnvironment);
+
+		if (_meshObj && _meshObj->GetMesh())
+		{
+			auto thisMesh = _meshObj->GetMesh();
+
+			auto &curMeshes = thisMesh->GetMeshElements();
+
+			if (!curMeshes.empty())
+			{
+				auto vertices = curMeshes.front()->VertexResource;
+				auto indices = curMeshes.front()->IndexResource;
+				
+				SE_ASSERT(vertices->GetPerElementSize() == sizeof(MeshVertex));
+				SE_ASSERT(indices->GetPerElementSize() == sizeof(uint32_t));
+
+				auto meshVerts = vertices->GetSpan<MeshVertex>();
+
+				auto triMesh = GetPhysicsAPI()->CreateTriangleMesh(vertices->GetElementCount(), &meshVerts[0].position, sizeof(MeshVertex), 
+					indices->GetElementCount() / 3, indices->GetElementData(), sizeof(uint32_t) * 3);
+
+				auto currentScene = thisEnvironment->GetPhysicsScene();
+
+				_physicsPrimitive = currentScene->CreateTriangleMeshPrimitive(this->_translation, this->_rotation, this->_scale, triMesh);
+			}
+		}
+	}
+
+	void VgMeshElement::RemovedFromScene()
+	{
+		OMeshElement::RemovedFromScene();
+		_physicsPrimitive.reset();
 	}
 
 	uint32_t GetGameEngineVersion()
@@ -40,18 +82,25 @@ using namespace SPP;
 
 RTTR_REGISTRATION
 {
-	rttr::registration::class_<OEntity>("OEntity")
+	rttr::registration::class_<VgEntity>("VgEntity")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
 		;
 
-	rttr::registration::class_<OEnvironment>("OEnvironment")
+	rttr::registration::class_<VgEnvironment>("VgEnvironment")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_entities", &OEnvironment::_entities)(rttr::policy::prop::as_reference_wrapper)
+		.property("_entities", &VgEnvironment::_entities)(rttr::policy::prop::as_reference_wrapper)
 		;	
+
+	rttr::registration::class_<VgMeshElement>("VgMeshElement")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
 }

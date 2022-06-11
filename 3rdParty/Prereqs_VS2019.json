@@ -90,7 +90,7 @@
 		},
 		{
 			"Path": "PhysX1.4",
-			"Version": 1
+			"Version": 2
 		},
 		{
 			"Path": "ffmpeg",

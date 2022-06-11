@@ -78,6 +78,8 @@ namespace SPP
 
 		virtual ~PhysicsScene() {}
 
+		virtual void Update(float DeltaTime) = 0;
+
 		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition, 
 			const Vector3& InRotationEuler,
 			const Vector3& Extents,
@@ -102,7 +104,9 @@ namespace SPP
 			const void* vertData,
 			uint32_t stride,
 			uint32_t numTriangles,
-			const uint32_t* indices, 
+			const void* indices,
 			uint32_t indexStride ) = 0;
 	};
+
+	SPP_PHYSX_API PhysicsAPI *GetPhysicsAPI();
 }

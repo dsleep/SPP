@@ -17,6 +17,9 @@ target_sources(SPPGameEngine
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPGameEngine.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPGameEngine.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonEnvironmentImporter.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonEnvironmentImporter.h"
 		)
  	
 target_link_libraries( SPPGameEngine 
@@ -27,6 +30,11 @@ target_link_libraries( SPPGameEngine
 		SPPPhysX
 		SPPSceneO 
 		SPPGraphicsO
+		)
+
+target_include_directories(SPPGameEngine 
+	PUBLIC  	
+		"${CMAKE_CURRENT_LIST_DIR}"	
 		)
 
 install(TARGETS SPPGameEngine DESTINATION "${SPP_ROOT}/INSTALL")
