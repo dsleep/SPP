@@ -43,7 +43,7 @@ namespace SPP
 	}
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
-	extern GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 	extern std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF();
 
 	struct VulkanGraphicInterface : public IGraphicsInterface

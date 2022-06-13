@@ -893,7 +893,7 @@ namespace SPP
 	//	updateDescriptor();
 	//}
 
-	GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
+	GPUReferencer< VulkanTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
 	{
 		return Make_GPU<VulkanTexture>(Width, Height, Format, RawData, InMetaInfo);
 	}

@@ -362,6 +362,8 @@ namespace SPP
 		HINSTANCE windowInstance;
 #endif
 
+		GPUReferencer< GPUTexture > _defaultTexture;
+
 		std::vector< VkDescriptorPool >  _perDrawPools;
 
 		VkResult createInstance(bool enableValidation);
@@ -428,6 +430,11 @@ namespace SPP
 		PerFrameStagingBuffer& GetPerFrameScratchBuffer()
 		{
 			return _perFrameScratchBuffer;
+		}
+
+		GPUReferencer< GPUTexture > GetDefaultTexture()
+		{
+			return _defaultTexture;
 		}
 
 		VkDevice GetDevice();

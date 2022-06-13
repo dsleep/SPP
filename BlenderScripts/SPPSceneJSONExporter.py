@@ -117,7 +117,7 @@ def exportMesh(curMesh, RootPath):
                 f.write(ctypes.c_float(curVertex.co[2]))
                 
                 f.write(ctypes.c_float(curUV[0]))
-                f.write(ctypes.c_float(curUV[1]))
+                f.write(ctypes.c_float(1.0 - curUV[1]))
                 
                 f.write(ctypes.c_float(curNormal[0]))
                 f.write(ctypes.c_float(curNormal[1]))

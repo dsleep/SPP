@@ -2,25 +2,11 @@
     "lights": [],
     "materials": [
         {
-            "name": "MAIN",
+            "name": "Ground",
             "textures": {
                 "alpha": [],
                 "diffuse": [
-                    "MAIN_diffuse.png"
-                ],
-                "emissive": [],
-                "metallic": [],
-                "normal": [],
-                "roughness": [],
-                "specular": []
-            }
-        },
-        {
-            "name": "ROOFM",
-            "textures": {
-                "alpha": [],
-                "diffuse": [
-                    "ROOFM_diffuse.png"
+                    "Ground_diffuse.png"
                 ],
                 "emissive": [],
                 "metallic": [],
@@ -34,6 +20,20 @@
             "textures": {
                 "alpha": [],
                 "diffuse": [],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "MAIN",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    "MAIN_diffuse.png"
+                ],
                 "emissive": [],
                 "metallic": [],
                 "normal": [],
@@ -56,11 +56,11 @@
             }
         },
         {
-            "name": "Ground",
+            "name": "ROOFM",
             "textures": {
                 "alpha": [],
                 "diffuse": [
-                    "Ground_diffuse.png"
+                    "ROOFM_diffuse.png"
                 ],
                 "emissive": [],
                 "metallic": [],
@@ -284,6 +284,30 @@
                     1.0,
                     1.000000238418579,
                     1.0000001192092896
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Ground"
+            ],
+            "mesh": "Ground_Ground_0.001",
+            "name": "Ground_Ground_0.001",
+            "transform": {
+                "location": [
+                    8.09589958190918,
+                    0.0,
+                    0.0
+                ],
+                "rotation": [
+                    -7.698198714933824e-06,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
                 ]
             }
         }

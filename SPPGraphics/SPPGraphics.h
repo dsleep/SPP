@@ -30,6 +30,16 @@ namespace SPP
 	SPP_GRAPHICS_API void IntializeGraphics();	
 	SPP_GRAPHICS_API bool IsOnGPUThread();
 
+    class SPP_GRAPHICS_API GPUThreadIDOverride
+    {
+    private:
+        std::thread::id prevID;
+
+    public:
+        GPUThreadIDOverride();
+        ~GPUThreadIDOverride();
+    };
+
     class GPU_CALL;
     class gpu_coroutine_promise
     {

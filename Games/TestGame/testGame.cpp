@@ -90,7 +90,7 @@ public:
 		InitializePhysX();
 
 #if 1
-		auto _renderableScene = LoadJsonGameScene(*AssetPath("scenes/materialtest/materialtest.spj"));
+		auto _renderableScene = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
 		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
 
 		renderableSceneShared = _renderableScene->GetRenderSceneShared();

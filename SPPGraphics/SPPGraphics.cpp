@@ -36,6 +36,16 @@ namespace SPP
 		return (GPUThread == currentThreadID);
 	}
 
+	GPUThreadIDOverride::GPUThreadIDOverride()
+	{
+		prevID = GPUThread;
+		GPUThread = std::this_thread::get_id();
+	}
+	GPUThreadIDOverride::~GPUThreadIDOverride()
+	{
+		GPUThread = prevID;
+	}
+
 	GPU_CALL gpu_coroutine_promise::get_return_object() noexcept
 	{
 		return GPU_CALL(coro_handle::from_promise(*this));

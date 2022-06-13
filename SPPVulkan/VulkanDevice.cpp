@@ -5,6 +5,7 @@
 // Modified original code from Sascha Willems - www.saschawillems.de
 
 #include <VulkanDevice.h>
+#include "VulkanTexture.h"
 #include "VulkanShaders.h"
 #include "VulkanDebug.h"
 #include <unordered_set>
@@ -23,7 +24,7 @@ namespace SPP
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-	extern GPUReferencer< GPUTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
 	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
 	{
@@ -363,6 +364,20 @@ namespace SPP
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
+		{
+			GPUThreadIDOverride tempOverride;
+			auto textureData = std::make_shared< ArrayResource >();
+			auto textureAccess = textureData->InitializeFromType<Color4>(128 * 128);
+			
+			for (uint32_t Iter = 0; Iter < textureAccess.GetCount(); Iter++)
+			{
+				textureAccess[Iter][1] = 255;
+				textureAccess[Iter][3] = 255;
+			}
+			_defaultTexture = Vulkan_CreateTexture(128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+
+		}
+		
 		return true;
 	}
 

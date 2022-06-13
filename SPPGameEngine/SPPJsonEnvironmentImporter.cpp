@@ -121,9 +121,6 @@ namespace SPP
 					}
 										
 					std::swap(curRot[0], curRot[1]);
-					curRot[1] = -curRot[1];
-					std::swap(curRot[0], curRot[2]);
-					curRot[0] = -curRot[0];
 
 					for (int32_t Iter = 0; Iter < 3; Iter++)
 					{						

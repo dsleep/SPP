@@ -275,7 +275,7 @@ namespace SPP
 		//set 1
 		{
 			auto& textures = _material->GetTextureArray();
-			auto gpuTexture = textures[0]->GetGPUTexture();
+			auto gpuTexture = textures.empty() ? GGlobalVulkanGI->GetDefaultTexture() : textures[0]->GetGPUTexture();
 			auto &currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
 
 			VkDescriptorImageInfo textureInfo = currentVulkanTexture.GetDescriptor();
