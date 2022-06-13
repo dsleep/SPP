@@ -25,6 +25,16 @@ namespace SPP
 	using SystemClock = std::chrono::system_clock;
 	using namespace std::chrono_literals;
 
+	class SPP_CORE_API STDElapsedTimer
+	{
+	private:
+		std::chrono::high_resolution_clock::time_point _lastTime;
+
+	public:
+		STDElapsedTimer();
+		float getElapsedSeconds();
+	};
+
 	class SPP_CORE_API TimerHandle
 	{
 	private:

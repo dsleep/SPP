@@ -5,7 +5,7 @@ add_library(SPPPhysX SHARED "")
 
 set_target_properties(SPPPhysX PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies(SPPPhysX SPPCore SPPMath )
+add_dependencies(SPPPhysX SPPCore SPPMath SPPSceneO)
 
 # will need define to not create empty dll export
 target_compile_definitions(SPPPhysX
@@ -26,6 +26,7 @@ target_link_libraries(SPPPhysX
 	PUBLIC
 		SPPCore 
 		SPPMath
+		SPPSceneO
 		)
 		
 target_include_directories(SPPPhysX 

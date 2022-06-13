@@ -9,6 +9,19 @@ namespace SPP
 	using SystemClock = std::chrono::system_clock;
 	using namespace std::chrono_literals;
 
+	STDElapsedTimer::STDElapsedTimer()
+	{
+		_lastTime = std::chrono::high_resolution_clock::now();
+	}
+
+	float STDElapsedTimer::getElapsedSeconds()
+	{
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		auto elaspedTime = (float)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastTime).count() / 1000.0f;
+		_lastTime = currentTime;
+		return elaspedTime;
+	}
+
 	TimerHandle::~TimerHandle()
 	{
 		if (auto Lck = _parent.lock())

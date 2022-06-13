@@ -36,6 +36,7 @@
 #include "SPPBlenderFile.h"
 
 #include "SPPJsonEnvironmentImporter.h"
+#include "SPPHandledTimers.h"
 
 #include <condition_variable>
 
@@ -56,7 +57,7 @@ class SimpleViewer
 
 private:
 	std::shared_ptr<GraphicsDevice> _graphicsDevice;
-
+	STDElapsedTimer _timer;
 	HWND _mainDXWindow = nullptr;
 	Vector2 _mouseDelta = Vector2(0, 0);
 	uint8_t _keys[255] = { 0 };
@@ -72,6 +73,8 @@ private:
 	std::unique_ptr<SPP::ApplicationWindow> app;
 	std::shared_ptr<GD_RenderScene> renderableSceneShared;
 	std::future<bool> graphicsResults;
+
+	VgEnvironment* _gameworld = nullptr;
 
 public:
 	
@@ -90,10 +93,10 @@ public:
 		InitializePhysX();
 
 #if 1
-		auto _renderableScene = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
-		_renderableScene->AddToGraphicsDevice(_graphicsDevice.get());
+		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
+		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
 
-		renderableSceneShared = _renderableScene->GetRenderSceneShared();
+		renderableSceneShared = _gameworld->GetRenderSceneShared();
 
 		//auto& cam = renderableSceneShared->GetCamera();
 		//cam.GetCameraPosition()[2] = -100;
@@ -194,6 +197,10 @@ public:
 	void Update()
 	{
 		if (!_graphicsDevice) return;
+
+		auto currentElapsed = _timer.getElapsedSeconds();
+
+		_gameworld->Update(currentElapsed);			
 
 		RECT rect;
 		GetClientRect(_mainDXWindow, &rect);

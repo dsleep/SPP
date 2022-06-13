@@ -7,6 +7,11 @@
 #include "PxPhysicsAPI.h"
 #include "SPPPlatformCore.h"
 #include "SPPMemory.h"
+#include "SPPHandledTimers.h"
+
+#include "characterkinematic/PxBoxController.h"
+#include "characterkinematic/PxCapsuleController.h"
+#include "characterkinematic/PxControllerManager.h"
 
 #include <mutex>
 #include <condition_variable>
@@ -63,7 +68,7 @@ namespace SPP
 		virtual	void			shutdown() {}
 
 		PxReal					getSimulationTime()	const { return mSimulationTime; }
-		StepperCallbacks& getCallbacks() { return _callbacks; }
+		StepperCallbacks&		getCallbacks() { return _callbacks; }
 	protected:
 		StepperCallbacks		_callbacks;
 		PxReal					mSimulationTime;
@@ -91,25 +96,7 @@ namespace SPP
 
 	};
 	
-	class STDElapsedTimer
-	{
-	private:
-		std::chrono::high_resolution_clock::time_point _lastTime;
-
-	public:
-		STDElapsedTimer()
-		{
-			_lastTime = std::chrono::high_resolution_clock::now();
-		}
-
-		float getElapsedSeconds()
-		{
-			auto currentTime = std::chrono::high_resolution_clock::now();
-			auto elaspedTime = (float)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastTime).count() / 1000.0f;
-			_lastTime = currentTime;
-			return elaspedTime;
-		}
-	};
+	
 
 	class MultiThreadStepper : public Stepper
 	{
@@ -155,6 +142,7 @@ namespace SPP
 		}
 		virtual void substepDone(StepperTask* ownerTask)
 		{
+			if(_callbacks.onSubstepPreFetchResult)
 			_callbacks.onSubstepPreFetchResult();
 
 			{
@@ -167,6 +155,7 @@ namespace SPP
 			PxReal delta = (PxReal)mTimer.getElapsedSeconds();
 			mSimulationTime += delta;
 
+			if(_callbacks.onSubstep)
 			_callbacks.onSubstep(mSubStepSize);
 
 			if (mCurrentSubStep >= mNbSubSteps)
@@ -226,6 +215,7 @@ namespace SPP
 		void substep(StepperTask& completionTask)
 		{
 			// setup any tasks that should run in parallel to simulate()
+			if(_callbacks.onSubstepSetup)
 			_callbacks.onSubstepSetup(mSubStepSize, &completionTask);
 
 			// step
@@ -266,7 +256,9 @@ namespace SPP
 	void StepperTaskSimulate::run()
 	{
 		mStepper->simulate(mCont);
-		mStepper->getCallbacks().onSubstepStart(mStepper->getSubStepSize());
+		auto& callbacks = mStepper->getCallbacks();
+		if(callbacks.onSubstepStart)
+			callbacks.onSubstepStart(mStepper->getSubStepSize());
 	}
 
 	class DebugStepper : public Stepper
@@ -795,7 +787,8 @@ namespace SPP
 	class PhysXScene : public PhysicsScene
 	{
 	protected:
-		PxScene* _scene = NULL;
+		PxScene* _scene = nullptr;
+		PxControllerManager* _controllerManager = nullptr;
 		VariableStepper _stepper;
 
 		float _simulationTime = 0.0f;
@@ -813,6 +806,8 @@ namespace SPP
 			sceneDesc.cpuDispatcher = gDispatcher;
 			sceneDesc.filterShader = PxDefaultSimulationFilterShader;
 			_scene = gPhysics->createScene(sceneDesc);
+
+			_controllerManager = PxCreateControllerManager(*_scene);
 
 #if _DEBUG
 			PxPvdSceneClient* pvdClient = _scene->getScenePvdClient();
@@ -848,6 +843,7 @@ namespace SPP
 		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition,
 			const Vector3& InRotationEuler,
 			const Vector3& Extents,
+			OElement* InElement,
 			bool bIsDynamic = false) override
 		{
 			auto actorTransform = ToPxTransform(InPosition, InRotationEuler);
@@ -862,6 +858,7 @@ namespace SPP
 			{
 				newPxActor = PxCreateStatic(*gPhysics, actorTransform, Geom, *gMaterial);
 			}
+			newPxActor->userData = InElement;
 			_scene->addActor(*newPxActor);
 
 			return std::make_shared< PhysXPrimitive >(newPxActor);
@@ -885,6 +882,40 @@ namespace SPP
 			_scene->addActor(*newPxActor);
 
 			return std::make_shared< PhysXPrimitive >(newPxActor);
+		}
+
+		virtual std::shared_ptr< PhysicsPrimitive > CreateCharacterCapsule(const Vector3& Extents,
+			OElement* InElement) override
+		{
+			PxCapsuleControllerDesc capsuleDesc;
+
+			float radius = Extents[0];
+			float height = Extents[1];
+
+			capsuleDesc.height = height;
+			capsuleDesc.radius = radius;
+			capsuleDesc.climbingMode = PxCapsuleClimbingMode::eCONSTRAINED;
+
+			
+			//capsuleDesc.density = desc.mProxyDensity;
+			//capsuleDesc.scaleCoeff = desc.mProxyScale;
+			//capsuleDesc.material = &mOwner.getDefaultMaterial();
+			//capsuleDesc.position = desc.mPosition;
+			//capsuleDesc.slopeLimit = desc.mSlopeLimit;
+			//capsuleDesc.contactOffset = desc.mContactOffset;
+			//capsuleDesc.stepOffset = desc.mStepOffset;
+			//capsuleDesc.invisibleWallHeight = desc.mInvisibleWallHeight;
+			//capsuleDesc.maxJumpHeight = desc.mMaxJumpHeight;
+			////	capsuleDesc.nonWalkableMode		= PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
+			//capsuleDesc.reportCallback = desc.mReportCallback;
+			//capsuleDesc.behaviorCallback = desc.mBehaviorCallback;
+			//capsuleDesc.volumeGrowth = desc.mVolumeGrowth;
+			//
+			//capsuleDesc.userData = InElement;
+
+			//PxController* ctrl = _controllerManager->createController(capsuleDesc);
+
+			return nullptr;
 		}
 
 		virtual void Update(float DeltaTime) override
@@ -919,18 +950,23 @@ namespace SPP
 					actorType == PxConcreteType::eARTICULATION_JOINT)
 				{
 					PxRigidActor* rigidActor = static_cast<PxRigidActor*>(actor);
-					PxU32 nbShapes = rigidActor->getNbShapes();
-					for (PxU32 i = 0; i < nbShapes; i++)
-					{
-						PxShape* shape;
-						PxU32 n = rigidActor->getShapes(&shape, 1, i);
-						PX_ASSERT(n == 1);
-						PX_UNUSED(n);
-						
-						//
-						//rigidActor->userData
-						//shape->userData
-					}
+
+					auto globalPose = rigidActor->getGlobalPose();
+
+					auto curElement = reinterpret_cast<OElement*>(rigidActor->userData);
+
+					//PxU32 nbShapes = rigidActor->getNbShapes();
+					//for (PxU32 i = 0; i < nbShapes; i++)
+					//{
+					//	PxShape* shape;
+					//	PxU32 n = rigidActor->getShapes(&shape, 1, i);
+					//	PX_ASSERT(n == 1);
+					//	PX_UNUSED(n);
+					//	
+					//	//
+					//	//rigidActor->userData
+					//	//shape->userData
+					//}
 				}
 			}
 		}
