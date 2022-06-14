@@ -6,6 +6,7 @@
 
 #include "SPPEngine.h"
 #include "SPPArrayResource.h"
+#include "SPPMath.h"
 #include <coroutine>
 #include <vector>
 #include <memory>
@@ -180,6 +181,8 @@ namespace SPP
         //virtual std::shared_ptr< class GD_RenderableMesh > CreateSkinnedMesh() = 0;
 
         virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() = 0;
+
+        virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255,255,255)) {}
     };
 
     struct IGraphicsInterface

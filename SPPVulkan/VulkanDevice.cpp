@@ -14,6 +14,9 @@
 #include "SPPGraphicsO.h"
 #include "SPPSDFO.h"
 
+//IMGUI
+#include "imgui_impl_vulkan.h"
+
 namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
@@ -656,6 +659,52 @@ namespace SPP
 		setupRenderPass();
 		setupFrameBuffer();
 		CreateDescriptorPool();
+
+
+		//IMGUI
+		// Setup Dear ImGui context
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2(width, height);
+		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+
+		ImGui_ImplVulkan_InitInfo initInfo = { 0 };
+
+		initInfo.Instance = instance;
+		initInfo.PhysicalDevice = physicalDevice;
+		initInfo.Device = device;
+
+		initInfo.QueueFamily = swapChain.queueNodeIndex;
+		initInfo.Queue = queue;
+		initInfo.PipelineCache = pipelineCache;
+		initInfo.DescriptorPool = _globalPool;
+
+		initInfo.Subpass = 0;
+		initInfo.MinImageCount = 2;          // >= 2
+		initInfo.ImageCount = swapChain.imageCount;             // >= MinImageCount
+		initInfo.MSAASamples = (VkSampleCountFlagBits)0;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
+		//initInfo.Allocator;// const VkAllocationCallbacks* Allocator;
+		//initInfo.CheckVkResultFn;// void                            (*CheckVkResultFn)(VkResult err);
+
+		{
+			GPUThreadIDOverride tempOverride;
+
+			ImGui_ImplVulkan_Init(&initInfo, renderPass);
+
+			auto& cmdBuffer = GetCopyCommandBuffer();
+			ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
+
+			//ImGui_ImplVulkan_DestroyFontUploadObjects
+			//ImGui_ImplVulkan_Shutdown()
+		}
 	}
 
 	void VulkanGraphicsDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
@@ -700,18 +749,41 @@ namespace SPP
 	{
 		SE_ASSERT(swapChain.imageCount);
 
-		std::vector<VkDescriptorPoolSize> simplePool = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 100),
-		};
-		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);	
-
-		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			VkDescriptorPool curPool;
-			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &curPool));
-			_perDrawPools.push_back(curPool);
+			std::vector<VkDescriptorPoolSize> simplePool = {
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 100),
+			};
+			auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);
+
+			for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
+			{
+				VkDescriptorPool curPool;
+				VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &curPool));
+				_perDrawPools.push_back(curPool);
+			}
+		}
+
+		//IMGUI primarily
+		{
+			std::vector < VkDescriptorPoolSize > globalPool =
+			{
+				{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+				{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+				{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+			};
+
+			auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(globalPool, 1000);
+			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &_globalPool));
 		}
 	}
 
@@ -798,14 +870,40 @@ namespace SPP
 
 		GraphicsDevice::BeginFrame();
 
+
+		//IMGUI
+		ImGui::NewFrame();
+		ImGui_ImplVulkan_NewFrame();
+
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(width, height));
+
+		ImGui::SetNextWindowBgAlpha(0.0f);
+		ImGui::Begin("Window", nullptr, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration);
+
 		bDrawPhase = true;
+	}
+
+	//IMGUI
+	void VulkanGraphicsDevice::DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor)
+	{
+		ImGui::SetCursorPosX(InPosition[0]);
+		ImGui::SetCursorPosY(InPosition[1]);
+		ImGui::Text(Text);
 	}
 
 	void VulkanGraphicsDevice::EndFrame()
 	{
 		bDrawPhase = false;
 
+		//IMGUI
+		//ImGui::ShowDemoWindow();
 		auto& commandBuffer = _drawCmdBuffers[currentBuffer]->Get();
+
+		ImGui::End();
+		ImGui::Render();
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+
 		vkCmdEndRenderPass(commandBuffer);
 
 		// Ending the render pass will add an implicit barrier transitioning the frame buffer color attachment to

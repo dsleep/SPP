@@ -460,6 +460,10 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		
+		auto &camPos = _viewGPU.GetCameraPosition();
+		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
+		GGlobalVulkanGI->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
+
 		// Set clear values for all framebuffer attachments with loadOp set to clear
 		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
 		VkClearValue clearValues[2];

@@ -364,6 +364,7 @@ namespace SPP
 
 		GPUReferencer< GPUTexture > _defaultTexture;
 
+		VkDescriptorPool _globalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;
 
 		VkResult createInstance(bool enableValidation);
@@ -469,6 +470,9 @@ namespace SPP
 		virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() override;
 		virtual std::shared_ptr< class GD_RenderableMesh > CreateStaticMesh() override;
 		virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() override;
+
+		virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255, 255, 255)) override;
+
 	};
 
 	class VulkanPipelineState : public PipelineState
