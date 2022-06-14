@@ -98,8 +98,8 @@ public:
 
 		renderableSceneShared = _gameworld->GetRenderSceneShared();
 
-		//auto& cam = renderableSceneShared->GetCamera();
-		//cam.GetCameraPosition()[2] = -100;
+		auto& cam = renderableSceneShared->GetCamera();
+		cam.GetCameraPosition()[1] = 5;
 #else
 
 		auto meshtest = std::make_shared< Mesh>();
@@ -293,7 +293,7 @@ public:
 			_mouseCaptureSpot = _mousePosition;
 
 			auto& cam = renderableSceneShared->GetCamera();
-			cam.TurnCamera(Vector2(-Delta[0], Delta[1]));
+			cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
 		}		
 	}
 

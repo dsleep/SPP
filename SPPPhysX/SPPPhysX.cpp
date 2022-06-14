@@ -730,7 +730,53 @@ namespace SPP
 		gFoundation->release();
 	}
 
+	class PhysXCharacter : public PhysicsCharacter
+	{
+	protected:
+		PxController* _pxController = nullptr;
+		PxRigidActor* _pxActor = nullptr;
 
+	public:
+		PhysXCharacter(PxController* InController) : _pxController(InController)
+		{
+			_pxActor = _pxController->getActor();
+		}
+
+		virtual ~PhysXCharacter()
+		{
+		}
+
+		virtual Vector3d GetPosition() override
+		{
+			auto globalPose = _pxActor->getGlobalPose();
+			return Vector3d(globalPose.p.x, globalPose.p.y, globalPose.p.z);
+		}
+		virtual Vector3 GetRotation() override
+		{
+			const float RadToDegree = 57.295755f;
+			auto globalPose = _pxActor->getGlobalPose();
+			Eigen::Quaternion<float> q(&globalPose.q.x);
+			auto euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
+			return Vector3(euler[0] * RadToDegree, euler[1] * RadToDegree, euler[2] * RadToDegree);
+		}
+		virtual Vector3 GetScale() override
+		{
+			return Vector3(1, 1, 1);
+		}
+
+		virtual void SetPosition(const Vector3d& InValue) override
+		{
+
+		}
+		virtual void SetRotation(const Vector3& InValue) override
+		{
+
+		}
+		virtual void SetScale(const Vector3& InValue) override
+		{
+
+		}
+	};
 
 	class PhysXPrimitive : public PhysicsPrimitive
 	{
@@ -884,7 +930,7 @@ namespace SPP
 			return std::make_shared< PhysXPrimitive >(newPxActor);
 		}
 
-		virtual std::shared_ptr< PhysicsPrimitive > CreateCharacterCapsule(const Vector3& Extents,
+		virtual std::shared_ptr< PhysicsCharacter > CreateCharacterCapsule(const Vector3& Extents,
 			OElement* InElement) override
 		{
 			PxCapsuleControllerDesc capsuleDesc;
@@ -894,9 +940,25 @@ namespace SPP
 
 			capsuleDesc.height = height;
 			capsuleDesc.radius = radius;
-			capsuleDesc.climbingMode = PxCapsuleClimbingMode::eCONSTRAINED;
+			capsuleDesc.climbingMode = PxCapsuleClimbingMode::eEASY;
 
+			#define CONTACT_OFFSET			0.1f
+			#define STEP_OFFSET				0.1f
+			#define SLOPE_LIMIT				0.0f
+			#define INVISIBLE_WALLS_HEIGHT	0.0f
+			#define MAX_JUMP_HEIGHT			0.0f
 			
+			capsuleDesc.slopeLimit = SLOPE_LIMIT;
+			capsuleDesc.contactOffset = CONTACT_OFFSET;
+			capsuleDesc.stepOffset = STEP_OFFSET;
+			capsuleDesc.invisibleWallHeight = INVISIBLE_WALLS_HEIGHT;
+			capsuleDesc.maxJumpHeight = MAX_JUMP_HEIGHT;
+
+			auto &elePos = InElement->GetPosition();
+			capsuleDesc.position.x = elePos[0];
+			capsuleDesc.position.y = elePos[1];
+			capsuleDesc.position.z = elePos[2];
+
 			//capsuleDesc.density = desc.mProxyDensity;
 			//capsuleDesc.scaleCoeff = desc.mProxyScale;
 			//capsuleDesc.material = &mOwner.getDefaultMaterial();
@@ -913,9 +975,10 @@ namespace SPP
 			//
 			//capsuleDesc.userData = InElement;
 
-			//PxController* ctrl = _controllerManager->createController(capsuleDesc);
+			PxController* ctrl = _controllerManager->createController(capsuleDesc);
+			ctrl->getActor()->userData = InElement;
 
-			return nullptr;
+			return std::make_shared< PhysXCharacter >(ctrl);
 		}
 
 		virtual void Update(float DeltaTime) override

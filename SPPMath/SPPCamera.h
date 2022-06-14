@@ -18,9 +18,10 @@ namespace SPP
 		Down
 	};
 
-	//-X East +X West
-	//-Y South +Y North
-	//Z+ is Altitude
+	// default is a left handed coordinate system
+	// right X+
+	// up Y+
+	// front Z+
 	class SPP_MATH_API Camera
 	{
 	protected:

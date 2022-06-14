@@ -407,7 +407,7 @@ namespace SPP
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
 		//UPDATE UNIFORMS
-		_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(45.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
+		_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
 		_viewGPU.BuildCameraMatrices();
 
 		Planed frustumPlanes[6];

@@ -57,10 +57,10 @@ from bpy.types import (
 from bpy import context
 
 
-flipMatrix = mathutils.Matrix(((1.0, 0.0, 0.0, 0.0),
-                                (0.0, 0.0, -1.0, 0.0),
+flipMatrix = mathutils.Matrix(( (1.0, 0.0, 0.0, 0.0),
+                                (0.0, 0.0, 1.0, 0.0),
                                 (0.0, 1.0, 0.0, 0.0),
-                                (0.0, 0.0, 0.0, 1.0)))
+                                (0.0, 0.0, 0.0, 1.0) ))
 
 
 def triangulate_mesh(curMesh):

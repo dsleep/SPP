@@ -53,6 +53,22 @@ namespace SPP
 		Convex
 	};
 
+	class PhysicsCharacter
+	{
+	protected:
+
+	public:
+		virtual ~PhysicsCharacter() {}
+
+		virtual Vector3d GetPosition() = 0;
+		virtual Vector3 GetRotation() = 0;
+		virtual Vector3 GetScale() = 0;
+
+		virtual void SetPosition(const Vector3d& InValue) = 0;
+		virtual void SetRotation(const Vector3& InValue) = 0;
+		virtual void SetScale(const Vector3& InValue) = 0;
+	};
+
 	class PhysicsPrimitive
 	{
 	protected:
@@ -92,7 +108,7 @@ namespace SPP
 			const Vector3& InScale,
 			std::shared_ptr< PhysicsTriangleMesh > InTriMesh) = 0;
 
-		virtual std::shared_ptr< PhysicsPrimitive > CreateCharacterCapsule(const Vector3& Extents,
+		virtual std::shared_ptr< PhysicsCharacter > CreateCharacterCapsule(const Vector3& Extents,
 			OElement* InElement ) = 0;
 	};
 
