@@ -959,6 +959,8 @@ namespace SPP
 			capsuleDesc.position.y = elePos[1];
 			capsuleDesc.position.z = elePos[2];
 
+			capsuleDesc.material = gMaterial;
+
 			//capsuleDesc.density = desc.mProxyDensity;
 			//capsuleDesc.scaleCoeff = desc.mProxyScale;
 			//capsuleDesc.material = &mOwner.getDefaultMaterial();
@@ -999,7 +1001,7 @@ namespace SPP
 		void UpdateTransforms()
 		{
 			PxSceneReadLock scopedLock(*_scene);
-
+			
 			uint32_t activeTransformCount = 0;
 			PxActor** activeTransforms = _scene->getActiveActors(activeTransformCount);
 

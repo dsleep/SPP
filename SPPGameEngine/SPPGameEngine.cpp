@@ -71,6 +71,23 @@ namespace SPP
 		_physicsPrimitive.reset();
 	}
 
+	void VgCapsuleElement::AddedToScene(class OScene* InScene)
+	{
+		OElement::AddedToScene(InScene);
+
+		auto thisEnvironment = dynamic_cast<VgEnvironment*>(InScene);
+		SE_ASSERT(thisEnvironment);
+
+		auto currentScene = thisEnvironment->GetPhysicsScene();
+
+		_physicsPrimitive = currentScene->CreateCharacterCapsule(Vector3(_radius, _height, _radius), this);
+	}
+	void VgCapsuleElement::RemovedFromScene()
+	{
+		OElement::RemovedFromScene();
+		_physicsPrimitive.reset();
+	}
+
 	uint32_t GetGameEngineVersion()
 	{
 		return 1;
@@ -98,6 +115,13 @@ RTTR_REGISTRATION
 		;	
 
 	rttr::registration::class_<VgMeshElement>("VgMeshElement")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
+
+	rttr::registration::class_<VgCapsuleElement>("VgCapsuleElement")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr

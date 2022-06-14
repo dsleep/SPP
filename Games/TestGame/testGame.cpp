@@ -74,7 +74,9 @@ private:
 	std::shared_ptr<GD_RenderScene> renderableSceneShared;
 	std::future<bool> graphicsResults;
 
+	VgCapsuleElement* _charCapsule = nullptr;
 	VgEnvironment* _gameworld = nullptr;
+	std::shared_ptr< PhysicsCharacter > _characterCapsule;
 
 public:
 	
@@ -95,6 +97,12 @@ public:
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
+
+		_charCapsule = AllocateObject<VgCapsuleElement>("currentCapsule", nullptr);
+		auto& curPos = _charCapsule->GetPosition();
+		curPos[1] = 5.0;
+		
+		_gameworld->AddChild(_charCapsule);
 
 		renderableSceneShared = _gameworld->GetRenderSceneShared();
 

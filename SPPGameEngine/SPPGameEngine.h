@@ -67,6 +67,25 @@ namespace SPP
 		virtual ~VgEnvironment() { }
 	};
 
+	class SPP_GAMEENGINE_API VgCapsuleElement : public OElement
+	{
+		RTTR_ENABLE(OElement);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		std::shared_ptr< PhysicsCharacter > _physicsPrimitive;
+		float _height = 1.0f;
+		float _radius = 0.2f;
+
+		VgCapsuleElement(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
+
+	public:
+		virtual ~VgCapsuleElement() { }
+
+		virtual void AddedToScene(class OScene* InScene) override;
+		virtual void RemovedFromScene() override;
+	};
+
 	//Vg video game? do i like this hmmmmm
 
 	class SPP_GAMEENGINE_API VgMeshElement : public OMeshElement
