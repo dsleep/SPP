@@ -98,7 +98,12 @@ namespace SPP
 		}
 	}
 
-	void Camera::MoveCamera(float DeltaTime, ERelativeDirection Direction)
+	void Camera::SetCameraPosition(const Vector3d& InPosition)
+	{
+		_cameraPosition = InPosition;
+	}
+
+	Vector3 Camera::GetCameraMoveDelta(float DeltaTime, ERelativeDirection Direction)
 	{
 		Vector3 movementDir(0, 0, 0);
 		switch (Direction)
@@ -122,9 +127,14 @@ namespace SPP
 			movementDir = -_cameraMatrix.block<1, 3>(1, 0);
 			break;
 		}
-
 		movementDir *= DeltaTime * _speed;
-		_cameraPosition += Vector3d(movementDir[0], movementDir[1], movementDir[2]);
+		return movementDir;
+	}
+
+	void Camera::MoveCamera(float DeltaTime, ERelativeDirection Direction)
+	{
+		auto moveDelta = GetCameraMoveDelta(DeltaTime, Direction);		
+		_cameraPosition += Vector3d(moveDelta[0], moveDelta[1], moveDelta[2]);
 	}
 
 	void Camera::GetFrustumCorners(Vector3 OutFrustumCorners[8])

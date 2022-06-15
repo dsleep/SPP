@@ -74,5 +74,8 @@ namespace SPP
 
 		void TurnCamera(const Vector2 &CameraTurn);
 		void MoveCamera(float DeltaTime, ERelativeDirection Direction);
+
+		Vector3 GetCameraMoveDelta(float DeltaTime, ERelativeDirection Direction);
+		void SetCameraPosition(const Vector3d &InPosition);
 	};
 }

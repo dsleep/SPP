@@ -390,7 +390,7 @@ namespace SPP
 	{
 		// we suppress the triangle mesh remap table computation to gain some speed, as we will not need it 
 		// in this snippet
-		params.suppressTriangleMeshRemapTable = true;
+		params.suppressTriangleMeshRemapTable = false;
 
 		// If DISABLE_CLEAN_MESH is set, the mesh is not cleaned during the cooking. The input mesh must be valid. 
 		// The following conditions are true for a valid triangle mesh :
@@ -466,6 +466,8 @@ namespace SPP
 		meshDesc.triangles.count = numTriangles;
 		meshDesc.triangles.data = indices;
 		meshDesc.triangles.stride = indexStride;
+
+		//meshDesc.flags |= PxMeshFlag::eFLIPNORMALS;
 
 		PxCookingParams params = gCooking->getParams();
 
@@ -730,34 +732,54 @@ namespace SPP
 		gFoundation->release();
 	}
 
-	class PhysXCharacter : public PhysicsCharacter
+	class PhysXCharacter : public PhysicsCharacter, public PxQueryFilterCallback, public PxControllerFilterCallback
 	{
 	protected:
 		PxController* _pxController = nullptr;
-		PxRigidActor* _pxActor = nullptr;
+
+		//const PxFilterData* _filterData;		// User-defined filter data for 'move' function
+		PxQueryFilterCallback* _filterCallback;	// User-defined filter data for 'move' function
+		PxControllerFilterCallback* _CCTFilterCallback;	// User-defined filter data for 'move' function
 
 	public:
 		PhysXCharacter(PxController* InController) : _pxController(InController)
 		{
-			_pxActor = _pxController->getActor();
 		}
 
 		virtual ~PhysXCharacter()
 		{
 		}
 
+		virtual PxQueryHitType::Enum preFilter(const PxFilterData& filterData, const PxShape* shape, const PxRigidActor* actor, PxHitFlags& queryFlags) override
+		{
+			return PxQueryHitType::eBLOCK;
+		}
+
+		virtual PxQueryHitType::Enum postFilter(const PxFilterData& filterData, const PxQueryHit& hit) override
+		{
+			return PxQueryHitType::eBLOCK;
+		}
+
+		virtual bool filter(const PxController& a, const PxController& b) override
+		{
+			return false;
+		}
+
+		virtual void Move(const Vector3d& InDelta, float DeltaTime) override
+		{
+			PxVec3 disp(InDelta[0], InDelta[1], InDelta[2]);
+			const PxControllerFilters filters(nullptr, this, nullptr);
+			_pxController->move(disp, 0.0f, DeltaTime, filters);
+		}
+
 		virtual Vector3d GetPosition() override
 		{
-			auto globalPose = _pxActor->getGlobalPose();
-			return Vector3d(globalPose.p.x, globalPose.p.y, globalPose.p.z);
+			auto position = _pxController->getPosition();
+			return Vector3d(position.x, position.y, position.z);
 		}
 		virtual Vector3 GetRotation() override
 		{
-			const float RadToDegree = 57.295755f;
-			auto globalPose = _pxActor->getGlobalPose();
-			Eigen::Quaternion<float> q(&globalPose.q.x);
-			auto euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
-			return Vector3(euler[0] * RadToDegree, euler[1] * RadToDegree, euler[2] * RadToDegree);
+			return Vector3(0,0,0);
 		}
 		virtual Vector3 GetScale() override
 		{
@@ -923,6 +945,8 @@ namespace SPP
 
 			auto triMeshCast = std::dynamic_pointer_cast<PhysXTriangleMesh>(InTriMesh);
 			Geom.triangleMesh = triMeshCast->GetTriMesh();
+			Geom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
+			Geom.scale = PxMeshScale(PxVec3(InScale[0], InScale[1], InScale[2]));
 
 			PxRigidActor* newPxActor = PxCreateStatic(*gPhysics, actorTransform, Geom, *gMaterial);
 			_scene->addActor(*newPxActor);
@@ -942,8 +966,8 @@ namespace SPP
 			capsuleDesc.radius = radius;
 			capsuleDesc.climbingMode = PxCapsuleClimbingMode::eEASY;
 
-			#define CONTACT_OFFSET			0.1f
-			#define STEP_OFFSET				0.1f
+			#define CONTACT_OFFSET			0.01f
+			#define STEP_OFFSET				0.05f
 			#define SLOPE_LIMIT				0.0f
 			#define INVISIBLE_WALLS_HEIGHT	0.0f
 			#define MAX_JUMP_HEIGHT			0.0f
@@ -975,11 +999,9 @@ namespace SPP
 			//capsuleDesc.behaviorCallback = desc.mBehaviorCallback;
 			//capsuleDesc.volumeGrowth = desc.mVolumeGrowth;
 			//
-			//capsuleDesc.userData = InElement;
-
+			capsuleDesc.userData = InElement;
 			PxController* ctrl = _controllerManager->createController(capsuleDesc);
-			ctrl->getActor()->userData = InElement;
-
+			
 			return std::make_shared< PhysXCharacter >(ctrl);
 		}
 
@@ -995,7 +1017,7 @@ namespace SPP
 				_simulationTime = _stepper.getSimulationTime();
 			
 				UpdateTransforms();
-			}
+			}			
 		}
 
 		void UpdateTransforms()

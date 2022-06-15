@@ -237,18 +237,27 @@ public:
 			// will be ignored if same
 			_graphicsDevice->ResizeBuffers(Width, Height);
 		}
-
+		
 		if (_selectionMode == ESelectionMode::Turn)
 		{
+			Vector3 cameraMoveDelta(0, 0, 0);
+
 			if (_keys[0x57])
-				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Forward);
+				cameraMoveDelta += cam.GetCameraMoveDelta(DeltaTime, SPP::ERelativeDirection::Forward);
 			if (_keys[0x53])
-				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Back);
+				cameraMoveDelta += cam.GetCameraMoveDelta(DeltaTime, SPP::ERelativeDirection::Back);
 
 			if (_keys[0x41])
-				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Left);
+				cameraMoveDelta += cam.GetCameraMoveDelta(DeltaTime, SPP::ERelativeDirection::Left);
 			if (_keys[0x44])
-				cam.MoveCamera(DeltaTime, SPP::ERelativeDirection::Right);
+				cameraMoveDelta += cam.GetCameraMoveDelta(DeltaTime, SPP::ERelativeDirection::Right);
+
+			if (!cameraMoveDelta.isApprox(Vector3(0, 0, 0)))
+			{
+				Vector3d camMove(cameraMoveDelta[0], cameraMoveDelta[1], cameraMoveDelta[2]);
+				_charCapsule->Move(camMove, DeltaTime);
+				cam.SetCameraPosition(_charCapsule->GetPosition());
+			}
 		}
 
 		//

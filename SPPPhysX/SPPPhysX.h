@@ -60,6 +60,8 @@ namespace SPP
 	public:
 		virtual ~PhysicsCharacter() {}
 
+		virtual void Move(const Vector3d& InDelta, float DeltaTime) = 0;
+
 		virtual Vector3d GetPosition() = 0;
 		virtual Vector3 GetRotation() = 0;
 		virtual Vector3 GetScale() = 0;

@@ -74,13 +74,15 @@ namespace SPP
 
 	protected:
 		std::shared_ptr< PhysicsCharacter > _physicsPrimitive;
-		float _height = 1.0f;
-		float _radius = 0.2f;
+		float _height = 1.5f;
+		float _radius = 0.75f;
 
 		VgCapsuleElement(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
 
 	public:
 		virtual ~VgCapsuleElement() { }
+
+		virtual void Move(const Vector3d& InDelta, float DeltaTime);
 
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene() override;

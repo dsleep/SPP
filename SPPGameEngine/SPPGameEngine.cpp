@@ -87,6 +87,11 @@ namespace SPP
 		OElement::RemovedFromScene();
 		_physicsPrimitive.reset();
 	}
+	void VgCapsuleElement::Move(const Vector3d & InDelta, float DeltaTime)
+	{
+		_physicsPrimitive->Move(InDelta, DeltaTime);
+		_translation = _physicsPrimitive->GetPosition();
+	}
 
 	uint32_t GetGameEngineVersion()
 	{
