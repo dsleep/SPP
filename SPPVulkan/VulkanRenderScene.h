@@ -29,6 +29,7 @@ namespace SPP
 		//altered viewposition translated
 		Matrix4x4 LocalToWorldScaleRotation;
 		Vector3d Translation;
+		uint32_t MaterialID;
 	};
 
 	_declspec(align(256u)) struct GPUDrawParams

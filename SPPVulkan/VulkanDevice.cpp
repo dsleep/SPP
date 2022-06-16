@@ -8,11 +8,14 @@
 #include "VulkanTexture.h"
 #include "VulkanShaders.h"
 #include "VulkanDebug.h"
+#include "VulkanFrameBuffer.hpp"
+
 #include <unordered_set>
 #include "SPPLogging.h"
 #include "SPPSceneRendering.h"
 #include "SPPGraphicsO.h"
 #include "SPPSDFO.h"
+#include "vulkan/vulkan_win32.h"
 
 //IMGUI
 #include "imgui_impl_vulkan.h"
@@ -436,6 +439,51 @@ namespace SPP
 	void VulkanGraphicsDevice::setupSwapChain()
 	{
 		swapChain.create(&width, &height, settings.vsync);
+
+		_deferredMaterialMRTs = std::make_unique< VulkanFramebuffer >(vulkanDevice);
+
+		_deferredMaterialMRTs->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+			}
+		);
+
+		_deferredMaterialMRTs->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+			}
+		);
+
+		_deferredMaterialMRTs->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+			}
+		);
+		
+		_deferredMaterialMRTs->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R8G8B8A8_UINT,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+			}
+		);
+
+		VK_CHECK_RESULT(_deferredMaterialMRTs->createRenderPass());
+		_deferredMaterialMRTs->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()

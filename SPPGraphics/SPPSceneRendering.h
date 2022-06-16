@@ -335,6 +335,8 @@ namespace SPP
 	protected:
 		EDrawingTopology _topology = EDrawingTopology::TriangleList;
 
+		bool _bIsStatic = false;
+
 		std::vector<VertexStream> _vertexStreams;
 		std::shared_ptr<ArrayResource> _vertexResource;
 		std::shared_ptr<ArrayResource> _indexResource;
@@ -355,6 +357,7 @@ namespace SPP
 			std::shared_ptr<ArrayResource> vertexResource;
 			std::shared_ptr<ArrayResource> indexResource;
 			std::shared_ptr<GD_Material> material;
+			bool bIsStatic = false;
 		};
 
 		GD_RenderableMesh(GraphicsDevice* InOwner);
@@ -366,6 +369,7 @@ namespace SPP
 			_vertexResource = InArgs.vertexResource;
 			_indexResource = InArgs.indexResource;
 			_material = InArgs.material;
+			_bIsStatic = InArgs.bIsStatic;
 		}
 
 		virtual ~GD_RenderableMesh() {}

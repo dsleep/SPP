@@ -30,12 +30,16 @@ target_sources(SPPVulkan
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanInitializers.hpp"
+		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanFrameBuffer.hpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanFrameBuffer.cpp"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanBuffer.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanBuffer.h"

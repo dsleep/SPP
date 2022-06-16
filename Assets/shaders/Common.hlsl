@@ -36,6 +36,7 @@ struct _DrawConstants
 	//altered viewposition translated
 	float4x4 LocalToWorldScaleRotation;
 	double3 Translation;
+	uint MaterialID;
 };
 
 [[vk::binding(0, 0)]]
