@@ -27,6 +27,62 @@ namespace SPP
 	//TODO Get rid of this
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice *GGlobalVulkanGI;
+	
+
+	void* vkAllocationFunction(
+		void* pUserData,
+		size_t                                      size,
+		size_t                                      alignment,
+		VkSystemAllocationScope                     allocationScope)
+	{
+		return nullptr;
+	}
+
+	void* vkReallocationFunction(
+		void* pUserData,
+		void* pOriginal,
+		size_t                                      size,
+		size_t                                      alignment,
+		VkSystemAllocationScope                     allocationScope)
+	{
+		return nullptr;
+	}
+
+	void vkFreeFunction(
+		void* pUserData,
+		void* pMemory)
+	{
+
+	}
+
+	void vkInternalAllocationNotification(
+		void* pUserData,
+		size_t                                      size,
+		VkInternalAllocationType                    allocationType,
+		VkSystemAllocationScope                     allocationScope)
+	{
+
+	}
+
+	void vkInternalFreeNotification(
+		void* pUserData,
+		size_t                                      size,
+		VkInternalAllocationType                    allocationType,
+		VkSystemAllocationScope                     allocationScope)
+	{
+
+	}
+
+
+	VkAllocationCallbacks GAllocations =
+	{
+		.pUserData = nullptr,
+		.pfnAllocation = vkAllocationFunction,
+		.pfnReallocation = vkReallocationFunction,
+		.pfnFree = vkFreeFunction,
+		.pfnInternalAllocation = vkInternalAllocationNotification,
+		.pfnInternalFree = vkInternalFreeNotification
+	};
 
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
