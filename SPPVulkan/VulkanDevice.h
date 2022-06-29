@@ -12,6 +12,7 @@
 #include "SPPGPUResources.h"
 #include "SPPMath.h"
 #include "SPPCamera.h"
+#include "SPPBitSetArray.h"
 
 #include "VulkanResources.h"
 #include "VulkanFrameBuffer.hpp"
@@ -65,6 +66,14 @@ namespace SPP
 		virtual void UploadToGpu() override {}
 		virtual ~VulkanInputLayout() {};
 		virtual void InitializeLayout(const std::vector<VertexStream>& vertexStreams) override;
+	};
+
+	_declspec(align(256u)) struct StaticDrawParams
+	{
+		//altered viewposition translated
+		Matrix4x4 LocalToWorldScaleRotation;
+		Vector3d Translation;
+		uint32_t MaterialID;
 	};
 
 	class VulkanGraphicsDevice : public GraphicsDevice
@@ -166,6 +175,14 @@ namespace SPP
 #endif
 
 		GPUReferencer< GPUTexture > _defaultTexture;
+		std::shared_ptr<GD_Material> _defaultMaterial;
+		std::shared_ptr< class GD_Shader > _meshvertexShader, _meshpixelShader;
+
+		std::shared_ptr< ArrayResource > _staticInstanceDrawInfoCPU;
+		TSpan< StaticDrawParams > _staticInstanceDrawInfoSpan;
+		GPUReferencer< class VulkanBuffer > _staticInstanceDrawInfoGPU;
+
+		std::unique_ptr< LeaseManager< TSpan< StaticDrawParams > > > _staticInstanceDrawLeaseManager;
 
 		VkDescriptorPool _globalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;
@@ -182,6 +199,7 @@ namespace SPP
 		void createCommandBuffers();
 		void destroyCommandBuffers();
 		
+		void createStaticDrawInfo();
 		void setupRenderPass();
 
 		void setupDepthStencil();
@@ -271,7 +289,12 @@ namespace SPP
 
 		virtual std::shared_ptr< class GD_Material > CreateMaterial() override;
 		virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() override;
-		virtual std::shared_ptr< class GD_RenderableMesh > CreateStaticMesh() override;
+
+		virtual std::shared_ptr< class GD_RenderableMesh > CreateRenderableMesh() override;
+
+		virtual std::shared_ptr< class GD_Material> GetDefaultMaterial() override;
+
+		virtual std::shared_ptr< class GD_StaticMesh > CreateStaticMesh() override;
 		virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() override;
 
 		virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255, 255, 255)) override;

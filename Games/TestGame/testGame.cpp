@@ -38,6 +38,8 @@
 #include "SPPJsonEnvironmentImporter.h"
 #include "SPPHandledTimers.h"
 
+#include "SPPBitSetArray.h"
+
 #include <condition_variable>
 
 #define MAX_LOADSTRING 100
@@ -84,7 +86,7 @@ public:
 	{
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
-
+		
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
@@ -332,6 +334,45 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 #else
 	LoadLibraryA("SPPVulkan.dll");
 #endif
+
+/*
+	BitSetArray newBitSet(128);
+
+	{
+		auto firstBit = newBitSet.GetFirstFree();
+		auto secondBit = newBitSet.GetFirstFree();
+	}
+	
+	auto thirdBit = newBitSet.GetFirstFree();
+	
+	struct TestData
+	{
+		float values[3];
+	};
+	std::vector<TestData> data;
+	data.resize(128);
+	data[0].values[0] = 10.0f;
+	LeaseManager bufferArray(data);
+
+	_declspec(align(256u)) struct GPUDrawConstants
+	{
+		//altered viewposition translated
+		Matrix4x4 LocalToWorldScaleRotation;
+		Vector3d Translation;
+		uint32_t MaterialID;
+	};
+
+
+	auto newResource = std::make_shared< ArrayResource >();
+	auto drawData = newResource->InitializeFromType< GPUDrawConstants >(5000);
+
+	LeaseManager bigDrawer(drawData);
+
+	{
+		auto newLease = bigDrawer.GetLease();
+
+	}
+*/
 
 	//Alloc Console
 	//print some stuff to the console

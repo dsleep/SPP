@@ -14,6 +14,7 @@ namespace SPP
 		_parentScene = InScene;
 		_parentScene->AddRenderable(this);
 	};
+
 	void Renderable::_RemoveFromRenderScene()
 	{
 		SE_ASSERT(_parentScene);
@@ -22,18 +23,22 @@ namespace SPP
 		_parentScene = nullptr;
 	};
 
-	GD_RenderableMesh::GD_RenderableMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner)
+	GD_StaticMesh::GD_StaticMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner)
 	{
 		_vertexBuffer = _owner->CreateBuffer(GPUBufferType::Vertex);
 		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
 	}
 
-	void GD_RenderableMesh::_AddToRenderScene(class GD_RenderScene* InScene)
+	void GD_StaticMesh::_makeResident()
 	{
-		Renderable::_AddToRenderScene(InScene);
-
+		SE_ASSERT(IsOnGPUThread());
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
 		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
-		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);
+		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);		
+	}
+
+	void GD_StaticMesh::_makeUnresident()
+	{
+
 	}
 }

@@ -28,6 +28,7 @@ namespace SPP
 		Matrix4x4 _cachedRotationScale;
 
 		bool _bSelected = false;
+		bool _bIsStatic = false;
 
 		virtual void _AddToRenderScene(class GD_RenderScene* InScene);
 		virtual void _RemoveFromRenderScene();
@@ -38,6 +39,7 @@ namespace SPP
 			Vector3d position;
 			Vector3 eulerRotationYPR;
 			Vector3 scale;
+			bool bIsStatic = false;
 		};
 
 		Renderable()
@@ -52,6 +54,7 @@ namespace SPP
 			_position = InArgs.position;
 			_eulerRotationYPR = InArgs.eulerRotationYPR;
 			_scale = InArgs.scale;
+			_bIsStatic = InArgs.bIsStatic;
 		}
 
 		void SetArgs(const Args& InArgs)
@@ -59,6 +62,7 @@ namespace SPP
 			_position = InArgs.position;
 			_eulerRotationYPR = InArgs.eulerRotationYPR;
 			_scale = InArgs.scale;
+			_bIsStatic = InArgs.bIsStatic;
 		}
 
 		virtual ~Renderable() {}
@@ -330,24 +334,22 @@ namespace SPP
 		}
 	};
 
-	class SPP_GRAPHICS_API GD_RenderableMesh : public Renderable, public GD_Resource
+	class SPP_GRAPHICS_API GD_StaticMesh : public GD_Resource
 	{
 	protected:
 		EDrawingTopology _topology = EDrawingTopology::TriangleList;
 
-		bool _bIsStatic = false;
-
 		std::vector<VertexStream> _vertexStreams;
 		std::shared_ptr<ArrayResource> _vertexResource;
 		std::shared_ptr<ArrayResource> _indexResource;
-		std::shared_ptr<GD_Material> _material;
 		
 		GPUReferencer<GPUInputLayout> _layout;
 
 		std::shared_ptr<GD_Buffer> _vertexBuffer;
 		std::shared_ptr<GD_Buffer> _indexBuffer;
 
-		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
+		virtual void _makeResident() override;
+		virtual void _makeUnresident() override;
 
 	public:
 		struct Args 
@@ -356,11 +358,9 @@ namespace SPP
 			std::vector<VertexStream> vertexStreams;
 			std::shared_ptr<ArrayResource> vertexResource;
 			std::shared_ptr<ArrayResource> indexResource;
-			std::shared_ptr<GD_Material> material;
-			bool bIsStatic = false;
 		};
 
-		GD_RenderableMesh(GraphicsDevice* InOwner);
+		GD_StaticMesh(GraphicsDevice* InOwner);
 
 		void SetMeshArgs(const Args& InArgs)
 		{
@@ -368,10 +368,47 @@ namespace SPP
 			_vertexStreams = InArgs.vertexStreams;
 			_vertexResource = InArgs.vertexResource;
 			_indexResource = InArgs.indexResource;
-			_material = InArgs.material;
-			_bIsStatic = InArgs.bIsStatic;
 		}
 
+		virtual ~GD_StaticMesh() {}
+
+		std::shared_ptr<GD_Buffer> GetVertexBuffer()
+		{
+			return _vertexBuffer;
+		}
+		std::shared_ptr<GD_Buffer> GetIndexBuffer()
+		{
+			return _indexBuffer;
+		}
+		EDrawingTopology GetTopology()
+		{
+			return _topology;
+		}
+		GPUReferencer<GPUInputLayout> GetLayout()
+		{
+			return _layout;
+		}
+	};
+
+	class SPP_GRAPHICS_API GD_RenderableMesh : public Renderable, public GD_Resource
+	{
+	protected:
+		std::shared_ptr<GD_StaticMesh> _mesh;
+		std::shared_ptr<GD_Material> _material;
+
+	public:
+		struct Args
+		{
+			std::shared_ptr<GD_StaticMesh> mesh;
+			std::shared_ptr<GD_Material> material;
+		};
+
+		GD_RenderableMesh(GraphicsDevice* InOwner) : Renderable(), GD_Resource(InOwner) {}
 		virtual ~GD_RenderableMesh() {}
+		void SetRenderableMeshArgs(const Args& InArgs)
+		{
+			_mesh = InArgs.mesh;
+			_material = InArgs.material;
+		}
 	};
 }

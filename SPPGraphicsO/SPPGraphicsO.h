@@ -111,7 +111,10 @@ namespace SPP
 
 	protected:
 		OMesh(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
+		
 		std::shared_ptr<Mesh> _mesh;
+
+		std::shared_ptr<GD_StaticMesh> _renderMesh;
 
 	public:
 		void SetMesh(std::shared_ptr<Mesh> InMesh)
@@ -122,6 +125,15 @@ namespace SPP
 		{
 			return _mesh;
 		}
+
+		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void UinitializeGraphicsDeviceResources();
+
+		std::shared_ptr<GD_StaticMesh> GetDeviceMesh()
+		{
+			return _renderMesh;
+		}
+
 		virtual ~OMesh() { }
 	};
 
@@ -243,6 +255,7 @@ namespace SPP
 		virtual void UpdateSelection(bool IsSelected);
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene() override;
+
 
 		virtual ~OMeshElement() { }
 	};

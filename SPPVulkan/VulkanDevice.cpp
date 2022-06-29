@@ -20,6 +20,8 @@
 //IMGUI
 #include "imgui_impl_vulkan.h"
 
+#define ALLOW_DEVICE_FEATURES2 0
+
 namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
@@ -354,13 +356,16 @@ namespace SPP
 		VkPhysicalDeviceFeatures2 deviceFeatures{};
 		deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		deviceFeatures.pNext = &indexingFeatures;
-		//vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 
-		//if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray)
-		//{
-		//	// all set to use unbound arrays of textures
-		//	SPP_LOG(LOG_VULKAN, LOG_INFO, "BOUNDLESS SUPPORT!");
-		//}
+#if ALLOW_DEVICE_FEATURES2
+		vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+
+		if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray)
+		{
+			// all set to use unbound arrays of textures
+			SPP_LOG(LOG_VULKAN, LOG_INFO, "BOUNDLESS SUPPORT!");
+		}
+#endif
 
 		// [POI] Enable required extensions
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
@@ -445,6 +450,63 @@ namespace SPP
 
 	void VulkanGraphicsDevice::nextFrame() {}
 	void VulkanGraphicsDevice::updateOverlay() {}
+
+	
+	void VulkanGraphicsDevice::createStaticDrawInfo()
+	{
+		//move to nicer spot
+		_defaultMaterial = CreateMaterial();
+
+		_meshvertexShader = CreateShader();
+		_meshpixelShader = CreateShader();
+	
+		_defaultMaterial->SetMaterialArgs({ .vertexShader = _meshvertexShader, .pixelShader = _meshpixelShader });
+
+		_meshvertexShader->Initialize(EShaderType::Vertex);
+		_meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
+		_meshpixelShader->Initialize(EShaderType::Pixel);
+		_meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
+
+
+		//create buffer and simple descriptor set of camera and 
+
+		//std::shared_ptr< ArrayResource > _staticInstanceDrawInfoCPU;
+		//GPUReferencer< class VulkanBuffer > _staticInstanceDrawInfoGPU;
+
+		_staticInstanceDrawInfoCPU = std::make_shared< ArrayResource >();
+		_staticInstanceDrawInfoSpan = _staticInstanceDrawInfoCPU->InitializeFromType< StaticDrawParams >(250000);
+		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
+
+		_staticInstanceDrawLeaseManager = std::make_unique < LeaseManager< TSpan< StaticDrawParams > > >(_staticInstanceDrawInfoSpan);
+	}
+
+	//void VulkanGraphicsDevice::createPBRLayout()
+	//{
+	//	// update these values to be useful for your specific use case
+	//	VkDescriptorSetLayoutBinding layoutBinding{};
+	//	layoutBinding.binding = 0u;
+	//	layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	//	layoutBinding.descriptorCount = 5000u;
+	//	layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	//	VkDescriptorBindingFlagsEXT bindFlag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
+
+	//	VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo{};
+	//	extendedInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+	//	extendedInfo.pNext = nullptr;
+	//	extendedInfo.bindingCount = 1u;
+	//	extendedInfo.pBindingFlags = &bindFlag;
+
+	//	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	//	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	//	layoutInfo.pNext = &extendedInfo;
+	//	layoutInfo.flags = 0;
+	//	layoutInfo.bindingCount = 1u;
+	//	layoutInfo.pBindings = &layoutBinding;
+
+	//	VkDescriptorSetLayout PBR_SetLayouts;
+	//	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &PBR_SetLayouts));
+	//}
 
 	void VulkanGraphicsDevice::createPipelineCache()
 	{

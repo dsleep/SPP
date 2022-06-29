@@ -35,32 +35,37 @@ namespace SPP
 		GPUReferencer< GPUShader> InDS,
 		GPUReferencer< GPUShader> InCS);
 
+	class GD_VulkanStaticMesh : public GD_StaticMesh
+	{
+	protected:
+		virtual void _makeResident() override;
+		virtual void _makeUnresident() override;
+
+	public:
+		GD_VulkanStaticMesh(GraphicsDevice* InOwner) : GD_StaticMesh(InOwner) {}
+		virtual ~GD_VulkanStaticMesh() {}
+	};
+		
 	class GD_VulkanRenderableMesh : public GD_RenderableMesh
 	{
 	protected:
-		bool _bIsStatic = false;
-		GPUReferencer < VulkanPipelineState > _state;
 
+		GPUReferencer < VulkanPipelineState > _state;
 		std::shared_ptr< ArrayResource > _drawConstants;
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
 		bool bPendingUpdate = false;
 
 	public:
-		GD_VulkanRenderableMesh(GraphicsDevice* InOwner, bool IsStatic) : GD_RenderableMesh(InOwner), _bIsStatic(IsStatic) {}
-		
-		virtual bool IsStatic() const {
-			return _bIsStatic;
-		}
+		GD_VulkanRenderableMesh(GraphicsDevice* InOwner) : GD_RenderableMesh(InOwner) {}
+		virtual ~GD_VulkanRenderableMesh() {}
 
 		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
-		virtual void _RemoveFromRenderScene() override {}
+		virtual void _RemoveFromRenderScene() override;
 
 		virtual void PrepareToDraw() override;
 		virtual void Draw() override;
-		//virtual void Draw() override;
-		//virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
-		
+
 	class GD_Vulkan_Material : public GD_Material
 	{
 	protected:
@@ -100,41 +105,78 @@ namespace SPP
 		return std::make_shared<GD_Vulkan_Material>(this);
 	}
 
-	std::shared_ptr< class GD_RenderableMesh > VulkanGraphicsDevice::CreateStaticMesh()
+	std::shared_ptr< class GD_StaticMesh > VulkanGraphicsDevice::CreateStaticMesh()
 	{
-		return std::make_shared< GD_VulkanRenderableMesh>(this, true);
+		return std::make_shared< GD_VulkanStaticMesh >(this);
+	}
+
+	std::shared_ptr< class GD_RenderableMesh > VulkanGraphicsDevice::CreateRenderableMesh()
+	{
+		return std::make_shared<GD_VulkanRenderableMesh>(this);
+	}
+
+	std::shared_ptr< class GD_Material> VulkanGraphicsDevice::GetDefaultMaterial()
+	{
+		return _defaultMaterial;
+	}
+
+
+	void GD_VulkanStaticMesh::_makeResident()
+	{
+		GD_StaticMesh::_makeResident();
+
+		_layout = Vulkan_CreateInputLayout();
+		_layout->InitializeLayout(_vertexStreams);		
+	}
+
+
+	void GD_VulkanStaticMesh::_makeUnresident()
+	{
+		GD_StaticMesh::_makeUnresident();
 	}
 
 	void GD_VulkanRenderableMesh::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
 		GD_RenderableMesh::_AddToRenderScene(InScene);
 
-		if (!_material)
+		if (_mesh)
 		{
-			_material = InScene->GetDefaultMaterial();
+			_mesh->MakeResident();
 		}
-
-		auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
-
-		SE_ASSERT(vulkanMat);
-
-		_layout = Vulkan_CreateInputLayout();
-		_layout->InitializeLayout(_vertexStreams);
-
-		_state = vulkanMat->GetPipelineState(_topology, _layout);
-
-		SE_ASSERT(_state);
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
-
+		
 		_drawConstants = std::make_shared< ArrayResource >();
-		_drawConstants->InitializeFromType< GPUDrawConstants >(1);
-		bPendingUpdate = true;		
+		_drawConstants->InitializeFromType< GPUDrawConstants >(1);		
+
+		bPendingUpdate = true;
 	}
 
-	void GD_VulkanRenderableMesh::PrepareToDraw() 
+	void GD_VulkanRenderableMesh::_RemoveFromRenderScene()
 	{
+		GD_RenderableMesh::_RemoveFromRenderScene();
+	}
+
+	void GD_VulkanRenderableMesh::PrepareToDraw()
+	{
+		if (!_state)
+		{
+			if (!_material)
+			{
+				SE_ASSERT(false);
+				_material = _owner->GetDefaultMaterial();
+			}
+
+			//auto vulkanMesh = std::dynamic_pointer_cast<GD_VulkanStaticMesh>(_mesh);
+			auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
+
+			SE_ASSERT(vulkanMat);
+			_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
+
+			SE_ASSERT(_state);
+		}
+
 		if (bPendingUpdate)
 		{
 			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
@@ -145,6 +187,8 @@ namespace SPP
 			bPendingUpdate = false;
 		}
 	}
+
+	
 
 	//template<typename F>
 	//void NodeTraversal(const Matrix4x4 &InTransform,
@@ -223,9 +267,12 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-		
-		auto gpuVertexBuffer = _vertexBuffer->GetGPUBuffer();
-		auto gpuIndexBuffer = _indexBuffer->GetGPUBuffer();
+
+		auto vulkanMesh = std::dynamic_pointer_cast<GD_VulkanStaticMesh>(_mesh);
+		auto meshPSO = _state;
+
+		auto gpuVertexBuffer = vulkanMesh->GetVertexBuffer()->GetGPUBuffer();
+		auto gpuIndexBuffer = vulkanMesh->GetIndexBuffer()->GetGPUBuffer();
 
 		auto &vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
 		auto &vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
@@ -240,8 +287,8 @@ namespace SPP
 
 		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
 
-		auto& descriptorSetLayouts = _state->GetDescriptorSetLayouts();
-		auto setStartIdx = _state->GetStartIdx();
+		auto& descriptorSetLayouts = meshPSO->GetDescriptorSetLayouts();
+		auto setStartIdx = meshPSO->GetStartIdx();
 
 		std::vector<VkDescriptorSet> locaDrawSets;
 		locaDrawSets.resize(descriptorSetLayouts.size());
@@ -297,9 +344,9 @@ namespace SPP
 			0
 		};
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _state->GetVkPipeline());
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPSO->GetVkPipeline());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
-			_state->GetVkPipelineLayout(),
+			meshPSO->GetVkPipelineLayout(),
 			setStartIdx,
 			locaDrawSets.size(), locaDrawSets.data(), ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1, 0, 0, 0);

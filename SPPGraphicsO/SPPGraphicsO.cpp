@@ -14,6 +14,28 @@ namespace SPP
 		return 1;
 	}
 
+	void OMesh::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
+	{
+		auto firstMesh = GetMesh()->GetMeshElements().front();
+
+		_renderMesh = InOwner->CreateStaticMesh();
+
+		std::vector<VertexStream> vertexStreams;
+
+		MeshVertex placeholder;
+		vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord, placeholder.color));
+
+		_renderMesh->SetMeshArgs({
+			.vertexStreams = vertexStreams,
+			.vertexResource = firstMesh->VertexResource,
+			.indexResource = firstMesh->IndexResource
+			});
+	}
+	void OMesh::UinitializeGraphicsDeviceResources()
+	{
+
+	}
+
 	ORenderableScene::ORenderableScene(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
 	{
 	}
@@ -65,10 +87,10 @@ namespace SPP
 
 	void OMeshElement::UpdateSelection(bool IsSelected)
 	{
-		if (_renderableMesh)
-		{
-			_renderableMesh->SetSelected(IsSelected);
-		}
+		//if (_renderableMesh)
+		//{
+		//	_renderableMesh->SetSelected(IsSelected);
+		//}
 	}
 
 	void OMeshElement::AddedToScene(class OScene* InScene)
@@ -91,25 +113,19 @@ namespace SPP
 
 			auto sceneGD = thisRenderableScene->GetGraphicsDevice();
 			auto firstMesh = _meshObj->GetMesh()->GetMeshElements().front();
-
-			_renderableMesh = sceneGD->CreateStaticMesh();
-
+						
 			auto localToWorld = GenerateLocalToWorld(true);	
 
 			SE_ASSERT(_materialObj);
 
+			_meshObj->InitializeGraphicsDeviceResources(sceneGD);
 			_materialObj->InitializeGraphicsDeviceResources(sceneGD);
 
-			std::vector<VertexStream> vertexStreams;
+			_renderableMesh = sceneGD->CreateRenderableMesh();
 
-			MeshVertex placeholder;
-			vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord, placeholder.color));
-
-			_renderableMesh->SetMeshArgs({
-				.vertexStreams = vertexStreams,
-				.vertexResource = firstMesh->VertexResource,
-				.indexResource = firstMesh->IndexResource,
-				.material = _materialObj->GetMaterial(),
+			_renderableMesh->SetRenderableMeshArgs({
+				.mesh = _meshObj->GetDeviceMesh(),
+				.material = _materialObj->GetMaterial()
 				});
 
 			_renderableMesh->SetArgs({

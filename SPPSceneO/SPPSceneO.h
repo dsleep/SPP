@@ -48,6 +48,8 @@ namespace SPP
 		class OElement* _parent = nullptr;
 		std::vector<OElement*> _children;
 
+		bool _bIsStatic = true;
+
 	public:
 
 		virtual Sphere& Bounds()

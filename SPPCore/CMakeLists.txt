@@ -74,6 +74,9 @@ target_sources(SPPCore
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPStackUtils.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPStackUtils.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/SPPBitSetArray.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPBitSetArray.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSTLAllocator.h"
         )	

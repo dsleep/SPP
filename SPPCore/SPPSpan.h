@@ -17,6 +17,7 @@ namespace SPP
         T* _data = nullptr;
 
     public:
+        using value_type = T;
        
 
         TSpan() { }
@@ -39,6 +40,11 @@ namespace SPP
         }
 
         size_t GetCount() const
+        {
+            return _num;
+        }
+
+        size_t size() const
         {
             return _num;
         }

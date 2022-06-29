@@ -390,6 +390,7 @@ namespace SPP
 		return std::make_shared<VulkanRenderScene>(this);
 	}
 
+
 	void VulkanRenderScene::BeginFrame()
 	{
 		for (auto renderItem : _renderables)

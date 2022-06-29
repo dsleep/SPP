@@ -120,6 +120,10 @@ namespace SPP
     {
     protected:
         GraphicsDevice* _owner = nullptr;
+        bool _bIsResident = false;
+
+        virtual void _makeResident() {}
+        virtual void _makeUnresident() {}
 
     public:
         GD_Resource() 
@@ -129,6 +133,27 @@ namespace SPP
         GD_Resource(GraphicsDevice* InOwner) : _owner(InOwner) 
         {
             SE_ASSERT(IsOnCPUThread());
+        }
+        virtual ~GD_Resource()
+        {
+
+        }
+
+        virtual void MakeResident()
+        {
+            if (!_bIsResident)
+            {
+                _makeResident();
+                _bIsResident = true;
+            }
+        }
+        virtual void MakeUnresident()
+        {
+            if (_bIsResident)
+            {
+                _makeUnresident();
+                _bIsResident = false;
+            }
         }
     };
 
@@ -177,8 +202,12 @@ namespace SPP
 
         //virtual std::shared_ptr< class GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
         virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() = 0;
-        virtual std::shared_ptr< class GD_RenderableMesh > CreateStaticMesh() = 0;
+        
+        virtual std::shared_ptr< class GD_RenderableMesh > CreateRenderableMesh() = 0;
+        virtual std::shared_ptr< class GD_StaticMesh > CreateStaticMesh() = 0;
         //virtual std::shared_ptr< class GD_RenderableMesh > CreateSkinnedMesh() = 0;
+
+        virtual std::shared_ptr< class GD_Material> GetDefaultMaterial() = 0;
 
         virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() = 0;
 

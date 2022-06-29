@@ -42,7 +42,6 @@ namespace SPP
 		if (_meshObj && _meshObj->GetMesh())
 		{
 			auto thisMesh = _meshObj->GetMesh();
-
 			auto &curMeshes = thisMesh->GetMeshElements();
 
 			if (!curMeshes.empty())
