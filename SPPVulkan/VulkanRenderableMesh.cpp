@@ -37,12 +37,10 @@ namespace SPP
 
 	class GD_VulkanStaticMesh : public GD_StaticMesh
 	{
-	protected:
-		virtual void _makeResident() override;
-		virtual void _makeUnresident() override;
-
 	public:
 		GD_VulkanStaticMesh(GraphicsDevice* InOwner) : GD_StaticMesh(InOwner) {}
+
+		virtual void Initialize() override;
 		virtual ~GD_VulkanStaticMesh() {}
 	};
 		
@@ -121,28 +119,18 @@ namespace SPP
 	}
 
 
-	void GD_VulkanStaticMesh::_makeResident()
+	void GD_VulkanStaticMesh::Initialize()
 	{
-		GD_StaticMesh::_makeResident();
+		GD_StaticMesh::Initialize();
 
 		_layout = Vulkan_CreateInputLayout();
 		_layout->InitializeLayout(_vertexStreams);		
 	}
 
 
-	void GD_VulkanStaticMesh::_makeUnresident()
-	{
-		GD_StaticMesh::_makeUnresident();
-	}
-
 	void GD_VulkanRenderableMesh::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
 		GD_RenderableMesh::_AddToRenderScene(InScene);
-
-		if (_mesh)
-		{
-			_mesh->MakeResident();
-		}
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
@@ -172,6 +160,8 @@ namespace SPP
 			auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
 
 			SE_ASSERT(vulkanMat);
+			SE_ASSERT(_mesh);
+			SE_ASSERT(_mesh->GetLayout());
 			_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
 
 			SE_ASSERT(_state);

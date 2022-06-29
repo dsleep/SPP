@@ -64,7 +64,9 @@ namespace SPP
 	public:
 		VkPipelineVertexInputStateCreateInfo& GetVertexInputState();
 		virtual void UploadToGpu() override {}
-		virtual ~VulkanInputLayout() {};
+		virtual ~VulkanInputLayout() 
+		{
+		};
 		virtual void InitializeLayout(const std::vector<VertexStream>& vertexStreams) override;
 	};
 

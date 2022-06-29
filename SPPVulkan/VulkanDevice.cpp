@@ -860,6 +860,7 @@ namespace SPP
 		//initInfo.Allocator;// const VkAllocationCallbacks* Allocator;
 		//initInfo.CheckVkResultFn;// void                            (*CheckVkResultFn)(VkResult err);
 
+		//IMGUI
 		{
 			GPUThreadIDOverride tempOverride;
 
@@ -1065,6 +1066,16 @@ namespace SPP
 		//IMGUI
 		//ImGui::ShowDemoWindow();
 		auto& commandBuffer = _drawCmdBuffers[currentBuffer]->Get();
+
+		//ImGui::SetCursorPosX(0);
+
+		//ImGui::SetCursorPosY(0);
+		//char inputText[200] = { 0 };
+		//inputText[0] = '>';
+		//inputText[1] = 0;
+		//float tHeight = ImGui::CalcTextSize(">AB").y;
+
+		//ImGui::InputText("##text1", inputText, sizeof(inputText));
 
 		ImGui::End();
 		ImGui::Render();

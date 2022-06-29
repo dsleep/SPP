@@ -245,7 +245,7 @@ message( STATUS "SPP GDI LIST: ${SPPGDI}" )
 list(APPEND SPPProjects "applications" ) 
 
 if(OS_WINDOWS)
-	list(APPEND SPPProjects "tests" ) 
+	list(APPEND SPPProjects "tests" "assets" ) 
 
 	list(APPEND SPPProjects "Games/TestGame" ) 
 endif()

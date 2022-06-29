@@ -219,20 +219,20 @@ public:
 
 			if (entity)
 			{
-				auto pathName = entity->GetPath();
+				std::string pathName = entity->GetName();
 
 				Json::Value localValue;
-				localValue["NAME"] = pathName.ToString();
+				localValue["NAME"] = pathName;// .ToString();
 				localValue["GUID"] = entity->GetGUID().ToString();
 
 				Json::Value elementValues;
 				auto elements = entity->GetChildren();
 				for (auto element : elements)
 				{
-					auto elePath = element->GetPath();
+					std::string elePath = element->GetName();
 
 					Json::Value curElement;
-					curElement["NAME"] = elePath.ToString();
+					curElement["NAME"] = elePath;// .ToString();
 					curElement["GUID"] = element->GetGUID().ToString();
 
 					elementValues.append(curElement);
@@ -326,7 +326,7 @@ public:
 		auto CurObject = GetObjectByGUID(selGUID);
 		if (CurObject)
 		{
-			SPP_QL("SelectionChanged: %s", CurObject->GetPath().ToString().c_str());
+			SPP_QL("SelectionChanged: %s", CurObject->GetName());
 			SelectObject((OElement*)CurObject);
 		}
 	}

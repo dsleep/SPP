@@ -29,16 +29,11 @@ namespace SPP
 		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
 	}
 
-	void GD_StaticMesh::_makeResident()
+	void GD_StaticMesh::Initialize()
 	{
 		SE_ASSERT(IsOnGPUThread());
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
 		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
 		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);		
-	}
-
-	void GD_StaticMesh::_makeUnresident()
-	{
-
 	}
 }

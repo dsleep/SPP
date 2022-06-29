@@ -113,7 +113,6 @@ namespace SPP
 		OMesh(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 		
 		std::shared_ptr<Mesh> _mesh;
-
 		std::shared_ptr<GD_StaticMesh> _renderMesh;
 
 	public:

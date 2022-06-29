@@ -16,21 +16,30 @@ namespace SPP
 
 	void OMesh::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
 	{
-		auto firstMesh = GetMesh()->GetMeshElements().front();
+		if (!_renderMesh)
+		{
+			auto firstMesh = GetMesh()->GetMeshElements().front();
 
-		_renderMesh = InOwner->CreateStaticMesh();
+			_renderMesh = InOwner->CreateStaticMesh();
 
-		std::vector<VertexStream> vertexStreams;
+			std::vector<VertexStream> vertexStreams;
 
-		MeshVertex placeholder;
-		vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord, placeholder.color));
+			MeshVertex placeholder;
+			vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord, placeholder.color));
 
-		_renderMesh->SetMeshArgs({
-			.vertexStreams = vertexStreams,
-			.vertexResource = firstMesh->VertexResource,
-			.indexResource = firstMesh->IndexResource
-			});
+			_renderMesh->SetMeshArgs({
+				.vertexStreams = vertexStreams,
+				.vertexResource = firstMesh->VertexResource,
+				.indexResource = firstMesh->IndexResource
+				});
+
+			GPUThreaPool->enqueue([this]()
+				{
+					_renderMesh->Initialize();
+				});
+		}
 	}
+
 	void OMesh::UinitializeGraphicsDeviceResources()
 	{
 

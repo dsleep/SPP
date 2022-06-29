@@ -348,9 +348,6 @@ namespace SPP
 		std::shared_ptr<GD_Buffer> _vertexBuffer;
 		std::shared_ptr<GD_Buffer> _indexBuffer;
 
-		virtual void _makeResident() override;
-		virtual void _makeUnresident() override;
-
 	public:
 		struct Args 
 		{
@@ -388,6 +385,8 @@ namespace SPP
 		{
 			return _layout;
 		}
+
+		virtual void Initialize();
 	};
 
 	class SPP_GRAPHICS_API GD_RenderableMesh : public Renderable, public GD_Resource
