@@ -11,10 +11,10 @@ namespace SPP
 	//3 miles
 	static const float FarClippingZ = 5000.0f;
 		
-	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InYPR, float FoV, float AspectRatio)
+	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InEuler, float FoV, float AspectRatio)
 	{
 		_cameraPosition = InPosition;
-		_eulerAnglesYPR = InYPR;
+		_eulerAngles = InEuler;
 		_FoV = FoV;
 
 		SetupStandardCorrection();
@@ -25,11 +25,7 @@ namespace SPP
 
 	void Camera::BuildCameraMatrices()
 	{
-		const float degToRad = 0.0174533f;
-		Eigen::AngleAxisf yawAngle(_eulerAnglesYPR[0] * degToRad, Vector3::UnitY());
-		Eigen::AngleAxisf pitchAngle(_eulerAnglesYPR[1] * degToRad, Vector3::UnitX());
-		Eigen::AngleAxisf rollAngle(_eulerAnglesYPR[2] * degToRad, Vector3::UnitZ());
-		Eigen::Quaternion<float> q = rollAngle * (pitchAngle * yawAngle);
+		Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_eulerAngles);
 
 		Matrix3x3 rotationMatrix = q.matrix();
 
@@ -89,8 +85,8 @@ namespace SPP
 
 	void Camera::TurnCamera(const Vector2& CameraTurn)
 	{
-		_eulerAnglesYPR[0] += CameraTurn[0] * _turnSpeedModifier;
-		_eulerAnglesYPR[1] += CameraTurn[1] * _turnSpeedModifier;
+		_eulerAngles[1] += CameraTurn[0] * _turnSpeedModifier;
+		_eulerAngles[0] += CameraTurn[1] * _turnSpeedModifier;
 
 		if (CameraTurn[0] || CameraTurn[1])
 		{

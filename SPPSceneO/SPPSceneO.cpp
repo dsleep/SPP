@@ -96,12 +96,7 @@ namespace SPP
 
 	Matrix4x4 OElement::GenerateLocalToWorld(bool bSkipTopTranslation) const
 	{
-		const float degToRad = 0.0174533f;
-
-		Eigen::AngleAxisf yawAngle(_rotation[0] * degToRad, Vector3::UnitY());
-		Eigen::AngleAxisf pitchAngle(_rotation[1] * degToRad, Vector3::UnitX());
-		Eigen::AngleAxisf rollAngle(_rotation[2] * degToRad, Vector3::UnitZ());
-		Eigen::Quaternion<float> q = rollAngle * yawAngle * pitchAngle;
+		Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_rotation);
 
 		Matrix3x3 scaleMatrix = Matrix3x3::Identity();
 		scaleMatrix(0, 0) = _scale[0];

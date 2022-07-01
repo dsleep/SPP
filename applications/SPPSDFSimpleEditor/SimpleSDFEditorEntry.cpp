@@ -495,7 +495,7 @@ public:
 
 		_gizmo = AllocateObject<OMeshElement>("meshE");
 		_gizmo->SetMesh(_moveGizmo);
-		_gizmo->GetScale() = 0.1;
+		_gizmo->GetScale() = Vector3(0.1f,0.1f,0.1f);
 
 		SPP::MakeResidentAllGPUResources();
 

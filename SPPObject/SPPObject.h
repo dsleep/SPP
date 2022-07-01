@@ -160,7 +160,7 @@ namespace SPP
 	SPP_OBJECT_API SPPObject* AllocateObject(const char* ObjectType, const std::string& InName, SPPDirectory* InParent);
 
 	template<typename ObjType>
-	ObjType* AllocateObject(const std::string& InName, SPPDirectory* InParent)
+	ObjType* AllocateObject(const std::string& InName, SPPDirectory* InParent = nullptr)
 	{
 		auto curType = rttr::type::get<ObjType>();
 		return (ObjType*)AllocateObject(curType, InName, InParent);

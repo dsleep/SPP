@@ -57,9 +57,9 @@ from bpy.types import (
 from bpy import context
 
 
-flipMatrix = mathutils.Matrix(( (1.0, 0.0, 0.0, 0.0),
+flipMatrix = mathutils.Matrix(( (0.0, 1.0, 0.0, 0.0),
                                 (0.0, 0.0, 1.0, 0.0),
-                                (0.0, 1.0, 0.0, 0.0),
+                                (-1.0, 0.0, 0.0, 0.0),
                                 (0.0, 0.0, 0.0, 1.0) ))
 
 
@@ -112,20 +112,20 @@ def exportMesh(curMesh, RootPath):
                 curNormal = curLoop.normal
                 curTangent = curLoop.tangent
                 
-                f.write(ctypes.c_float(curVertex.co[0]))
                 f.write(ctypes.c_float(curVertex.co[1]))
                 f.write(ctypes.c_float(curVertex.co[2]))
+                f.write(ctypes.c_float(-curVertex.co[0]))
                 
                 f.write(ctypes.c_float(curUV[0]))
                 f.write(ctypes.c_float(1.0 - curUV[1]))
                 
-                f.write(ctypes.c_float(curNormal[0]))
                 f.write(ctypes.c_float(curNormal[1]))
                 f.write(ctypes.c_float(curNormal[2]))
+                f.write(ctypes.c_float(-curNormal[0]))
                 
-                f.write(ctypes.c_float(curTangent[0]))
                 f.write(ctypes.c_float(curTangent[1]))
                 f.write(ctypes.c_float(curTangent[2]))
+                f.write(ctypes.c_float(-curTangent[0]))
     
 
 def exportImage(curImage, RootPath):
@@ -260,19 +260,27 @@ def do_export(context, props, filepath):
         #print("Has Mesh: ", obj.name)
         #print(obj.matrix_world[0])
         
-        correctedWorld = flipMatrix @ obj.matrix_world
+        # correctedWorld = flipMatrix @ obj.matrix_world
         
-        loc, rot, scale = correctedWorld.decompose()
+        loc, rot, scale = obj.matrix_world.decompose()
         rot = rot.to_euler()
         
+        loc.x, loc.y, loc.z = loc.y, loc.z, -loc.x
+        rot.x, rot.y, rot.z = rot.y, rot.z, rot.x
+        scale.x, scale.y, scale.z = scale.y, scale.z, scale.x
+       
         rot.x *= 57.2958
         rot.y *= 57.2958
         rot.z *= 57.2958
-    
+        
+        locA = [ round(loc.x,4), round(loc.y,4), round(loc.z,4) ]
+        scaleA = [ round(scale.x,3), round(scale.y,3), round(scale.z,3) ]
+        rotA = [ round(rot.x,2), round(rot.y,2), round(rot.z,2) ]
+        
         transformJson = { 
-            "location" : list(loc),
-            "rotation" : list(rot),
-            "scale" : list(scale)
+            "location" : list(locA),
+            "rotation" : list(rotA),
+            "scale" : list(scaleA)
         }
         
         #print(dir(obj))

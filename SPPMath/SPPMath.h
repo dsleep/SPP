@@ -370,7 +370,15 @@ namespace SPP
         return Storage;
     }
 
-    
+    inline Eigen::Quaternionf EulerAnglesToQuaternion(const Vector3 &InEulerAngles)
+    {
+        const float degToRad = 0.0174533f;
+        Eigen::AngleAxisf xAngle(InEulerAngles[0] * degToRad, Vector3::UnitX());
+        Eigen::AngleAxisf yAngle(InEulerAngles[1] * degToRad, Vector3::UnitY());
+        Eigen::AngleAxisf zAngle(InEulerAngles[2] * degToRad, Vector3::UnitZ());
+
+        return (zAngle * xAngle) * yAngle;
+    }
 		
     SPP_MATH_API uint32_t GetMathVersion();
 }

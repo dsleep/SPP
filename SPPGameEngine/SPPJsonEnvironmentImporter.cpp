@@ -120,7 +120,9 @@ namespace SPP
 						curRot[Iter] = jRot[Iter].asFloat();
 					}
 										
-					std::swap(curRot[0], curRot[1]);
+					//std::swap(curRot[0], curRot[1]);
+					//why the negative
+					curRot[2] = -curRot[2];
 
 					for (int32_t Iter = 0; Iter < 3; Iter++)
 					{						

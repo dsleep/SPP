@@ -136,7 +136,7 @@ namespace SPP
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
 		
 		_drawConstants = std::make_shared< ArrayResource >();
-		_drawConstants->InitializeFromType< GPUDrawConstants >(1);		
+		_drawConstants->InitializeFromType< GPUDrawConstants >(1);	
 
 		bPendingUpdate = true;
 	}

@@ -40,12 +40,12 @@ namespace SPP
 
 		float _speed = 5.0f;
 		float _turnSpeedModifier = 0.1f;
-		Vector3 _eulerAnglesYPR;
+		Vector3 _eulerAngles;
 				
 	public:
 		Camera() { }
 		
-		void Initialize(const Vector3d& InPosition, const Vector3 &InYPR, float FoV, float AspectRatio);
+		void Initialize(const Vector3d& InPosition, const Vector3 &InEuler, float FoV, float AspectRatio);
 		void BuildCameraMatrices();
 
 		float GetFoV() const

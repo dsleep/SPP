@@ -22,7 +22,7 @@ namespace SPP
 		float _radius = 1.0f;
 		
 		Vector3d _position;
-		Vector3 _eulerRotationYPR;
+		Vector3 _eulerRotation;
 		Vector3 _scale;
 
 		Matrix4x4 _cachedRotationScale;
@@ -45,14 +45,14 @@ namespace SPP
 		Renderable()
 		{
 			_position = Vector3d(0, 0, 0);
-			_eulerRotationYPR = Vector3(0, 0, 0);
+			_eulerRotation = Vector3(0, 0, 0);
 			_scale = Vector3(1, 1, 1);
 		}
 
 		Renderable(Args &&InArgs)
 		{
 			_position = InArgs.position;
-			_eulerRotationYPR = InArgs.eulerRotationYPR;
+			_eulerRotation = InArgs.eulerRotationYPR;
 			_scale = InArgs.scale;
 			_bIsStatic = InArgs.bIsStatic;
 		}
@@ -60,7 +60,7 @@ namespace SPP
 		void SetArgs(const Args& InArgs)
 		{
 			_position = InArgs.position;
-			_eulerRotationYPR = InArgs.eulerRotationYPR;
+			_eulerRotation = InArgs.eulerRotationYPR;
 			_scale = InArgs.scale;
 			_bIsStatic = InArgs.bIsStatic;
 		}
@@ -79,7 +79,7 @@ namespace SPP
 
 		Vector3& GetRotation()
 		{
-			return _eulerRotationYPR;
+			return _eulerRotation;
 		}
 
 		Vector3& GetScale()
@@ -104,12 +104,7 @@ namespace SPP
 
 		Matrix4x4 GenerateLocalToWorldMatrix() const
 		{
-			const float degToRad = 0.0174533f;
-
-			Eigen::AngleAxisf yawAngle(_eulerRotationYPR[0] * degToRad, Vector3::UnitY());
-			Eigen::AngleAxisf pitchAngle(_eulerRotationYPR[1] * degToRad, Vector3::UnitX());
-			Eigen::AngleAxisf rollAngle(_eulerRotationYPR[2] * degToRad, Vector3::UnitZ());
-			Eigen::Quaternion<float> q = rollAngle * yawAngle * pitchAngle;
+			Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_eulerRotation);
 
 			Matrix3x3 scaleMatrix = Matrix3x3::Identity();
 			scaleMatrix(0, 0) = _scale[0];
@@ -126,12 +121,7 @@ namespace SPP
 
 		Matrix3x3 GenerateRotationScale() const
 		{
-			const float degToRad = 0.0174533f;
-
-			Eigen::AngleAxisf yawAngle(_eulerRotationYPR[0] * degToRad, Vector3::UnitY());
-			Eigen::AngleAxisf pitchAngle(_eulerRotationYPR[1] * degToRad, Vector3::UnitX());
-			Eigen::AngleAxisf rollAngle(_eulerRotationYPR[2]  * degToRad, Vector3::UnitZ());
-			Eigen::Quaternion<float> q = rollAngle * yawAngle * pitchAngle;
+			Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_eulerRotation);
 
 			Matrix3x3 scaleMatrix = Matrix3x3::Identity();
 			scaleMatrix(0, 0) = _scale[0];

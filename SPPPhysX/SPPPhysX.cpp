@@ -893,18 +893,20 @@ namespace SPP
 			_scene->release();
 		}
 
-		Eigen::Quaternion<float> ToQuaterionFromEuler(const Vector3& InRotationEulerYPRDegrees)
+		Eigen::Quaternion<float> ToQuaterionFromEuler(const Vector3& InRotationEulerDegrees)
 		{
 			const float degToRad = 0.0174533f;
-			Eigen::AngleAxisf yawAngle(InRotationEulerYPRDegrees[0] * degToRad, Vector3::UnitY());
-			Eigen::AngleAxisf pitchAngle(InRotationEulerYPRDegrees[1] * degToRad, Vector3::UnitX());
-			Eigen::AngleAxisf rollAngle(InRotationEulerYPRDegrees[2] * degToRad, Vector3::UnitZ());
-			return Eigen::Quaternion<float>(rollAngle * yawAngle * pitchAngle);
+			//DS - hmm why the -negative
+
+			Eigen::AngleAxisf xAngle(InRotationEulerDegrees[0] * degToRad, Vector3::UnitX());
+			Eigen::AngleAxisf yAngle(InRotationEulerDegrees[1] * degToRad, Vector3::UnitY());
+			Eigen::AngleAxisf zAngle(InRotationEulerDegrees[2] * degToRad, Vector3::UnitZ());
+			return (zAngle * xAngle) * yAngle;
 		}
 
-		PxTransform ToPxTransform(const Vector3d& InPosition, const Vector3& InRotationEulerYPRDegrees)
+		PxTransform ToPxTransform(const Vector3d& InPosition, const Vector3& InRotationEulerDegrees)
 		{
-			auto q = ToQuaterionFromEuler(InRotationEulerYPRDegrees);
+			auto q = ToQuaterionFromEuler(InRotationEulerDegrees);
 			return PxTransform(PxVec3(InPosition[0], InPosition[1], InPosition[2]), PxQuat(q.coeffs()[0], q.coeffs()[1], q.coeffs()[2], q.coeffs()[3]));
 		}
 
