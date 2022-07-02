@@ -57,10 +57,10 @@ namespace SPP
 		~BitSetArray();
 	};
 
-	template<typename IndexedData>
+	template<typename IndexedData, typename LeaseTag>
 	class LeaseManager
 	{
-	private:
+	protected:
 		IndexedData& _leasor;
 		std::unique_ptr<BitSetArray> _bitArray;
 
@@ -73,9 +73,13 @@ namespace SPP
 			BitReference _bitRef;
 			LeaseManager* _owner = nullptr;
 			IndexedData::value_type& _data;
+			LeaseTag _tag;
 
 		public:
-			Lease(LeaseManager* InOwner, IndexedData::value_type& InData, BitReference &&InBitRef) : _owner(InOwner), _data(InData), _bitRef(std::move(InBitRef))
+			Lease(LeaseManager* InOwner, 
+				IndexedData::value_type& InData, 
+				BitReference &&InBitRef,
+				const LeaseTag &InTag) : _owner(InOwner), _data(InData), _bitRef(std::move(InBitRef)), _tag(InTag)
 			{
 			}
 			~Lease()
@@ -86,6 +90,14 @@ namespace SPP
 			{
 				return _data;
 			}
+			const LeaseTag& GetTag()
+			{
+				return _tag;
+			}
+			BitReference& GetBitReference()
+			{
+				return _bitRef;
+			}
 		};
 
 		LeaseManager(IndexedData& InIndexor) : _leasor(InIndexor) 
@@ -93,7 +105,7 @@ namespace SPP
 			_bitArray = std::make_unique< BitSetArray >(_leasor.size());
 		}
 
-		std::shared_ptr<Lease> GetLease()
+		std::shared_ptr<Lease> GetLease(const LeaseTag &InTag)
 		{
 			BitReference freeElement = _bitArray->GetFirstFree();
 			if (!freeElement.IsValid())
@@ -101,10 +113,10 @@ namespace SPP
 				return nullptr;
 			}
 			auto& leaseData = _leasor[freeElement.Index()];
-			return std::make_shared< Lease >(this, leaseData, std::move(freeElement));
+			return std::make_shared< Lease >(this, leaseData, std::move(freeElement), InTag);
 		}
 
-		void EndLease(const Lease& InLease)
+		virtual void EndLease(Lease& InLease)
 		{
 
 		}

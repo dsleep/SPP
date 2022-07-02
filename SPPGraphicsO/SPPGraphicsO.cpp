@@ -14,6 +14,16 @@ namespace SPP
 		return 1;
 	}
 
+	const std::vector<VertexStream>& GetVertexStreams(const MeshVertex& InPlaceholder)
+	{
+		static std::vector<VertexStream> vertexStreams;
+		if (vertexStreams.empty())
+		{
+			vertexStreams.push_back(CreateVertexStream(InPlaceholder, InPlaceholder.position, InPlaceholder.normal, InPlaceholder.texcoord, InPlaceholder.color));
+		}
+		return vertexStreams;
+	}
+
 	void OMesh::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
 	{
 		if (!_renderMesh)
@@ -22,13 +32,8 @@ namespace SPP
 
 			_renderMesh = InOwner->CreateStaticMesh();
 
-			std::vector<VertexStream> vertexStreams;
-
-			MeshVertex placeholder;
-			vertexStreams.push_back(CreateVertexStream(placeholder, placeholder.position, placeholder.normal, placeholder.texcoord, placeholder.color));
-
 			_renderMesh->SetMeshArgs({
-				.vertexStreams = vertexStreams,
+				.vertexStreams = GetVertexStreams(MeshVertex{}),
 				.vertexResource = firstMesh->VertexResource,
 				.indexResource = firstMesh->IndexResource
 				});

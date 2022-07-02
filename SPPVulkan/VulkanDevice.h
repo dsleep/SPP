@@ -78,6 +78,41 @@ namespace SPP
 		uint32_t MaterialID;
 	};
 
+	template<typename IndexedData>
+	class FrameTrackedLeaseManager : public LeaseManager< IndexedData, uint8_t >
+	{
+	protected:
+		using LM = LeaseManager< IndexedData, uint8_t >;
+
+		struct Purged
+		{
+			BitReference _bitRef;
+			uint8_t _tag;
+		};
+		std::list< Purged > _pendingPurge;
+
+	public:
+		FrameTrackedLeaseManager(IndexedData& InIndexor) : LM(InIndexor)
+		{
+
+		}
+
+		virtual void EndLease(typename LM::Lease& InLease) override
+		{
+			_pendingPurge.push_back({ std::move(InLease.GetBitReference()), InLease.GetTag() });
+		}
+
+		void ClearTag(uint8_t InTag)
+		{
+
+		}
+
+		void ClearAll()
+		{
+			_pendingPurge.empty();
+		}
+	};
+
 	class VulkanGraphicsDevice : public GraphicsDevice
 	{
 	private:
@@ -184,7 +219,7 @@ namespace SPP
 		TSpan< StaticDrawParams > _staticInstanceDrawInfoSpan;
 		GPUReferencer< class VulkanBuffer > _staticInstanceDrawInfoGPU;
 
-		std::unique_ptr< LeaseManager< TSpan< StaticDrawParams > > > _staticInstanceDrawLeaseManager;
+		std::unique_ptr< FrameTrackedLeaseManager< TSpan< StaticDrawParams > > > _staticInstanceDrawLeaseManager;
 
 		VkDescriptorPool _globalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;

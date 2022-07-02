@@ -197,6 +197,48 @@ namespace SPP
 			result = spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
+			{
+				uint32_t var_count = 0;
+				result = spvReflectEnumerateInputVariables(&module, &var_count, NULL);
+				assert(result == SPV_REFLECT_RESULT_SUCCESS);
+				if (var_count > 0)
+				{
+					SpvReflectInterfaceVariable** input_vars =
+						(SpvReflectInterfaceVariable**)malloc(var_count * sizeof(SpvReflectInterfaceVariable*));
+					result = spvReflectEnumerateInputVariables(&module, &var_count, input_vars);
+					assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+					SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "INPUT VARIABLES");
+
+					for (uint32_t Iter = 0; Iter < var_count; Iter++)
+					{
+						SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - %s : %d", input_vars[Iter]->name, input_vars[Iter]->location);
+					}
+					free(input_vars);
+				}
+			}
+
+			{
+				uint32_t var_count = 0;
+				result = spvReflectEnumerateOutputVariables(&module, &var_count, NULL);
+				assert(result == SPV_REFLECT_RESULT_SUCCESS);
+				if (var_count > 0)
+				{
+					SpvReflectInterfaceVariable** reflected_vars =
+						(SpvReflectInterfaceVariable**)malloc(var_count * sizeof(SpvReflectInterfaceVariable*));
+					result = spvReflectEnumerateOutputVariables(&module, &var_count, reflected_vars);
+					assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+					SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "OUTPUT VARIABLES");
+
+					for (uint32_t Iter = 0; Iter < var_count; Iter++)
+					{
+						SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - %s : %d", reflected_vars[Iter]->name, reflected_vars[Iter]->location);
+					}
+					free(reflected_vars);
+				}
+			}
+
 			//std::vector<DescriptorSetLayoutData> set_layouts(sets.size(), DescriptorSetLayoutData{});
 
 			_layoutSets.clear();

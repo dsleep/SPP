@@ -28,8 +28,8 @@ namespace SPP
 
 	//TODO Get rid of this
 	extern VkDevice GGlobalVulkanDevice;
-	extern VulkanGraphicsDevice *GGlobalVulkanGI;
-	
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
 
 	void* vkAllocationFunction(
 		void* pUserData,
@@ -92,7 +92,7 @@ namespace SPP
 
 	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
 	{
-		return Make_GPU<VulkanInputLayout> ();
+		return Make_GPU<VulkanInputLayout>();
 	}
 
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
@@ -143,7 +143,7 @@ namespace SPP
 				SE_ASSERT(Desc.offset < 128);
 
 				_inputAttributes.push_back(Desc);
-			}		
+			}
 
 			_inputBindings.push_back(vertexInputBinding);
 		}
@@ -373,7 +373,7 @@ namespace SPP
 		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
 		enabledFeatures.shaderFloat64 = true;
-		
+
 		// [POI] Enable required extension features
 		VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
 
@@ -435,7 +435,7 @@ namespace SPP
 			GPUThreadIDOverride tempOverride;
 			auto textureData = std::make_shared< ArrayResource >();
 			auto textureAccess = textureData->InitializeFromType<Color4>(128 * 128);
-			
+
 			for (uint32_t Iter = 0; Iter < textureAccess.GetCount(); Iter++)
 			{
 				textureAccess[Iter][1] = 255;
@@ -444,13 +444,14 @@ namespace SPP
 			_defaultTexture = Vulkan_CreateTexture(128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
 
 		}
-		
+
 		return true;
 	}
 
 	void VulkanGraphicsDevice::nextFrame() {}
 	void VulkanGraphicsDevice::updateOverlay() {}
 
+	
 	
 	void VulkanGraphicsDevice::createStaticDrawInfo()
 	{
@@ -467,7 +468,6 @@ namespace SPP
 		_meshpixelShader->Initialize(EShaderType::Pixel);
 		_meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
 
-
 		//create buffer and simple descriptor set of camera and 
 
 		//std::shared_ptr< ArrayResource > _staticInstanceDrawInfoCPU;
@@ -477,7 +477,7 @@ namespace SPP
 		_staticInstanceDrawInfoSpan = _staticInstanceDrawInfoCPU->InitializeFromType< StaticDrawParams >(250000);
 		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
 
-		_staticInstanceDrawLeaseManager = std::make_unique < LeaseManager< TSpan< StaticDrawParams > > >(_staticInstanceDrawInfoSpan);
+		_staticInstanceDrawLeaseManager = std::make_unique <  FrameTrackedLeaseManager< TSpan< StaticDrawParams > > >(_staticInstanceDrawInfoSpan);
 	}
 
 	//void VulkanGraphicsDevice::createPBRLayout()
@@ -1024,6 +1024,7 @@ namespace SPP
 		VK_CHECK_RESULT(vkResetFences(device, 1, &_waitFences[currentBuffer]->Get()));
 
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
+		_staticInstanceDrawLeaseManager->ClearTag(currentBuffer);
 
 		VK_CHECK_RESULT(vkResetDescriptorPool(device, _perDrawPools[currentBuffer], 0));
 
@@ -1295,8 +1296,8 @@ namespace SPP
 
 			_descriptorSetLayouts.resize(setLayoutBindings.size());
 			
-			//ugly
-			for (int32_t Iter = 0, foundIdx = 0; Iter < 5; Iter++)
+			// step through sets numerically
+			for (int32_t Iter = 0, foundIdx = 0; Iter < 4; Iter++)
 			{
 				auto foundSet = setLayoutBindings.find(Iter);
 				if(foundSet != setLayoutBindings.end())
