@@ -404,6 +404,8 @@ namespace SPP
             auto &topBrowser = browser_list_.front();
             auto browser_host = topBrowser->GetHost();
 
+            //browser_host->WasResized();
+
             //CefMouseEvent mouse_event;
             //mouse_event.x = x;
             //mouse_event.y = y;
