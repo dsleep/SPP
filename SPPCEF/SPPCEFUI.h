@@ -29,6 +29,11 @@ namespace SPP
 		std::function< void() > Shutdown;
 	};
 
+	struct OSRBrowserCallbacks
+	{
+		std::function< void(int, int, int, int, const void*, int, int) > OnPaint;
+	};
+
 	class SPP_CEFUI_API CEFMessageList
 	{
 	protected:
@@ -90,6 +95,12 @@ namespace SPP
 
 		bool Send();
 	};
+
+	SPP_CEFUI_API int RunOffscreenBrowser(void* hInstance,
+		const std::string& StartupURL,
+		const OSRBrowserCallbacks& InCallbacks = OSRBrowserCallbacks(),
+		const InputEvents& InInputEvents = InputEvents(),
+		std::function<void(const std::string&, Json::Value&) >* JSFunctionReceiver = nullptr);
 
 	SPP_CEFUI_API int RunBrowser(void* hInstance, const std::string& StartupURL, 
 		const GameBrowserCallbacks& InCallbacks = { nullptr, nullptr, nullptr, nullptr },

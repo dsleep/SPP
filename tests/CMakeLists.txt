@@ -14,6 +14,34 @@ set_property(TARGET objectGeneralTests PROPERTY VS_DPI_AWARE "PerMonitor")
 
 if(OS_WINDOWS)
 
+###################################################
+## testCEFOSR
+###################################################
+add_executable( testCEFOSR WIN32 "")
+add_dependencies( testCEFOSR SPPCore SPPReflection SPPCEFUserInterface SPPGameEngine ${SPPGDI} )
+target_sources( testCEFOSR 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/testCEFOSR.cpp"					
+		"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
+target_link_libraries( testCEFOSR 
+	PRIVATE
+		SPPCore
+		SPPReflection
+        SPPCEFUserInterface
+		SPPGameEngine 
+	)
+set_target_properties( testCEFOSR PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET testCEFOSR PROPERTY FOLDER "TESTS/CEF")
+#set_property(TARGET SPPRemoteDesktop PROPERTY VS_DPI_AWARE "PerMonitor")
+
+TargetWxWidgetsSetup( testCEFOSR )
+
+install(TARGETS testCEFOSR DESTINATION "${SPP_ROOT}/INSTALL")
+
+###################################################
+## testVideo
+###################################################
+
 add_executable( testVideo "")
 add_dependencies( testVideo SPPEngine SPPVideo )			
 target_sources( testVideo 
