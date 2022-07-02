@@ -532,12 +532,14 @@ namespace SPP
         }
 
         handler->SetJSONToNativeFunc(std::bind(&JavascriptInterface::NativeFromJS_JSON_Callback, localInterface.get(), std::placeholders::_1));
+        handler->SetPaintFunction(InCallbacks.OnPaint);
 
         // Create the browser asynchronously.
         CefBrowserHost::CreateBrowser(window_info, handler, StartupURL, browser_settings, nullptr, nullptr);
         
         while (true)
         {
+            for(int32_t Iter = 0; Iter < 10; Iter++)
             CefDoMessageLoopWork();
             std::this_thread::sleep_for(10ms);
         }
