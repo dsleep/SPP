@@ -465,44 +465,7 @@ namespace SPP
 		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
 		GGlobalVulkanGI->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
 
-		// Set clear values for all framebuffer attachments with loadOp set to clear
-		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = basicRenderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-		renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
-		// Set target frame buffer
-		renderPassBeginInfo.framebuffer = GGlobalVulkanGI->GetActiveFrameBuffer();
-
-		// Start the first sub pass specified in our default render pass setup by the base class
-		// This will clear the color and depth attachment
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		// Update dynamic viewport state
-		VkViewport viewport = {};
-		viewport.width = (float)DeviceExtents[0];
-		viewport.height = (float)DeviceExtents[1];
-		viewport.minDepth = (float)0.0f;
-		viewport.maxDepth = (float)1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-		// Update dynamic scissor state
-		VkRect2D scissor = {};
-		scissor.extent.width = DeviceExtents[0];
-		scissor.extent.height = DeviceExtents[1];
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		
 
 #if 0
 		for (auto renderItem : _renderables)

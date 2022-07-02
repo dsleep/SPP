@@ -919,8 +919,8 @@ namespace SPP
 		{
 			std::vector<VkDescriptorPoolSize> simplePool = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 100),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 1000),
 			};
 			auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);
 
@@ -1047,6 +1047,45 @@ namespace SPP
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
 		ImGui::Begin("Window", nullptr, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration);
+
+		// Set clear values for all framebuffer attachments with loadOp set to clear
+		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
+		VkClearValue clearValues[2];
+		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = width;
+		renderPassBeginInfo.renderArea.extent.height = height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+		// Set target frame buffer
+		renderPassBeginInfo.framebuffer = GetActiveFrameBuffer();
+
+		// Start the first sub pass specified in our default render pass setup by the base class
+		// This will clear the color and depth attachment
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Update dynamic viewport state
+		VkViewport viewport = {};
+		viewport.width = (float)width;
+		viewport.height = (float)height;
+		viewport.minDepth = (float)0.0f;
+		viewport.maxDepth = (float)1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+		// Update dynamic scissor state
+		VkRect2D scissor = {};
+		scissor.extent.width = width;
+		scissor.extent.height = height;
+		scissor.offset.x = 0;
+		scissor.offset.y = 0;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		bDrawPhase = true;
 	}
