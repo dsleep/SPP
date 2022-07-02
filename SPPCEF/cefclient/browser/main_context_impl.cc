@@ -58,7 +58,7 @@ MainContextImpl::MainContextImpl(CefRefPtr<CefCommandLine> command_line,
     main_url_ = kDefaultUrl;
 
   // Whether windowless (off-screen) rendering will be used.
-  use_windowless_rendering_ = command_line_->HasSwitch(switches::kOffScreenRenderingEnabled);
+  use_windowless_rendering_ = true;// command_line_->HasSwitch(switches::kOffScreenRenderingEnabled);
 
   if (use_windowless_rendering_ &&
       command_line_->HasSwitch(switches::kOffScreenFrameRate)) {
@@ -70,8 +70,8 @@ MainContextImpl::MainContextImpl(CefRefPtr<CefCommandLine> command_line,
 
   // Whether transparent painting is used with windowless rendering.
   const bool use_transparent_painting =
-      use_windowless_rendering_ &&
-      command_line_->HasSwitch(switches::kTransparentPaintingEnabled);
+      use_windowless_rendering_ && true;//
+      //command_line_->HasSwitch(switches::kTransparentPaintingEnabled);
 
 #if defined(OS_WIN)
   // Shared texture is only supported on Windows.

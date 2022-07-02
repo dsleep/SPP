@@ -17,22 +17,22 @@
 
 namespace client {
 
-// static
-scoped_refptr<RootWindow> RootWindow::Create(bool use_views) {
-  if (use_views) {
-    return new RootWindowViews();
-  }
+	// static
+	scoped_refptr<RootWindow> RootWindow::Create(bool use_views) {
+		if (use_views) {
+			return new RootWindowViews();
+		}
 
 #if defined(OS_WIN)
-  //return new RootGameWindowWin();
-  return new RootWindowWin();
+		//return new RootGameWindowWin();
+		return new RootWindowWin();
 #elif defined(OS_LINUX)
-  return new RootWindowGtk();
+		return new RootWindowGtk();
 #elif defined(OS_MAC)
-  return new RootWindowMac();
+		return new RootWindowMac();
 #endif
 
-  return nullptr;
-}
+		return nullptr;
+	}
 
 }  // namespace client
