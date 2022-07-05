@@ -361,7 +361,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 		std::thread runCEF([hInstance, &jsFuncRecv]()
 		{
-			SPP::RunBrowser(hInstance, "http://spp/assets/web/remotedesktop/index.html", {}, {}, &jsFuncRecv);
+			SPP::RunBrowser(hInstance, "http://spp/assets/web/remotedesktop/index.html", {}, {}, false, &jsFuncRecv);
 		});
 
 		runCEF.join();

@@ -42,6 +42,9 @@ struct RootWindowConfig {
   // If true the window will be created initially hidden.
   bool initially_hidden;
 
+  // If true the window will be created initially hidden.
+  bool with_game_window;
+
   // Requested window position. If |bounds| and |source_bounds| are empty the
   // default window size and location will be used.
   CefRect bounds;
@@ -115,7 +118,7 @@ class RootWindow
   // Use RootWindowManager::CreateRootWindow() or CreateRootWindowAsPopup()
   // instead of calling this method directly. |use_views| will be true if the
   // Views framework should be used.
-  static scoped_refptr<RootWindow> Create(bool use_views);
+  static scoped_refptr<RootWindow> Create(bool use_views, bool with_game_window);
 
   // Returns the RootWindow associated with the specified |browser_id|. Must be
   // called on the main thread.

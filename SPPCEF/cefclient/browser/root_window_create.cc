@@ -8,7 +8,7 @@
 
 #if defined(OS_WIN)
 #include "cefclient/browser/root_window_win.h"
-//#include "cefclient/browser/root_game_window_win.h"
+#include "cefclient/browser/root_game_window_win.h"
 #elif defined(OS_LINUX)
 #include "cefclient/browser/root_window_gtk.h"
 #elif defined(OS_MAC)
@@ -18,14 +18,21 @@
 namespace client {
 
 	// static
-	scoped_refptr<RootWindow> RootWindow::Create(bool use_views) {
+	//DS - game window
+	scoped_refptr<RootWindow> RootWindow::Create(bool use_views, bool with_game_window) {
 		if (use_views) {
 			return new RootWindowViews();
 		}
 
-#if defined(OS_WIN)
-		//return new RootGameWindowWin();
-		return new RootWindowWin();
+#if defined(OS_WIN)		
+		if (with_game_window)
+		{
+			return new RootGameWindowWin();
+		}
+		else
+		{
+			return new RootWindowWin();
+		}
 #elif defined(OS_LINUX)
 		return new RootWindowGtk();
 #elif defined(OS_MAC)

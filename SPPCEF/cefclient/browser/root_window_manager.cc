@@ -127,8 +127,9 @@ scoped_refptr<RootWindow> RootWindowManager::CreateRootWindow(
   CefBrowserSettings settings;
   MainContext::Get()->PopulateBrowserSettings(&settings);
 
+  //DS - game window
   scoped_refptr<RootWindow> root_window =
-      RootWindow::Create(MainContext::Get()->UseViews());
+      RootWindow::Create(MainContext::Get()->UseViews(), config.with_game_window);
   root_window->Init(this, config, settings);
 
   // Store a reference to the root window on the main thread.
@@ -154,7 +155,7 @@ scoped_refptr<RootWindow> RootWindowManager::CreateRootWindowAsPopup(
   MainContext::Get()->PopulateBrowserSettings(&settings);
 
   scoped_refptr<RootWindow> root_window =
-      RootWindow::Create(MainContext::Get()->UseViews());
+      RootWindow::Create(MainContext::Get()->UseViews(), false);
   root_window->InitAsPopup(this, with_controls, with_osr, popupFeatures,
                            windowInfo, client, settings);
 

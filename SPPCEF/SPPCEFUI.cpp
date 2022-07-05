@@ -564,6 +564,7 @@ namespace SPP
         const std::string& StartupURL,
         const GameBrowserCallbacks& InCallbacks,
         const InputEvents& InInputEvents,
+        bool bWithGameWindow,
         std::function<void(const std::string &,Json::Value&) >* JSFunctionReceiver)
     {
         // Enable High-DPI support on Windows 7 or newer.
@@ -645,22 +646,24 @@ namespace SPP
         window_config.bounds.width = 512;
         window_config.bounds.height = 512;
 
+        window_config.with_game_window = bWithGameWindow;
+
         // Create the first window.
         context->GetRootWindowManager()->CreateRootWindow(window_config);
 
         ClientHandler* client_handler = nullptr;
-
-#if USING_GAME_WINDOW
         RootGameWindowWin* mainGameWindow = nullptr;
-#endif
+
         {
             auto RootManager = context->GetRootWindowManager();
             auto RootWindow = RootManager->GetActiveRootWindow();
             auto client = RootManager->GetActiveBrowser()->GetHost()->GetClient();
             client_handler = static_cast<ClientHandler*>(client.get());
-#if USING_GAME_WINDOW
-            mainGameWindow = static_cast<RootGameWindowWin*>(RootWindow.get());
-#endif
+
+            if (bWithGameWindow)
+            {
+                mainGameWindow = static_cast<RootGameWindowWin*>(RootWindow.get());
+            }
         }
 
         std::unique_ptr<JavascriptInterface>  localInterface;
@@ -675,32 +678,33 @@ namespace SPP
             localInterface = std::make_unique< JavascriptInterface >();
         }
 
-#if USING_GAME_WINDOW
-        if (InCallbacks.Initialized)
+        if (bWithGameWindow)
         {
-            InCallbacks.Initialized(mainGameWindow->GetHWND());
-        }   
-
-        mainGameWindow->SetMouseMove(InInputEvents.mouseMove);
-        mainGameWindow->SetMouseDown(InInputEvents.mouseDown);
-        mainGameWindow->SetMouseUp(InInputEvents.mouseUp);        
-
-        localInterface->Add_JSToNativeFunctionHandler("UpdatedGameViewRegion", [mainGameWindow](Json::Value InArguments)
+            if (InCallbacks.Initialized)
             {
-                if (InArguments.isNull() == false)
+                InCallbacks.Initialized(mainGameWindow->GetHWND());
+            }
+
+            mainGameWindow->SetMouseMove(InInputEvents.mouseMove);
+            mainGameWindow->SetMouseDown(InInputEvents.mouseDown);
+            mainGameWindow->SetMouseUp(InInputEvents.mouseUp);
+
+            localInterface->Add_JSToNativeFunctionHandler("UpdatedGameViewRegion", [mainGameWindow](Json::Value InArguments)
                 {
-                    SE_ASSERT(InArguments.size() == 4);
-
-                    int32_t rect[4];
-                    for (int32_t Iter = 0; Iter < 4; Iter++)
+                    if (InArguments.isNull() == false)
                     {
-                        rect[Iter] = InArguments[Iter].asInt();
-                    }
+                        SE_ASSERT(InArguments.size() == 4);
 
-                    mainGameWindow->OnGameRegionWindowSet(rect);
-                }
-            });        
-#endif
+                        int32_t rect[4];
+                        for (int32_t Iter = 0; Iter < 4; Iter++)
+                        {
+                            rect[Iter] = InArguments[Iter].asInt();
+                        }
+
+                        mainGameWindow->OnGameRegionWindowSet(rect);
+                    }
+                });
+        }
 
         client_handler->_JSONNativeFunc = std::bind(&JavascriptInterface::NativeFromJS_JSON_Callback, localInterface.get(), std::placeholders::_1);
 

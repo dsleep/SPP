@@ -679,27 +679,29 @@ namespace client {
 		if (browser_window_)
 			browser_hwnd = browser_window_->GetWindowHandle();
 
-
-		const float device_scale_factor = GetWindowScaleFactor(_gameWindow);
-
-		// Resize all controls.
-		HDWP hdwp = BeginDeferWindowPos(browser_hwnd ? 2 : 1);
-		
-		hdwp = DeferWindowPos(hdwp, _gameWindow, NULL, 
-			_gameWidowRect.left * device_scale_factor, 
-			(_gameWidowRect.top - shiftHeight) * device_scale_factor,
-			(_gameWidowRect.right - _gameWidowRect.left) * device_scale_factor,
-			(_gameWidowRect.bottom - _gameWidowRect.top - shiftHeight) * device_scale_factor,
-			SWP_NOZORDER);
-
-		if (browser_hwnd)
+		if (_gameWindow)
 		{
-			hdwp = DeferWindowPos(hdwp, browser_hwnd, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
-		}
+			const float device_scale_factor = GetWindowScaleFactor(_gameWindow);
 
-		BOOL result = EndDeferWindowPos(hdwp);
-		ALLOW_UNUSED_LOCAL(result);
-		DCHECK(result);
+			// Resize all controls.
+			HDWP hdwp = BeginDeferWindowPos(browser_hwnd ? 2 : 1);
+
+			hdwp = DeferWindowPos(hdwp, _gameWindow, NULL,
+				_gameWidowRect.left * device_scale_factor,
+				(_gameWidowRect.top - shiftHeight) * device_scale_factor,
+				(_gameWidowRect.right - _gameWidowRect.left) * device_scale_factor,
+				(_gameWidowRect.bottom - _gameWidowRect.top - shiftHeight) * device_scale_factor,
+				SWP_NOZORDER);
+
+			if (browser_hwnd)
+			{
+				hdwp = DeferWindowPos(hdwp, browser_hwnd, NULL, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, SWP_NOZORDER);
+			}
+
+			BOOL result = EndDeferWindowPos(hdwp);
+			ALLOW_UNUSED_LOCAL(result);
+			DCHECK(result);
+		}
 	}
 
 	void RootGameWindowWin::OnMove()
@@ -769,7 +771,7 @@ namespace client {
 		RECT rect;
 		GetClientRect(hwnd_, &rect);
 
-		if (with_controls_)
+		//if (with_controls_)
 		{
 			// Create the child controls.
 			int x_offset = 0;
@@ -824,11 +826,6 @@ namespace client {
 					}
 				}
 			}
-		}
-		else
-		{
-			// No controls so also remove the default menu.
-			::SetMenu(hwnd_, NULL);
 		}
 
 		const float device_scale_factor = GetWindowScaleFactor(hwnd_);

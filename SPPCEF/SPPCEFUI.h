@@ -102,9 +102,10 @@ namespace SPP
 		const InputEvents& InInputEvents = InputEvents(),
 		std::function<void(const std::string&, Json::Value&) >* JSFunctionReceiver = nullptr);
 
-	SPP_CEFUI_API int RunBrowser(void* hInstance, const std::string& StartupURL, 
+	SPP_CEFUI_API int RunBrowser(void* hInstance, const std::string& StartupURL,
 		const GameBrowserCallbacks& InCallbacks = { nullptr, nullptr, nullptr, nullptr },
 		const InputEvents& InInputEvents = { 0 },
+		bool bWithGameWindow = false,
 		std::function<void(const std::string&, Json::Value&) >* JSFunctionReceiver = nullptr);
 }
 

@@ -811,6 +811,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 					std::bind(&EditorEngine::MouseUp, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
 					std::bind(&EditorEngine::MouseMove, editor, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)
 				},
+				true,
 				&jsFuncRecv);
 				});
 
