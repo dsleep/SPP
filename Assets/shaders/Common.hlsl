@@ -27,7 +27,7 @@ struct _ViewConstants
 	double3 ViewPosition;
 	//origin centered 
 	double4 CameraFrustum[6];
-
+	int2 FrameExtents;
 	float RecipTanHalfFovy;
 };
 

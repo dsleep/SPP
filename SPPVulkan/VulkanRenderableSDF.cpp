@@ -58,10 +58,6 @@ namespace SPP
 
 			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
 
-			//TODO 
-			//DX12_BegineResourceCopy();
-			//_shapeBuffer->UploadToGpu();
-			//DX12_EndResourceCopy();
 
 			auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
 			auto SDFLayout = _parentScene->GetAs<VulkanRenderScene>().GetRayVSLayout();

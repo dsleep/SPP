@@ -44,7 +44,7 @@ namespace SPP
 
 	VulkanShader::VulkanShader(EShaderType InType) : GPUShader(InType)
 	{
-		SE_ASSERT(InType == EShaderType::Pixel || InType == EShaderType::Vertex);		
+		SE_ASSERT(InType == EShaderType::Pixel || InType == EShaderType::Vertex || InType == EShaderType::Compute);
 	}
 
 	void PrintModuleInfo(const SpvReflectShaderModule& obj, const char* /*indent*/)
