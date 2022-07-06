@@ -26,12 +26,13 @@ namespace SPP
 		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
 		VkMemoryPropertyFlags _memoryPropertyFlags;
 
+		virtual void _MakeResident() override; 
+		virtual void _MakeUnresident() override {}
+
 	public:
 		VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 
 		virtual ~VulkanBuffer();
-
-		virtual void UploadToGpu() override;
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
 
 		VkBuffer &GetBuffer() 

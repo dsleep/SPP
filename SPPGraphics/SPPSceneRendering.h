@@ -302,13 +302,13 @@ namespace SPP
 
 		GD_RenderableSignedDistanceField(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
 		virtual ~GD_RenderableSignedDistanceField() {}
-		GD_RenderableSignedDistanceField(Args&& InArgs) : Renderable((Renderable::Args)InArgs)
-		{
-			_shapes = InArgs.shapes;
-			_color = InArgs.color;
-		}
+		//GD_RenderableSignedDistanceField(Args&& InArgs) : Renderable((Renderable::Args)InArgs)
+		//{
+		//	_shapes = InArgs.shapes;
+		//	_color = InArgs.color;
+		//}
 
-		GD_RenderableSignedDistanceField() : Renderable() {}
+		//GD_RenderableSignedDistanceField() : Renderable() {}
 
 		std::vector< SDFShape >& GetShapes()
 		{

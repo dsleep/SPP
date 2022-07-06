@@ -51,6 +51,7 @@ namespace SPP
 
 	GPUResource::GPUResource()
 	{
+		SE_ASSERT(IsOnGPUThread());
 		if (GRootResource)
 		{
 			GRootResource->_prevResource = this;
@@ -61,6 +62,7 @@ namespace SPP
 
 	GPUResource::~GPUResource()
 	{
+		SE_ASSERT(IsOnGPUThread());
 		if (_nextResource)
 		{
 			_nextResource->_prevResource = _prevResource;
@@ -89,7 +91,7 @@ namespace SPP
 		{
 			SPP_QL("MakeResidentAllGPUResources: %s", CurResource->GetName());
 
-			CurResource->UploadToGpu();
+			CurResource->MakeResident();
 			CurResource = CurResource->GetNext();
 		};
 

@@ -181,6 +181,9 @@ namespace SPP
         GPUResource* _prevResource = nullptr;
         GPUResource* _nextResource = nullptr;
 
+        virtual void _MakeResident() = 0;
+        virtual void _MakeUnresident() = 0;
+
     public:
         GPUResource();
         virtual ~GPUResource();
@@ -190,8 +193,24 @@ namespace SPP
             return _nextResource;
         }
 
-        virtual const char* GetName() const = 0;       
-        virtual void UploadToGpu() = 0;
+        virtual const char* GetName() const = 0;      
+       
+        void MakeResident()
+        {
+            if (!_gpuResident)
+            {
+                _MakeResident();
+                _gpuResident = true;
+            }
+        }
+        void MakeUnresident()
+        {
+            if (_gpuResident)
+            {
+                _MakeUnresident();
+                _gpuResident = false;
+            }
+        }
 
         bool IsGPUResident() const { return _gpuResident; }
 
@@ -542,7 +561,7 @@ namespace SPP
         GPUReferencer< GPUShader > _compute;
 
     public:
-        GD_ComputeDispatch(GPUReferencer< GPUShader> InCS) : _compute(InCS) { }
+        GD_ComputeDispatch(GraphicsDevice* InOwner, GPUReferencer< GPUShader> InCS) : GD_Resource(InOwner), _compute(InCS) { }
 
         void SetTextures(const std::vector< GPUReferencer<GPUTexture> > &InTextures)
         {

@@ -518,7 +518,7 @@ namespace SPP
 			_updates.insert(InID);
 		}
 
-		virtual void UploadToGpu() override
+		virtual void _MakeResident() override
 		{
 			if (!_updates.empty())
 			{

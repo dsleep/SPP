@@ -92,14 +92,14 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
-		auto SDFShader = _graphicsDevice->CreateShader();
+		//auto SDFShader = _graphicsDevice->CreateShader();
 
-		auto gpuCommand = GPUThreaPool->enqueue([SDFShader]()
-			{
-				SDFShader->Initialize(EShaderType::Compute);
-				SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
-			});
-		gpuCommand.wait();
+		//auto gpuCommand = GPUThreaPool->enqueue([SDFShader]()
+		//	{
+		//		SDFShader->Initialize(EShaderType::Compute);
+		//		SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
+		//	});
+		//gpuCommand.wait();
 
 
 		/////////////SCENE SETUP

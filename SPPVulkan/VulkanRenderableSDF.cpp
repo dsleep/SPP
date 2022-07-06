@@ -16,6 +16,8 @@
 
 namespace SPP
 {
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 	extern LogEntry LOG_VULKAN;
 
 	// lazy externs
@@ -32,15 +34,22 @@ namespace SPP
 
 		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
 	public:
+		VulkanSDF(GraphicsDevice* InOwner) : GD_RenderableSignedDistanceField(InOwner) {}
 		virtual void Draw() override;
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
 
-	std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF()
-	{
-		return std::make_shared< VulkanSDF >();
-	}
+	//std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF()
+	//{
+	//	return std::make_shared< VulkanSDF >();
+	//}
 		
+	class V : public GPUResource
+	{
+
+
+	};
+
 	void VulkanSDF::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
 		GD_RenderableSignedDistanceField::_AddToRenderScene(InScene);
@@ -91,12 +100,12 @@ namespace SPP
 
 	void VulkanSDF::Draw()
 	{
-		//auto pd3dDevice = GGraphicsDevice->GetDevice();
-		//auto perDrawDescriptorHeap = GGraphicsDevice->GetDynamicDescriptorHeap();
-		//auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-		//auto cmdList = GGraphicsDevice->GetCommandList();
-		//auto currentFrame = GGraphicsDevice->GetFrameCount();
-		//auto curCLWrapper = GGraphicsDevice->GetCommandListWrapper();
+		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
+		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
 		auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
 		auto SDFPSO = _parentScene->GetAs<VulkanRenderScene>().GetSDFPSO();
@@ -104,60 +113,10 @@ namespace SPP
 		{
 			SDFPSO = _customPSO;
 		}
-		//		
-		//curCLWrapper->SetRootSignatureFromVerexShader(SDFVS);
 
-		////table 0, shared all constant, scene stuff 
-		//{
-		//	curCLWrapper->SetupSceneConstants(_parentScene->GetAs<D3D12RenderScene>());
-		//}
-
-		////table 1, VS only constants
-		//{
-		//	auto pd3dDevice = GGraphicsDevice->GetDevice();
-
-		//	_declspec(align(256u))
-		//	struct GPUDrawConstants
-		//	{
-		//		//altered viewposition translated
-		//		Matrix4x4 LocalToWorldScaleRotation;
-		//		Vector3d Translation;
-		//	};
-
-		//	// write local to world
-		//	auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
-		//	WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), _cachedRotationScale);
-		//	WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), _position);
-
-		//	cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
-		//}
-
-		//curCLWrapper->SetPipelineState(SDFPSO);
-		//cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		////3 shapes for now
-		//auto ShapeSetBlock = perDrawDescriptorHeap->GetDescriptorSlots(1);
-
-		//SE_ASSERT(_shapeResource->GetElementCount() == _shapes.size());
-
-		//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		//srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-		//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-		//srvDesc.Buffer.FirstElement = 0;
-		//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		//auto currentTableElement = ShapeSetBlock[0];
-		//srvDesc.Buffer.StructureByteStride = _shapeResource->GetPerElementSize(); // We assume we'll only use the first vertex buffer
-		//srvDesc.Buffer.NumElements = _shapeResource->GetElementCount();
-		//pd3dDevice->CreateShaderResourceView(_shapeBuffer->GetAs<D3D12Buffer>().GetResource(), &srvDesc, currentTableElement.cpuHandle);
-
-		//srvDesc.Buffer.FirstElement = 0;
-		//curCLWrapper->AddManualRef(_shapeBuffer);
-
-		//cmdList->SetGraphicsRootDescriptorTable(7, ShapeSetBlock.gpuHandle);
-		//cmdList->SetGraphicsRoot32BitConstant(6, _shapeResource->GetElementCount(), 0);
-		//cmdList->SetGraphicsRoot32BitConstants(6, 3, _color.data(), 1);
-
-		//cmdList->DrawInstanced(4, 1, 0, 0);
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[compute.pipelineIndex]);
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
+		//vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);
 	}
 
 	

@@ -62,7 +62,7 @@ namespace SPP
 		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
 
 		//
-		UploadToGpu();
+		_MakeResident();
 	}
 
 	VulkanBuffer::~VulkanBuffer()
@@ -89,7 +89,7 @@ namespace SPP
 		return alignedSize;
 	}
 	
-	void VulkanBuffer::UploadToGpu()
+	void VulkanBuffer::_MakeResident()
 	{
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto &cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();

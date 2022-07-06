@@ -57,6 +57,11 @@ namespace SPP
 
 	class VulkanTexture : public VulkanTextureBase, public GPUTexture
 	{
+	protected:
+
+		virtual void _MakeResident() override {}
+		virtual void _MakeUnresident() override {}
+
 	public:
 		void loadFromFile(
 			std::string        filename,
@@ -80,7 +85,6 @@ namespace SPP
 
 		VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
-		virtual void UploadToGpu() override { }
 		virtual ~VulkanTexture() 
 		{ 
 			destroy();

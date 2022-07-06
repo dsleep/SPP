@@ -121,11 +121,7 @@ namespace SPP
     protected:
         GraphicsDevice* _owner = nullptr;
 
-    public:
-        GD_Resource()
-        {
-            SE_ASSERT(IsOnCPUThread());
-        }
+    public:        
         GD_Resource(GraphicsDevice* InOwner) : _owner(InOwner)
         {
             SE_ASSERT(IsOnCPUThread());

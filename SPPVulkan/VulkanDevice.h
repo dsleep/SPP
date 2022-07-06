@@ -61,9 +61,11 @@ namespace SPP
 		std::vector< VkVertexInputBindingDescription > _inputBindings;
 		std::vector< VkVertexInputAttributeDescription > _inputAttributes;
 
+		virtual void _MakeResident() override {}
+		virtual void _MakeUnresident() override {}
+
 	public:
 		VkPipelineVertexInputStateCreateInfo& GetVertexInputState();
-		virtual void UploadToGpu() override {}
 		virtual ~VulkanInputLayout() 
 		{
 		};
@@ -357,6 +359,9 @@ namespace SPP
 		// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
 		VkPipeline _pipeline = nullptr;
 
+		virtual void _MakeResident() override {}
+		virtual void _MakeUnresident() override {}
+
 	public:
 		VulkanPipelineState();
 		virtual ~VulkanPipelineState();
@@ -376,11 +381,9 @@ namespace SPP
 		const VkPipelineLayout &GetVkPipelineLayout()
 		{
 			return _pipelineLayout;
-		}
-		
+		}		
 
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
-		virtual void UploadToGpu() {}
 
 		void Initialize(EBlendState InBlendState,
 			ERasterizerState InRasterizerState,

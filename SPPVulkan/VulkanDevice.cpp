@@ -1675,7 +1675,7 @@ namespace SPP
 	
 	std::shared_ptr< class GD_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
 	{
-		return std::make_shared< GD_RenderableSignedDistanceField>();
+		return std::make_shared< GD_RenderableSignedDistanceField>(this);
 	}
 	//virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width,
 	//	int32_t Height,
