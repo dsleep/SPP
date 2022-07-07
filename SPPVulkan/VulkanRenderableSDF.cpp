@@ -39,17 +39,48 @@ namespace SPP
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
 
+	class GlobalVulkanSDFResources : public GlobalGraphicsResource
+	{
+	private:
+		GPUReferencer < VulkanPipelineState > _PSO;
+		std::shared_ptr< class GD_Shader > _CS;
+
+	public:
+		// called on render thread
+		virtual void Initialize(class GraphicsDevice* InOwner)
+		{
+			//std::dynamic_pointer_cast<GD_Vulkan_Material>
+			_CS = InOwner->CreateShader();
+			_CS->Initialize(EShaderType::Compute);
+			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
+
+			_PSO = GetVulkanPipelineState(EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Enabled,
+				EDrawingTopology::TriangleList,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				_CS->GetGPURef() );
+		}
+		virtual void Shutdown(class GraphicsDevice* InOwner)
+		{
+			_PSO.Reset();
+			_CS.reset();
+		}
+	};
+
+	GlobalVulkanSDFResources GVulkanSDFResrouces;
+
 	//std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF()
 	//{
 	//	return std::make_shared< VulkanSDF >();
 	//}
 		
-	class V : public GPUResource
-	{
-
-
-	};
-
 	void VulkanSDF::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
 		GD_RenderableSignedDistanceField::_AddToRenderScene(InScene);
@@ -67,25 +98,24 @@ namespace SPP
 
 			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
 
+			//if (_customShader)
+			//{
+			//	auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
+			//	auto SDFLayout = _parentScene->GetAs<VulkanRenderScene>().GetRayVSLayout();
 
-			auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
-			auto SDFLayout = _parentScene->GetAs<VulkanRenderScene>().GetRayVSLayout();
-
-			if (_customShader)
-			{
-				_customPSO = GetVulkanPipelineState(EBlendState::Disabled,
-					ERasterizerState::NoCull,
-					EDepthState::Enabled,
-					EDrawingTopology::TriangleList,
-					SDFLayout,
-					SDFVS,
-					_customShader,
-					nullptr,
-					nullptr,
-					nullptr,
-					nullptr,
-					nullptr);
-			}
+			//	_customPSO = GetVulkanPipelineState(EBlendState::Disabled,
+			//		ERasterizerState::NoCull,
+			//		EDepthState::Enabled,
+			//		EDrawingTopology::TriangleList,
+			//		SDFLayout,
+			//		SDFVS,
+			//		_customShader,
+			//		nullptr,
+			//		nullptr,
+			//		nullptr,
+			//		nullptr,
+			//		nullptr);
+			//}
 		}
 	}
 

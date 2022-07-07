@@ -172,14 +172,12 @@ namespace SPP
         return GPUReferencer<T>(new T(args...));
     }
 
-    class SPP_GRAPHICS_API GPUResource : public ReferenceCounted
+    class SPP_GRAPHICS_API GPUResource : public ReferenceCounted, public InternalLinkedList<GPUResource>
     {
         NO_COPY_ALLOWED(GPUResource);
 
     protected:
         bool _gpuResident = false;
-        GPUResource* _prevResource = nullptr;
-        GPUResource* _nextResource = nullptr;
 
         virtual void _MakeResident() = 0;
         virtual void _MakeUnresident() = 0;
@@ -188,15 +186,11 @@ namespace SPP
         GPUResource();
         virtual ~GPUResource();
 
-        GPUResource* GetNext()
-        {
-            return _nextResource;
-        }
-
         virtual const char* GetName() const = 0;      
        
         void MakeResident()
         {
+            SE_ASSERT(IsOnGPUThread());
             if (!_gpuResident)
             {
                 _MakeResident();
@@ -205,6 +199,7 @@ namespace SPP
         }
         void MakeUnresident()
         {
+            SE_ASSERT(IsOnGPUThread());
             if (_gpuResident)
             {
                 _MakeUnresident();
@@ -220,6 +215,19 @@ namespace SPP
         {
             return *(T*)this;
         }
+    };
+
+    class SPP_GRAPHICS_API GlobalGraphicsResource : public InternalLinkedList<GlobalGraphicsResource>
+    {
+    protected:
+
+    public:
+        GlobalGraphicsResource();
+        virtual ~GlobalGraphicsResource();
+
+        // called on render thread
+        virtual void Initialize(class GraphicsDevice* InOwner) = 0;
+        virtual void Shutdown(class GraphicsDevice* InOwner) = 0;
     };
 
     SPP_GRAPHICS_API void MakeResidentAllGPUResources();

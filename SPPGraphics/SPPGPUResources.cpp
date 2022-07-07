@@ -47,46 +47,32 @@ namespace SPP
 	//	}
 	//};
 
-	static GPUResource* GRootResource = nullptr;
+	GPUResource* InternalLinkedList<GPUResource>::_root = nullptr;
 
-	GPUResource::GPUResource()
+
+	GPUResource::GPUResource() : InternalLinkedList<GPUResource>()
 	{
 		SE_ASSERT(IsOnGPUThread());
-		if (GRootResource)
-		{
-			GRootResource->_prevResource = this;
-			_nextResource = GRootResource;
-		}
-		GRootResource = this;
 	}
 
 	GPUResource::~GPUResource()
 	{
 		SE_ASSERT(IsOnGPUThread());
-		if (_nextResource)
-		{
-			_nextResource->_prevResource = _prevResource;
-		}
-		if (_prevResource)
-		{
-			_prevResource->_nextResource = _nextResource;
-		}
+	}
 
-		if (GRootResource == this)
-		{
-			SE_ASSERT(_prevResource == nullptr);
-			GRootResource = _nextResource;
-		}		
+	GlobalGraphicsResource* InternalLinkedList<GlobalGraphicsResource>::_root = nullptr;
+	GlobalGraphicsResource::GlobalGraphicsResource() : InternalLinkedList<GlobalGraphicsResource>()
+	{
+		//SE_ASSERT IsBeforeMain
+	}
+	GlobalGraphicsResource::~GlobalGraphicsResource()
+	{
+		SE_ASSERT(IsOnCPUThread());
 	}
 
 	void MakeResidentAllGPUResources()
 	{
-		SE_ASSERT(GGI());
-		
-		//TODO FIXME
-		//GGI()->BeginResourceCopies();
-
-		auto CurResource = GRootResource;
+		auto CurResource = InternalLinkedList<GPUResource>::GetRoot();
 		while(CurResource)
 		{
 			SPP_QL("MakeResidentAllGPUResources: %s", CurResource->GetName());
@@ -94,9 +80,6 @@ namespace SPP
 			CurResource->MakeResident();
 			CurResource = CurResource->GetNext();
 		};
-
-		//TODO FIXME
-		//GGI()->EndResourceCopies();
 	}	
 	
 	static uint32_t GHighestTextureID = 0;

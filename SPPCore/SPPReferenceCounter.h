@@ -8,6 +8,54 @@
 	
 namespace SPP
 {
+    template<typename T>
+    class InternalLinkedList
+    {
+    protected:
+        T* _prev = nullptr;
+        T* _next = nullptr;
+
+        static T* _root;
+
+    public:
+        InternalLinkedList()
+        {
+            if (_root)
+            {
+                _root->_prev = static_cast<T*>(this);
+                _next = _root;
+            }
+            _root = static_cast<T*>(this);
+        }
+
+        T* GetNext()
+        {
+            return _next;
+        }
+
+        static T* GetRoot()
+        {
+            return _root;
+        }
+
+        virtual ~InternalLinkedList()
+        {
+            if (_next)
+            {
+                _next->_prev = _prev;
+            }
+            if (_prev)
+            {
+                _prev->_next = _next;
+            }
+
+            if (_root == this)
+            {
+                SE_ASSERT(_prev == nullptr);
+                _root = _next;
+            }
+        }
+    };
     class ReferenceCounted
     {
         uint32_t _refCnt = 0;

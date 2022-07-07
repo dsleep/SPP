@@ -826,6 +826,7 @@ namespace SPP
 		setupFrameBuffer();
 		CreateDescriptorPool();
 
+		
 
 		//IMGUI
 		// Setup Dear ImGui context
@@ -871,6 +872,14 @@ namespace SPP
 
 			//ImGui_ImplVulkan_DestroyFontUploadObjects
 			//ImGui_ImplVulkan_Shutdown()
+
+
+			auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
+			while (CurResource)
+			{
+				CurResource->Initialize(this);
+				CurResource = CurResource->GetNext();
+			};
 		}
 	}
 
@@ -1261,12 +1270,11 @@ namespace SPP
 	{
 		auto device = GGlobalVulkanDevice;
 		auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
-		auto &inputLayout = InLayout->GetAs<VulkanInputLayout>();
-
-		
 
 		if (InVS && InPS)
 		{
+			auto& inputLayout = InLayout->GetAs<VulkanInputLayout>();
+
 			// Shaders
 			std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
@@ -1536,7 +1544,7 @@ namespace SPP
 				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 				nullptr,
 				VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
+				VK_SHADER_STAGE_COMPUTE_BIT,
 				InCS->GetAs<VulkanShader>().GetModule(),
 				InCS->GetAs<VulkanShader>().GetEntryPoint().c_str()
 				};
