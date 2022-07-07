@@ -21,6 +21,7 @@ namespace SPP
 		//real view position
 		Vector3d ViewPosition;
 		Vector4d FrustumPlanes[6];
+		Vector2i FrameExtents;
 		float RecipTanHalfFovy;
 	};
 

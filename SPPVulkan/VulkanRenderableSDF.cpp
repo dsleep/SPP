@@ -67,6 +67,12 @@ namespace SPP
 				nullptr,
 				_CS->GetGPURef() );
 		}
+
+		auto GetPSO()
+		{
+			return _PSO;
+		}
+
 		virtual void Shutdown(class GraphicsDevice* InOwner)
 		{
 			_PSO.Reset();
@@ -136,17 +142,52 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto csPSO = GVulkanSDFResrouces.GetPSO();
 
-		auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
-		auto SDFPSO = _parentScene->GetAs<VulkanRenderScene>().GetSDFPSO();
-		if (_customPSO)
-		{
-			SDFPSO = _customPSO;
-		}
+		auto activePool = GGlobalVulkanGI->GetActiveDescriptorPool();
+		auto& descriptorSetLayouts = csPSO->GetDescriptorSetLayouts();
 
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelines[compute.pipelineIndex]);
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, compute.pipelineLayout, 0, 1, &compute.descriptorSet, 0, 0);
-		//vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);
+		std::vector<VkDescriptorSet> locaDrawSets;
+		locaDrawSets.resize(descriptorSetLayouts.size());
+
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(activePool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
+
+		auto parentScene = (VulkanRenderScene*)_parentScene;
+		auto cameraBuffer = parentScene->GetCameraBuffer();
+
+		VkDescriptorBufferInfo perFrameInfo;
+		perFrameInfo.buffer = cameraBuffer->GetBuffer();
+		perFrameInfo.offset = 0;
+		perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+		VkDescriptorBufferInfo drawConstsInfo;
+		//drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
+		//drawConstsInfo.offset = 0;
+		//drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			vks::initializers::writeDescriptorSet(locaDrawSets[0],
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+			vks::initializers::writeDescriptorSet(locaDrawSets[0],
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+		};
+
+		vkUpdateDescriptorSets(vulkanDevice,
+			static_cast<uint32_t>(writeDescriptorSets.size()),
+			writeDescriptorSets.data(), 0, nullptr);
+
+		uint32_t uniform_offsets[] = {
+			(sizeof(GPUViewConstants)) * currentFrame,
+			0
+		};
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, csPSO->GetVkPipeline());
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, 
+			csPSO->GetVkPipelineLayout(), 0, 
+			locaDrawSets.size(), locaDrawSets.data(), 
+			ARRAY_SIZE(uniform_offsets), uniform_offsets);
+		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);
 	}
 
 	
