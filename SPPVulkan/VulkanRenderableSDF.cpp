@@ -93,6 +93,7 @@ namespace SPP
 	//	return std::make_shared< VulkanSDF >();
 	//}
 		
+
 	void VulkanSDF::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
 		GD_RenderableSignedDistanceField::_AddToRenderScene(InScene);

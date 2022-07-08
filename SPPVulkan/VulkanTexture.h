@@ -35,6 +35,7 @@ namespace SPP
 	{
 	protected:
 		//vks::VulkanDevice *   device;
+		VkFormat			  _format = VK_FORMAT_UNDEFINED;
 		VkImage               image;
 		VkImageLayout         imageLayout;
 		VkDeviceMemory        deviceMemory;
@@ -85,6 +86,7 @@ namespace SPP
 
 		VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
+		void UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize);
 		virtual ~VulkanTexture() 
 		{ 
 			destroy();

@@ -520,6 +520,55 @@ namespace SPP
 			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetDeviceQueue());
 	}
 
+	void VulkanTexture::UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize)
+	{
+		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
+		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
+
+		auto WritableChunk = perFrameScratchBuffer.Write((const uint8_t*)Data, DataSize, activeFrame);
+
+		VkBufferImageCopy bufferCopyRegion = {};
+		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		bufferCopyRegion.imageSubresource.mipLevel = 0;
+		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+		bufferCopyRegion.imageSubresource.layerCount = 1;
+		bufferCopyRegion.imageExtent.width = width;
+		bufferCopyRegion.imageExtent.height = height;
+		bufferCopyRegion.imageExtent.depth = 1;
+		bufferCopyRegion.bufferOffset = WritableChunk.offsetFromBase;
+		bufferCopyRegion.imageOffset.x = rectX;
+		bufferCopyRegion.imageOffset.y = rectY;
+
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = mipLevels;
+		subresourceRange.layerCount = 1;
+
+		vks::tools::setImageLayout(
+			cmdBuffer,
+			image,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			subresourceRange);
+
+		vkCmdCopyBufferToImage(
+			cmdBuffer,
+			WritableChunk.buffer,
+			image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&bufferCopyRegion);
+
+		vks::tools::setImageLayout(
+			cmdBuffer,
+			image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			subresourceRange);
+	}
+
 	///**
 	//* Load a 2D texture array including all mip levels
 	//*
