@@ -31,7 +31,7 @@ ConstantBuffer<DrawParams>          DrawParams                : register(b3);
 StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
 // slight expansion to a buffer of these shapes... very WIP
-float map( in float3 pos )
+float processShapes( in float3 pos )
 {
     float d = 1e10;
 
@@ -90,9 +90,9 @@ float raymarch(float3 ro, float3 rd)
     for (int i = 0; i < maxstep; ++i) 
     {
         float3 p = ro + rd * t; // World space position of sample
-        float d = map(p);       // Sample of distance field (see map())
+        float d = processShapes(p);       // Sample of distance field (see processShapes())
 
-        // If the sample <= 0, we have hit something (see map()).
+        // If the sample <= 0, we have hit something (see processShapes()).
         if (d < 0.001)
         {
             break;
@@ -100,7 +100,7 @@ float raymarch(float3 ro, float3 rd)
 
         // If the sample > 0, we haven't hit anything yet so we should march forward
         // We step forward by distance d, because d is the minimum distance possible to intersect
-        // an object (see map()).
+        // an object (see processShapes()).
         t += d;
     }
 
@@ -111,10 +111,10 @@ float3 calcNormal(float3 pos)
 {
     const float ep = 0.001;
     float2 e = float2(1.0, -1.0) * 0.5773;
-    return normalize(e.xyy * map(pos + e.xyy * ep) +
-        e.yyx * map(pos + e.yyx * ep) +
-        e.yxy * map(pos + e.yxy * ep) +
-        e.xxx * map(pos + e.xxx * ep));
+    return normalize(e.xyy * processShapes(pos + e.xyy * ep) +
+        e.yyx * processShapes(pos + e.yyx * ep) +
+        e.yxy * processShapes(pos + e.yxy * ep) +
+        e.xxx * processShapes(pos + e.xxx * ep));
 }
 
 float4 renderSDF( float3 ro, float3 rd ) 
@@ -136,7 +136,7 @@ float4 renderSDF( float3 ro, float3 rd )
 	else
 	{
         //no convergence
-        clip(-1);
+        //clip(-1);
 	}
 
 	return float4(rd * 0.5 + 0.5,hitDistance);

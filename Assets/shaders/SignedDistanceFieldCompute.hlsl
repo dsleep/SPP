@@ -2,17 +2,15 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
-#if 0
+
 #include "Common.hlsl"
 #include "SDFShapes.hlsl"
-#endif
 
 RWTexture2D<float4> resultImage : register(u1);
 
 [numthreads(16, 16, 1)]
 void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 {
-#if 0
 	float2 pixelPosition = float2( GlobalInvocationID.x / (float)ViewConstants.FrameExtents.x, GlobalInvocationID.y / (float)ViewConstants.FrameExtents.y );
 	pixelPosition = (pixelPosition - 0.5f) * 0.5f;
 	
@@ -29,7 +27,4 @@ void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w - float3(ViewConstants.ViewPosition), 1.0f);
 
 	resultImage[int2(GlobalInvocationID.xy)] = float4(outRender.rgb,1.0f);
-#endif
-
-	resultImage[int2(GlobalInvocationID.xy)] = float4(0,0,0,0);
 }
