@@ -28,6 +28,12 @@ namespace SPP
 	protected:		
 		GPUReferencer< GPUBuffer > _shapeBuffer;
 		std::shared_ptr< ArrayResource > _shapeResource;
+
+
+		std::shared_ptr< ArrayResource > _drawConstants;
+		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
+		bool bPendingUpdate = false;
+
 		bool _bIsStatic = false;
 
 		GPUReferencer< PipelineState > _customPSO;
@@ -104,6 +110,13 @@ namespace SPP
 
 			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
 
+			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
+			auto& curData = uniformData[0];
+			curData.LocalToWorldScaleRotation = _cachedRotationScale;
+			curData.Translation = _position;
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
+			bPendingUpdate = false;
+
 			//if (_customShader)
 			//{
 			//	auto SDFVS = _parentScene->GetAs<VulkanRenderScene>().GetSDFVS();
@@ -162,15 +175,36 @@ namespace SPP
 		perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
 		VkDescriptorBufferInfo drawConstsInfo;
+		drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
+		drawConstsInfo.offset = 0;
+		drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
+		VkDescriptorImageInfo frameInfo = {};
+		//frameInfo.imageView = ;
+		//frameInfo.imageLayout = ;
+
+		VkDescriptorBufferInfo drawParamsInfo;
 		//drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
 		//drawConstsInfo.offset = 0;
 		//drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
+		VkDescriptorBufferInfo drawShapesInfo;
+		//drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
+		//drawConstsInfo.offset = 0;
+		//drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+			vks::initializers::writeDescriptorSet(locaDrawSets[0],
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &frameInfo),
+			vks::initializers::writeDescriptorSet(locaDrawSets[0],
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawParamsInfo),
+			vks::initializers::writeDescriptorSet(locaDrawSets[0],
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, &drawShapesInfo),
 		};
 
 		vkUpdateDescriptorSets(vulkanDevice,
