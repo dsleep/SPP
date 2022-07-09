@@ -113,7 +113,7 @@ public:
 
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
 		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
-		startingSphere->SetRadius(10);
+		startingSphere->SetRadius(3);
 		startingGroup->AddChild(startingSphere);
 		_gameworld->AddChild(startingGroup);
 

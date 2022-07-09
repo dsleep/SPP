@@ -195,7 +195,11 @@ namespace SPP
 		drawConstsInfo.offset = 0;
 		drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
 
+		auto ColorTarget = GGlobalVulkanGI->GetColorTarget();
+		auto& colorAttachment = ColorTarget->GetFrontAttachment();
+
 		VkDescriptorImageInfo frameInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
+		frameInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorBufferInfo drawParamsInfo;
 		drawParamsInfo.buffer = _drawParamsBuffer->GetBuffer();
@@ -205,7 +209,7 @@ namespace SPP
 		VkDescriptorBufferInfo drawShapesInfo;
 		drawShapesInfo.buffer = _shapeBuffer->GetBuffer();
 		drawShapesInfo.offset = 0;
-		drawShapesInfo.range = _shapeBuffer->GetPerElementSize();
+		drawShapesInfo.range = _shapeBuffer->GetDataSize();
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
@@ -233,12 +237,22 @@ namespace SPP
 			0
 		};
 
+		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, csPSO->GetVkPipeline());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, 
 			csPSO->GetVkPipelineLayout(), 0, 
 			locaDrawSets.size(), locaDrawSets.data(), 
 			ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);
+
+		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 	}
 
 	

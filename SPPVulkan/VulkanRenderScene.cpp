@@ -482,6 +482,7 @@ namespace SPP
 		curCam.ViewProjectionMatrix = _viewGPU.GetViewProjMatrix();
 		curCam.InvViewProjectionMatrix = _viewGPU.GetInvViewProjMatrix();
 		curCam.ViewPosition = _viewGPU.GetCameraPosition();
+		curCam.FrameExtents = DeviceExtents;
 
 		for (int32_t Iter = 0; Iter < ARRAY_SIZE(frustumPlanes); Iter++)
 		{

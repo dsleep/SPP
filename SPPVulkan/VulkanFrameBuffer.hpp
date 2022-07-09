@@ -118,6 +118,11 @@ namespace SPP
 		*/
 		void createSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerAddressMode adressMode);
 
+		FramebufferAttachment& GetFrontAttachment()
+		{
+			return attachments.front();
+		}
+
 		/**
 		* Creates a default render pass setup with one sub pass
 		*

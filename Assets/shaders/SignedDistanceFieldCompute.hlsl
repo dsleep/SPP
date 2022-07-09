@@ -26,6 +26,9 @@ void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	
 	float4 outRender = renderSDF(rayOrigin, rayDirection);
 	float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w - float3(ViewConstants.ViewPosition), 1.0f);
-
-	resultImage[int2(GlobalInvocationID.xy)] = float4(outRender.rgb,1.0f);
+	
+	if(outRender.w > -0.1)
+	{
+		resultImage[int2(GlobalInvocationID.xy)] = float4(outRender.rgb,1.0f);
+	}
 }

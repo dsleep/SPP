@@ -314,6 +314,11 @@ namespace SPP
 			return _colorTarget->GetImageInfo();
 		}
 
+		VulkanFramebuffer *GetColorTarget()
+		{
+			return _colorTarget.get();
+		}
+
 		VkFrameData GetBackBufferFrameData()
 		{
 			return VkFrameData{ renderPass, GetActiveFrameBuffer() };
