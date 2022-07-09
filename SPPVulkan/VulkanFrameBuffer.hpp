@@ -20,6 +20,11 @@ namespace vks
 
 namespace SPP
 {
+	struct VkFrameData
+	{
+		VkRenderPass renderPass;
+		VkFramebuffer frameBuffer;
+	};
 	/**
 	* @brief Encapsulates a single frame buffer attachment 
 	*/
@@ -119,5 +124,8 @@ namespace SPP
 		* @return VK_SUCCESS if all resources have been created successfully
 		*/
 		VkResult createRenderPass();
+
+		VkFrameData GetFrameData();
+		VkDescriptorImageInfo GetImageInfo();
 	};
 }

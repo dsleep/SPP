@@ -25,6 +25,64 @@ namespace SPP
 
 	static Vector3d HACKS_CameraPos;
 
+	class GlobalVulkanRenderSceneResources : public GlobalGraphicsResource
+	{
+	private:
+		GPUReferencer < GPUShader > _fullscreenColorVS, _fullscreenColorPS;
+		GPUReferencer< PipelineState > _fullscreenColorPSO;
+		GPUReferencer< GPUInputLayout > _fullscreenColorLayout;
+
+	public:
+		// called on render thread
+		virtual void Initialize(class GraphicsDevice* InOwner)
+		{
+			_fullscreenColorVS = Vulkan_CreateShader(EShaderType::Vertex);
+			_fullscreenColorVS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_vs");
+
+			_fullscreenColorPS = Vulkan_CreateShader(EShaderType::Pixel);
+			_fullscreenColorPS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_ps");
+
+			_fullscreenColorLayout = Vulkan_CreateInputLayout();
+
+			{
+				auto& vulkanInputLayout = _fullscreenColorLayout->GetAs<VulkanInputLayout>();
+				vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
+			}
+
+
+			auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
+
+			auto vulkPSO = Make_GPU< VulkanPipelineState >();
+			vulkPSO->ManualSetRenderPass(backbufferFrameData.renderPass);
+			_fullscreenColorPSO = vulkPSO;
+			vulkPSO->Initialize(EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Enabled,
+				EDrawingTopology::TriangleStrip,
+				_fullscreenColorLayout,
+				_fullscreenColorVS,
+				_fullscreenColorPS,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr);
+		}
+
+		auto GetFullScreenWritePSO()
+		{
+			return _fullscreenColorPSO;
+		}
+
+		virtual void Shutdown(class GraphicsDevice* InOwner)
+		{
+			_fullscreenColorVS.Reset();
+			_fullscreenColorPS.Reset();
+			_fullscreenColorPSO.Reset();
+		}
+	};
+
+	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
 	
 
 	VulkanRenderScene::VulkanRenderScene(GraphicsDevice* InOwner) : GD_RenderScene(InOwner)
@@ -464,8 +522,44 @@ namespace SPP
 		auto &camPos = _viewGPU.GetCameraPosition();
 		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
 		GGlobalVulkanGI->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
-
 		
+		auto ColorTargetFrameData = GGlobalVulkanGI->GetColorFrameData();
+
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = ColorTargetFrameData.renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+		renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+		renderPassBeginInfo.clearValueCount = 2;
+		VkClearValue clearValues[2];
+		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+		renderPassBeginInfo.pClearValues = clearValues;
+		// Set target frame buffer
+		renderPassBeginInfo.framebuffer = ColorTargetFrameData.frameBuffer;
+
+		// Start the first sub pass specified in our default render pass setup by the base class
+		// This will clear the color and depth attachment
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Update dynamic viewport state
+		VkViewport viewport = {};
+		viewport.width = (float)DeviceExtents[0];
+		viewport.height = (float)DeviceExtents[1];
+		viewport.minDepth = (float)0.0f;
+		viewport.maxDepth = (float)1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+		// Update dynamic scissor state
+		VkRect2D scissor = {};
+		scissor.extent.width = DeviceExtents[0];
+		scissor.extent.height = DeviceExtents[1];
+		scissor.offset.x = 0;
+		scissor.offset.y = 0;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 #if 0
 		for (auto renderItem : _renderables)
@@ -497,7 +591,93 @@ namespace SPP
 		{
 			renderItem->Draw();
 		}
+
+		vkCmdEndRenderPass(commandBuffer);
+
+		WriteToFrame();
 	};
+
+	void VulkanRenderScene::WriteToFrame()
+	{
+		extern VkDevice GGlobalVulkanDevice;
+		extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
+		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
+		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
+		auto FullScreenWritePSO = GVulkanSceneResrouces.GetFullScreenWritePSO();
+		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
+
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = backbufferFrameData.renderPass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+		renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+		renderPassBeginInfo.clearValueCount = 2;
+		VkClearValue clearValues[2];
+		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+		renderPassBeginInfo.pClearValues = clearValues;
+		// Set target frame buffer
+		renderPassBeginInfo.framebuffer = backbufferFrameData.frameBuffer;
+
+		// Start the first sub pass specified in our default render pass setup by the base class
+		// This will clear the color and depth attachment
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Update dynamic viewport state
+		VkViewport viewport = {};
+		viewport.width = (float)DeviceExtents[0];
+		viewport.height = (float)DeviceExtents[1];
+		viewport.minDepth = (float)0.0f;
+		viewport.maxDepth = (float)1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+		// Update dynamic scissor state
+		VkRect2D scissor = {};
+		scissor.extent.width = DeviceExtents[0];
+		scissor.extent.height = DeviceExtents[1];
+		scissor.offset.x = 0;
+		scissor.offset.y = 0;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+		//
+		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
+		auto& curPSO = FullScreenWritePSO->GetAs<VulkanPipelineState>();
+		auto& descriptorSetLayouts = curPSO.GetDescriptorSetLayouts();
+
+		std::vector<VkDescriptorSet> locaDrawSets;
+		locaDrawSets.resize(descriptorSetLayouts.size());
+
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
+
+		VkDescriptorImageInfo textureInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();	
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(locaDrawSets[0],
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &textureInfo),
+				vks::initializers::writeDescriptorSet(locaDrawSets[0],
+					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &textureInfo),
+		};
+
+		vkUpdateDescriptorSets(vulkanDevice,
+			static_cast<uint32_t>(writeDescriptorSets.size()),
+			writeDescriptorSets.data(), 0, nullptr);
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, curPSO.GetVkPipeline());
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			curPSO.GetVkPipelineLayout(), 0, locaDrawSets.size(), locaDrawSets.data(), 0, nullptr);
+		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+
+		vkCmdEndRenderPass(commandBuffer);
+	}
 
 	void VulkanRenderScene::DrawSkyBox()
 	{

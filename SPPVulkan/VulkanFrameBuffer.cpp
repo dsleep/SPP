@@ -194,6 +194,19 @@ namespace SPP
 		sampler.reset(new SafeVkSampler(vulkanDevice->logicalDevice, samplerInfo));
 	}
 
+	VkFrameData VulkanFramebuffer::GetFrameData()
+	{
+		return VkFrameData{ .renderPass = renderPass->Get(), .frameBuffer = framebuffer->Get() };
+	}
+
+	VkDescriptorImageInfo VulkanFramebuffer::GetImageInfo()
+	{
+		return VkDescriptorImageInfo{ 
+			.sampler = sampler->Get(),
+			.imageView = attachments.front().view->Get(),
+			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+	}
+
 	VkResult VulkanFramebuffer::createRenderPass()
 	{
 		std::vector<VkAttachmentDescription> attachmentDescriptions;

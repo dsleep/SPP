@@ -522,6 +522,8 @@ namespace SPP
 
 	void VulkanTexture::UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize)
 	{
+		//HACK just assumes RGBA8888
+		SE_ASSERT((Width * Height * 4) == DataSize);
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
 		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();

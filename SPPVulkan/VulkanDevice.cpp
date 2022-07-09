@@ -21,6 +21,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
+#define ALLOW_IMGUI 0
 
 namespace SPP
 {
@@ -558,6 +559,29 @@ namespace SPP
 	{
 		swapChain.create(&width, &height, settings.vsync);
 
+		_colorTarget = std::make_unique< VulkanFramebuffer >(vulkanDevice);
+		_colorTarget->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R8G8B8A8_UNORM,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+			}
+		);
+		_colorTarget->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+			}
+		);		
+		VK_CHECK_RESULT(_colorTarget->createRenderPass());
+		_colorTarget->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+
+		/*
 		_deferredMaterialMRTs = std::make_unique< VulkanFramebuffer >(vulkanDevice);
 
 		_deferredMaterialMRTs->addAttachment(
@@ -602,6 +626,7 @@ namespace SPP
 
 		VK_CHECK_RESULT(_deferredMaterialMRTs->createRenderPass());
 		_deferredMaterialMRTs->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+		*/
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()
@@ -827,7 +852,7 @@ namespace SPP
 		CreateDescriptorPool();
 
 		
-
+#if ALLOW_IMGUI
 		//IMGUI
 		// Setup Dear ImGui context
 		IMGUI_CHECKVERSION();
@@ -860,11 +885,12 @@ namespace SPP
 		initInfo.MSAASamples = (VkSampleCountFlagBits)0;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
 		//initInfo.Allocator;// const VkAllocationCallbacks* Allocator;
 		//initInfo.CheckVkResultFn;// void                            (*CheckVkResultFn)(VkResult err);
-
+#endif
 		//IMGUI
 		{
 			GPUThreadIDOverride tempOverride;
 
+#if ALLOW_IMGUI
 			ImGui_ImplVulkan_Init(&initInfo, renderPass);
 
 			auto& cmdBuffer = GetCopyCommandBuffer();
@@ -872,7 +898,7 @@ namespace SPP
 
 			//ImGui_ImplVulkan_DestroyFontUploadObjects
 			//ImGui_ImplVulkan_Shutdown()
-
+#endif
 
 			auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
 			while (CurResource)
@@ -1047,7 +1073,7 @@ namespace SPP
 
 		GraphicsDevice::BeginFrame();
 
-
+#if ALLOW_IMGUI
 		//IMGUI
 		ImGui::NewFrame();
 		ImGui_ImplVulkan_NewFrame();
@@ -1057,22 +1083,54 @@ namespace SPP
 
 		ImGui::SetNextWindowBgAlpha(0.0f);
 		ImGui::Begin("Window", nullptr, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration);
+#endif
 
-		// Set clear values for all framebuffer attachments with loadOp set to clear
-		// We use two attachments (color and depth) that are cleared at the start of the subpass and as such we need to set clear values for both
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
+		bDrawPhase = true;
+	}
 
+	//IMGUI
+	void VulkanGraphicsDevice::DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor)
+	{
+#if ALLOW_IMGUI
+		ImGui::SetCursorPosX(InPosition[0]);
+		ImGui::SetCursorPosY(InPosition[1]);
+		ImGui::Text(Text);
+#endif
+	}
+
+	void VulkanGraphicsDevice::EndFrame()
+	{
+		bDrawPhase = false;
+
+		//IMGUI
+		//ImGui::ShowDemoWindow();
+		auto& commandBuffer = _drawCmdBuffers[currentBuffer]->Get();
+
+		//ImGui::SetCursorPosX(0);
+
+		//ImGui::SetCursorPosY(0);
+		//char inputText[200] = { 0 };
+		//inputText[0] = '>';
+		//inputText[1] = 0;
+		//float tHeight = ImGui::CalcTextSize(">AB").y;
+
+		//ImGui::InputText("##text1", inputText, sizeof(inputText));
+		
+#if ALLOW_IMGUI
+
+#if 0
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = renderPass;
+		renderPassBeginInfo.renderPass = GetBackBufferRenderPass();
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = width;
 		renderPassBeginInfo.renderArea.extent.height = height;
 		renderPassBeginInfo.clearValueCount = 2;
+		VkClearValue clearValues[2];
+		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
+		clearValues[1].depthStencil = { 1.0f, 0 };
 		renderPassBeginInfo.pClearValues = clearValues;
 		// Set target frame buffer
 		renderPassBeginInfo.framebuffer = GetActiveFrameBuffer();
@@ -1097,40 +1155,17 @@ namespace SPP
 		scissor.offset.y = 0;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		bDrawPhase = true;
-	}
-
-	//IMGUI
-	void VulkanGraphicsDevice::DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor)
-	{
-		ImGui::SetCursorPosX(InPosition[0]);
-		ImGui::SetCursorPosY(InPosition[1]);
-		ImGui::Text(Text);
-	}
-
-	void VulkanGraphicsDevice::EndFrame()
-	{
-		bDrawPhase = false;
-
-		//IMGUI
-		//ImGui::ShowDemoWindow();
-		auto& commandBuffer = _drawCmdBuffers[currentBuffer]->Get();
-
-		//ImGui::SetCursorPosX(0);
-
-		//ImGui::SetCursorPosY(0);
-		//char inputText[200] = { 0 };
-		//inputText[0] = '>';
-		//inputText[1] = 0;
-		//float tHeight = ImGui::CalcTextSize(">AB").y;
-
-		//ImGui::InputText("##text1", inputText, sizeof(inputText));
-
 		ImGui::End();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
 		vkCmdEndRenderPass(commandBuffer);
+#else
+		ImGui::End();
+		ImGui::Render();
+#endif
+
+#endif
 
 		// Ending the render pass will add an implicit barrier transitioning the frame buffer color attachment to
 		// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR for presenting it to the windowing system
@@ -1269,7 +1304,10 @@ namespace SPP
 		GPUReferencer< GPUShader> InCS)
 	{
 		auto device = GGlobalVulkanDevice;
-		auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
+
+		auto renderPass = _renderPass ? _renderPass : GGlobalVulkanGI->GetColorFrameData().renderPass;
+
+		//auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
 
 		if (InVS && InPS)
 		{

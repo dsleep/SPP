@@ -175,6 +175,7 @@ namespace SPP
 		// Wraps the swap chain to present images (framebuffers) to the windowing system
 		VulkanSwapChain swapChain;
 
+		std::unique_ptr<VulkanFramebuffer> _colorTarget;
 		std::unique_ptr<VulkanFramebuffer> _deferredMaterialMRTs;
 
 		// Synchronization semaphores
@@ -298,6 +299,26 @@ namespace SPP
 			return _defaultTexture;
 		}
 
+		VkRenderPass GetBackBufferRenderPass()
+		{
+			return renderPass;
+		}
+
+		VkFrameData GetColorFrameData()
+		{
+			return _colorTarget->GetFrameData();
+		}
+
+		VkDescriptorImageInfo GetColorImageDescImgInfo()
+		{
+			return _colorTarget->GetImageInfo();
+		}
+
+		VkFrameData GetBackBufferFrameData()
+		{
+			return VkFrameData{ renderPass, GetActiveFrameBuffer() };
+		}
+
 		VkDevice GetDevice();
 		VkRenderPass GetBaseRenderPass();
 		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow);
@@ -359,12 +380,19 @@ namespace SPP
 		// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
 		VkPipeline _pipeline = nullptr;
 
+		VkRenderPass _renderPass = nullptr;
+
 		virtual void _MakeResident() override {}
 		virtual void _MakeUnresident() override {}
 
 	public:
 		VulkanPipelineState();
 		virtual ~VulkanPipelineState();
+
+		void ManualSetRenderPass(VkRenderPass InRenderPass)
+		{
+			_renderPass = InRenderPass;
+		}
 
 		const VkPipeline &GetVkPipeline()
 		{
