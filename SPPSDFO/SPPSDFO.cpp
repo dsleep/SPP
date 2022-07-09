@@ -17,10 +17,17 @@ namespace SPP
 
 		_GenerateShapes();
 
+		auto thisRenderableScene = dynamic_cast<ORenderableScene*>(InScene);
+		SE_ASSERT(thisRenderableScene);
+
 		auto SceneType = InScene->get_type();
 		if (!_shapeCache.empty() &&
 			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
 		{
+			// not ready yet
+			if (!thisRenderableScene->GetGraphicsDevice()
+				|| !thisRenderableScene->GetRenderScene()) return;
+
 			GD_RenderableSignedDistanceField::Args sdfArgs;
 
 			sdfArgs.position = _translation;
@@ -28,9 +35,10 @@ namespace SPP
 			sdfArgs.shapes = _shapeCache;
 			sdfArgs.color = _color;
 			
-			//TODO FIXME add setting of sdf
-			//_renderableSDF = GGD()->CreateSignedDistanceField();
-			//_renderableSDF->AddToRenderScene(((ORenderableScene*)InScene)->GetRenderScene());
+			auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+			_renderableSDF = sceneGD->CreateSignedDistanceField();
+			_renderableSDF->SetSDFArgs(sdfArgs);
+			_renderableSDF->AddToRenderScene(thisRenderableScene->GetRenderScene());
 		}
 	}
 

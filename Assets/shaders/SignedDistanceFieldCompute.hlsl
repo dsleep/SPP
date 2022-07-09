@@ -6,6 +6,7 @@
 #include "Common.hlsl"
 #include "SDFShapes.hlsl"
 
+[[vk::binding(4, 0)]]
 RWTexture2D<float4> resultImage : register(u1);
 
 [numthreads(16, 16, 1)]

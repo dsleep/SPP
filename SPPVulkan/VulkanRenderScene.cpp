@@ -451,7 +451,11 @@ namespace SPP
 
 	void VulkanRenderScene::BeginFrame()
 	{
-		for (auto renderItem : _renderables)
+		for (auto renderItem : _renderables3d)
+		{
+			renderItem->PrepareToDraw();
+		}
+		for (auto renderItem : _renderablesPost)
 		{
 			renderItem->PrepareToDraw();
 		}
@@ -587,12 +591,17 @@ namespace SPP
 		//		}
 		//#endif
 
-		for (auto renderItem : _renderables)
+		for (auto renderItem : _renderables3d)
 		{
 			renderItem->Draw();
 		}
 
 		vkCmdEndRenderPass(commandBuffer);
+
+		for (auto renderItem : _renderablesPost)
+		{
+			renderItem->Draw();
+		}
 
 		WriteToFrame();
 	};

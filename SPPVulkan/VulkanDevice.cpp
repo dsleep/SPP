@@ -566,7 +566,7 @@ namespace SPP
 				.height = height,
 				.layerCount = 1,
 				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
 			}
 		);
 		_colorTarget->addAttachment(
@@ -954,8 +954,11 @@ namespace SPP
 		{
 			std::vector<VkDescriptorPoolSize> simplePool = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000),
+				
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000),
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 1000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000),
 			};
 			auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);
 
@@ -1548,6 +1551,23 @@ namespace SPP
 			std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > setLayoutBindings;
 			MergeBindingSet(csShaderSets, setLayoutBindings);
 
+			for (auto& curSet : setLayoutBindings)
+			{
+				std::vector<VkDescriptorSetLayoutBinding>& curBindingSet = curSet.second;
+
+				for (auto& curBinding : curBindingSet)
+				{
+					if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+					{
+						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+					}
+					else if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+					{
+						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+					}
+				}
+			}
+
 			_descriptorSetLayouts.resize(setLayoutBindings.size());
 
 			// step through sets numerically
@@ -1719,10 +1739,7 @@ namespace SPP
 		return std::make_shared< GD_Buffer>(this);
 	}
 	
-	std::shared_ptr< class GD_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
-	{
-		return std::make_shared< GD_RenderableSignedDistanceField>(this);
-	}
+	
 	//virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width,
 	//	int32_t Height,
 	//	TextureFormat Format,

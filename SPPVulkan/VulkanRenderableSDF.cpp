@@ -26,12 +26,17 @@ namespace SPP
 	class VulkanSDF : public GD_RenderableSignedDistanceField
 	{
 	protected:		
-		GPUReferencer< GPUBuffer > _shapeBuffer;
-		std::shared_ptr< ArrayResource > _shapeResource;
 
+		std::shared_ptr< ArrayResource > _shapeResource;
+		GPUReferencer< class VulkanBuffer > _shapeBuffer;
+
+		std::shared_ptr< ArrayResource > _drawParams;
+		GPUReferencer< class VulkanBuffer > _drawParamsBuffer;
 
 		std::shared_ptr< ArrayResource > _drawConstants;
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
+
+
 		bool bPendingUpdate = false;
 
 		bool _bIsStatic = false;
@@ -92,7 +97,11 @@ namespace SPP
 	//{
 	//	return std::make_shared< VulkanSDF >();
 	//}
-		
+	
+	std::shared_ptr< class GD_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
+	{
+		return std::make_shared<VulkanSDF>(this);
+	}
 
 	void VulkanSDF::_AddToRenderScene(class GD_RenderScene* InScene)
 	{
@@ -108,10 +117,16 @@ namespace SPP
 			_shapeResource = std::make_shared< ArrayResource >();
 			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
 			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
-
 			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
 
-			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
+			_drawParams = std::make_shared< ArrayResource >();
+			auto pDrawParams = _drawParams->InitializeFromType< GPUDrawParams >(1);
+			pDrawParams[0].ShapeColor = Vector3(1, 0, 0);
+			pDrawParams[0].ShapeCount = _shapes.size();
+			_drawParamsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawParams);
+
+			_drawConstants = std::make_shared< ArrayResource >();
+			auto uniformData = _drawConstants->InitializeFromType<GPUDrawConstants>(1);
 			auto& curData = uniformData[0];
 			curData.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.Translation = _position;
@@ -180,32 +195,31 @@ namespace SPP
 		drawConstsInfo.offset = 0;
 		drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
 
-		VkDescriptorImageInfo frameInfo = {};
-		//frameInfo.imageView = ;
-		//frameInfo.imageLayout = ;
+		VkDescriptorImageInfo frameInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
 
 		VkDescriptorBufferInfo drawParamsInfo;
-		//drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
-		//drawConstsInfo.offset = 0;
-		//drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+		drawParamsInfo.buffer = _drawParamsBuffer->GetBuffer();
+		drawParamsInfo.offset = 0;
+		drawParamsInfo.range = _drawParamsBuffer->GetPerElementSize();
 
 		VkDescriptorBufferInfo drawShapesInfo;
-		//drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
-		//drawConstsInfo.offset = 0;
-		//drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
-
+		drawShapesInfo.buffer = _shapeBuffer->GetBuffer();
+		drawShapesInfo.offset = 0;
+		drawShapesInfo.range = _shapeBuffer->GetPerElementSize();
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
 				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+			
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
-				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &frameInfo),
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2, &drawParamsInfo),
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawParamsInfo),
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 3, &drawShapesInfo),
+
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
-				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, &drawShapesInfo),
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 4, &frameInfo)
 		};
 
 		vkUpdateDescriptorSets(vulkanDevice,
@@ -214,6 +228,8 @@ namespace SPP
 
 		uint32_t uniform_offsets[] = {
 			(sizeof(GPUViewConstants)) * currentFrame,
+			0,
+			0,
 			0
 		};
 

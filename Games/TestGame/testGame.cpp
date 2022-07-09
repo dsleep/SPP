@@ -33,6 +33,8 @@
 #include "SPPGraphicsO.h"
 #include "SPPPhysX.h"
 
+#include "SPPSDFO.h"
+
 #include "SPPBlenderFile.h"
 
 #include "SPPJsonEnvironmentImporter.h"
@@ -108,6 +110,13 @@ public:
 
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
+
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
+		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
+		startingSphere->SetRadius(10);
+		startingGroup->AddChild(startingSphere);
+		_gameworld->AddChild(startingGroup);
+
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
 
 		_charCapsule = AllocateObject<VgCapsuleElement>("currentCapsule", nullptr);

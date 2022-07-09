@@ -67,6 +67,9 @@ namespace SPP
 
 		virtual ~Renderable() {}
 
+		virtual bool Is3dRenderable() const { return true; }
+		virtual bool IsPostRenderable() const { return false; }
+
 		void SetSelected(bool InSelect)
 		{
 			_bSelected = InSelect;
@@ -154,7 +157,9 @@ namespace SPP
 		Camera _viewGPU;
 
 		LooseOctree _octree;
-		std::list<Renderable*> _renderables;
+		std::list<Renderable*> _renderables3d;
+
+		std::list<Renderable*> _renderablesPost;
 
 		bool _bRenderToBackBuffer = true;
 		bool _bUseBBWithCustomColor = true;
@@ -227,14 +232,34 @@ namespace SPP
 		virtual void AddRenderable(Renderable *InRenderable)
 		{
 			SE_ASSERT(IsOnGPUThread());
-			_renderables.push_back(InRenderable);
+
+			if (InRenderable->Is3dRenderable())
+			{
+				_renderables3d.push_back(InRenderable);
+			}
+
+			if (InRenderable->IsPostRenderable())
+			{
+				_renderablesPost.push_back(InRenderable);
+			}
+
 			_octree.AddElement(InRenderable);
 		}
 
 		virtual void RemoveRenderable(Renderable *InRenderable)
 		{
 			SE_ASSERT(IsOnGPUThread());
-			_renderables.remove(InRenderable);
+
+			if (InRenderable->Is3dRenderable())
+			{
+				_renderables3d.remove(InRenderable);
+			}
+
+			if (InRenderable->IsPostRenderable())
+			{
+				_renderablesPost.remove(InRenderable);
+			}
+
 			_octree.RemoveElement(InRenderable);
 		}
 
@@ -299,6 +324,14 @@ namespace SPP
 			Vector3 color;
 		};
 
+		void SetSDFArgs(const Args& InArgs)
+		{
+			_shapes = InArgs.shapes;
+			_color = InArgs.color;
+		}
+
+		virtual bool Is3dRenderable() const override { return false; }
+		virtual bool IsPostRenderable() const override { return true; }
 
 		GD_RenderableSignedDistanceField(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
 		virtual ~GD_RenderableSignedDistanceField() {}
