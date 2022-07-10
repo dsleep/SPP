@@ -23,9 +23,10 @@ void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	float4 rayStop = mul(float4(pixelPosition, 0.01, 1.0), ViewConstants.InvViewProjectionMatrix);
 	rayStop /= rayStop.w;
 	
+	float zDepthNDC = depthImage[int2(GlobalInvocationID.xy)].x;
 	// We are only interested in the depth here
 	// Unproject the vector into (homogenous) view-space vector
-	float4 viewCoords = mul(float4(pixelPosition, depthImage[int2(GlobalInvocationID.xy)].x, 1.0f), ViewConstants.InvProjectionMatrix);
+	float4 viewCoords = mul(float4(pixelPosition, zDepthNDC, 1.0f), ViewConstants.InvProjectionMatrix);
 	// Divide by w, which results in actual view-space z value
 	float zDepth = viewCoords.z / viewCoords.w;
 
@@ -33,9 +34,12 @@ void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	float3 rayDirection = normalize(rayStop.xyz - raystart.xyz);
 	
 	float4 outRender = renderSDF(rayOrigin, rayDirection);
-	//float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w - float3(ViewConstants.ViewPosition), 1.0f);
+	float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w, 1.0f);
 	
-	if(outRender.w > -100 && outRender.w < zDepth)
+	float4 localRay = mul(localWorldPos, ViewConstants.ViewProjectionMatrix);
+	localRay /= localRay.w;	
+	
+	if(outRender.w > -100 && localRay.z < zDepthNDC)
 	{
 		colorImage[int2(GlobalInvocationID.xy)] = float4(outRender.rgb,1.0f);
 	}
