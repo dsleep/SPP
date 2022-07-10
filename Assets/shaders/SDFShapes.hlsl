@@ -85,7 +85,7 @@ float processShapes( in float3 pos )
 // rd: ray direction
 float raymarch(float3 ro, float3 rd) 
 {
-    const int maxstep = 64;
+    const int maxstep = 32;
     float t = 0; // current distance traveled along ray
     for (int i = 0; i < maxstep; ++i) 
     {
