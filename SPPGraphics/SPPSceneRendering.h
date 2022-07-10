@@ -298,16 +298,17 @@ namespace SPP
 		Box
 	};
 
+	_declspec(align(256u))
 	struct SPP_GRAPHICS_API SDFShape
 	{
-		EShapeType shapeType = EShapeType::Unknown;
 		Vector3 translation = { 0,0,0 };
-
-		EShapeOp shapeOp = EShapeOp::Add;
 		Vector3 eulerRotation = { 0,0,0 };
 
 		Vector4 shapeBlendAndScale = { 0,0,0,0 };
 		Vector4 params = { 0,0,0,0 };
+
+		EShapeType shapeType = EShapeType::Unknown;
+		EShapeOp shapeOp = EShapeOp::Add;		
 	};
 
 	class SPP_GRAPHICS_API GD_RenderableSignedDistanceField : public Renderable, public GD_Resource

@@ -15,8 +15,7 @@ struct SDFShape
 {
 	float3  translation; 
 	float3  eulerRotation;  
-    
-    
+        
     float4  shapeBlendAndScale;
     float4  params;
 	

@@ -78,6 +78,17 @@ namespace SPP
 		}
 	}
 
+	void RecursivelyLogMembers(const SpvReflectBlockVariable& Member)
+	{
+		for (int32_t Iter = 0; Iter < Member.member_count; Iter++)
+		{
+			auto& CurMember = Member.members[Iter];
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - %s : %d", CurMember.name, CurMember.offset);
+
+			RecursivelyLogMembers(CurMember);
+		}
+	}
+
 	void PrintDescriptorBinding(const SpvReflectDescriptorBinding& obj, bool write_set, const char* indent)
 	{		
 		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%sbinding : %d", indent, obj.binding);
@@ -108,18 +119,11 @@ namespace SPP
 		if ((obj.type_description->type_name != nullptr) && (strlen(obj.type_description->type_name) > 0))
 		{
 			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s(%s)", indent, obj.type_description->type_name);
-			//auto thisType = obj.type_description;
-			//if (thisType->members)
-			//{
-			//	for (int32_t Iter = 0; Iter < thisType->member_count; Iter++)
-			//	{
-			//		auto& curMember = thisType->members[Iter];
-			//		if (curMember.type_name)
-			//		{
-			//			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s - %s", indent, curMember.type_name);
-			//		}
-			//	}
-			//}
+
+			for(int32_t Iter = 0; Iter < obj.block.member_count; Iter++)			
+			{
+				RecursivelyLogMembers(obj.block.members[Iter]);
+			}
 		}
 	}
 
