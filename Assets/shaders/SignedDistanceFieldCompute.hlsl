@@ -22,13 +22,16 @@ void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 	rayStop /= rayStop.w;
 	
 	float3 rayOrigin = raystart.xyz + float3(ViewConstants.ViewPosition);
-	float3 rayDirection= normalize(rayStop.xyz - raystart.xyz);
+	float3 rayDirection = normalize(rayStop.xyz - raystart.xyz);
 	
 	float4 outRender = renderSDF(rayOrigin, rayDirection);
-	float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w - float3(ViewConstants.ViewPosition), 1.0f);
+	//float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w - float3(ViewConstants.ViewPosition), 1.0f);
 	
-	if(outRender.w > -0.1)
+	if(outRender.w > -100)
 	{
 		resultImage[int2(GlobalInvocationID.xy)] = float4(outRender.rgb,1.0f);
 	}
+	
+	//if(length(pixelPosition) < 0.1)
+	//resultImage[int2(GlobalInvocationID.xy)] =float4(0,0,0,1.0f);
 }
