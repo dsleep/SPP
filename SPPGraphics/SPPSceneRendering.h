@@ -298,7 +298,7 @@ namespace SPP
 		Box
 	};
 
-	_declspec(align(256u))
+	//_declspec(align(256u))
 	struct SPP_GRAPHICS_API SDFShape
 	{
 		Vector3 translation = { 0,0,0 };

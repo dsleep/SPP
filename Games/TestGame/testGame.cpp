@@ -113,8 +113,13 @@ public:
 
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
 		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
-		startingSphere->SetRadius(3);
+		auto startingSphere2 = AllocateObject<OSDFSphere>("sphere2");
+		startingSphere->GetPosition()[1] = 1;
+		startingSphere2->GetPosition()[1] = 2;
+		startingSphere->SetRadius(2);
+		startingSphere2->SetRadius(2);
 		startingGroup->AddChild(startingSphere);
+		startingGroup->AddChild(startingSphere2);
 		_gameworld->AddChild(startingGroup);
 
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());

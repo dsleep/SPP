@@ -50,7 +50,7 @@ float processShapes( in float3 pos )
         
     for (uint i = 1; i < DrawParams.ShapeCount; ++i)
     {
-        float cD = 0;
+        float cD = 1e10;
 
         float3 samplePos = mul(float4(pos, 1.0), LocalToWorldTranslated).xyz - float3(Shapes[i].translation);
         if (Shapes[i].shapeType == 1)
@@ -64,7 +64,8 @@ float processShapes( in float3 pos )
         
         if (Shapes[i].shapeOp == 0)
         {
-            d = opSmoothUnion(d, cD, Shapes[i].shapeBlendAndScale.x);
+			d = opUnion(d, cD);
+            //d = opSmoothUnion(d, cD, Shapes[i].shapeBlendAndScale.x);
         }
         else if (Shapes[i].shapeOp == 1)
         {
