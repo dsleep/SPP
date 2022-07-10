@@ -29,6 +29,79 @@ ConstantBuffer<DrawParams>          DrawParams                : register(b3);
 [[vk::binding(3, 0)]]
 StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
+void SwapFloat(inout float InA, inout float InB)
+{
+	float tempA = InA;
+	InA = InB;
+	InB = tempA;
+}
+
+bool solveQuadratic(in float a, in float b, in float c, out float x0, out float x1) 
+{ 
+    float discr = b * b - 4 * a * c; 
+    if (discr < 0) return false; 
+    else if (discr == 0) x0 = x1 = - 0.5 * b / a; 
+    else 
+	{ 
+        float q = (b > 0) ? 
+            -0.5 * (b + sqrt(discr)) : 
+            -0.5 * (b - sqrt(discr)); 
+        x0 = q / a; 
+        x1 = c / q; 
+    } 
+	
+    if (x0 > x1) 
+	{
+		SwapFloat(x0, x1); 
+	}
+ 
+    return true; 
+} 
+
+bool intersect_ray_sphere(float3 rayOrigin, float3 rayDirection, float3 sphereCenter, float sphereRadius, out float t0, out float t1)
+{         
+	float radius2 = sphereRadius * sphereRadius;
+		
+#if 1 
+    // geometric solution
+	float3 L = rayOrigin - sphereCenter; 
+    float tca = dot(L,rayDirection); 
+	// if (tca < 0) return false;
+	float d2 = dot(L,L) - tca * tca;		
+	if (d2 > radius2) return false; 
+	float thc = sqrt(radius2 - d2); 
+	t0 = tca - thc; 
+	t1 = tca + thc; 
+	if (t0 > t1) SwapFloat(t0, t1); 
+#else 
+	// analytic solution
+	float3 L = rayOrigin - sphereCenter; 
+	float a = dot(rayDirection,rayDirection); 
+	float b = 2.0f * dot(rayDirection, L); 
+	float c = dot(L,L) - radius2; 
+	if (!solveQuadratic(a, b, c, t0, t1)) return false; 
+#endif 
+ 
+	if (t0 < 0) 
+	{ 
+		t0 = t1;  //if t0 is negative, let's use t1 instead 
+		if (t0 < 0) return false;  //both t0 and t1 are negative 
+	} 
+
+	return true; 
+} 
+
+/*
+bool hit_sphere(const vec3& center, float radius, const ray& r){
+    vec3 oc = r.origin() - center;
+    float a = dot(r.direction(), r.direction());
+    float b = 2.0 * dot(oc, r.direction());
+    float c = dot(oc,oc) - radius*radius;
+    float discriminant = b*b - 4*a*c;
+    return (discriminant>0);
+}
+*/
+
 // slight expansion to a buffer of these shapes... very WIP
 float processShapes( in float3 pos )
 {
