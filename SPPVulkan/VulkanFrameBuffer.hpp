@@ -122,6 +122,10 @@ namespace SPP
 		{
 			return attachments.front();
 		}
+		FramebufferAttachment& GetBackAttachment()
+		{
+			return attachments.back();
+		}
 
 		/**
 		* Creates a default render pass setup with one sub pass
@@ -131,6 +135,8 @@ namespace SPP
 		VkResult createRenderPass();
 
 		VkFrameData GetFrameData();
+
 		VkDescriptorImageInfo GetImageInfo();
+		VkDescriptorImageInfo GetBackImageInfo();
 	};
 }

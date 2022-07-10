@@ -481,6 +481,7 @@ namespace SPP
 		curCam.ViewMatrix = _viewGPU.GetCameraMatrix();
 		curCam.ViewProjectionMatrix = _viewGPU.GetViewProjMatrix();
 		curCam.InvViewProjectionMatrix = _viewGPU.GetInvViewProjMatrix();
+		curCam.InvProjectionMatrix = _viewGPU.GetInvProjectionMatrix();
 		curCam.ViewPosition = _viewGPU.GetCameraPosition();
 		curCam.FrameExtents = DeviceExtents;
 

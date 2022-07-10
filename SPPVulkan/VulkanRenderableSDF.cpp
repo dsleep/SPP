@@ -197,10 +197,8 @@ namespace SPP
 
 		auto ColorTarget = GGlobalVulkanGI->GetColorTarget();
 		auto& colorAttachment = ColorTarget->GetFrontAttachment();
-
-		VkDescriptorImageInfo frameInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
-		frameInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
+		auto& depthAttachment = ColorTarget->GetBackAttachment();
+		
 		VkDescriptorBufferInfo drawParamsInfo;
 		drawParamsInfo.buffer = _drawParamsBuffer->GetBuffer();
 		drawParamsInfo.offset = 0;
@@ -210,6 +208,11 @@ namespace SPP
 		drawShapesInfo.buffer = _shapeBuffer->GetBuffer();
 		drawShapesInfo.offset = 0;
 		drawShapesInfo.range = _shapeBuffer->GetDataSize();
+
+		VkDescriptorImageInfo frameColorInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
+		frameColorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		VkDescriptorImageInfo frameDepthInfo = ColorTarget->GetBackImageInfo();
+		frameDepthInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
@@ -223,7 +226,9 @@ namespace SPP
 				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 3, &drawShapesInfo),
 
 			vks::initializers::writeDescriptorSet(locaDrawSets[0],
-				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 4, &frameInfo)
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 4, &frameColorInfo),
+			vks::initializers::writeDescriptorSet(locaDrawSets[0],
+				VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 5, &frameDepthInfo)
 		};
 
 		vkUpdateDescriptorSets(vulkanDevice,
@@ -242,17 +247,27 @@ namespace SPP
 			VK_IMAGE_LAYOUT_GENERAL,
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
+		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
+			{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
+
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, csPSO->GetVkPipeline());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, 
 			csPSO->GetVkPipelineLayout(), 0, 
 			locaDrawSets.size(), locaDrawSets.data(), 
 			ARRAY_SIZE(uniform_offsets), uniform_offsets);
-		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);
+		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);		
 
 		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+			{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
 	}
 
 	

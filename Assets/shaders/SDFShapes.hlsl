@@ -34,7 +34,7 @@ float processShapes( in float3 pos )
 {
     float d = 1e10;
 
-    float4x4 LocalToWorldTranslated = GetLocalToWorldViewTranslated(DrawConstants.LocalToWorldScaleRotation, -DrawConstants.Translation, double3(0,0,0));
+    float4x4 LocalToWorldTranslated = GetWorldToLocalViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
     float3 samplePos = mul(float4(pos, 1.0), LocalToWorldTranslated).xyz - float3(Shapes[0].translation);
 
     //float3 samplePos = pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation));

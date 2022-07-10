@@ -30,6 +30,7 @@ namespace SPP
 		Matrix4x4 _cameraMatrix;
 		//projection matrix into normalized view space
 		Matrix4x4 _projectionMatrix;
+		Matrix4x4 _invProjectionMatrix;
 		//swaps us to the expected facing directions
 		Matrix4x4 _correctionMatrix;
 		//composited matrix
@@ -67,6 +68,7 @@ namespace SPP
 
 		const Matrix4x4 &GetCameraMatrix() const { return _cameraMatrix; }
 		const Matrix4x4 &GetProjectionMatrix() const { return _projectionMatrix; }
+		const Matrix4x4 &GetInvProjectionMatrix() const { return _invProjectionMatrix; }
 		const Matrix4x4 &GetCorrectionMatrix() const { return _correctionMatrix; }
 		const Matrix4x4 &GetViewProjMatrix() const { return _viewProjMatrix; }
 		const Matrix4x4 &GetInvViewProjMatrix() const { return _invViewProjMatrix; }

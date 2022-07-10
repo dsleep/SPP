@@ -23,6 +23,7 @@ struct _ViewConstants
 	float4x4 ViewMatrix;
 	float4x4 ViewProjectionMatrix;
 	float4x4 InvViewProjectionMatrix;
+	float4x4 InvProjectionMatrix;
 	//real view position
 	double3 ViewPosition;
 	//origin centered 
@@ -54,3 +55,12 @@ float4x4 GetLocalToWorldViewTranslated(in float4x4 InLTWSR, in double3 InTrans, 
 		float3(InTrans - InViewPosition), 1);
 }
 
+float4x4 GetWorldToLocalViewTranslated(in float4x4 InLTWSR, in double3 InTrans, in double3 InViewPosition)
+{
+	float4x4 inverseLTWSR = transpose(InLTWSR);
+	return float4x4(
+		inverseLTWSR[0][0], inverseLTWSR[0][1], inverseLTWSR[0][2], 0,
+		inverseLTWSR[1][0], inverseLTWSR[1][1], inverseLTWSR[1][2], 0,
+		inverseLTWSR[2][0], inverseLTWSR[2][1], inverseLTWSR[2][2], 0,
+		float3(InViewPosition - InTrans), 1);
+}

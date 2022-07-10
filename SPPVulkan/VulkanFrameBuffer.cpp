@@ -207,6 +207,14 @@ namespace SPP
 			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	}
 
+	VkDescriptorImageInfo VulkanFramebuffer::GetBackImageInfo()
+	{
+		return VkDescriptorImageInfo{
+			.sampler = sampler->Get(),
+			.imageView = attachments.back().view->Get(),
+			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+	}
+
 	VkResult VulkanFramebuffer::createRenderPass()
 	{
 		std::vector<VkAttachmentDescription> attachmentDescriptions;

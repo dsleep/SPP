@@ -575,7 +575,7 @@ namespace SPP
 				.height = height,
 				.layerCount = 1,
 				.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
 			}
 		);		
 		VK_CHECK_RESULT(_colorTarget->createRenderPass());

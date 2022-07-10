@@ -51,6 +51,8 @@ namespace SPP
 		_projectionMatrix(3, 2) = (-NearClippingZ * FarClippingZ) / fnDelta; // used to remap z [0,1] 
 		_projectionMatrix(2, 3) = 1; // set w = z 
 		_projectionMatrix(3, 3) = 0;		
+
+		_invProjectionMatrix = _projectionMatrix.inverse();
 	}
 
 	void Camera::GenerateOrthogonalMatrix(const Vector2i& InSize)
@@ -61,6 +63,8 @@ namespace SPP
 		_projectionMatrix(0, 0) = 2.0f / InSize[0]; // scale the x coordinates of the projected point 
 		_projectionMatrix(1, 1) = 2.0f / InSize[1]; // scale the y coordinates of the projected point 
 		_projectionMatrix(2, 2) = 2 / fnDelta; // used to remap z to [0,1] 
+
+		_invProjectionMatrix = _projectionMatrix.inverse();
 	}
 
 	float Camera::GetRecipTanHalfFovy() const

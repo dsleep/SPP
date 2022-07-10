@@ -18,6 +18,7 @@ namespace SPP
 		Matrix4x4 ViewMatrix;
 		Matrix4x4 ViewProjectionMatrix;
 		Matrix4x4 InvViewProjectionMatrix;
+		Matrix4x4 InvProjectionMatrix;
 		//real view position
 		Vector3d ViewPosition;
 		Vector4d FrustumPlanes[6];
