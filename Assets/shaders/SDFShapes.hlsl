@@ -5,6 +5,11 @@
 #include "SDFCommonShapes.hlsl"
 #include "SDFOperators.hlsl"
 
+#define FLT_MAX 3.402823466e+38
+#define FLT_MIN 1.175494351e-38
+#define DBL_MAX 1.7976931348623158e+308
+#define DBL_MIN 2.2250738585072014e-308
+
 struct DrawParams
 {
 	float3  ShapeColor;
@@ -62,7 +67,7 @@ bool intersect_ray_sphere(float3 rayOrigin, float3 rayDirection, float3 sphereCe
 {         
 	float radius2 = sphereRadius * sphereRadius;
 		
-#if 1 
+#if 1
     // geometric solution
 	float3 L = rayOrigin - sphereCenter; 
     float tca = dot(L,rayDirection); 
@@ -102,13 +107,72 @@ bool hit_sphere(const vec3& center, float radius, const ray& r){
 }
 */
 
+#define MAX_SHAPES 30
+
+struct ShapeCull
+{
+    bool IsHit;
+    float T0;
+    float T1;
+};
+
+static ShapeCull cullData[MAX_SHAPES];
+
+uint shapeCullAndSolve(in float3 ro, in float3 rd, out float T0, out float T1)
+{
+    T0 = 10000;
+	T1 = -10000;
+	
+	uint ShapeHitCount = 0;
+	
+    for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount; ++ShapeIdx)
+    {
+		float T0, T1;
+        cullData[ShapeIdx].IsHit = intersect_ray_sphere(ro, rd, float3(ViewConstants.ViewPosition - DrawConstants.Translation - Shapes[ShapeIdx].translation), Shapes[ShapeIdx].params.x * 1.05f, cullData[ShapeIdx].T0, cullData[ShapeIdx].T1);
+        if (cullData[ShapeIdx].IsHit)
+        {
+            ShapeHitCount++;
+			
+			//T0 *= 5000;
+			//T1 *= 5000;
+			
+			T0 = min( cullData[ShapeIdx].T0, T0 );
+			T0 = min( cullData[ShapeIdx].T1, T0 );
+			
+			T1 = max( cullData[ShapeIdx].T0, T1 );
+			T1 = max( cullData[ShapeIdx].T1, T1 );
+        }
+    }
+	
+    return ShapeHitCount;
+}
+
+float processShape(in float3 pos, in int ShapeIdx)
+{
+    float4x4 ViewToShapeMatrix = GetWorldToLocalViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
+    float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz - float3(Shapes[ShapeIdx].translation);
+
+    float d = 1e10;
+
+    if (Shapes[ShapeIdx].shapeType == 1)
+    {
+        d = sdSphere(samplePos, Shapes[ShapeIdx].params.x);
+    }
+    else if (Shapes[ShapeIdx].shapeType == 2)
+    {
+        d = sdBox(samplePos, Shapes[ShapeIdx].params.xyz);
+    }
+
+    return d;
+}
+
 // slight expansion to a buffer of these shapes... very WIP
 float processShapes( in float3 pos )
 {
     float d = 1e10;
 
-    float4x4 LocalToWorldTranslated = GetWorldToLocalViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
-    float3 samplePos = mul(float4(pos, 1.0), LocalToWorldTranslated).xyz - float3(Shapes[0].translation);
+    float4x4 ViewToShapeMatrix = GetWorldToLocalViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
+    float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz - float3(Shapes[0].translation);
 
     //float3 samplePos = pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation));
 
@@ -125,7 +189,7 @@ float processShapes( in float3 pos )
     {
         float cD = 1e10;
 
-        float3 samplePos = mul(float4(pos, 1.0), LocalToWorldTranslated).xyz - float3(Shapes[i].translation);
+        float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz - float3(Shapes[i].translation);
         if (Shapes[i].shapeType == 1)
         {
             cD = sdSphere(samplePos, Shapes[i].params.x);
@@ -156,7 +220,7 @@ float processShapes( in float3 pos )
 // Raymarch along given ray
 // ro: ray origin
 // rd: ray direction
-float raymarch(float3 ro, float3 rd) 
+float raymarch(float3 ro, float3 rd, float T0, float T1) 
 {
     const int maxstep = 32;
     float t = 0; // current distance traveled along ray
@@ -175,6 +239,11 @@ float raymarch(float3 ro, float3 rd)
         // We step forward by distance d, because d is the minimum distance possible to intersect
         // an object (see processShapes()).
         t += d;
+		
+		if(t > T1)
+		{
+		//	return 100000;
+		}
     }
 
     return t;
@@ -192,25 +261,32 @@ float3 calcNormal(float3 pos)
 
 float4 renderSDF( float3 ro, float3 rd ) 
 { 
-	float hitDistance = raymarch(ro, rd);
+	float hitDistance = -1000;
+	float T0, T1;
+    uint hitCount = shapeCullAndSolve(ro, rd, T0, T1);
 
-    if (hitDistance < 10000)
-    {
-        float3 pos = ro + hitDistance * rd;
-        float3 outColor = DrawParams.ShapeColor;
+	if( hitCount > 0 )
+	{	 
+		float hitDistance = raymarch(ro, rd, T0, T1);
 
-        float3 objNormal = calcNormal(pos);
-        float3 lig = normalize(float3(1.0, 0.8, -0.2));
-        float dif = clamp(dot(objNormal, lig), 0.0, 1.0);
-        float amb = 0.5;// +0.5 * objNormal.y;w
+		if (hitDistance < 10000)
+		{
+			float3 pos = ro + hitDistance * rd;
+			float3 outColor = DrawParams.ShapeColor;
 
-        return float4( float3(0.25, 0.25, 0.25) * amb + outColor * dif, hitDistance);
-    }
-	else
-	{
-        //no convergence
-        //clip(-1);
-		hitDistance = -1000;
+			float3 objNormal = calcNormal(pos);
+			float3 lig = normalize(float3(1.0, 0.8, -0.2));
+			float dif = clamp(dot(objNormal, lig), 0.0, 1.0);
+			float amb = 0.5;// +0.5 * objNormal.y;w
+
+			return float4( float3(0.25, 0.25, 0.25) * amb + outColor * dif, hitDistance);
+		}
+		else
+		{
+			//no convergence
+			//clip(-1);
+			hitDistance = -1000;
+		}
 	}
 
 	return float4(rd * 0.5 + 0.5,hitDistance);
