@@ -15,6 +15,9 @@ namespace SPP
 	{
 		Json::Value root;
 		Json::CharReaderBuilder Builder;
+		Builder["allowTrailingCommas"] = true;
+		Builder["strictRoot"] = false;
+
 		Json::CharReader* reader = Builder.newCharReader();
 		std::string Errors;
 

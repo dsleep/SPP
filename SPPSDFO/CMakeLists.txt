@@ -19,7 +19,10 @@ target_include_directories(SPPSDFO
 target_sources(SPPSDFO
 	PRIVATE					
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSDFO.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSDFO.h" 		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPSDFO.h" 				
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPLoadMagicaCSG.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPLoadMagicaCSG.h"
 		)
 				
 target_link_libraries( SPPSDFO 

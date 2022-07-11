@@ -41,6 +41,7 @@
 #include "SPPHandledTimers.h"
 
 #include "SPPBitSetArray.h"
+#include "SPPLoadMagicaCSG.h"
 
 #include <condition_variable>
 
@@ -88,6 +89,9 @@ public:
 	{
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
+
+
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/splatoon.mcsg"));
 		
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
