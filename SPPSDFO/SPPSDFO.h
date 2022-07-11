@@ -25,10 +25,6 @@
 
 namespace SPP
 {		
-	
-
-	
-
 	class SPP_SDF_API OShape : public OElement
 	{
 		RTTR_ENABLE(OElement);
@@ -42,6 +38,21 @@ namespace SPP
 		OShape(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
 
 	public:
+
+		struct Args
+		{
+			EShapeType shapeType;
+			EShapeOp shapeOp;
+			float shapeBlendFactor;
+		};
+
+		void SetShapeArgs(const Args &InArgs)
+		{
+			_shapeType = InArgs.shapeType;
+			_shapeOp = InArgs.shapeOp;
+			_shapeBlendFactor = InArgs.shapeBlendFactor;
+		}
+
 		virtual SDFShape GenerateShape() const
 		{
 			SDFShape oShape;

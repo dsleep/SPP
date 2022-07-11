@@ -51,6 +51,19 @@ namespace SPP
 		bool _bIsStatic = true;
 
 	public:
+		struct TransformArgs
+		{
+			Vector3d translation;
+			Vector3 rotation;
+			Vector3 scale;
+		};
+
+		void SetTransformArgs(const TransformArgs &InArgs)
+		{
+			_translation = InArgs.translation;
+			_rotation = InArgs.rotation;
+			_scale = InArgs.scale;
+		}
 
 		virtual Sphere& Bounds()
 		{

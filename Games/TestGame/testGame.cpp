@@ -115,6 +115,21 @@ public:
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
 
+		auto& topLayer = loadedElements.front();
+
+#if 1
+		int32_t simpleCnt = 0;
+		auto startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
+		for (auto& curShape : topLayer.Shapes )
+		{
+			OShape* newShape = nullptr;
+			std::string shapeName = std::string_format("shape_%d", simpleCnt);
+			newShape = AllocateObject<OSDFSphere>(shapeName.c_str(), startingGroup);
+			simpleCnt++;
+			startingGroup->AddChild(newShape);
+		}
+
+#else
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
 		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
 		auto startingSphere2 = AllocateObject<OSDFSphere>("sphere2");
@@ -124,6 +139,8 @@ public:
 		startingSphere2->SetRadius(2);
 		startingGroup->AddChild(startingSphere);
 		startingGroup->AddChild(startingSphere2);
+#endif
+
 		_gameworld->AddChild(startingGroup);
 
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
