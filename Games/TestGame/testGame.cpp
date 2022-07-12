@@ -142,9 +142,14 @@ public:
 		}
 
 #else
-		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
-		auto startingSphere = AllocateObject<OShape>("sphere");
-		auto startingSphere2 = AllocateObject<OShape>("sphere2");
+		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup", _gameworld);
+
+		startingGroup->GetScale() = Vector3(1.0f / 2, 1.0f / 2, 1.0f / 2);
+		startingGroup->GetRotation()[0] = 90;
+		startingGroup->GetPosition()[1] = 1;
+
+		auto startingSphere = AllocateObject<OShape>("sphere", startingGroup);
+		auto startingSphere2 = AllocateObject<OShape>("sphere2", startingGroup);
 		startingSphere->GetPosition()[1] = 1;
 		startingSphere2->GetPosition()[1] = 2;
 		startingSphere->GetScale() = Vector3(2, 2, 2);
