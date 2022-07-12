@@ -67,11 +67,6 @@ namespace SPP
 			_renderableSDF.reset();
 		}
 	}
-
-	void OSDFSphere::SetRadius(float InRadius)
-	{
-		_radius = InRadius;
-	}
 }
 
 using namespace SPP;
@@ -92,22 +87,6 @@ RTTR_REGISTRATION
 		)
 		.property("_shapeOp", &OShape::_shapeOp)
 		.property("_shapeBlendFactor", &OShape::_shapeBlendFactor)
-		;
-
-	rttr::registration::class_<OSDFSphere>("OSDFSphere")
-		.constructor<const std::string&, SPPDirectory*>()
-		(
-			rttr::policy::ctor::as_raw_ptr
-			)
-		.property("_radius", &OSDFSphere::_radius)
-		;
-
-	rttr::registration::class_<OSDFBox>("OSDFBox")
-		.constructor<const std::string&, SPPDirectory*>()
-		(
-			rttr::policy::ctor::as_raw_ptr
-			)
-		.property("_extents", &OSDFBox::_extents)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OShapeGroup>("OShapeGroup")

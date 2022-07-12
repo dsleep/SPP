@@ -18,14 +18,12 @@ struct DrawParams
 
 struct SDFShape
 {
-	float3  translation; 
-	float3  eulerRotation;  
-        
-    float4  shapeBlendAndScale;
-    float4  params;
+    float4x4 invTransform;
+
+    float4 shapeParams;
 	
-	uint    shapeType;
-    uint    shapeOp;
+	uint shapeType;
+    uint shapeOp;
 };
 
 [[vk::binding(2, 0)]]
@@ -109,16 +107,17 @@ bool hit_sphere(const vec3& center, float radius, const ray& r){
 
 #define MAX_SHAPES 30
 
-struct ShapeCull
+struct ShapeProcessed
 {
+	float4x4 ViewToShapeMatrix;
     bool IsHit;
     float T0;
     float T1;
 };
 
-static ShapeCull cullData[MAX_SHAPES];
+static ShapeProcessed shapeProcessedData[MAX_SHAPES];
 
-uint shapeCullAndSolve(in float3 ro, in float3 rd, out float T0, out float T1)
+uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 {
     T0 = 10000;
 	T1 = -10000;
@@ -127,76 +126,83 @@ uint shapeCullAndSolve(in float3 ro, in float3 rd, out float T0, out float T1)
 	
     for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount; ++ShapeIdx)
     {
-		float T0, T1;
-        cullData[ShapeIdx].IsHit = intersect_ray_sphere(ro, rd, float3(ViewConstants.ViewPosition - DrawConstants.Translation - Shapes[ShapeIdx].translation), Shapes[ShapeIdx].params.x * 1.05f, cullData[ShapeIdx].T0, cullData[ShapeIdx].T1);
-        if (cullData[ShapeIdx].IsHit)
+		shapeProcessedData[ShapeIdx].ViewToShapeMatrix = mul( GetTranslationMatrix( float3(ViewConstants.ViewPosition - DrawConstants.Translation) ), Shapes[ShapeIdx].invTransform );
+	
+		float3 rayStart = mul(float4(ro, 1.0), shapeProcessedData[ShapeIdx].ViewToShapeMatrix).xyz;
+		float3 rayUnitEnd = mul(float4(ro + rd, 1.0), shapeProcessedData[ShapeIdx].ViewToShapeMatrix).xyz;
+		float rayLength = 1.0f / length(rayStart - rayUnitEnd);
+		float3 rayDirection = normalize(rayStart - rayUnitEnd);
+		
+		
+        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 1.05f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
+        if (shapeProcessedData[ShapeIdx].IsHit)
         {
             ShapeHitCount++;
 			
 			//T0 *= 5000;
 			//T1 *= 5000;
 			
-			T0 = min( cullData[ShapeIdx].T0, T0 );
-			T0 = min( cullData[ShapeIdx].T1, T0 );
+			T0 = min( shapeProcessedData[ShapeIdx].T0 * rayLength, T0 );
+			T0 = min( shapeProcessedData[ShapeIdx].T1 * rayLength, T0 );
 			
-			T1 = max( cullData[ShapeIdx].T0, T1 );
-			T1 = max( cullData[ShapeIdx].T1, T1 );
+			T1 = max( shapeProcessedData[ShapeIdx].T0 * rayLength, T1 );
+			T1 = max( shapeProcessedData[ShapeIdx].T1 * rayLength, T1 );
         }
     }
+	
 	
     return ShapeHitCount;
 }
 
+/*
 float processShape(in float3 pos, in int ShapeIdx)
 {
-    float4x4 ViewToShapeMatrix = GetWorldToLocalViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
-    float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz - float3(Shapes[ShapeIdx].translation);
+    float4x4 ViewToShapeMatrix = mul( GetTranslationMatrix( float3(ViewConstants.ViewPosition - DrawConstants.Translation) ), Shapes[ShapeIdx].invTransform,  );
+    float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz;
 
     float d = 1e10;
 
     if (Shapes[ShapeIdx].shapeType == 1)
     {
-        d = sdSphere(samplePos, Shapes[ShapeIdx].params.x);
+        d = sdSphere(samplePos, 1);
     }
     else if (Shapes[ShapeIdx].shapeType == 2)
     {
-        d = sdBox(samplePos, Shapes[ShapeIdx].params.xyz);
+        d = sdBox(samplePos, float3(1,1,1) );
     }
 
     return d;
 }
+*/
 
 // slight expansion to a buffer of these shapes... very WIP
 float processShapes( in float3 pos )
 {
     float d = 1e10;
-
-    float4x4 ViewToShapeMatrix = GetWorldToLocalViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
-    float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz - float3(Shapes[0].translation);
-
-    //float3 samplePos = pos - (float3(DrawConstants.Translation) + float3(Shapes[0].translation));
+    
+    float3 samplePos = mul( float4(pos, 1.0), shapeProcessedData[0].ViewToShapeMatrix ).xyz;
 
     if (Shapes[0].shapeType == 1)
     {
-        d = sdSphere(samplePos, Shapes[0].params.x);
+        d = sdSphere(samplePos, 1);
     }
     else if (Shapes[0].shapeType == 2)
     {
-        d = sdBox(samplePos, Shapes[0].params.xyz);
+        d = sdBox(samplePos, float3(1,1,1) );
     }
         
     for (uint i = 1; i < DrawParams.ShapeCount; ++i)
     {
         float cD = 1e10;
 
-        float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrix).xyz - float3(Shapes[i].translation);
+        float3 samplePos = mul(float4(pos, 1.0), shapeProcessedData[i].ViewToShapeMatrix).xyz;
         if (Shapes[i].shapeType == 1)
         {
-            cD = sdSphere(samplePos, Shapes[i].params.x);
+            cD = sdSphere(samplePos, 1);
         } 
         else if (Shapes[i].shapeType == 2)
         {
-            cD = sdBox(samplePos, Shapes[i].params.xyz);
+            cD = sdBox(samplePos, float3(1,1,1) );
         }
         
         if (Shapes[i].shapeOp == 0)
@@ -206,11 +212,14 @@ float processShapes( in float3 pos )
         }
         else if (Shapes[i].shapeOp == 1)
         {
-            d = opSmoothSubtraction(cD, d, Shapes[i].shapeBlendAndScale.x);
+			d = opSubtraction(d, cD);
+            //d = opSmoothSubtraction(cD, d, Shapes[i].shapeBlendAndScale.x);
         }
         else if (Shapes[i].shapeOp == 2)
-        {
-            d = opSmoothIntersection(cD, d, Shapes[i].shapeBlendAndScale.x);
+        {	
+			d = opIntersection(d, cD);		
+			//
+            //d = opSmoothIntersection(cD, d, Shapes[i].shapeBlendAndScale.x);
         }
     }
 	
@@ -222,8 +231,8 @@ float processShapes( in float3 pos )
 // rd: ray direction
 float raymarch(float3 ro, float3 rd, float T0, float T1) 
 {
-    const int maxstep = 32;
-    float t = 0; // current distance traveled along ray
+    const int maxstep = 16;
+    float t = T0; // current distance traveled along ray
     for (int i = 0; i < maxstep; ++i) 
     {
         float3 p = ro + rd * t; // World space position of sample
@@ -242,7 +251,7 @@ float raymarch(float3 ro, float3 rd, float T0, float T1)
 		
 		if(t > T1)
 		{
-		//	return 100000;
+			return 100000;
 		}
     }
 
@@ -263,7 +272,7 @@ float4 renderSDF( float3 ro, float3 rd )
 { 
 	float hitDistance = -1000;
 	float T0, T1;
-    uint hitCount = shapeCullAndSolve(ro, rd, T0, T1);
+    uint hitCount = shapeCullAndProcess(ro, rd, T0, T1);
 
 	if( hitCount > 0 )
 	{	 
@@ -289,7 +298,7 @@ float4 renderSDF( float3 ro, float3 rd )
 		}
 	}
 
-	return float4(rd * 0.5 + 0.5,hitDistance);
+	return float4(rd * 0.5 + 0.5, hitDistance);
 }
 
 

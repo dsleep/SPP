@@ -58,8 +58,12 @@ namespace SPP
 			SDFShape oShape;
 			oShape.shapeType = _shapeType;
 			oShape.shapeOp = _shapeOp;
-			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
-			oShape.translation = _translation.cast<float>();
+
+			auto currentLocalToWorld = GenerateLocalToWorld(true);
+
+			oShape.invTransform = currentLocalToWorld.inverse();
+			oShape.shapeParams[0] = _shapeBlendFactor;
+
 			return oShape;
 		}
 
@@ -91,64 +95,6 @@ namespace SPP
 		virtual void RemovedFromScene() override;
 
 		virtual ~OShapeGroup() { }
-	};
-
-	class SPP_SDF_API OSDFSphere : public OShape
-	{
-		RTTR_ENABLE(OShape);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		OSDFSphere(const std::string& InName, SPPDirectory* InParent) : OShape(InName, InParent)
-		{
-			_shapeType = EShapeType::Sphere;
-		}
-		float _radius = 1.0f;
-
-	public:		
-		virtual SDFShape GenerateShape() const
-		{
-			SDFShape oShape;
-			oShape.shapeType = _shapeType;
-			oShape.shapeOp = _shapeOp;
-			oShape.translation = _translation.cast<float>();
-			oShape.params[0] = _radius;
-			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
-			return oShape;
-		}
-		void SetRadius(float InRadius);
-		virtual ~OSDFSphere() { }
-	};
-
-	class SPP_SDF_API OSDFBox : public OShape
-	{
-		RTTR_ENABLE(OShape);
-		RTTR_REGISTRATION_FRIEND
-
-	protected:
-		OSDFBox(const std::string& InName, SPPDirectory* InParent) : OShape(InName, InParent)
-		{
-			_shapeType = EShapeType::Box;
-		}
-		Vector3 _extents = { 1, 1, 1 };
-	public:
-		virtual SDFShape GenerateShape() const
-		{
-			SDFShape oShape;
-			oShape.shapeType = _shapeType;
-			oShape.shapeOp = _shapeOp;
-			oShape.translation = _translation.cast<float>();
-			oShape.params[0] = _extents[0];
-			oShape.params[1] = _extents[1];
-			oShape.params[2] = _extents[2];
-			oShape.shapeBlendAndScale[0] = _shapeBlendFactor;
-			return oShape;
-		}
-		void SetExtents(Vector3 InExtents)
-		{
-			_extents = InExtents;
-		}
-		virtual ~OSDFBox() { }
 	};
 
 	SPP_SDF_API uint32_t GetSDFVersion();

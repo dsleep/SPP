@@ -295,17 +295,16 @@ namespace SPP
 	{
 		Unknown = 0,
 		Sphere,
-		Box
+		Box,
+		Cylinder
 	};
 
 	//_declspec(align(256u))
 	struct SPP_GRAPHICS_API SDFShape
 	{
-		Vector3 translation = { 0,0,0 };
-		Vector3 eulerRotation = { 0,0,0 };
+		Matrix4x4 invTransform;
 
-		Vector4 shapeBlendAndScale = { 0,0,0,0 };
-		Vector4 params = { 0,0,0,0 };
+		Vector4 shapeParams;
 
 		EShapeType shapeType = EShapeType::Unknown;
 		EShapeOp shapeOp = EShapeOp::Add;		

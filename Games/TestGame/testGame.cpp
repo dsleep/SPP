@@ -91,8 +91,6 @@ public:
 		app->Initialize(1280, 720, hInstance);
 
 
-		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/splatoon.mcsg"));
-		
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
@@ -115,28 +113,59 @@ public:
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
 
+
+#if 0
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/splatoon.mcsg"));
+
 		auto& topLayer = loadedElements.front();
 
-#if 1
 		int32_t simpleCnt = 0;
 		auto startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
+
+
+		startingGroup->GetScale() = Vector3(1.0f / 500.0f, 1.0f / 500.0f, 1.0f / 500.0f);
+
 		for (auto& curShape : topLayer.Shapes )
 		{
 			OShape* newShape = nullptr;
 			std::string shapeName = std::string_format("shape_%d", simpleCnt);
-			newShape = AllocateObject<OSDFSphere>(shapeName.c_str(), startingGroup);
+			newShape = AllocateObject<OShape>(shapeName.c_str(), startingGroup);
+			newShape->SetShapeArgs(
+				{
+					.shapeType = EShapeType::Sphere,
+					.shapeOp = EShapeOp::Add,
+					.shapeBlendFactor = 0.0f
+				}
+			);
 			simpleCnt++;
 			startingGroup->AddChild(newShape);
 		}
 
 #else
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup");
-		auto startingSphere = AllocateObject<OSDFSphere>("sphere");
-		auto startingSphere2 = AllocateObject<OSDFSphere>("sphere2");
+		auto startingSphere = AllocateObject<OShape>("sphere");
+		auto startingSphere2 = AllocateObject<OShape>("sphere2");
 		startingSphere->GetPosition()[1] = 1;
 		startingSphere2->GetPosition()[1] = 2;
-		startingSphere->SetRadius(2);
-		startingSphere2->SetRadius(2);
+		startingSphere->GetScale() = Vector3(2, 2, 2);
+		startingSphere->GetScale() = Vector3(2, 1, 2);
+
+		startingSphere->SetShapeArgs(
+			{
+				.shapeType = EShapeType::Sphere,
+				.shapeOp = EShapeOp::Add,
+				.shapeBlendFactor = 0.0f
+			}
+		);
+
+		startingSphere2->SetShapeArgs(
+			{
+				.shapeType = EShapeType::Sphere,
+				.shapeOp = EShapeOp::Add,
+				.shapeBlendFactor = 0.0f
+			}
+		);
+
 		startingGroup->AddChild(startingSphere);
 		startingGroup->AddChild(startingSphere2);
 #endif

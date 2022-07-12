@@ -64,3 +64,12 @@ float4x4 GetWorldToLocalViewTranslated(in float4x4 InLTWSR, in double3 InTrans, 
 		inverseLTWSR[2][0], inverseLTWSR[2][1], inverseLTWSR[2][2], 0,
 		float3(InViewPosition - InTrans), 1);
 }
+
+float4x4 GetTranslationMatrix(in float3 InValue)
+{
+	return float4x4(
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		InValue, 1);
+}
