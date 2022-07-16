@@ -1,3 +1,17 @@
+# Copyright (c) David Sleeper (Sleeping Robot LLC)
+# Distributed under MIT license, or public domain if desired and
+# recognized in your jurisdiction.
+
+
+bl_info = {
+    'name': 'SPP - UV Unwrapping',
+    'description': 'Default Settings for Smart and Shared UV UnWrappers',
+    'author': 'David Sleeper (Sleeping Robot LLC)',
+    'version': (1, 0, 0),
+    'blender': (3, 1, 0),
+    "category": "Development",
+}
+
 import bpy
 
 #print(dir(bpy.types)) # VIEW3D_MT_object.append(custom_draw) # Object menu
