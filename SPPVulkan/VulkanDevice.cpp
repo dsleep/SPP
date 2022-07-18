@@ -21,7 +21,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
-#define ALLOW_IMGUI 0
+#define ALLOW_IMGUI 1
 
 namespace SPP
 {
@@ -452,8 +452,6 @@ namespace SPP
 	void VulkanGraphicsDevice::nextFrame() {}
 	void VulkanGraphicsDevice::updateOverlay() {}
 
-	
-	
 	void VulkanGraphicsDevice::createStaticDrawInfo()
 	{
 		//move to nicer spot
@@ -662,91 +660,28 @@ namespace SPP
 		}
 	}
 
-	void VulkanGraphicsDevice::setupDepthStencil()
-	{
-		VkImageCreateInfo imageCI{};
-		imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCI.imageType = VK_IMAGE_TYPE_2D;
-		imageCI.format = depthFormat;
-		imageCI.extent = { width, height, 1 };
-		imageCI.mipLevels = 1;
-		imageCI.arrayLayers = 1;
-		imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-		depthStencil.image.reset(new SafeVkImage(device, imageCI));
-
-		VkMemoryRequirements memReqs{};
-		vkGetImageMemoryRequirements(device, depthStencil.image->Get(), &memReqs);
-
-		VkMemoryAllocateInfo memAllloc{};
-		memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		memAllloc.allocationSize = memReqs.size;
-		memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		depthStencil.mem.reset(new SafeVkDeviceMemory(device, memAllloc));
-
-		VK_CHECK_RESULT(vkBindImageMemory(device, depthStencil.image->Get(), depthStencil.mem->Get(), 0));
-
-		VkImageViewCreateInfo imageViewCI{};
-		imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCI.image = depthStencil.image->Get();
-		imageViewCI.format = depthFormat;
-		imageViewCI.subresourceRange.baseMipLevel = 0;
-		imageViewCI.subresourceRange.levelCount = 1;
-		imageViewCI.subresourceRange.baseArrayLayer = 0;
-		imageViewCI.subresourceRange.layerCount = 1;
-		imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		// Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-		if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-			imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-		}
-		depthStencil.view.reset(new SafeVkImageView(device, imageViewCI));
-	}
-
-	void VulkanGraphicsDevice::destroyDepthStencil()
-	{
-		depthStencil.view.reset();
-		depthStencil.image.reset();
-		depthStencil.mem.reset();
-	}
-
 	void VulkanGraphicsDevice::setupRenderPass()
 	{
-		std::array<VkAttachmentDescription, 2> attachments = {};
+		std::array<VkAttachmentDescription, 1> attachments = {};
 		// Color attachment
 		attachments[0].format = swapChain.colorFormat;
 		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		// Depth attachment
-		attachments[1].format = depthFormat;
-		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
+		
 		VkAttachmentReference colorReference = {};
 		colorReference.attachment = 0;
 		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
+		
 		VkSubpassDescription subpassDescription = {};
 		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpassDescription.colorAttachmentCount = 1;
 		subpassDescription.pColorAttachments = &colorReference;
-		subpassDescription.pDepthStencilAttachment = &depthReference;
+		subpassDescription.pDepthStencilAttachment = nullptr;
 		subpassDescription.inputAttachmentCount = 0;
 		subpassDescription.pInputAttachments = nullptr;
 		subpassDescription.preserveAttachmentCount = 0;
@@ -787,17 +722,14 @@ namespace SPP
 
 	void VulkanGraphicsDevice::setupFrameBuffer()
 	{
-		VkImageView attachments[2];
-
-		// Depth/Stencil attachment is the same for all frame buffers
-		attachments[1] = depthStencil.view->Get();
+		VkImageView attachments;
 
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frameBufferCreateInfo.pNext = NULL;
 		frameBufferCreateInfo.renderPass = renderPass;
-		frameBufferCreateInfo.attachmentCount = 2;
-		frameBufferCreateInfo.pAttachments = attachments;
+		frameBufferCreateInfo.attachmentCount = 1;
+		frameBufferCreateInfo.pAttachments = &attachments;
 		frameBufferCreateInfo.width = width;
 		frameBufferCreateInfo.height = height;
 		frameBufferCreateInfo.layers = 1;
@@ -805,7 +737,7 @@ namespace SPP
 		// Create frame buffers for every swap chain image
 		for (uint32_t i = 0; i < swapChain.imageCount; i++)
 		{
-			attachments[0] = swapChain.buffers[i].view;
+			attachments = swapChain.buffers[i].view;
 			_frameBuffers[i].reset(new SafeVkFrameBuffer(device, frameBufferCreateInfo));
 		}
 	}
@@ -846,7 +778,6 @@ namespace SPP
 		createCommandBuffers();
 		createSynchronizationPrimitives();
 
-		setupDepthStencil();
 		setupRenderPass();
 		setupFrameBuffer();
 		CreateDescriptorPool();
@@ -922,9 +853,6 @@ namespace SPP
 			setupSwapChain();
 
 			destroyFrameBuffer();
-			destroyDepthStencil();
-
-			setupDepthStencil();
 			setupFrameBuffer();
 
 			destroyCommandBuffers();
@@ -1056,9 +984,18 @@ namespace SPP
 		{
 			VK_CHECK_RESULT(result);
 		}
+
+		STDElapsedTimer priorFrame;
 		
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &_waitFences[currentBuffer]->Get(), VK_TRUE, UINT64_MAX));
+
+		auto currentElapsedMS = priorFrame.getElapsedMilliseconds();
+		if (currentElapsedMS > 5)
+		{
+			SPP_LOG(LOG_VULKAN, LOG_INFO, "LONG FRAME");
+		}
+
 		VK_CHECK_RESULT(vkResetFences(device, 1, &_waitFences[currentBuffer]->Get()));
 
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
@@ -1118,10 +1055,21 @@ namespace SPP
 		//float tHeight = ImGui::CalcTextSize(">AB").y;
 
 		//ImGui::InputText("##text1", inputText, sizeof(inputText));
-		
+
+		auto currentElapsedMS = _timer.getElapsedMilliseconds();
+		if (_FPS.empty())
+		{
+			_FPS.resize(30);
+		}
+		_FPS[_currentFPSIdx] = currentElapsedMS;
 #if ALLOW_IMGUI
 
-#if 0
+		ImGui::SetCursorPosX(width - 325);
+		ImGui::SetCursorPosY(25);
+
+		ImGui::PlotHistogram("", _FPS.data(), _FPS.size(), _currentFPSIdx, "0-33(ms)", 0.0f, 33.333f, ImVec2(300, 100));
+
+#if 1
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
@@ -1130,11 +1078,8 @@ namespace SPP
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = width;
 		renderPassBeginInfo.renderArea.extent.height = height;
-		renderPassBeginInfo.clearValueCount = 2;
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.clearValueCount = 0;	
+		renderPassBeginInfo.pClearValues = nullptr;
 		// Set target frame buffer
 		renderPassBeginInfo.framebuffer = GetActiveFrameBuffer();
 
@@ -1169,6 +1114,7 @@ namespace SPP
 #endif
 
 #endif
+		_currentFPSIdx = (_currentFPSIdx+1) % _FPS.size();
 
 		// Ending the render pass will add an implicit barrier transitioning the frame buffer color attachment to
 		// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR for presenting it to the windowing system

@@ -18,9 +18,11 @@ float sdBox(float3 p, float3 b)
 
 float sdRoundBox(float3 p, float3 b, float r)
 {
-    float3 q = abs(p) - b;
-    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r;
+    float minB = min(b.x, min(b.y, b.z));
+    float3 q = abs(p) - (b - float3(minB, minB, minB) * r);
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - (minB * r);
 }
+
 
 float sdPyramid(float3 p, float h)
 {

@@ -31,7 +31,8 @@ namespace SPP
 		Vector3 Translation;
 		Vector3 Scale;
 		Matrix3x3 Rotation;
-		float Blend;
+		Color3 Color;
+		float Blend = 0.0f;
 		float MX;
 	};
 

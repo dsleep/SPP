@@ -630,11 +630,8 @@ namespace SPP
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
 		renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-		renderPassBeginInfo.clearValueCount = 2;
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-		renderPassBeginInfo.pClearValues = clearValues;
+		renderPassBeginInfo.clearValueCount = 0;		
+		renderPassBeginInfo.pClearValues = nullptr;
 		// Set target frame buffer
 		renderPassBeginInfo.framebuffer = backbufferFrameData.frameBuffer;
 

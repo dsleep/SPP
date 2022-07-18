@@ -34,6 +34,7 @@ namespace SPP
 		EShapeType _shapeType = EShapeType::Unknown;
 		EShapeOp _shapeOp = EShapeOp::Add;
 		float _shapeBlendFactor = 0.0f;
+		Color3 _shapeColor = Color3(127, 127, 127);
 
 		OShape(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
 
@@ -44,6 +45,7 @@ namespace SPP
 			EShapeType shapeType;
 			EShapeOp shapeOp;
 			float shapeBlendFactor;
+			Color3 shapeColor;
 		};
 
 		void SetShapeArgs(const Args &InArgs)
@@ -51,6 +53,7 @@ namespace SPP
 			_shapeType = InArgs.shapeType;
 			_shapeOp = InArgs.shapeOp;
 			_shapeBlendFactor = InArgs.shapeBlendFactor;
+			_shapeColor = InArgs.shapeColor;			
 		}
 
 		virtual SDFShape GenerateShape() const
@@ -63,6 +66,7 @@ namespace SPP
 
 			oShape.invTransform = currentLocalToWorld.inverse();
 			oShape.shapeParams[0] = _shapeBlendFactor;
+			oShape.shapeColor = Vector3(_shapeColor[0] / 255.0f, _shapeColor[1] / 255.0f, _shapeColor[2] / 255.0f);
 
 			return oShape;
 		}

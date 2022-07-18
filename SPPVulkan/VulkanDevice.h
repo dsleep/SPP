@@ -13,6 +13,7 @@
 #include "SPPMath.h"
 #include "SPPCamera.h"
 #include "SPPBitSetArray.h"
+#include "SPPHandledTimers.h"
 
 #include "VulkanResources.h"
 #include "VulkanFrameBuffer.hpp"
@@ -227,6 +228,10 @@ namespace SPP
 		VkDescriptorPool _globalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;
 
+		uint32_t _currentFPSIdx = 0;
+		std::vector<float> _FPS;
+		STDElapsedTimer _timer;
+
 		VkResult createInstance(bool enableValidation);
 		bool DeviceInitialize();
 		void nextFrame();
@@ -241,9 +246,6 @@ namespace SPP
 		
 		void createStaticDrawInfo();
 		void setupRenderPass();
-
-		void setupDepthStencil();
-		void destroyDepthStencil();
 
 		void setupFrameBuffer();
 		void destroyFrameBuffer();

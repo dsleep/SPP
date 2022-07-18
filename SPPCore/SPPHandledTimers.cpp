@@ -22,6 +22,14 @@ namespace SPP
 		return elaspedTime;
 	}
 
+	float STDElapsedTimer::getElapsedMilliseconds()
+	{
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		auto elaspedTime = (float)std::chrono::duration_cast<std::chrono::microseconds>(currentTime - _lastTime).count() / 1000.0f;
+		_lastTime = currentTime;
+		return elaspedTime;
+	}
+
 	TimerHandle::~TimerHandle()
 	{
 		if (auto Lck = _parent.lock())

@@ -114,27 +114,62 @@ public:
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
 
 
-#if 0
-		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/splatoon.mcsg"));
+#if 1
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleshapes.mcsg"));
 
 		auto& topLayer = loadedElements.front();
 
 		int32_t simpleCnt = 0;
 		auto startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
+		startingGroup->GetPosition()[1] = 1;
+		startingGroup->GetRotation()[0] = 90;
 
-
-		startingGroup->GetScale() = Vector3(1.0f / 500.0f, 1.0f / 500.0f, 1.0f / 500.0f);
+		startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
 
 		for (auto& curShape : topLayer.Shapes )
 		{
 			OShape* newShape = nullptr;
 			std::string shapeName = std::string_format("shape_%d", simpleCnt);
 			newShape = AllocateObject<OShape>(shapeName.c_str(), startingGroup);
+			
+			newShape->SetTransformArgs(
+				{
+					.translation = curShape.Translation.cast<double>(),
+					.rotation = curShape.Rotation.eulerAngles(0,1,2) * 57.2958f,
+					.scale = curShape.Scale
+				});
+
+			newShape->GetRotation()[0] = 90;
+
+			EShapeType shapeType = EShapeType::Sphere;
+			EShapeOp shapeOp = EShapeOp::Add;
+
+			switch (curShape.Type)
+			{
+			case EMagicaCSG_ShapeType::Cube:
+				shapeType = EShapeType::Box;
+				break;
+			case EMagicaCSG_ShapeType::Cylinder:
+				shapeType = EShapeType::Cylinder;
+				break;
+			}
+
+			switch (curShape.Mode)
+			{
+			case EMagicaCSG_ShapeOP::Subtract:
+				shapeOp = EShapeOp::Subtract;
+				break;
+			case EMagicaCSG_ShapeOP::Intersect:
+				shapeOp = EShapeOp::Intersect;
+				break;
+			}
+
 			newShape->SetShapeArgs(
 				{
-					.shapeType = EShapeType::Sphere,
-					.shapeOp = EShapeOp::Add,
-					.shapeBlendFactor = 0.0f
+					.shapeType = shapeType,
+					.shapeOp = shapeOp,
+					.shapeBlendFactor = curShape.Blend / 64.0f,
+					.shapeColor = curShape.Color
 				}
 			);
 			simpleCnt++;
@@ -287,8 +322,15 @@ public:
 	{
 		if (!_graphicsDevice) return;
 
-		auto currentElapsed = _timer.getElapsedSeconds();
-
+		auto currentElapsedMS = _timer.getElapsedMilliseconds();
+		
+		if (currentElapsedMS < 16.666f)
+		{
+			std::this_thread::sleep_for( std::chrono::duration<double, std::milli>(16.666f - currentElapsedMS) );
+			currentElapsedMS += _timer.getElapsedMilliseconds();
+		}
+	
+		auto currentElapsed = currentElapsedMS / 1000.0f;
 		_gameworld->Update(currentElapsed);			
 
 		RECT rect;

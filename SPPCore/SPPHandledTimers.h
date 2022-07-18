@@ -33,6 +33,7 @@ namespace SPP
 	public:
 		STDElapsedTimer();
 		float getElapsedSeconds();
+		float getElapsedMilliseconds();
 	};
 
 	class SPP_CORE_API TimerHandle

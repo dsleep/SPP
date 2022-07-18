@@ -305,6 +305,7 @@ namespace SPP
 		Matrix4x4 invTransform;
 
 		Vector4 shapeParams;
+		Vector3 shapeColor;
 
 		EShapeType shapeType = EShapeType::Unknown;
 		EShapeOp shapeOp = EShapeOp::Add;		
