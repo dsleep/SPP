@@ -48,6 +48,16 @@ namespace SPP
 			Color3 shapeColor;
 		};
 
+		auto GetShapeType() const
+		{
+			return _shapeType;
+		}
+
+		auto GetShapeOp() const
+		{
+			return _shapeOp;
+		}
+
 		void SetShapeArgs(const Args &InArgs)
 		{
 			_shapeType = InArgs.shapeType;
@@ -97,6 +107,8 @@ namespace SPP
 		
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene() override;
+
+		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const override;
 
 		virtual ~OShapeGroup() { }
 	};

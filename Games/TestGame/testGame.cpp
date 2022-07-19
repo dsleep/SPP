@@ -83,6 +83,8 @@ private:
 	VgEnvironment* _gameworld = nullptr;
 	std::shared_ptr< PhysicsCharacter > _characterCapsule;
 
+	OShapeGroup* _startingGroup = nullptr;
+
 public:
 	
 	void Initialize(HINSTANCE hInstance)
@@ -120,18 +122,18 @@ public:
 		auto& topLayer = loadedElements.front();
 
 		int32_t simpleCnt = 0;
-		auto startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
-		startingGroup->GetPosition()[1] = 1;
-		startingGroup->GetRotation()[0] = 90;
-		startingGroup->GetRotation()[1] = -90;
+		_startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
+		_startingGroup->GetPosition()[1] = 1;
+		_startingGroup->GetRotation()[0] = 90;
+		_startingGroup->GetRotation()[1] = -90;
 
-		startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
+		_startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
 
 		for (auto& curShape : topLayer.Shapes )
 		{
 			OShape* newShape = nullptr;
 			std::string shapeName = std::string_format("shape_%s_%d", curShape.Name.c_str(), simpleCnt);
-			newShape = AllocateObject<OShape>(shapeName.c_str(), startingGroup);
+			newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
 			
 			newShape->SetTransformArgs(
 				{
@@ -172,7 +174,7 @@ public:
 				}
 			);
 			simpleCnt++;
-			startingGroup->AddChild(newShape);
+			_startingGroup->AddChild(newShape);
 		}
 
 #else
@@ -209,7 +211,7 @@ public:
 		startingGroup->AddChild(startingSphere2);
 #endif
 
-		_gameworld->AddChild(startingGroup);
+		_gameworld->AddChild(_startingGroup);
 
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
 
@@ -400,7 +402,7 @@ public:
 
 	void MouseClick()
 	{
-		if (!_graphicsDevice) return;
+		if (!_graphicsDevice || !_startingGroup) return;
 
 		auto WindowSizeX = _graphicsDevice->GetDeviceWidth();
 		auto WindowSizeY = _graphicsDevice->GetDeviceHeight();
@@ -418,6 +420,14 @@ public:
 		Vector3 MouseStart = Vector3(MouseLocalNear[0], MouseLocalNear[1], MouseLocalNear[2]);
 		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
+
+		Ray ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay);
+		IntersectionInfo hitInfo;
+		if(_startingGroup->Intersect_Ray(ray, hitInfo))
+		{
+			// hit something
+			SPP_QL("hit something");
+		}
 	}
 
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)

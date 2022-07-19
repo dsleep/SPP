@@ -6,6 +6,47 @@ SPP_OVERLOAD_ALLOCATORS
 
 namespace SPP
 {
+	float opUnion(float d1, float d2) {
+		return std::min(d1, d2);
+	}
+
+	float opSubtraction(float d1, float d2) {
+		return std::max(-d1, d2);
+	}
+
+	float opIntersection(float d1, float d2) {
+		return std::max(d1, d2);
+	}
+
+	float opSmoothUnion(float d1, float d2, float k) {
+		float h = std::clamp(0.5f + 0.5f * (d2 - d1) / k, 0.0f, 1.0f);
+		return std::lerp(d2, d1, h) - k * h * (1.0f - h);
+	}
+
+	float opSmoothSubtraction(float d1, float d2, float k) {
+		float h = std::clamp(0.5f - 0.5f * (d2 + d1) / k, 0.0f, 1.0f);
+		return std::lerp(d2, -d1, h) + k * h * (1.0f - h);
+	}
+
+	float opSmoothIntersection(float d1, float d2, float k)
+	{
+		float h = std::clamp(0.5f - 0.5f * (d2 - d1) / k, 0.0f, 1.0f);
+		return std::lerp(d2, d1, h) + k * h * (1.0f - h);
+	}
+
+	//unit sphere
+	float sdSphere(const Vector3 &p)
+	{
+		return p.norm() - 1.0f;
+	}
+
+	//1,1,1 box
+	float sdBox(const Vector3 &p)
+	{
+		Vector3 q = p.cwiseAbs() - Vector3(1, 1, 1);
+		return q.cwiseMax(0.0f).norm() + std::min(q.maxCoeff(), 0.0f);
+	}
+
 	uint32_t GetSDFVersion()
 	{
 		return 1;
@@ -66,6 +107,74 @@ namespace SPP
 			});
 			_renderableSDF.reset();
 		}
+	}
+
+	bool OShapeGroup::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
+	{
+		SE_ASSERT(_children.size() == _shapeCache.size());
+
+		Vector3 ro = (InRay.GetOrigin() - _translation).cast<float>();
+		Vector3 rd = InRay.GetDirection();
+
+		std::vector<float> rayScalars;
+		rayScalars.resize(_children.size());
+		for (int32_t ChildIter = 0; ChildIter < _children.size(); ChildIter++)
+		{
+			Vector3 rayStart = (Vector4(ro.data(), 1.0f) * _shapeCache[ChildIter].invTransform).head<3>();
+			Vector3 rayUnitEnd = (Vector4((ro+rd).array(), 1.0f) * _shapeCache[ChildIter].invTransform).head<3>();
+			rayScalars[ChildIter] = 1.0f / (rayStart - rayUnitEnd).norm();
+		}
+
+		float t = 0; // current distance traveled along ray
+
+		for (int32_t Iter = 0; Iter < 64; ++Iter)
+		{
+			Vector3 p = ro + rd * t;
+
+			float d = 1e10;
+			for (int32_t ChildIter = 0; ChildIter < _children.size(); ChildIter++)
+			{
+				SE_ASSERT(_children[ChildIter]);
+				auto childShape = dynamic_cast<OShape*>(_children[ChildIter]);
+
+				Vector4 localP4 = Vector4(p[0], p[1], p[2], 1.0f) * _shapeCache[ChildIter].invTransform;
+				Vector3 localP(localP4[0], localP4[1], localP4[2]);
+				float cD = 0;
+
+				switch (childShape->GetShapeType())
+				{
+				case EShapeType::Sphere:
+					cD = sdSphere(localP);
+					break;
+				case EShapeType::Box:
+					cD = sdBox(localP);
+					break;
+				}
+
+				cD *= rayScalars[ChildIter];
+
+				switch (childShape->GetShapeOp())
+				{
+				case EShapeOp::Add:
+					d = opUnion(d, cD);
+					break;
+				case EShapeOp::Intersect:
+					d = opIntersection(d, cD);
+					break;
+				case EShapeOp::Subtract:
+					d = opSubtraction(d, cD);
+					break;
+				}
+			}
+
+			if (d < 0.001f)
+			{
+				return true;
+			}
+			t += d;
+		}
+
+		return false;
 	}
 }
 
