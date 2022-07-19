@@ -257,7 +257,7 @@ namespace SPP
 			csPSO->GetVkPipelineLayout(), 0, 
 			locaDrawSets.size(), locaDrawSets.data(), 
 			ARRAY_SIZE(uniform_offsets), uniform_offsets);
-		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 16, DeviceExtents[1] / 16, 1);		
+		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 32, DeviceExtents[1] / 32, 1);		
 
 		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
 			VK_IMAGE_LAYOUT_GENERAL,

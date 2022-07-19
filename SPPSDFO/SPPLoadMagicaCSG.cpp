@@ -71,6 +71,7 @@ namespace SPP
 
 						auto curElement = curLayer[EleIter];
 
+						Json::Value nameV = curElement.get("name", Json::Value::nullSingleton());
 						Json::Value eleTypeV = curElement.get("type", Json::Value::nullSingleton());
 						Json::Value eleModeV = curElement.get("mode", Json::Value::nullSingleton());
 						Json::Value rgbV = curElement.get("rgb", Json::Value::nullSingleton());
@@ -92,11 +93,16 @@ namespace SPP
 								std::atof(rA[0].c_str()), std::atof(rA[1].c_str()), std::atof(rA[2].c_str()),
 								std::atof(rA[3].c_str()), std::atof(rA[4].c_str()), std::atof(rA[5].c_str()),
 								std::atof(rA[6].c_str()), std::atof(rA[7].c_str()), std::atof(rA[8].c_str());
-
+							//newShape.Rotation.transposeInPlace();
 							if (!rgbV.isNull())
 							{
 								std::vector<std::string> shapeA = std::str_split(std::string(rgbV.asCString()), ' ');
 								newShape.Color = Color3(std::atoi(shapeA[0].c_str()), std::atoi(shapeA[1].c_str()), std::atoi(shapeA[2].c_str()));
+							}
+							
+							if (!nameV.isNull())
+							{
+								newShape.Name = nameV.asCString();
 							}
 
 							if (!blendV.isNull())

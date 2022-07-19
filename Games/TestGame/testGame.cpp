@@ -115,7 +115,7 @@ public:
 
 
 #if 1
-		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleshapes.mcsg"));
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleFace.mcsg"));
 
 		auto& topLayer = loadedElements.front();
 
@@ -123,13 +123,14 @@ public:
 		auto startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
 		startingGroup->GetPosition()[1] = 1;
 		startingGroup->GetRotation()[0] = 90;
+		startingGroup->GetRotation()[1] = -90;
 
 		startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
 
 		for (auto& curShape : topLayer.Shapes )
 		{
 			OShape* newShape = nullptr;
-			std::string shapeName = std::string_format("shape_%d", simpleCnt);
+			std::string shapeName = std::string_format("shape_%s_%d", curShape.Name.c_str(), simpleCnt);
 			newShape = AllocateObject<OShape>(shapeName.c_str(), startingGroup);
 			
 			newShape->SetTransformArgs(
@@ -138,8 +139,6 @@ public:
 					.rotation = curShape.Rotation.eulerAngles(0,1,2) * 57.2958f,
 					.scale = curShape.Scale
 				});
-
-			newShape->GetRotation()[0] = 90;
 
 			EShapeType shapeType = EShapeType::Sphere;
 			EShapeOp shapeOp = EShapeOp::Add;
@@ -342,7 +341,6 @@ public:
 		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
 
 		auto& cam = renderableSceneShared->GetCamera();
-
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
 		_lastTime = CurrentTime;
@@ -400,9 +398,35 @@ public:
 
 	}
 
+	void MouseClick()
+	{
+		if (!_graphicsDevice) return;
+
+		auto WindowSizeX = _graphicsDevice->GetDeviceWidth();
+		auto WindowSizeY = _graphicsDevice->GetDeviceHeight();
+
+		auto& cam = renderableSceneShared->GetCamera();
+
+		Vector4 MousePosNear = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 10.0f, 1.0f);
+		Vector4 MousePosFar = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 100.0f, 1.0f);
+
+		Vector4 MouseLocalNear = MousePosNear * cam.GetInvViewProjMatrix();
+		MouseLocalNear /= MouseLocalNear[3];
+		Vector4 MouseLocalFar = MousePosFar * cam.GetInvViewProjMatrix();
+		MouseLocalFar /= MouseLocalFar[3];
+
+		Vector3 MouseStart = Vector3(MouseLocalNear[0], MouseLocalNear[1], MouseLocalNear[2]);
+		Vector3 MouseEnd = Vector3(MouseLocalFar[0], MouseLocalFar[1], MouseLocalFar[2]);
+		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
+	}
+
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
 		//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
+		if (mouseButton == 1)
+		{
+		}
+
 		if (mouseButton == 2)
 		{
 			CaptureWindow(_mainDXWindow);

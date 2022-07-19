@@ -28,6 +28,8 @@ namespace SPP
 		EMagicaCSG_ShapeType Type = EMagicaCSG_ShapeType::Sphere;
 		EMagicaCSG_ShapeOP Mode = EMagicaCSG_ShapeOP::Union;
 		
+		std::string Name;
+
 		Vector3 Translation;
 		Vector3 Scale;
 		Matrix3x3 Rotation;

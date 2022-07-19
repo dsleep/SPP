@@ -11,7 +11,7 @@ RWTexture2D<float4> colorImage : register(u1);
 [[vk::binding(5, 0)]]
 RWTexture2D<float> depthImage : register(u2);
 
-[numthreads(16, 16, 1)]
+[numthreads(32, 32, 1)]
 void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 {
 	float2 pixelPosition = float2( GlobalInvocationID.x / (float)ViewConstants.FrameExtents.x, GlobalInvocationID.y / (float)ViewConstants.FrameExtents.y );

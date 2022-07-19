@@ -33,6 +33,8 @@ ConstantBuffer<DrawParams>          DrawParams                : register(b3);
 [[vk::binding(3, 0)]]
 StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
+#define ALLOW_SMOOTHING 0
+
 void SwapFloat(inout float InA, inout float InB)
 {
 	float tempA = InA;
@@ -135,13 +137,10 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 		shapeProcessedData[ShapeIdx].rayScalar = 1.0f / length(rayStart - rayUnitEnd);
 		float3 rayDirection = normalize(rayStart - rayUnitEnd);
 				
-        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 3.05f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
+        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 1.05f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
         if (shapeProcessedData[ShapeIdx].IsHit)
         {
             ShapeHitCount++;
-			
-			//T0 *= 5000;
-			//T1 *= 5000;
 			
 			T0 = min( shapeProcessedData[ShapeIdx].T0 * shapeProcessedData[ShapeIdx].rayScalar, T0 );
 			T0 = min( shapeProcessedData[ShapeIdx].T1 * shapeProcessedData[ShapeIdx].rayScalar, T0 );
@@ -156,6 +155,7 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 }
 
 
+
 // slight expansion to a buffer of these shapes... very WIP
 float processShapes( in float3 pos, out float3 hitColor )
 {
@@ -163,6 +163,11 @@ float processShapes( in float3 pos, out float3 hitColor )
             
     for (uint i = 0; i < DrawParams.ShapeCount; ++i)
     {
+		if (shapeProcessedData[i].IsHit == false)
+		{
+			continue;
+		}
+	 
         float cD = 1e10;
 
         float3 samplePos = mul(float4(pos, 1.0), shapeProcessedData[i].ViewToShapeMatrix).xyz;
@@ -181,26 +186,37 @@ float processShapes( in float3 pos, out float3 hitColor )
 		
 		cD *= shapeProcessedData[i].rayScalar;
 		
-		if(cD < d)
-		{		
-			hitColor = Shapes[i].shapeColor;
-		}
-        
+		float lastD = d;
+		
         if (Shapes[i].shapeOp == 0)
         {
-			//d = opUnion(d, cD);
-            d = opSmoothUnion(d, cD, Shapes[i].shapeParams.x);
+#if ALLOW_SMOOTHING
+			d = opSmoothUnion(d, cD, Shapes[i].shapeParams.x);
+#else
+            d = opUnion(d, cD);
+#endif
         }
         else if (Shapes[i].shapeOp == 1)
         {
-			//d = opSubtraction(d, cD);
-            d = opSmoothSubtraction(cD, d, Shapes[i].shapeParams.x);
+#if ALLOW_SMOOTHING
+			d = opSmoothSubtraction(cD, d, Shapes[i].shapeParams.x);
+#else
+            d = opSubtraction(cD, d);
+#endif            
         }
         else if (Shapes[i].shapeOp == 2)
         {	
-			//d = opIntersection(d, cD);					
-            d = opSmoothIntersection(cD, d, Shapes[i].shapeParams.x);
+#if ALLOW_SMOOTHING
+			d = opSmoothIntersection(cD, d, Shapes[i].shapeParams.x);
+#else
+            d = opIntersection(cD, d);
+#endif 
         }
+		
+		if(lastD != d)
+		{		
+			hitColor = Shapes[i].shapeColor;
+		}
     }
 	
 	return d;
@@ -211,7 +227,7 @@ float processShapes( in float3 pos, out float3 hitColor )
 // rd: ray direction
 float raymarch(float3 ro, float3 rd, float T0, float T1, out float3 hitColor) 
 {
-    const int maxstep = 64;
+    const int maxstep = 32;
     float t = T0; // current distance traveled along ray
     for (int i = 0; i < maxstep; ++i) 
     {
@@ -267,10 +283,9 @@ float4 renderSDF( float3 ro, float3 rd )
 
 			float3 objNormal = calcNormal(pos);
 			float3 lig = normalize(float3(1.0, 0.8, -0.2));
-			float dif = clamp(dot(objNormal, lig), 0.0, 1.0);
-			float amb = 0.5;// +0.5 * objNormal.y;w
+			float dif = clamp(dot(objNormal, lig), 0.3, 1.0);
 
-			return float4( float3(0.25, 0.25, 0.25) * amb + hitColor * dif, hitDistance);
+			return float4( hitColor * dif, hitDistance);
 		}
 		else
 		{

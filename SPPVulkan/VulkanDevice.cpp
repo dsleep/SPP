@@ -21,7 +21,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
-#define ALLOW_IMGUI 1
+#define ALLOW_IMGUI 0
 
 namespace SPP
 {
