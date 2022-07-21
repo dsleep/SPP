@@ -72,7 +72,7 @@ namespace SPP
 			oShape.shapeType = _shapeType;
 			oShape.shapeOp = _shapeOp;
 
-			auto currentLocalToWorld = GenerateLocalToWorld(true);
+			Matrix4x4 currentLocalToWorld = GenerateLocalToWorld(true);
 
 			oShape.invTransform = currentLocalToWorld.inverse();
 			oShape.shapeParams[0] = _shapeBlendFactor;

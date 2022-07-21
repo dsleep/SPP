@@ -36,9 +36,9 @@ namespace SPP
 	public:
 		struct Args
 		{
-			Vector3d position;
-			Vector3 eulerRotationYPR;
-			Vector3 scale;
+			Vector3d position = Vector3d(0, 0, 0);
+			Vector3 eulerRotationYPR = Vector3(0, 0, 0);
+			Vector3 scale = Vector3(1, 1, 1);
 			bool bIsStatic = false;
 		};
 
@@ -322,11 +322,13 @@ namespace SPP
 		struct Args : Renderable::Args
 		{
 			std::vector< SDFShape > shapes;
-			Vector3 color;
+			Vector3 color = { 0,0,0 };
 		};
 
 		void SetSDFArgs(const Args& InArgs)
 		{
+			SetArgs(InArgs);
+
 			_shapes = InArgs.shapes;
 			_color = InArgs.color;
 		}

@@ -117,7 +117,7 @@ public:
 
 
 #if 1
-		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleFace.mcsg"));
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/singlesphere.mcsg"));
 
 		auto& topLayer = loadedElements.front();
 
@@ -409,8 +409,8 @@ public:
 
 		auto& cam = renderableSceneShared->GetCamera();
 
-		Vector4 MousePosNear = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 10.0f, 1.0f);
-		Vector4 MousePosFar = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), -((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 100.0f, 1.0f);
+		Vector4 MousePosNear = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), ((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 0.0f, 1.0f);
+		Vector4 MousePosFar = Vector4(MousePosNear[0], MousePosNear[1], 0.1f, 1.0f);
 
 		Vector4 MouseLocalNear = MousePosNear * cam.GetInvViewProjMatrix();
 		MouseLocalNear /= MouseLocalNear[3];
@@ -433,8 +433,9 @@ public:
 	void MouseDown(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
 	{
 		//SPP_QL("md: %d %d %d", mouseX, mouseY, mouseButton);
-		if (mouseButton == 1)
+		if (mouseButton == 0)
 		{
+			MouseClick();
 		}
 
 		if (mouseButton == 2)

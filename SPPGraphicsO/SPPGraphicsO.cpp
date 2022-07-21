@@ -143,7 +143,7 @@ namespace SPP
 				});
 
 			_renderableMesh->SetArgs({
-				.position = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTop()->GetPosition(),
+				.position = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTopBeforeScene()->GetPosition(),
 				.eulerRotationYPR = _rotation,
 				.scale = _scale,
 				});

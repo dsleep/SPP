@@ -61,6 +61,9 @@ target_sources(SPPVulkan
 
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableSDF.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableSDF.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanDebugDrawing.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanDebugDrawing.h"	
 
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv.h"
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_reflect.cpp"

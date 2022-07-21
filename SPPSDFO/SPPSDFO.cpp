@@ -54,6 +54,8 @@ namespace SPP
 
 	void OShapeGroup::AddedToScene(class OScene* InScene)
 	{
+		OElement::AddedToScene(InScene);
+
 		if (!InScene) return;
 
 		_GenerateShapes();
@@ -99,6 +101,8 @@ namespace SPP
 
 	void OShapeGroup::RemovedFromScene()
 	{
+		OElement::RemovedFromScene();
+
 		if (_renderableSDF)
 		{
 			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF]()
@@ -109,25 +113,35 @@ namespace SPP
 		}
 	}
 
+	inline Vector4 ToVector4(const Vector3& InVector)
+	{
+		return Vector4(InVector[0], InVector[1], InVector[2], 1.0f);
+	}
+
+	inline Vector3 ToVector3(const Vector4& InVector)
+	{
+		return InVector.head<3>();
+	}
+
 	bool OShapeGroup::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
 	{
 		SE_ASSERT(_children.size() == _shapeCache.size());
 
 		Vector3 ro = (InRay.GetOrigin() - _translation).cast<float>();
 		Vector3 rd = InRay.GetDirection();
-
+				
 		std::vector<float> rayScalars;
 		rayScalars.resize(_children.size());
 		for (int32_t ChildIter = 0; ChildIter < _children.size(); ChildIter++)
 		{
-			Vector3 rayStart = (Vector4(ro.data(), 1.0f) * _shapeCache[ChildIter].invTransform).head<3>();
-			Vector3 rayUnitEnd = (Vector4((ro+rd).array(), 1.0f) * _shapeCache[ChildIter].invTransform).head<3>();
-			rayScalars[ChildIter] = 1.0f / (rayStart - rayUnitEnd).norm();
+			Vector3 rayStart = (ToVector4(ro) * _shapeCache[ChildIter].invTransform).head<3>();
+			Vector3 rayUnitEnd = (ToVector4(ro+rd) * _shapeCache[ChildIter].invTransform).head<3>();
+			rayScalars[ChildIter] = 1.0f / (rayUnitEnd - rayStart).norm();
 		}
 
 		float t = 0; // current distance traveled along ray
 
-		for (int32_t Iter = 0; Iter < 64; ++Iter)
+		for (int32_t Iter = 0; Iter < 32; ++Iter)
 		{
 			Vector3 p = ro + rd * t;
 
@@ -137,9 +151,8 @@ namespace SPP
 				SE_ASSERT(_children[ChildIter]);
 				auto childShape = dynamic_cast<OShape*>(_children[ChildIter]);
 
-				Vector4 localP4 = Vector4(p[0], p[1], p[2], 1.0f) * _shapeCache[ChildIter].invTransform;
-				Vector3 localP(localP4[0], localP4[1], localP4[2]);
-				float cD = 0;
+				Vector3 localP = (ToVector4(p) * _shapeCache[ChildIter].invTransform).head<3>();
+				float cD = 1e10;
 
 				switch (childShape->GetShapeType())
 				{
@@ -156,13 +169,13 @@ namespace SPP
 				switch (childShape->GetShapeOp())
 				{
 				case EShapeOp::Add:
-					d = opUnion(d, cD);
+					d = opUnion(cD, d);
 					break;
 				case EShapeOp::Intersect:
-					d = opIntersection(d, cD);
+					d = opIntersection(cD, d);
 					break;
 				case EShapeOp::Subtract:
-					d = opSubtraction(d, cD);
+					d = opSubtraction(cD, d);
 					break;
 				}
 			}
@@ -171,6 +184,12 @@ namespace SPP
 			{
 				return true;
 			}
+
+			if( d > 10000 )
+			{
+				return false;
+			}
+
 			t += d;
 		}
 

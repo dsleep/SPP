@@ -40,6 +40,7 @@ namespace SPP
 
 	void OElement::AddedToScene(class OScene* InScene)
 	{
+		_scene = InScene;
 		for (auto& curChild : _children)
 		{
 			curChild->AddedToScene(InScene);
@@ -48,6 +49,7 @@ namespace SPP
 
 	void OElement::RemovedFromScene()
 	{
+		_scene = nullptr;
 		for (auto& curChild : _children)
 		{
 			curChild->RemovedFromScene();
@@ -94,6 +96,18 @@ namespace SPP
 		}
 	}
 
+	OElement* OElement::GetTopBeforeScene()
+	{
+		if (_parent == _scene || _parent == nullptr)
+		{
+			return this;
+		}
+		else 
+		{
+			return _parent->GetTopBeforeScene();
+		}
+	}
+
 	Matrix4x4 OElement::GenerateLocalToWorld(bool bSkipTopTranslation) const
 	{
 		Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_rotation);
@@ -106,13 +120,13 @@ namespace SPP
 
 		Matrix4x4 transform = Matrix4x4::Identity();
 		transform.block<3, 3>(0, 0) = scaleMatrix * rotationMatrix;
-		transform.block<1, 3>(3, 0) = (bSkipTopTranslation && _parent == nullptr) ?
+		transform.block<1, 3>(3, 0) = (bSkipTopTranslation && _parent == _scene) ?
 			Vector3(0, 0, 0) :
 			Vector3(_translation[0], _translation[1], _translation[2]);
 
 		if (_parent)
 		{
-			transform = transform * _parent->GenerateLocalToWorld();
+			transform = transform * _parent->GenerateLocalToWorld(bSkipTopTranslation);
 		}
 
 		return transform;

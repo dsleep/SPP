@@ -3,9 +3,7 @@
 struct VertexShaderInput
 {
 	[[vk::location(0)]] float3 position		: POSITION;
-	[[vk::location(1)]] float3 normal		: NORMAL;
-	[[vk::location(2)]] float2 texcoord 	: TEXCOORD;
-	[[vk::location(3)]] float3 color		: COLOR0;
+	[[vk::location(1)]] float3 color		: COLOR0;
 };
 
 struct PixelShaderInput

@@ -45,6 +45,7 @@ namespace SPP
 		Vector3 _scale = { 1.0f, 1.0f, 1.0f };
 		OctreeLinkPtr _octreeLink = nullptr;
 
+		class OScene* _scene = nullptr;
 		class OElement* _parent = nullptr;
 		std::vector<OElement*> _children;
 
@@ -92,6 +93,7 @@ namespace SPP
 		{
 			return _parent;
 		}
+		OElement* GetTopBeforeScene();
 		OElement* GetTop();
 		Matrix4x4 GenerateLocalToWorld(bool bSkipTopTranslation = false) const;
 
