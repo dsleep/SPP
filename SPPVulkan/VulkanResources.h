@@ -23,7 +23,7 @@
 
 namespace SPP
 {
-	class SafeVkCommandBuffer
+	class SafeVkCommandBuffer : public GPUResource
 	{
 	private:
 		VkDevice _owningDevice = nullptr;
@@ -52,7 +52,7 @@ namespace SPP
 	};
 
 	template<typename ResourceType>
-	class SafeVkResource
+	class SafeVkResource : public GPUResource
 	{
 	protected:
 		VkDevice _owningDevice = nullptr;
@@ -106,14 +106,11 @@ namespace SPP
 		}
 	};
 
-	class SafeVkDeviceMemory
+	class SafeVkDeviceMemory : public SafeVkResource< VkDeviceMemory >
 	{
-	private:
-		VkDevice _owningDevice = nullptr;
-		VkDeviceMemory _resource = nullptr;
-
 	public:
-		SafeVkDeviceMemory(VkDevice InDevice, const VkMemoryAllocateInfo& info)
+		SafeVkDeviceMemory(VkDevice InDevice, const VkMemoryAllocateInfo& info) :
+			SafeVkResource< VkDeviceMemory >(InDevice)
 		{
 			SE_ASSERT(_resource == nullptr);
 			_owningDevice = InDevice;
@@ -134,14 +131,11 @@ namespace SPP
 		}
 	};
 
-	class SafeVkImageView
+	class SafeVkImageView : public SafeVkResource< VkImageView >
 	{
-	private:
-		VkDevice _owningDevice = nullptr;
-		VkImageView _resource = nullptr;
-
 	public:
-		SafeVkImageView(VkDevice InDevice, const VkImageViewCreateInfo& info)
+		SafeVkImageView(VkDevice InDevice, const VkImageViewCreateInfo& info) :
+			SafeVkResource< VkImageView >(InDevice)
 		{
 			SE_ASSERT(_resource == nullptr);
 			_owningDevice = InDevice;
@@ -219,8 +213,8 @@ namespace SPP
 
 	struct SafeVkCommandAndFence
 	{
-		std::unique_ptr<SafeVkFence> fence;
-		std::unique_ptr<SafeVkCommandBuffer> cmdBuf;
+		GPUReferencer<SafeVkFence> fence;
+		GPUReferencer<SafeVkCommandBuffer> cmdBuf;
 		bool bHasBegun = false;
 	};	
 }   

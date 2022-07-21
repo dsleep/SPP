@@ -32,9 +32,9 @@ namespace SPP
 	{
 		NO_COPY_ALLOWED(FramebufferAttachment)
 
-		std::unique_ptr<SafeVkImage> image;
-		std::unique_ptr<SafeVkDeviceMemory> memory;
-		std::unique_ptr<SafeVkImageView> view;
+		GPUReferencer<SafeVkImage> image;
+		GPUReferencer<SafeVkDeviceMemory> memory;
+		GPUReferencer<SafeVkImageView> view;
 
 		VkFormat format;
 		VkImageSubresourceRange subresourceRange;
@@ -81,11 +81,11 @@ namespace SPP
 	public:
 		uint32_t width, height;
 
-		std::unique_ptr<SafeVkFrameBuffer> framebuffer;
+		GPUReferencer<SafeVkFrameBuffer> framebuffer;
 		std::list<FramebufferAttachment> attachments;
 
-		std::unique_ptr<SafeVkRenderPass>  renderPass;
-		std::unique_ptr<SafeVkSampler> sampler;
+		GPUReferencer<SafeVkRenderPass>  renderPass;
+		GPUReferencer<SafeVkSampler> sampler;
 
 		/**
 		* Default constructor

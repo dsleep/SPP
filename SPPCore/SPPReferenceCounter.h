@@ -56,12 +56,18 @@ namespace SPP
             }
         }
     };
+
     class ReferenceCounted
     {
+    protected:
         uint32_t _refCnt = 0;
 
-    public:
+        virtual void NoMoreReferences()
+        {
+            delete this;
+        }
 
+    public:
         uint32_t incRefCnt()
         {
             return ++_refCnt;
@@ -82,7 +88,7 @@ namespace SPP
 
         virtual void DestroyObject()
         {
-            delete obj;
+            obj->NoMoreReferences();
             obj = nullptr;
         }
 

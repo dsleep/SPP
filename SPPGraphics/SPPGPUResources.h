@@ -179,14 +179,21 @@ namespace SPP
     protected:
         bool _gpuResident = false;
 
-        virtual void _MakeResident() = 0;
-        virtual void _MakeUnresident() = 0;
+        virtual void _MakeResident() {}
+        virtual void _MakeUnresident() {}
 
     public:
         GPUResource();
         virtual ~GPUResource();
 
-        virtual const char* GetName() const = 0;      
+        virtual void NoMoreReferences()
+        {
+            delete this;
+        }
+
+        virtual const char* GetName() const {
+            return "GPUResource";
+        }
        
         void MakeResident()
         {
@@ -197,6 +204,7 @@ namespace SPP
                 _gpuResident = true;
             }
         }
+
         void MakeUnresident()
         {
             SE_ASSERT(IsOnGPUThread());

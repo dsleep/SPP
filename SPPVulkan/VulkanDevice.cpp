@@ -433,7 +433,6 @@ namespace SPP
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
 		{
-			GPUThreadIDOverride tempOverride;
 			auto textureData = std::make_shared< ArrayResource >();
 			auto textureAccess = textureData->InitializeFromType<Color4>(128 * 128);
 
@@ -443,7 +442,6 @@ namespace SPP
 				textureAccess[Iter][3] = 255;
 			}
 			_defaultTexture = Vulkan_CreateTexture(128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
-
 		}
 
 		return true;
@@ -530,7 +528,7 @@ namespace SPP
 
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_waitFences[Iter].reset(new SafeVkFence(device, fenceCreateInfo));
+			_waitFences[Iter] = Make_GPU<SafeVkFence>(device, fenceCreateInfo);
 		}
 	}
 
@@ -640,9 +638,9 @@ namespace SPP
 		// Create one command buffer for each swap chain image and reuse for rendering
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_drawCmdBuffers[Iter].reset(new SafeVkCommandBuffer(device, cmdBufAllocateInfo));
-			_copyCmdBuffers[Iter].cmdBuf.reset(new SafeVkCommandBuffer(device, cmdBufAllocateInfo));
-			_copyCmdBuffers[Iter].fence.reset(new SafeVkFence(device, fenceInfo));
+			_drawCmdBuffers[Iter] = Make_GPU<SafeVkCommandBuffer>(device, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].cmdBuf = Make_GPU<SafeVkCommandBuffer>(device, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].fence = Make_GPU<SafeVkFence>(device, fenceInfo);
 		}
 	}
 
@@ -650,12 +648,12 @@ namespace SPP
 	{
 		for (auto& curBuf : _drawCmdBuffers)
 		{
-			curBuf.reset();
+			curBuf.Reset();
 		}
 		for (auto& curCopy : _copyCmdBuffers)
 		{
-			curCopy.cmdBuf.reset();
-			curCopy.fence.reset();
+			curCopy.cmdBuf.Reset();
+			curCopy.fence.Reset();
 			curCopy.bHasBegun = false;
 		}
 	}
@@ -738,7 +736,7 @@ namespace SPP
 		for (uint32_t i = 0; i < swapChain.imageCount; i++)
 		{
 			attachments = swapChain.buffers[i].view;
-			_frameBuffers[i].reset(new SafeVkFrameBuffer(device, frameBufferCreateInfo));
+			_frameBuffers[i] = Make_GPU< SafeVkFrameBuffer >(device, frameBufferCreateInfo);
 		}
 	}
 
@@ -746,7 +744,7 @@ namespace SPP
 	{
 		for (auto& curBuffer : _frameBuffers)
 		{
-			curBuffer.reset();
+			curBuffer.Reset();
 		}
 	}
 
@@ -762,6 +760,8 @@ namespace SPP
 
 	void VulkanGraphicsDevice::Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
 	{
+		GPUThreadIDOverride tempOverride;
+
 #if PLATFORM_WINDOWS
 		window = (HWND)OSWindow;
 		windowInstance = GetModuleHandle(NULL);
@@ -819,7 +819,6 @@ namespace SPP
 #endif
 		//IMGUI
 		{
-			GPUThreadIDOverride tempOverride;
 
 #if ALLOW_IMGUI
 			ImGui_ImplVulkan_Init(&initInfo, renderPass);
@@ -866,6 +865,7 @@ namespace SPP
 	{
 		return width;
 	}
+
 	int32_t VulkanGraphicsDevice::GetDeviceHeight() const
 	{
 		return height;

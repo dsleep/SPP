@@ -162,9 +162,9 @@ namespace SPP
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
 		// List of available frame buffers (same as number of swap chain images)
-		std::array< std::unique_ptr<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
+		std::array< GPUReferencer<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
 		// Command buffers used for rendering
-		std::array< std::unique_ptr<SafeVkCommandBuffer>, MAX_IN_FLIGHT > _drawCmdBuffers;
+		std::array< GPUReferencer<SafeVkCommandBuffer>, MAX_IN_FLIGHT > _drawCmdBuffers;
 		std::array< SafeVkCommandAndFence, MAX_IN_FLIGHT > _copyCmdBuffers;
 
 		std::atomic_bool bDrawPhase{ false };
@@ -187,12 +187,12 @@ namespace SPP
 			VkSemaphore renderComplete;
 		} semaphores;
 
-		std::array< std::unique_ptr<SafeVkFence>, MAX_IN_FLIGHT > _waitFences;
+		std::array< GPUReferencer<SafeVkFence>, MAX_IN_FLIGHT > _waitFences;
 
 		struct {
-			std::unique_ptr<SafeVkImage> image;
-			std::unique_ptr<SafeVkDeviceMemory> mem;
-			std::unique_ptr<SafeVkImageView> view;
+			GPUReferencer<SafeVkImage> image;
+			GPUReferencer<SafeVkDeviceMemory> mem;
+			GPUReferencer<SafeVkImageView> view;
 		} depthStencil;
 
 		/** @brief Encapsulated physical and logical vulkan device */
