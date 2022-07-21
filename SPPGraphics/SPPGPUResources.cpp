@@ -49,8 +49,7 @@ namespace SPP
 
 	GPUResource* InternalLinkedList<GPUResource>::_root = nullptr;
 
-
-	GPUResource::GPUResource() : InternalLinkedList<GPUResource>()
+	GPUResource::GPUResource(GraphicsDevice* InOwner) : _owner(InOwner), InternalLinkedList<GPUResource>()
 	{
 		SE_ASSERT(IsOnGPUThread());
 	}
@@ -85,8 +84,9 @@ namespace SPP
 	static uint32_t GHighestTextureID = 0;
 	static std::list<uint32_t> GTextureAvailIDs;
 
-	GPUTexture::GPUTexture(int32_t Width, int32_t Height, TextureFormat Format, 
+	GPUTexture::GPUTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format,
 		std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) :
+		GPUResource(InOwner),
 		_width(Width), _height(Height), _format(Format), _rawImgData(RawData), _metaInfo(InMetaInfo)
 	{
 		if (!GTextureAvailIDs.empty())

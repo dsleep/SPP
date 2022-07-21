@@ -11,7 +11,7 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	VulkanBuffer::VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InType, InCpuData)
+	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InOwner, InType, InCpuData)
 	{ 
 		SE_ASSERT(InCpuData);
 		_size = InCpuData->GetTotalSize();
@@ -124,9 +124,9 @@ namespace SPP
 	}
 
 	//TODO FIX UP THESE
-	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		return Make_GPU<VulkanBuffer>(InType, InCpuData);
+		return Make_GPU<VulkanBuffer>(InOwner, InType, InCpuData);
 	}
 
 	//

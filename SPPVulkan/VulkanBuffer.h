@@ -30,7 +30,7 @@ namespace SPP
 		virtual void _MakeUnresident() override {}
 
 	public:
-		VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 
 		virtual ~VulkanBuffer();
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
@@ -82,5 +82,5 @@ namespace SPP
 		void FrameCompleted(uint8_t FrameIdx);
 	};
 
-	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 }

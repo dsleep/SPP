@@ -171,19 +171,20 @@ namespace SPP
     {
         return GPUReferencer<T>(new T(args...));
     }
-
+    
     class SPP_GRAPHICS_API GPUResource : public ReferenceCounted, public InternalLinkedList<GPUResource>
     {
         NO_COPY_ALLOWED(GPUResource);
 
     protected:
         bool _gpuResident = false;
+        GraphicsDevice* _owner = nullptr;
 
         virtual void _MakeResident() {}
         virtual void _MakeUnresident() {}
 
     public:
-        GPUResource();
+        GPUResource(GraphicsDevice* InOwner);
         virtual ~GPUResource();
 
         virtual void NoMoreReferences()
@@ -247,7 +248,7 @@ namespace SPP
         std::string _entryPoint;
 
     public:
-        GPUShader(EShaderType InType) : _type(InType)
+        GPUShader(GraphicsDevice* InOwner, EShaderType InType) : GPUResource(InOwner), _type(InType)
         {
 
         }
@@ -295,7 +296,8 @@ namespace SPP
         uint32_t _uniqueID = 0;
 
     public:
-        GPUTexture(int32_t Width, int32_t Height, TextureFormat Format,
+        GPUTexture(GraphicsDevice* InOwner, 
+            int32_t Width, int32_t Height, TextureFormat Format,
             std::shared_ptr< ArrayResource > RawData = nullptr, 
             std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
         virtual ~GPUTexture();
@@ -315,7 +317,7 @@ namespace SPP
         std::shared_ptr< ArrayResource > _cpuLink;
 
     public:
-        GPUBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : _type(InType), _cpuLink(InCpuData) {}
+        GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUResource(InOwner), _type(InType), _cpuLink(InCpuData) {}
 
         size_t GetDataSize() const
         {
@@ -437,7 +439,7 @@ namespace SPP
     class SPP_GRAPHICS_API GPUInputLayout : public GPUResource
     {
     public:
-        GPUInputLayout()
+        GPUInputLayout(GraphicsDevice* InOwner) : GPUResource(InOwner)
         {
 
         }
@@ -456,13 +458,16 @@ namespace SPP
     class SPP_GRAPHICS_API PipelineState : public GPUResource
     {
     public:
+        PipelineState(GraphicsDevice* InOwner) :
+            GPUResource(InOwner) { }
+        virtual ~PipelineState() { }
     };
 
     class SPP_GRAPHICS_API GPURenderTarget : public GPUTexture
     {
     public:
-        GPURenderTarget(int32_t Width, int32_t Height, TextureFormat Format) : 
-            GPUTexture(Width, Height, Format) { }
+        GPURenderTarget(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) :
+            GPUTexture(InOwner, Width, Height, Format) { }
         virtual ~GPURenderTarget() { }
     };
 

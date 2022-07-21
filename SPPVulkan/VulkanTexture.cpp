@@ -513,8 +513,8 @@ namespace SPP
 		updateDescriptor();
 	}
 
-	VulkanTexture::VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
-		: GPUTexture(Width, Height, Format, RawData, InMetaInfo)
+	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
+		: GPUTexture(InOwner, Width, Height, Format, RawData, InMetaInfo)
 	{
 		fromBuffer(RawData->GetElementData(), RawData->GetTotalSize(), VK_FORMAT_R8G8B8A8_UNORM,
 			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetDeviceQueue());
@@ -944,8 +944,8 @@ namespace SPP
 	//	updateDescriptor();
 	//}
 
-	GPUReferencer< VulkanTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
+	GPUReferencer< VulkanTexture > Vulkan_CreateTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
 	{
-		return Make_GPU<VulkanTexture>(Width, Height, Format, RawData, InMetaInfo);
+		return Make_GPU<VulkanTexture>(InOwner, Width, Height, Format, RawData, InMetaInfo);
 	}
 }

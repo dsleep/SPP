@@ -32,6 +32,7 @@ target_sources(SPPVulkan
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.h"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.cpp"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.h"

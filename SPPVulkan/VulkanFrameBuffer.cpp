@@ -57,7 +57,7 @@ namespace SPP
 		return(hasDepth() || hasStencil());
 	}
 
-	VulkanFramebuffer::VulkanFramebuffer(vks::VulkanDevice* vulkanDevice)
+	VulkanFramebuffer::VulkanFramebuffer(GraphicsDevice* InOwner, vks::VulkanDevice* vulkanDevice) : _owner(InOwner)
 	{
 		assert(vulkanDevice);
 		this->vulkanDevice = vulkanDevice;
@@ -127,12 +127,12 @@ namespace SPP
 		VkMemoryRequirements memReqs;
 
 		// Create image for this attachment
-		attachment.image = Make_GPU<SafeVkImage>(vulkanDevice->logicalDevice, image);
+		attachment.image = Make_GPU<SafeVkImage>(_owner, image);
 		vkGetImageMemoryRequirements(vulkanDevice->logicalDevice, attachment.image->Get(), &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		attachment.memory = Make_GPU<SafeVkDeviceMemory>(vulkanDevice->logicalDevice, memAlloc);
+		attachment.memory = Make_GPU<SafeVkDeviceMemory>(_owner, memAlloc);
 		VK_CHECK_RESULT(vkBindImageMemory(vulkanDevice->logicalDevice, attachment.image->Get(), attachment.memory->Get(), 0));
 
 		attachment.subresourceRange = {};
@@ -148,7 +148,7 @@ namespace SPP
 		imageView.subresourceRange.aspectMask = (attachment.hasDepth()) ? VK_IMAGE_ASPECT_DEPTH_BIT : aspectMask;
 		imageView.image = attachment.image->Get();
 
-		attachment.view = Make_GPU<SafeVkImageView>(vulkanDevice->logicalDevice, imageView);
+		attachment.view = Make_GPU<SafeVkImageView>(_owner, imageView);
 
 		// Fill attachment description
 		attachment.description = {};
@@ -191,7 +191,7 @@ namespace SPP
 		samplerInfo.maxLod = 1.0f;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-		sampler = Make_GPU<SafeVkSampler>(vulkanDevice->logicalDevice, samplerInfo);
+		sampler = Make_GPU<SafeVkSampler>(_owner, samplerInfo);
 	}
 
 	VkFrameData VulkanFramebuffer::GetFrameData()
@@ -290,7 +290,7 @@ namespace SPP
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
-		renderPass = Make_GPU<SafeVkRenderPass>(vulkanDevice->logicalDevice, renderPassInfo);
+		renderPass = Make_GPU<SafeVkRenderPass>(_owner, renderPassInfo);
 
 		std::vector<VkImageView> attachmentViews;
 		for (auto& attachment : attachments)
@@ -316,7 +316,7 @@ namespace SPP
 		framebufferInfo.width = width;
 		framebufferInfo.height = height;
 		framebufferInfo.layers = maxLayers;
-		framebuffer = Make_GPU<SafeVkFrameBuffer>(vulkanDevice->logicalDevice, framebufferInfo);
+		framebuffer = Make_GPU<SafeVkFrameBuffer>(_owner, framebufferInfo);
 
 		return VK_SUCCESS;
 	}

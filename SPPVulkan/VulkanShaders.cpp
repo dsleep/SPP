@@ -42,7 +42,7 @@ namespace SPP
 		return "none";
 	}
 
-	VulkanShader::VulkanShader(EShaderType InType) : GPUShader(InType)
+	VulkanShader::VulkanShader(GraphicsDevice* InOwner, EShaderType InType) : GPUShader(InOwner,InType)
 	{
 		SE_ASSERT(InType == EShaderType::Pixel || InType == EShaderType::Vertex || InType == EShaderType::Compute);
 	}
@@ -311,8 +311,8 @@ namespace SPP
 		return false;
 	}
 
-	GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType)
+	GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice* InOwner, EShaderType InType)
 	{
-		return Make_GPU< VulkanShader >(InType);
+		return Make_GPU< VulkanShader >(InOwner, InType);
 	}
 }

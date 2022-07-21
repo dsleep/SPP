@@ -23,6 +23,8 @@
 
 namespace SPP
 {
+	class VulkanGraphicsDevice;
+
 	class SafeVkCommandBuffer : public GPUResource
 	{
 	private:
@@ -31,20 +33,8 @@ namespace SPP
 		VkCommandPool _owningPool = nullptr;
 
 	public:
-		SafeVkCommandBuffer(VkDevice InDevice, const VkCommandBufferAllocateInfo& info)
-		{
-			SE_ASSERT(_cmdBuf == nullptr);
-			_owningDevice = InDevice;
-			_owningPool = info.commandPool;
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(_owningDevice, &info, &_cmdBuf));
-		}
-		~SafeVkCommandBuffer()
-		{
-			if (_cmdBuf)
-			{
-				vkFreeCommandBuffers(_owningDevice, _owningPool, 1, &_cmdBuf);
-			}
-		}
+		SafeVkCommandBuffer(GraphicsDevice* InOwner, const VkCommandBufferAllocateInfo& info);
+		~SafeVkCommandBuffer();
 		VkCommandBuffer &Get()
 		{
 			return _cmdBuf;
@@ -59,11 +49,13 @@ namespace SPP
 		ResourceType _resource = nullptr;
 
 	public:
-		SafeVkResource(VkDevice InDevice) : _owningDevice(InDevice)
+		SafeVkResource(GraphicsDevice* InOwner) : GPUResource(InOwner)
 		{
-			SE_ASSERT(InDevice);
+			auto vulkanDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+			_owningDevice = vulkanDevice->GetDevice();
+			SE_ASSERT(_owningDevice);
 		}
-		~SafeVkResource() { _owningDevice = nullptr; }
+		virtual ~SafeVkResource() { _owningDevice = nullptr; }
 		ResourceType& Get()
 		{
 			return _resource;
@@ -73,8 +65,8 @@ namespace SPP
 	class SafeVkFence : public SafeVkResource< VkFence >
 	{	
 	public:
-		SafeVkFence(VkDevice InDevice, const VkFenceCreateInfo &info) :
-			SafeVkResource< VkFence >(InDevice)
+		SafeVkFence(GraphicsDevice* InOwner, const VkFenceCreateInfo &info) :
+			SafeVkResource< VkFence >(InOwner)
 		{
 			VK_CHECK_RESULT(vkCreateFence(_owningDevice, &info, nullptr, &_resource));
 		}
@@ -91,8 +83,8 @@ namespace SPP
 	class SafeVkImage : public SafeVkResource< VkImage >
 	{
 	public:
-		SafeVkImage(VkDevice InDevice, const VkImageCreateInfo& info) :
-			SafeVkResource< VkImage >(InDevice)
+		SafeVkImage(GraphicsDevice* InOwner, const VkImageCreateInfo& info) :
+			SafeVkResource< VkImage >(InOwner)
 		{
 			VK_CHECK_RESULT(vkCreateImage(_owningDevice, &info, nullptr, &_resource));
 		}
@@ -109,11 +101,10 @@ namespace SPP
 	class SafeVkDeviceMemory : public SafeVkResource< VkDeviceMemory >
 	{
 	public:
-		SafeVkDeviceMemory(VkDevice InDevice, const VkMemoryAllocateInfo& info) :
-			SafeVkResource< VkDeviceMemory >(InDevice)
+		SafeVkDeviceMemory(GraphicsDevice* InOwner, const VkMemoryAllocateInfo& info) :
+			SafeVkResource< VkDeviceMemory >(InOwner)
 		{
 			SE_ASSERT(_resource == nullptr);
-			_owningDevice = InDevice;
 			VK_CHECK_RESULT(vkAllocateMemory(_owningDevice, &info, nullptr, &_resource));
 		}
 		~SafeVkDeviceMemory()
@@ -134,11 +125,10 @@ namespace SPP
 	class SafeVkImageView : public SafeVkResource< VkImageView >
 	{
 	public:
-		SafeVkImageView(VkDevice InDevice, const VkImageViewCreateInfo& info) :
-			SafeVkResource< VkImageView >(InDevice)
+		SafeVkImageView(GraphicsDevice* InOwner, const VkImageViewCreateInfo& info) :
+			SafeVkResource< VkImageView >(InOwner)
 		{
 			SE_ASSERT(_resource == nullptr);
-			_owningDevice = InDevice;
 			VK_CHECK_RESULT(vkCreateImageView(_owningDevice, &info, nullptr, &_resource));
 		}
 		~SafeVkImageView()
@@ -159,8 +149,8 @@ namespace SPP
 	class SafeVkFrameBuffer : public SafeVkResource< VkFramebuffer >
 	{
 	public:
-		SafeVkFrameBuffer(VkDevice InDevice, const VkFramebufferCreateInfo& info) : 
-			SafeVkResource< VkFramebuffer >(InDevice)
+		SafeVkFrameBuffer(GraphicsDevice* InOwner, const VkFramebufferCreateInfo& info) :
+			SafeVkResource< VkFramebuffer >(InOwner)
 		{
 			VK_CHECK_RESULT(vkCreateFramebuffer(_owningDevice, &info, nullptr, &_resource));
 		}
@@ -177,8 +167,8 @@ namespace SPP
 	class SafeVkRenderPass : public SafeVkResource< VkRenderPass >
 	{
 	public:
-		SafeVkRenderPass(VkDevice InDevice, const VkRenderPassCreateInfo& info) :
-			SafeVkResource< VkRenderPass >(InDevice)
+		SafeVkRenderPass(GraphicsDevice* InOwner, const VkRenderPassCreateInfo& info) :
+			SafeVkResource< VkRenderPass >(InOwner)
 		{
 			VK_CHECK_RESULT(vkCreateRenderPass(_owningDevice, &info, nullptr, &_resource));
 		}
@@ -195,8 +185,8 @@ namespace SPP
 	class SafeVkSampler : public SafeVkResource< VkSampler >
 	{
 	public:
-		SafeVkSampler(VkDevice InDevice, const VkSamplerCreateInfo& info) :
-			SafeVkResource< VkSampler >(InDevice)
+		SafeVkSampler(GraphicsDevice* InOwner, const VkSamplerCreateInfo& info) :
+			SafeVkResource< VkSampler >(InOwner)
 		{
 			VK_CHECK_RESULT(vkCreateSampler(_owningDevice, &info, nullptr, &_resource));
 		}
@@ -209,7 +199,6 @@ namespace SPP
 			}
 		}
 	};
-
 
 	struct SafeVkCommandAndFence
 	{

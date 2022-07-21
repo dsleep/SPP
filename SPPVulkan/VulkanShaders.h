@@ -24,7 +24,7 @@ namespace SPP
 		virtual void _MakeUnresident() override {}
 
 	public:
-		VulkanShader(EShaderType InType);
+		VulkanShader(GraphicsDevice* InOwner, EShaderType InType);
 
 		VkShaderModule GetModule() const {
 			return _shader;

@@ -21,7 +21,7 @@ namespace SPP
 	extern LogEntry LOG_VULKAN;
 
 	// lazy externs
-	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	
 	class VulkanSDF : public GD_RenderableSignedDistanceField
 	{
@@ -65,7 +65,8 @@ namespace SPP
 			_CS->Initialize(EShaderType::Compute);
 			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 
-			_PSO = GetVulkanPipelineState(EBlendState::Disabled,
+			_PSO = GetVulkanPipelineState(InOwner,
+				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
 				EDrawingTopology::TriangleList,
@@ -117,20 +118,20 @@ namespace SPP
 			_shapeResource = std::make_shared< ArrayResource >();
 			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
 			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
-			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
+			_shapeBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Array, _shapeResource);
 
 			_drawParams = std::make_shared< ArrayResource >();
 			auto pDrawParams = _drawParams->InitializeFromType< GPUDrawParams >(1);
 			pDrawParams[0].ShapeColor = Vector3(1, 0, 0);
 			pDrawParams[0].ShapeCount = _shapes.size();
-			_drawParamsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawParams);
+			_drawParamsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawParams);
 
 			_drawConstants = std::make_shared< ArrayResource >();
 			auto uniformData = _drawConstants->InitializeFromType<GPUDrawConstants>(1);
 			auto& curData = uniformData[0];
 			curData.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.Translation = _position;
-			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawConstants);
 			bPendingUpdate = false;
 
 			//if (_customShader)

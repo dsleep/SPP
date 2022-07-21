@@ -19,9 +19,9 @@ namespace SPP
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 	// lazy externs
-	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
-	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout();
+	extern GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice* InOwner, EShaderType InType);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner);
 
 	static Vector3d HACKS_CameraPos;
 
@@ -36,13 +36,13 @@ namespace SPP
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
-			_fullscreenColorVS = Vulkan_CreateShader(EShaderType::Vertex);
+			_fullscreenColorVS = Vulkan_CreateShader(InOwner, EShaderType::Vertex);
 			_fullscreenColorVS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_vs");
 
-			_fullscreenColorPS = Vulkan_CreateShader(EShaderType::Pixel);
+			_fullscreenColorPS = Vulkan_CreateShader(InOwner, EShaderType::Pixel);
 			_fullscreenColorPS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_ps");
 
-			_fullscreenColorLayout = Vulkan_CreateInputLayout();
+			_fullscreenColorLayout = Vulkan_CreateInputLayout(InOwner);
 
 			{
 				auto& vulkanInputLayout = _fullscreenColorLayout->GetAs<VulkanInputLayout>();
@@ -52,7 +52,7 @@ namespace SPP
 
 			auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
 
-			auto vulkPSO = Make_GPU< VulkanPipelineState >();
+			auto vulkPSO = Make_GPU< VulkanPipelineState >(InOwner);
 			vulkPSO->ManualSetRenderPass(backbufferFrameData.renderPass);
 			_fullscreenColorPSO = vulkPSO;
 			vulkPSO->Initialize(EBlendState::Disabled,
@@ -145,23 +145,24 @@ namespace SPP
 		//_debugBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
 
 		//
-		_fullscreenRayVS = Vulkan_CreateShader(EShaderType::Vertex);
+		_fullscreenRayVS = Vulkan_CreateShader(_owner, EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
-		_fullscreenRaySDFPS = Vulkan_CreateShader(EShaderType::Pixel);
+		_fullscreenRaySDFPS = Vulkan_CreateShader(_owner, EShaderType::Pixel);
 		_fullscreenRaySDFPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
 		//_fullscreenRaySkyBoxPS = Vulkan_CreateShader(EShaderType::Pixel);
 		//_fullscreenRaySkyBoxPS->CompileShaderFromFile("shaders/fullScreenRayCubemapPS.hlsl", "main_ps");
 
-		_fullscreenRayVSLayout = Vulkan_CreateInputLayout();
+		_fullscreenRayVSLayout = Vulkan_CreateInputLayout(_owner);
 
 		{
 			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();
 			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
-		_fullscreenRaySDFPSO = GetVulkanPipelineState(EBlendState::Disabled,
+		_fullscreenRaySDFPSO = GetVulkanPipelineState(_owner,
+			EBlendState::Disabled,
 			ERasterizerState::NoCull,
 			EDepthState::Enabled,
 			EDrawingTopology::TriangleStrip,
@@ -199,19 +200,19 @@ namespace SPP
 
 		_cameraData = std::make_shared< ArrayResource >();
 		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
-		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _cameraData);
+		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
 
 		_drawConstants = std::make_shared< ArrayResource >();
 		_drawConstants->InitializeFromType< GPUDrawConstants >(InFlightFrames);
-		_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
+		_drawConstantsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawConstants);
 
 		_drawParams = std::make_shared< ArrayResource >();
 		_drawParams->InitializeFromType< GPUDrawParams >(InFlightFrames);
-		_drawParamsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawParams);
+		_drawParamsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawParams);
 
 		_shapes = std::make_shared< ArrayResource >();
 		_shapes->InitializeFromType< SDFShape >(InFlightFrames);
-		_shapesBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _drawParams);
+		_shapesBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Array, _drawParams);
 
 
 		//

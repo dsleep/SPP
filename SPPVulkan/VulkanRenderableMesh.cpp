@@ -20,9 +20,10 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout();;
+	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner);
 
-	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(EBlendState InBlendState,
+	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
+		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
@@ -82,7 +83,7 @@ namespace SPP
 
 			SE_ASSERT(vsRef && psRef);
 
-			return GetVulkanPipelineState(
+			return GetVulkanPipelineState(_owner,
 				_blendState,
 				_rasterizerState,
 				_depthState,
@@ -123,7 +124,7 @@ namespace SPP
 	{
 		GD_StaticMesh::Initialize();
 
-		_layout = Vulkan_CreateInputLayout();
+		_layout = Vulkan_CreateInputLayout(_owner);
 		_layout->InitializeLayout(_vertexStreams);		
 	}
 
@@ -173,7 +174,7 @@ namespace SPP
 			auto& curData = uniformData[0];
 			curData.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.Translation = _position;
-			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawConstants);
 			bPendingUpdate = false;
 		}
 	}

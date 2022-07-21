@@ -87,13 +87,13 @@ namespace SPP
 		.pfnInternalFree = vkInternalFreeNotification
 	};
 
-	extern GPUReferencer< GPUShader > Vulkan_CreateShader(EShaderType InType);
-	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+	extern GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice *InOwner, EShaderType InType);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
-	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout()
+	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner)
 	{
-		return Make_GPU<VulkanInputLayout>();
+		return Make_GPU<VulkanInputLayout>(InOwner);
 	}
 
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
@@ -441,7 +441,7 @@ namespace SPP
 				textureAccess[Iter][1] = 255;
 				textureAccess[Iter][3] = 255;
 			}
-			_defaultTexture = Vulkan_CreateTexture(128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+			_defaultTexture = Vulkan_CreateTexture(this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
 		}
 
 		return true;
@@ -472,7 +472,7 @@ namespace SPP
 
 		_staticInstanceDrawInfoCPU = std::make_shared< ArrayResource >();
 		_staticInstanceDrawInfoSpan = _staticInstanceDrawInfoCPU->InitializeFromType< StaticDrawParams >(250000);
-		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
+		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(this, GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
 
 		_staticInstanceDrawLeaseManager = std::make_unique <  FrameTrackedLeaseManager< TSpan< StaticDrawParams > > >(_staticInstanceDrawInfoSpan);
 	}
@@ -528,7 +528,7 @@ namespace SPP
 
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_waitFences[Iter] = Make_GPU<SafeVkFence>(device, fenceCreateInfo);
+			_waitFences[Iter] = Make_GPU<SafeVkFence>(this, fenceCreateInfo);
 		}
 	}
 
@@ -555,7 +555,7 @@ namespace SPP
 	{
 		swapChain.create(&width, &height, settings.vsync);
 
-		_colorTarget = std::make_unique< VulkanFramebuffer >(vulkanDevice);
+		_colorTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice);
 		_colorTarget->addAttachment(
 			{
 				.width = width,
@@ -638,9 +638,9 @@ namespace SPP
 		// Create one command buffer for each swap chain image and reuse for rendering
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_drawCmdBuffers[Iter] = Make_GPU<SafeVkCommandBuffer>(device, cmdBufAllocateInfo);
-			_copyCmdBuffers[Iter].cmdBuf = Make_GPU<SafeVkCommandBuffer>(device, cmdBufAllocateInfo);
-			_copyCmdBuffers[Iter].fence = Make_GPU<SafeVkFence>(device, fenceInfo);
+			_drawCmdBuffers[Iter] = Make_GPU<SafeVkCommandBuffer>(this, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].cmdBuf = Make_GPU<SafeVkCommandBuffer>(this, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].fence = Make_GPU<SafeVkFence>(this, fenceInfo);
 		}
 	}
 
@@ -736,7 +736,7 @@ namespace SPP
 		for (uint32_t i = 0; i < swapChain.imageCount; i++)
 		{
 			attachments = swapChain.buffers[i].view;
-			_frameBuffers[i] = Make_GPU< SafeVkFrameBuffer >(device, frameBufferCreateInfo);
+			_frameBuffers[i] = Make_GPU< SafeVkFrameBuffer >(this, frameBufferCreateInfo);
 		}
 	}
 
@@ -1160,7 +1160,7 @@ namespace SPP
 	{
 	}
 
-	VulkanPipelineState::VulkanPipelineState() : PipelineState()
+	VulkanPipelineState::VulkanPipelineState(GraphicsDevice* InOwner) : PipelineState(InOwner)
 	{
 
 	}
@@ -1620,7 +1620,8 @@ namespace SPP
 
 	static std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > > PiplineStateMap;
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(EBlendState InBlendState,
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
@@ -1647,7 +1648,7 @@ namespace SPP
 
 		if (findKey == PiplineStateMap.end())
 		{
-			auto newPipelineState = Make_GPU< VulkanPipelineState >();
+			auto newPipelineState = Make_GPU< VulkanPipelineState >(InOwner);
 			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PiplineStateMap[key] = newPipelineState;
 			return newPipelineState;
@@ -1659,17 +1660,17 @@ namespace SPP
 
 	GPUReferencer< class GPUShader > VulkanGraphicsDevice::_gxCreateShader(EShaderType InType)
 	{
-		return Vulkan_CreateShader(InType);
+		return Vulkan_CreateShader(this, InType);
 	}
 
 	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		return Vulkan_CreateStaticBuffer(InType, InCpuData);
+		return Vulkan_CreateStaticBuffer(this, InType, InCpuData);
 	}
 
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) 
 	{
-		return Vulkan_CreateTexture(Width, Height, Format, RawData, InMetaInfo);
+		return Vulkan_CreateTexture(this, Width, Height, Format, RawData, InMetaInfo);
 	}
 
 	std::shared_ptr< class GD_Texture > VulkanGraphicsDevice::CreateTexture()

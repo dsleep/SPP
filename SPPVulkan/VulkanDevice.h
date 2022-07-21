@@ -66,6 +66,11 @@ namespace SPP
 		virtual void _MakeUnresident() override {}
 
 	public:
+		VulkanInputLayout(GraphicsDevice* InOwner) : GPUInputLayout(InOwner)
+		{
+		}
+
+
 		VkPipelineVertexInputStateCreateInfo& GetVertexInputState();
 		virtual ~VulkanInputLayout() 
 		{
@@ -393,7 +398,7 @@ namespace SPP
 		virtual void _MakeUnresident() override {}
 
 	public:
-		VulkanPipelineState();
+		VulkanPipelineState(GraphicsDevice* InOwner);
 		virtual ~VulkanPipelineState();
 
 		void ManualSetRenderPass(VkRenderPass InRenderPass)
@@ -436,7 +441,8 @@ namespace SPP
 			GPUReferencer< GPUShader> InCS);
 	};
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(EBlendState InBlendState,
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
+		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,

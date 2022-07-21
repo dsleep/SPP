@@ -77,6 +77,7 @@ namespace SPP
 	{
 	private:
 		vks::VulkanDevice *vulkanDevice;
+		class GraphicsDevice* _owner;
 
 	public:
 		uint32_t width, height;
@@ -92,7 +93,7 @@ namespace SPP
 		*
 		* @param vulkanDevice Pointer to a valid VulkanDevice
 		*/
-		VulkanFramebuffer(vks::VulkanDevice* vulkanDevice);
+		VulkanFramebuffer(class GraphicsDevice* InOwner, vks::VulkanDevice* vulkanDevice);
 
 		/**
 		* Destroy and free Vulkan resources used for the framebuffer and all of its attachments
