@@ -17,7 +17,7 @@ namespace SPP
 
 	static std::thread::id GPUThread;
 
-	void IntializeGraphics()
+	void IntializeGraphicsThread()
 	{
 		SPP_LOG(LOG_GRAPHICS, LOG_INFO, "IntializeGraphics");
 		GPUThreaPool = std::make_unique< ThreadPool >(1);
@@ -28,12 +28,16 @@ namespace SPP
 		isSet.wait();
 	}
 
+	void ShutdownGraphicsThread()
+	{
+		GPUThreaPool.reset();
+	}
+
 	bool IsOnGPUThread()
 	{
 		// make sure its an initialized one
-		SE_ASSERT(GPUThread != std::thread::id());
-		auto currentThreadID = std::this_thread::get_id();
-		return (GPUThread == currentThreadID);
+		return (GPUThread == std::this_thread::get_id()) ||
+			(GPUThread != std::thread::id());
 	}
 
 	GPUThreadIDOverride::GPUThreadIDOverride()

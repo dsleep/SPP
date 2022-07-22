@@ -45,6 +45,8 @@
 
 #include <condition_variable>
 
+#include "SPPGarbageCollection.h"
+
 #define MAX_LOADSTRING 100
 
 using namespace SPP;
@@ -285,7 +287,12 @@ public:
 			._msgLoop = [this]()
 			{
 				this->Update();
-			} };
+			},
+			._windowClosed = [this]()
+			{
+				this->ShutDown();
+			}
+		};
 		app->SetEvents(ourAppEvents);
 		auto ourInputEvents = InputEvents{
 			.keyDown = [this](uint8_t KeyValue) 
@@ -317,6 +324,28 @@ public:
 	void Run()
 	{
 		app->Run();
+	}
+
+	void ShutDown()
+	{
+		_gameworld->RemoveFromGraphicsDevice();
+
+		GC_MarkAndSweep();
+
+		auto isSet = GPUThreaPool->enqueue([]()
+			{
+				return true;
+			});
+		isSet.wait();
+
+		_graphicsDevice->Flush();
+		renderableSceneShared.reset();
+
+		_graphicsDevice->Shutdown();
+
+		_graphicsDevice.reset();
+
+		app.reset();
 	}
 
 	void Update()
@@ -543,7 +572,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	printf("Debugging Window:\n");
 
 	IntializeCore(std::wstring_to_utf8(lpCmdLine).c_str());
-	IntializeGraphics();	
+	IntializeGraphicsThread();
 
 	// setup global asset path
 	SPP::GRootPath = stdfs::absolute(stdfs::current_path() / "..\\").generic_string();

@@ -9,6 +9,7 @@
 #include "SPPString.h"
 #include "SPPSceneRendering.h"
 #include "ThreadPool.h"
+#include "SPPHandledTimers.h"
 
 #include <list>
 #include <mutex>		
@@ -129,7 +130,7 @@ namespace SPP
 		co_return;
 	}
 
-	void GraphicsDevice::PrepareScenesToDraw()
+	void GraphicsDevice::SyncGPUData()
 	{
 		SE_ASSERT(IsOnCPUThread());
 		for (auto& curScene : _renderScenes)
@@ -165,13 +166,25 @@ namespace SPP
 
 	void GraphicsDevice::RunFrame()
 	{
+		SE_ASSERT(IsOnCPUThread());
+
+		STDElapsedTimer priorFrame;
+
 		if (_currentFrame.valid())
 		{
 			_currentFrame.wait();
 		}
 
-		// tiny window in between gpu threah calls
-		PrepareScenesToDraw();
+		auto currentElapsedMS = priorFrame.getElapsedMilliseconds();
+		if (currentElapsedMS > 5)
+		{
+			SPP_QL( "_currentFrame long wait");
+		}
+
+		// tiny window in between gpu thread calls
+		// NOTE: gpu resources can still be in flight but CPU/GPU thread are
+		// temporarily in sync
+		SyncGPUData();
 
 		_currentFrame = GPUThreaPool->enqueue([this]()
 			{

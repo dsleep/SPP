@@ -12,8 +12,6 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner);
-
 	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
@@ -70,7 +68,7 @@ namespace SPP
 			_simplePS->Initialize(EShaderType::Pixel);
 			_simplePS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
 
-			_layout = Vulkan_CreateInputLayout(InOwner);
+			_layout = Make_GPU(VulkanInputLayout, InOwner); 
 			ColoredVertex dummyVert;
 			_layout->InitializeLayout(GetVertexStreams(dummyVert));
 

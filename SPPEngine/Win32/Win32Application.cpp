@@ -489,6 +489,11 @@ namespace SPP
 				}
 				else
 				{
+					if (_windowClosed)
+					{
+						_windowClosed();
+					}
+
 					return 0;
 				}
 			}

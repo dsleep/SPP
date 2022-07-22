@@ -91,11 +91,6 @@ namespace SPP
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
-	GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner)
-	{
-		return Make_GPU<VulkanInputLayout>(InOwner);
-	}
-
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
 	{
 		return _vertexInputState;
@@ -528,7 +523,7 @@ namespace SPP
 
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_waitFences[Iter] = Make_GPU<SafeVkFence>(this, fenceCreateInfo);
+			_waitFences[Iter] = Make_GPU(SafeVkFence, this, fenceCreateInfo);
 		}
 	}
 
@@ -638,9 +633,9 @@ namespace SPP
 		// Create one command buffer for each swap chain image and reuse for rendering
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_drawCmdBuffers[Iter] = Make_GPU<SafeVkCommandBuffer>(this, cmdBufAllocateInfo);
-			_copyCmdBuffers[Iter].cmdBuf = Make_GPU<SafeVkCommandBuffer>(this, cmdBufAllocateInfo);
-			_copyCmdBuffers[Iter].fence = Make_GPU<SafeVkFence>(this, fenceInfo);
+			_drawCmdBuffers[Iter] = Make_GPU(SafeVkCommandBuffer, this, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].cmdBuf = Make_GPU(SafeVkCommandBuffer, this, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].fence = Make_GPU(SafeVkFence, this, fenceInfo);
 		}
 	}
 
@@ -736,7 +731,7 @@ namespace SPP
 		for (uint32_t i = 0; i < swapChain.imageCount; i++)
 		{
 			attachments = swapChain.buffers[i].view;
-			_frameBuffers[i] = Make_GPU< SafeVkFrameBuffer >(this, frameBufferCreateInfo);
+			_frameBuffers[i] = Make_GPU(SafeVkFrameBuffer, this, frameBufferCreateInfo);
 		}
 	}
 
@@ -839,6 +834,23 @@ namespace SPP
 		}
 	}
 
+	void VulkanGraphicsDevice::Shutdown()
+	{
+		auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
+		while (CurResource)
+		{
+			CurResource->Shutdown(this);
+			CurResource = CurResource->GetNext();
+		};
+
+		destroyFrameBuffer();
+		destroyCommandBuffers();
+
+		_colorTarget.reset();
+
+		Flush();
+	}
+
 	void VulkanGraphicsDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
 	{
 		if (width != NewWidth || height != NewHeight)
@@ -858,6 +870,23 @@ namespace SPP
 			createCommandBuffers();
 
 			vkDeviceWaitIdle(device);
+		}
+	}
+
+	void VulkanGraphicsDevice::DyingResource(class GPUResource* InResourceToKill)
+	{
+		if (IsOnCPUThread())
+		{
+			_cpuPushedDyingResources.push_back(InResourceToKill);
+		}
+		else if (IsOnGPUThread())
+		{
+			_gpuPushedDyingResources.push_back(InResourceToKill);
+		}
+		else
+		{
+			// uh ohs can't be on neither
+			SE_ASSERT(false);
 		}
 	}
 
@@ -969,8 +998,34 @@ namespace SPP
 		}
 	}
 
+	void VulkanGraphicsDevice::Flush()
+	{
+		GPUThreadIDOverride tempOverride;
+
+		vkDeviceWaitIdle(device);
+
+		static_assert(MAX_IN_FLIGHT == 3);
+		std::array< std::vector<GPUResource*>*, MAX_IN_FLIGHT + 2 > flushDying =
+		{
+			&_cpuPushedDyingResources,
+			&_gpuPushedDyingResources,
+			&_dyingResources[0],
+			&_dyingResources[1],
+			&_dyingResources[2]
+		};
+
+		for( int32_t Iter = 0; Iter < flushDying.size(); Iter++)
+		{
+			for (auto& curResource : *flushDying[Iter])
+			{
+				delete curResource;
+			}
+			flushDying[Iter]->clear();
+		}
+	}
+
 	void VulkanGraphicsDevice::BeginFrame()
-	{		
+	{
 		SubmitCopyCommands();
 
 		// Acquire the next image from the swap chain
@@ -980,13 +1035,13 @@ namespace SPP
 		{
 			//windowResize();
 		}
-		else 
+		else
 		{
 			VK_CHECK_RESULT(result);
 		}
 
 		STDElapsedTimer priorFrame;
-		
+
 		// Use a fence to wait until the command buffer has finished execution before using it again
 		VK_CHECK_RESULT(vkWaitForFences(device, 1, &_waitFences[currentBuffer]->Get(), VK_TRUE, UINT64_MAX));
 
@@ -998,6 +1053,20 @@ namespace SPP
 
 		VK_CHECK_RESULT(vkResetFences(device, 1, &_waitFences[currentBuffer]->Get()));
 
+		if (!_dyingResources[currentBuffer].empty())
+		{
+			for (auto& curResource : _dyingResources[currentBuffer])
+			{
+				delete curResource;
+			}
+			_dyingResources[currentBuffer].clear();
+		}
+		if (!_gpuPushedDyingResources.empty())
+		{
+			_dyingResources[currentBuffer].insert(_dyingResources[currentBuffer].end(), _gpuPushedDyingResources.begin(), _gpuPushedDyingResources.end());
+			_gpuPushedDyingResources.clear();
+		}
+		
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
 		_staticInstanceDrawLeaseManager->ClearTag(currentBuffer);
 
@@ -1026,6 +1095,16 @@ namespace SPP
 #endif
 
 		bDrawPhase = true;
+	}
+
+	void VulkanGraphicsDevice::SyncGPUData()
+	{
+		GraphicsDevice::SyncGPUData();
+		if (!_cpuPushedDyingResources.empty())
+		{
+			_dyingResources[currentBuffer].insert(_dyingResources[currentBuffer].end(), _cpuPushedDyingResources.begin(), _cpuPushedDyingResources.end());
+			_cpuPushedDyingResources.clear();
+		}
 	}
 
 	//IMGUI
@@ -1648,7 +1727,7 @@ namespace SPP
 
 		if (findKey == PiplineStateMap.end())
 		{
-			auto newPipelineState = Make_GPU< VulkanPipelineState >(InOwner);
+			auto newPipelineState = Make_GPU(VulkanPipelineState, InOwner);
 			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PiplineStateMap[key] = newPipelineState;
 			return newPipelineState;

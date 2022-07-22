@@ -127,6 +127,12 @@ namespace SPP
         {
         }
 
+        GPUReferencer(int line, const char* file, T* obj) : Referencer<T>(line,file,obj)
+        {
+            SE_ASSERT(IsOnGPUThread());
+            static_assert(std::is_base_of_v<GPUResource, T>, "Only for gpu refs");
+        }
+
         GPUReferencer(T* obj) : Referencer<T>(obj)
         {
             SE_ASSERT(IsOnGPUThread());
@@ -161,23 +167,26 @@ namespace SPP
 
 
     template<typename T>
-    GPUReferencer<T> Make_GPU()
+    GPUReferencer<T> _Make_GPU(int line, const char* file)
     {
-        return GPUReferencer<T>(new T());
+        return GPUReferencer<T>(line, file, new T());
     }
 
     template<typename T, typename ... Args>
-    GPUReferencer<T> Make_GPU(Args&& ... args)
+    GPUReferencer<T> _Make_GPU(int line, const char* file, Args&& ... args)
     {
-        return GPUReferencer<T>(new T(args...));
+        return GPUReferencer<T>(line, file, new T(args...));
     }
-    
+
+    #define Make_GPU(T,...) _Make_GPU<T>( __LINE__, __FILE__, ##__VA_ARGS__); 
+
     class SPP_GRAPHICS_API GPUResource : public ReferenceCounted, public InternalLinkedList<GPUResource>
     {
         NO_COPY_ALLOWED(GPUResource);
 
     protected:
         bool _gpuResident = false;
+        bool _dying = false;
         GraphicsDevice* _owner = nullptr;
 
         virtual void _MakeResident() {}
@@ -189,7 +198,8 @@ namespace SPP
 
         virtual void NoMoreReferences()
         {
-            delete this;
+            _dying = true;
+            _owner->DyingResource(this);
         }
 
         virtual const char* GetName() const {
@@ -616,3 +626,4 @@ namespace SPP
     SPP_GRAPHICS_API IGraphicsInterface* GGI();
     SPP_GRAPHICS_API void SET_GGI(IGraphicsInterface *InGraphicsIterface);
 }
+

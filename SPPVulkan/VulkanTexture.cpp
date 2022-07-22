@@ -946,6 +946,6 @@ namespace SPP
 
 	GPUReferencer< VulkanTexture > Vulkan_CreateTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo)
 	{
-		return Make_GPU<VulkanTexture>(InOwner, Width, Height, Format, RawData, InMetaInfo);
+		return Make_GPU(VulkanTexture, InOwner, Width, Height, Format, RawData, InMetaInfo);
 	}
 }

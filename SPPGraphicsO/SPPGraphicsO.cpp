@@ -73,13 +73,14 @@ namespace SPP
 		InGraphicsDevice->AddScene(_renderScene);
 	}
 
-	void ORenderableScene::RemoveFromGraphicsDevice(GraphicsDevice* InGraphicsDevice)
+	void ORenderableScene::RemoveFromGraphicsDevice()
 	{		
 		auto sceneRef = _renderScene;
 
-		_renderScene.reset();
+		_owningDevice->RemoveScene(sceneRef);
 		_owningDevice = nullptr;
-
+		_renderScene.reset();
+		
 		std::vector<OElement*> childCopy = _children;
 
 		// reinit properly
@@ -89,9 +90,7 @@ namespace SPP
 			AddChild(child);
 		}
 
-		SE_ASSERT(childCopy == _children);
-
-		InGraphicsDevice->RemoveScene(sceneRef);
+		SE_ASSERT(childCopy.size() == _children.size());
 	}
 
 	void ORenderableElement::UpdateSelection(bool IsSelected)

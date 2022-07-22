@@ -166,6 +166,10 @@ namespace SPP
 
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
+		std::vector<GPUResource*> _cpuPushedDyingResources;
+		std::vector<GPUResource*> _gpuPushedDyingResources;
+		std::array< std::vector<GPUResource*>, MAX_IN_FLIGHT > _dyingResources;
+
 		// List of available frame buffers (same as number of swap chain images)
 		std::array< GPUReferencer<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
 		// Command buffers used for rendering
@@ -333,8 +337,10 @@ namespace SPP
 
 		VkDevice GetDevice();
 		VkRenderPass GetBaseRenderPass();
-		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow);
+		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) override;
+		virtual void Shutdown() override;
 		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight);
+		virtual void DyingResource(class GPUResource* InResourceToKill) override;
 		virtual int32_t GetDeviceWidth() const;
 		virtual int32_t GetDeviceHeight() const;
 		void CreateInputLayout(GPUReferencer < GPUInputLayout > InLayout);
@@ -345,6 +351,9 @@ namespace SPP
 		};
 
 		void SubmitCopyCommands();
+
+		virtual void SyncGPUData() override;
+		virtual void Flush()override;
 
 		virtual void BeginFrame() override;
 		virtual void EndFrame() override;

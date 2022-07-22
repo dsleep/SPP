@@ -28,7 +28,9 @@ namespace SPP
 {
 	SPP_GRAPHICS_API extern std::unique_ptr<class ThreadPool> GPUThreaPool;
 
-	SPP_GRAPHICS_API void IntializeGraphics();	
+	SPP_GRAPHICS_API void IntializeGraphicsThread();	
+    SPP_GRAPHICS_API void ShutdownGraphicsThread();
+
 	SPP_GRAPHICS_API bool IsOnGPUThread();
 
     class SPP_GRAPHICS_API GPUThreadIDOverride
@@ -144,15 +146,19 @@ namespace SPP
       
     public:
         virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) = 0;
+        virtual void Shutdown() = 0;
         virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight) = 0;
 
         virtual int32_t GetDeviceWidth() const = 0;
         virtual int32_t GetDeviceHeight() const = 0;
 
+        virtual void DyingResource(class GPUResource* InResourceToKill) = 0;
+
         GPU_CALL AddScene(std::shared_ptr< class GD_RenderScene > InScene);
         GPU_CALL RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
 
-        virtual void PrepareScenesToDraw();
+        virtual void Flush() {}
+        virtual void SyncGPUData();
         virtual void BeginFrame();
         virtual void Draw();
         virtual void EndFrame();

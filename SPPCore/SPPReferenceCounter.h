@@ -85,11 +85,15 @@ namespace SPP
     {
     protected:
         T* obj = nullptr;
+        int _line = -1;
+        std::string _file;
 
         virtual void DestroyObject()
         {
             obj->NoMoreReferences();
             obj = nullptr;
+            _line = -1;
+            _file.clear();
         }
 
         void decRef()
@@ -109,6 +113,13 @@ namespace SPP
                 obj->incRefCnt();
             }
         }
+        Referencer(int line, const char* file, T* InObj) : _line(line), _file(file), obj(InObj)
+        {
+            if (obj)
+            {
+                obj->incRefCnt();
+            }
+        }
 
         template<typename K = T>
         Referencer(Referencer<K>&& orig) 
@@ -116,11 +127,16 @@ namespace SPP
             static_assert(std::is_base_of_v<T, K>, "must be base of");
 
             std::swap(obj, orig.obj);
+            std::swap(_line, orig._line);
+            std::swap(_file, orig._file);
         }
 
         Referencer(Referencer<T>& orig)
         {
             obj = orig.RawGet();
+            _line = orig.GetLine();
+            _file = orig.GetFile();
+
             if (obj)
             {
                 obj->incRefCnt();
@@ -130,6 +146,8 @@ namespace SPP
         Referencer(const Referencer<T>& orig)
         {
             obj = orig.RawGet();
+            _line = orig.GetLine();
+            _file = orig.GetFile();
             if (obj)
             {
                 obj->incRefCnt();
@@ -142,6 +160,8 @@ namespace SPP
             static_assert(std::is_base_of_v<T, K>, "must be base of");
 
             obj = orig.RawGet();
+            _line = orig.GetLine();
+            _file = orig.GetFile();
             if (obj)
             {
                 obj->incRefCnt();
@@ -169,6 +189,16 @@ namespace SPP
             return obj;
         }
 
+        int GetLine() const
+        {
+            return _line;
+        }
+
+        const std::string &GetFile() const
+        {
+            return _file;
+        }
+
         template<typename K>
         bool operator== (const Referencer<T>& right) const
         {
@@ -187,6 +217,8 @@ namespace SPP
 			}
 			decRef();
 			obj = right.obj;
+            _line = right._line;
+            _file = right._file;
 			return *this;
 		}
 
@@ -221,6 +253,8 @@ namespace SPP
         {
             decRef();
             obj = nullptr;
+            _line = -1;
+            _file.clear();
         }
 
         operator bool()

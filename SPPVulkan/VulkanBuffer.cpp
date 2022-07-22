@@ -126,7 +126,7 @@ namespace SPP
 	//TODO FIX UP THESE
 	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		return Make_GPU<VulkanBuffer>(InOwner, InType, InCpuData);
+		return Make_GPU(VulkanBuffer, InOwner, InType, InCpuData);
 	}
 
 	//

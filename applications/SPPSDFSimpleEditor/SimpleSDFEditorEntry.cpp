@@ -784,7 +784,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	printf("Debugging Window:\n");
 
 	SPP::IntializeCore(std::wstring_to_utf8(lpCmdLine).c_str());
-	SPP::IntializeGraphics();
+	SPP::IntializeGraphicsThread();
 	// setup global asset path
 	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
 

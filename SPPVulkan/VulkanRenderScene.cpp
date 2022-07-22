@@ -21,7 +21,6 @@ namespace SPP
 	// lazy externs
 	extern GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice* InOwner, EShaderType InType);
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner);
 
 	static Vector3d HACKS_CameraPos;
 
@@ -42,7 +41,7 @@ namespace SPP
 			_fullscreenColorPS = Vulkan_CreateShader(InOwner, EShaderType::Pixel);
 			_fullscreenColorPS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_ps");
 
-			_fullscreenColorLayout = Vulkan_CreateInputLayout(InOwner);
+			_fullscreenColorLayout = Make_GPU(VulkanInputLayout, InOwner);
 
 			{
 				auto& vulkanInputLayout = _fullscreenColorLayout->GetAs<VulkanInputLayout>();
@@ -52,7 +51,7 @@ namespace SPP
 
 			auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
 
-			auto vulkPSO = Make_GPU< VulkanPipelineState >(InOwner);
+			auto vulkPSO = Make_GPU(VulkanPipelineState,InOwner);
 			vulkPSO->ManualSetRenderPass(backbufferFrameData.renderPass);
 			_fullscreenColorPSO = vulkPSO;
 			vulkPSO->Initialize(EBlendState::Disabled,
@@ -154,7 +153,7 @@ namespace SPP
 		//_fullscreenRaySkyBoxPS = Vulkan_CreateShader(EShaderType::Pixel);
 		//_fullscreenRaySkyBoxPS->CompileShaderFromFile("shaders/fullScreenRayCubemapPS.hlsl", "main_ps");
 
-		_fullscreenRayVSLayout = Vulkan_CreateInputLayout(_owner);
+		_fullscreenRayVSLayout = Make_GPU(VulkanInputLayout, _owner); 
 
 		{
 			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();

@@ -20,8 +20,6 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	extern GPUReferencer< GPUInputLayout > Vulkan_CreateInputLayout(GraphicsDevice* InOwner);
-
 	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
@@ -124,7 +122,7 @@ namespace SPP
 	{
 		GD_StaticMesh::Initialize();
 
-		_layout = Vulkan_CreateInputLayout(_owner);
+		_layout = Make_GPU(VulkanInputLayout, _owner); 
 		_layout->InitializeLayout(_vertexStreams);		
 	}
 

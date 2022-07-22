@@ -68,7 +68,7 @@ namespace SPP
 		}
 
 		virtual void AddToGraphicsDevice(GraphicsDevice* InGraphicsDevice);
-		virtual void RemoveFromGraphicsDevice(GraphicsDevice* InGraphicsDevice);
+		virtual void RemoveFromGraphicsDevice();
 
 		virtual ~ORenderableScene() { }
 	};
