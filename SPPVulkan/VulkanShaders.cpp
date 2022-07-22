@@ -310,9 +310,4 @@ namespace SPP
 	{
 		return false;
 	}
-
-	GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice* InOwner, EShaderType InType)
-	{
-		return Make_GPU(VulkanShader, InOwner, InType);
-	}
 }

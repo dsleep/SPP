@@ -87,7 +87,6 @@ namespace SPP
 		.pfnInternalFree = vkInternalFreeNotification
 	};
 
-	extern GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice *InOwner, EShaderType InType);
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 
@@ -1739,7 +1738,7 @@ namespace SPP
 
 	GPUReferencer< class GPUShader > VulkanGraphicsDevice::_gxCreateShader(EShaderType InType)
 	{
-		return Vulkan_CreateShader(this, InType);
+		return Make_GPU(VulkanShader, this, InType);
 	}
 
 	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)

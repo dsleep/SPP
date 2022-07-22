@@ -5,7 +5,7 @@
 #include "SPPVulkan.h"
 #include "VulkanRenderScene.h"
 #include "VulkanDevice.h"
-
+#include "VulkanShaders.h"
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -19,7 +19,6 @@ namespace SPP
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 	// lazy externs
-	extern GPUReferencer< GPUShader > Vulkan_CreateShader(GraphicsDevice* InOwner, EShaderType InType);
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 
 	static Vector3d HACKS_CameraPos;
@@ -35,10 +34,10 @@ namespace SPP
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
-			_fullscreenColorVS = Vulkan_CreateShader(InOwner, EShaderType::Vertex);
+			_fullscreenColorVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);  
 			_fullscreenColorVS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_vs");
 
-			_fullscreenColorPS = Vulkan_CreateShader(InOwner, EShaderType::Pixel);
+			_fullscreenColorPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
 			_fullscreenColorPS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_ps");
 
 			_fullscreenColorLayout = Make_GPU(VulkanInputLayout, InOwner);
@@ -144,10 +143,10 @@ namespace SPP
 		//_debugBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
 
 		//
-		_fullscreenRayVS = Vulkan_CreateShader(_owner, EShaderType::Vertex);
+		_fullscreenRayVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
-		_fullscreenRaySDFPS = Vulkan_CreateShader(_owner, EShaderType::Pixel);
+		_fullscreenRaySDFPS = Make_GPU(VulkanShader, _owner, EShaderType::Pixel);
 		_fullscreenRaySDFPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
 		//_fullscreenRaySkyBoxPS = Vulkan_CreateShader(EShaderType::Pixel);
