@@ -236,6 +236,7 @@ namespace SPP
 
 		VkDescriptorPool _globalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;
+		std::map< VulkanPipelineStateKey, GPUReferencer< class VulkanPipelineState > > _piplineStateMap;
 
 		uint32_t _currentFPSIdx = 0;
 		std::vector<float> _FPS;
@@ -299,6 +300,11 @@ namespace SPP
 		}
 
 		VkCommandBuffer& GetCopyCommandBuffer();
+
+		std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > >& GetPipelineStateMap()
+		{
+			return _piplineStateMap;
+		}
 
 		PerFrameStagingBuffer& GetPerFrameScratchBuffer()
 		{

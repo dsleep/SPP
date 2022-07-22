@@ -78,7 +78,7 @@ private:
 
 	ESelectionMode _selectionMode = ESelectionMode::None;
 	std::unique_ptr<SPP::ApplicationWindow> app;
-	std::shared_ptr<GD_RenderScene> renderableSceneShared;
+	GD_RenderScene* renderableSceneShared = nullptr;
 	std::future<bool> graphicsResults;
 
 	VgCapsuleElement* _charCapsule = nullptr;
@@ -223,7 +223,7 @@ public:
 		
 		_gameworld->AddChild(_charCapsule);
 
-		renderableSceneShared = _gameworld->GetRenderSceneShared();
+		renderableSceneShared = _gameworld->GetRenderScene();
 
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[1] = 5;
@@ -337,8 +337,6 @@ public:
 		isSet.wait();
 
 		_graphicsDevice->Flush();
-		renderableSceneShared.reset();
-
 		_graphicsDevice->Shutdown();
 
 		_graphicsDevice.reset();

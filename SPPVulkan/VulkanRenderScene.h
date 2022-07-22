@@ -101,7 +101,6 @@ namespace SPP
 
 	public:
 		VulkanRenderScene(GraphicsDevice* InOwner);
-		VulkanRenderScene();
 		virtual ~VulkanRenderScene();
 
 		void DrawSkyBox();

@@ -77,6 +77,7 @@ namespace SPP
 			_fullscreenColorVS.Reset();
 			_fullscreenColorPS.Reset();
 			_fullscreenColorPSO.Reset();
+			_fullscreenColorLayout.Reset();
 		}
 	};
 

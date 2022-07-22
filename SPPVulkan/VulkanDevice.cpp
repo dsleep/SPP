@@ -88,8 +88,7 @@ namespace SPP
 	};
 
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-	extern GPUReferencer< VulkanTexture > Vulkan_CreateTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
-
+	
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
 	{
 		return _vertexInputState;
@@ -435,7 +434,8 @@ namespace SPP
 				textureAccess[Iter][1] = 255;
 				textureAccess[Iter][3] = 255;
 			}
-			_defaultTexture = Vulkan_CreateTexture(this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+			_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+				
 		}
 
 		return true;
@@ -842,10 +842,17 @@ namespace SPP
 			CurResource = CurResource->GetNext();
 		};
 
+		for (auto& fence : _waitFences)
+		{
+			fence.Reset();
+		}
+
 		destroyFrameBuffer();
 		destroyCommandBuffers();
 
+		_defaultTexture.Reset();
 		_colorTarget.reset();
+		_piplineStateMap.clear();
 
 		Flush();
 	}
@@ -1696,8 +1703,6 @@ namespace SPP
 		return false;
 	}
 
-	static std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > > PiplineStateMap;
-
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
@@ -1722,13 +1727,16 @@ namespace SPP
 			(uintptr_t)InDS.get(),
 			(uintptr_t)InCS.get() };
 
-		auto findKey = PiplineStateMap.find(key);
+		auto vulkanGraphicsDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+		auto& PipelineStateMap = vulkanGraphicsDevice->GetPipelineStateMap();
 
-		if (findKey == PiplineStateMap.end())
+		auto findKey = PipelineStateMap.find(key);
+
+		if (findKey == PipelineStateMap.end())
 		{
 			auto newPipelineState = Make_GPU(VulkanPipelineState, InOwner);
 			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
-			PiplineStateMap[key] = newPipelineState;
+			PipelineStateMap[key] = newPipelineState;
 			return newPipelineState;
 		}
 
@@ -1748,7 +1756,7 @@ namespace SPP
 
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) 
 	{
-		return Vulkan_CreateTexture(this, Width, Height, Format, RawData, InMetaInfo);
+		return Make_GPU(VulkanTexture, this, Width, Height, Format, RawData, InMetaInfo);
 	}
 
 	std::shared_ptr< class GD_Texture > VulkanGraphicsDevice::CreateTexture()

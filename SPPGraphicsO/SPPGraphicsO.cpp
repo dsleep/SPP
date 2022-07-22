@@ -83,14 +83,14 @@ namespace SPP
 
 		SE_ASSERT(childCopy.size() == _children.size());
 
-		InGraphicsDevice->AddScene(_renderScene);
+		InGraphicsDevice->AddScene(_renderScene.get());
 	}
 
 	void ORenderableScene::RemoveFromGraphicsDevice()
 	{		
 		auto sceneRef = _renderScene;
 
-		_owningDevice->RemoveScene(sceneRef);
+		_owningDevice->RemoveScene(sceneRef.get());
 		_owningDevice = nullptr;
 		_renderScene.reset();
 		

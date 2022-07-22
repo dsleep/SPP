@@ -57,11 +57,6 @@ namespace SPP
 			return _renderScene.get();
 		}
 
-		std::shared_ptr<GD_RenderScene> GetRenderSceneShared()
-		{
-			return _renderScene;
-		}
-
 		class GraphicsDevice *GetGraphicsDevice()
 		{
 			return _owningDevice;

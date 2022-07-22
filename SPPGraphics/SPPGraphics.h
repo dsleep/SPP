@@ -137,10 +137,10 @@ namespace SPP
     class SPP_GRAPHICS_API GraphicsDevice
     {
     protected:
-        std::vector< std::shared_ptr< class GD_RenderScene > > _renderScenes;
+        std::vector< class GD_RenderScene* > _renderScenes;
 
-        virtual void INTERNAL_AddScene(std::shared_ptr< class GD_RenderScene > InScene);
-        virtual void INTERNAL_RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
+        virtual void INTERNAL_AddScene(class GD_RenderScene* InScene);
+        virtual void INTERNAL_RemoveScene(class GD_RenderScene* InScene);
 
         std::list< class GPUResource* > _resources;
 
@@ -160,8 +160,8 @@ namespace SPP
 
         virtual void DyingResource(class GPUResource* InResourceToKill) = 0;
 
-        GPU_CALL AddScene(std::shared_ptr< class GD_RenderScene > InScene);
-        GPU_CALL RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
+        GPU_CALL AddScene(class GD_RenderScene* InScene);
+        GPU_CALL RemoveScene(class GD_RenderScene* InScene);
 
         virtual void Flush() {}
         virtual void SyncGPUData();

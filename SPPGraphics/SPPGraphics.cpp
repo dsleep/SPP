@@ -74,7 +74,7 @@ namespace SPP
 
 	GraphicsDevice::~GraphicsDevice()
 	{
-
+		SE_ASSERT(_resources.empty());
 	}
 
 	void GraphicsDevice::PushResource(GPUResource* InResource)
