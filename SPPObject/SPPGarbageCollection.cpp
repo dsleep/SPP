@@ -111,6 +111,7 @@ namespace SPP
 				return true;
 			});
 
+		// walk to build visible set
 		for (auto& rootItem : GC_ROOTS)
 		{
 			WalkObjects(std::ref(rootItem), [](SPPObject*& InObj) -> bool
@@ -127,6 +128,7 @@ namespace SPP
 					}
 				});
 		}
+
 		// all objects go back to dying or cleared
 		IterateObjects([](SPPObject* InObj) -> bool
 			{
@@ -142,6 +144,7 @@ namespace SPP
 				return true;
 			});
 
+		// now walk to clear all those references from who was pointing to dying stuff
 		for (auto& rootItem : GC_ROOTS)
 		{
 			WalkObjects(std::ref(rootItem), [](SPPObject*& InObj) -> bool

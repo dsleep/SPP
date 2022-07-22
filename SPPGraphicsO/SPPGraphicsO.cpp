@@ -338,7 +338,8 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_meshObj", &OMeshElement::_meshObj)
+		.property("_meshObj", &OMeshElement::_meshObj)(rttr::policy::prop::as_reference_wrapper)
+		.property("_materialObj", &OMeshElement::_materialObj)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OMaterial>("OMaterial")
@@ -346,8 +347,8 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_shaders", &OMaterial::_shaders)
-		.property("_textures", &OMaterial::_textures)
+		.property("_shaders", &OMaterial::_shaders)(rttr::policy::prop::as_reference_wrapper)
+		.property("_textures", &OMaterial::_textures)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OShader>("OShader")
@@ -361,6 +362,6 @@ RTTR_REGISTRATION
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
-			)
+		)
 		;
 }

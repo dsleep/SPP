@@ -213,8 +213,8 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_shapeOp", &OShape::_shapeOp)
-		.property("_shapeBlendFactor", &OShape::_shapeBlendFactor)
+		.property("_shapeOp", &OShape::_shapeOp)(rttr::policy::prop::as_reference_wrapper)
+		.property("_shapeBlendFactor", &OShape::_shapeBlendFactor)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OShapeGroup>("OShapeGroup")

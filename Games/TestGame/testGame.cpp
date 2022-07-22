@@ -118,7 +118,7 @@ public:
 
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
-
+		AddToRoot(_gameworld);
 
 #if 1
 		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/singlesphere.mcsg"));
@@ -321,6 +321,8 @@ public:
 		app->SetInputEvents(ourInputEvents);
 
 		_lastTime = std::chrono::high_resolution_clock::now();
+
+		GC_MarkAndSweep();
 	}
 
 	void Run()
@@ -330,6 +332,8 @@ public:
 
 	void ShutDown()
 	{
+		RemoveFromRoot(_gameworld);
+
 		IterateObjects([](SPPObject* InObj) -> bool
 			{
 				// not visible to root
