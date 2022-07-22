@@ -497,7 +497,7 @@ public:
 		_gizmo->SetMesh(_moveGizmo);
 		_gizmo->GetScale() = Vector3(0.1f,0.1f,0.1f);
 
-		SPP::MakeResidentAllGPUResources();
+		//SPP::MakeResidentAllGPUResources();
 
 		_lastTime = std::chrono::high_resolution_clock::now();
 	}

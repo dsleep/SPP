@@ -71,4 +71,18 @@ namespace SPP
 				});
 		}
 	}
+
+	GraphicsDevice::~GraphicsDevice()
+	{
+
+	}
+
+	void GraphicsDevice::PushResource(GPUResource* InResource)
+	{
+		_resources.push_back(InResource);
+	}
+	void GraphicsDevice::PopResource(GPUResource* InResource)
+	{
+		_resources.remove(InResource);
+	}
 }

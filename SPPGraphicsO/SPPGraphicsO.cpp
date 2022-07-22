@@ -54,6 +54,19 @@ namespace SPP
 	{
 	}
 
+	ORenderableScene::~ORenderableScene()
+	{
+		_children.clear();
+
+		if (_owningDevice)
+		{
+			if (_renderScene)
+			{
+				RemoveFromGraphicsDevice();
+			}
+		}
+	}
+
 	void ORenderableScene::AddToGraphicsDevice(GraphicsDevice *InGraphicsDevice)
 	{
 		_owningDevice = InGraphicsDevice;

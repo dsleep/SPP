@@ -169,18 +169,22 @@ namespace SPP
     template<typename T>
     GPUReferencer<T> _Make_GPU(int line, const char* file)
     {
-        return GPUReferencer<T>(line, file, new T());
+        auto Tp = new T();
+        Tp->SetDebug(line, file);
+        return GPUReferencer<T>(line, file, Tp);
     }
 
     template<typename T, typename ... Args>
     GPUReferencer<T> _Make_GPU(int line, const char* file, Args&& ... args)
     {
-        return GPUReferencer<T>(line, file, new T(args...));
+        auto Tp = new T(args...);
+        Tp->SetDebug(line, file);
+        return GPUReferencer<T>(line, file, Tp);
     }
 
     #define Make_GPU(T,...) _Make_GPU<T>( __LINE__, __FILE__, ##__VA_ARGS__); 
 
-    class SPP_GRAPHICS_API GPUResource : public ReferenceCounted, public InternalLinkedList<GPUResource>
+    class SPP_GRAPHICS_API GPUResource : public ReferenceCounted
     {
         NO_COPY_ALLOWED(GPUResource);
 
@@ -189,12 +193,22 @@ namespace SPP
         bool _dying = false;
         GraphicsDevice* _owner = nullptr;
 
+
+        int32_t _cppLine = -1;
+        std::string _cppFile;
+
         virtual void _MakeResident() {}
         virtual void _MakeUnresident() {}
 
     public:
         GPUResource(GraphicsDevice* InOwner);
         virtual ~GPUResource();
+
+        void SetDebug(int line, const char* file)
+        {
+            _cppLine = line;
+            _cppFile = file;
+        }
 
         virtual void NoMoreReferences()
         {
@@ -249,7 +263,7 @@ namespace SPP
         virtual void Shutdown(class GraphicsDevice* InOwner) = 0;
     };
 
-    SPP_GRAPHICS_API void MakeResidentAllGPUResources();
+    //SPP_GRAPHICS_API void MakeResidentAllGPUResources();
 
     class SPP_GRAPHICS_API GPUShader : public GPUResource
     {

@@ -48,16 +48,16 @@ namespace SPP
 	//	}
 	//};
 
-	GPUResource* InternalLinkedList<GPUResource>::_root = nullptr;
-
-	GPUResource::GPUResource(GraphicsDevice* InOwner) : _owner(InOwner), InternalLinkedList<GPUResource>()
+	GPUResource::GPUResource(GraphicsDevice* InOwner) : _owner(InOwner)
 	{
 		SE_ASSERT(IsOnGPUThread());
+		_owner->PushResource(this);
 	}
 
 	GPUResource::~GPUResource()
 	{
 		SE_ASSERT(IsOnGPUThread());
+		_owner->PopResource(this);
 	}
 
 	GlobalGraphicsResource* InternalLinkedList<GlobalGraphicsResource>::_root = nullptr;
@@ -70,17 +70,17 @@ namespace SPP
 		SE_ASSERT(IsOnCPUThread());
 	}
 
-	void MakeResidentAllGPUResources()
-	{
-		auto CurResource = InternalLinkedList<GPUResource>::GetRoot();
-		while(CurResource)
-		{
-			SPP_QL("MakeResidentAllGPUResources: %s", CurResource->GetName());
+	//void MakeResidentAllGPUResources()
+	//{
+	//	auto CurResource = InternalLinkedList<GPUResource>::GetRoot();
+	//	while(CurResource)
+	//	{
+	//		SPP_QL("MakeResidentAllGPUResources: %s", CurResource->GetName());
 
-			CurResource->MakeResident();
-			CurResource = CurResource->GetNext();
-		};
-	}	
+	//		CurResource->MakeResident();
+	//		CurResource = CurResource->GetNext();
+	//	};
+	//}	
 	
 	static uint32_t GHighestTextureID = 0;
 	static std::list<uint32_t> GTextureAvailIDs;

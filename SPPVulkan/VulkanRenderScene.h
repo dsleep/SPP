@@ -66,7 +66,7 @@ namespace SPP
 
 		std::shared_ptr < ArrayResource >  _debugResource;
 		GPUReferencer< GPUBuffer > _debugBuffer;
-		std::vector< DebugVertex > _lines;
+		//std::vector< DebugVertex > _lines;
 
 		GPUReferencer< GPUShader > _fullscreenRayVS;
 		GPUReferencer< GPUShader > _fullscreenRaySDFPS, _fullscreenRaySkyBoxPS;
@@ -102,6 +102,7 @@ namespace SPP
 	public:
 		VulkanRenderScene(GraphicsDevice* InOwner);
 		VulkanRenderScene();
+		virtual ~VulkanRenderScene();
 
 		void DrawSkyBox();
 		void WriteToFrame();

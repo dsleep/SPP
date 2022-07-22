@@ -328,8 +328,6 @@ public:
 
 	void ShutDown()
 	{
-		_gameworld->RemoveFromGraphicsDevice();
-
 		GC_MarkAndSweep();
 
 		auto isSet = GPUThreaPool->enqueue([]()

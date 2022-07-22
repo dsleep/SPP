@@ -93,6 +93,11 @@ namespace SPP
 		_meshpixelShader = _owner->CreateShader();
 	}
 
+	VulkanRenderScene::~VulkanRenderScene()
+	{
+
+	}
+
 	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
 		_defaultMaterial->SetMaterialArgs({ .vertexShader = _meshvertexShader, .pixelShader = _meshpixelShader });

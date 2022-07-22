@@ -142,9 +142,15 @@ namespace SPP
         virtual void INTERNAL_AddScene(std::shared_ptr< class GD_RenderScene > InScene);
         virtual void INTERNAL_RemoveScene(std::shared_ptr< class GD_RenderScene > InScene);
 
+        std::list< class GPUResource* > _resources;
+
         std::future<bool> _currentFrame;
       
     public:
+        virtual ~GraphicsDevice();
+
+        virtual void PushResource(class GPUResource* InResource);
+        virtual void PopResource(class GPUResource* InResource);
         virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) = 0;
         virtual void Shutdown() = 0;
         virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight) = 0;

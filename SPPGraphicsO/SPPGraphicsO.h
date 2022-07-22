@@ -70,7 +70,7 @@ namespace SPP
 		virtual void AddToGraphicsDevice(GraphicsDevice* InGraphicsDevice);
 		virtual void RemoveFromGraphicsDevice();
 
-		virtual ~ORenderableScene() { }
+		virtual ~ORenderableScene();
 	};
 
 	class SPP_GRAPHICSO_API OTexture : public SPPObject
