@@ -53,6 +53,8 @@ using namespace SPP;
 using namespace std::chrono_literals;
 
 
+LogEntry LOG_APP("APP");
+
 class SimpleViewer
 {
 	enum class ESelectionMode
@@ -328,17 +330,24 @@ public:
 
 	void ShutDown()
 	{
-		GC_MarkAndSweep();
-
-		auto isSet = GPUThreaPool->enqueue([]()
+		IterateObjects([](SPPObject* InObj) -> bool
 			{
+				// not visible to root
+				SPP_LOG(LOG_APP, LOG_INFO, "exists prior to shutdown %s", InObj->GetName());
 				return true;
 			});
-		isSet.wait();
+
+		GC_MarkAndSweep();
+
+		IterateObjects([](SPPObject* InObj) -> bool
+			{
+				// not visible to root
+				SPP_LOG(LOG_APP, LOG_INFO, "still remains object %s", InObj->GetName());
+				return true;
+			});
 
 		_graphicsDevice->Flush();
 		_graphicsDevice->Shutdown();
-
 		_graphicsDevice.reset();
 
 		app.reset();
