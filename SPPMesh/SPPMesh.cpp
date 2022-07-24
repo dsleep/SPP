@@ -98,6 +98,12 @@ namespace SPP
 		uint32_t VertFlags = 0;
 		binaryData >> VertFlags;
 
+		bool bHasPosition = ((VertFlags & (1 << 0)) != 0);
+		bool bHasUV = ((VertFlags & (1 << 1)) != 0);
+		bool bHasNormal = ((VertFlags & (1 << 2)) != 0);
+		bool bHasTangent = ((VertFlags & (1 << 3)) != 0);
+		bool bHasLightMapUV = ((VertFlags & (1 << 4)) != 0);
+
 		uint32_t VertCount = 0;
 		binaryData >> VertCount;
 
@@ -115,8 +121,14 @@ namespace SPP
 			binaryData >> vertex.position[1];
 			binaryData >> vertex.position[2];
 
-			binaryData >> vertex.texcoord[0];
-			binaryData >> vertex.texcoord[1];
+			binaryData >> vertex.texcoord[0][0];
+			binaryData >> vertex.texcoord[0][1];
+
+			if (bHasLightMapUV)
+			{
+				binaryData >> vertex.texcoord[1][0];
+				binaryData >> vertex.texcoord[1][1];
+			}
 
 			binaryData >> vertex.normal[0];
 			binaryData >> vertex.normal[1];

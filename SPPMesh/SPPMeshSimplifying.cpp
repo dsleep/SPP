@@ -387,7 +387,7 @@ namespace SPP
 			_vertices.resize(vertCount);
 			for (uint32_t Iter = 0; Iter < _translator->GetVertexCount(); Iter++)
 			{
-				_vertices[Iter] = Vertex( _translator->GetVertexPosition(Iter), _translator->GetVertexUV(Iter) );
+				_vertices[Iter] = Vertex( _translator->GetVertexPosition(Iter), _translator->GetVertexUV(Iter,0) );
 			}
 
 			auto indexCount = _translator->GetIndexCount();
@@ -474,7 +474,7 @@ namespace SPP
 				//Vector3 bitangent;
 				//Vector2 texcoord;
 				_translator->GetVertexPosition(Iter) = _vertices[Iter].p;
-				_translator->GetVertexUV(Iter) = _vertices[Iter].uvs;
+				_translator->GetVertexUV(Iter,0) = _vertices[Iter].uvs;
 			}
 
 			for (size_t Iter = 0; Iter < _triangles.size(); Iter++)

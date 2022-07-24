@@ -61,7 +61,13 @@ namespace SPP
 					{
 						for (int32_t Iter = 0; Iter < diffuse.size(); Iter++)
 						{
-							std::string CurTextureName = diffuse[Iter].asCString();
+							auto currentTexture = diffuse[Iter];
+
+							Json::Value jName = currentTexture.get("name", Json::Value::nullSingleton());
+							Json::Value jUVMap = currentTexture.get("uvmap", Json::Value::nullSingleton());
+
+							std::string CurTextureName = jName.asCString();
+							std::string CurUVMap = jUVMap.asCString();
 							auto foundTexture = TextureMap.find(CurTextureName);
 							if (foundTexture == TextureMap.end())
 							{

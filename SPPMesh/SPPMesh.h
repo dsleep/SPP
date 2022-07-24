@@ -51,7 +51,7 @@ namespace SPP
 		Vector3 normal;
 		Vector3 tangent;
 		Vector3 bitangent;
-		Vector2 texcoord;
+		Vector2 texcoord[2];
 		Color4 color;
 	};
 
@@ -124,7 +124,7 @@ namespace SPP
 
 		virtual Vector3& GetVertexPosition(uint32_t InIdx) const = 0;
 		virtual Vector3& GetVertexNormal(uint32_t InIdx) const = 0;
-		virtual Vector2& GetVertexUV(uint32_t InIdx) const = 0;
+		virtual Vector2& GetVertexUV(uint32_t InVertIdx, uint32_t InUVIdx) const = 0;
 
 		virtual uint32_t GetVertexCount() const = 0;
 		virtual void ResizeVertices(uint32_t NewCount) = 0;
@@ -271,9 +271,9 @@ namespace SPP
 		{
 			return ourVertSpan[InIdx].normal;
 		}
-		virtual Vector2& GetVertexUV(uint32_t InIdx) const override
+		virtual Vector2& GetVertexUV(uint32_t InVertIdx, uint32_t InUVIdx) const override
 		{
-			return ourVertSpan[InIdx].texcoord;
+			return ourVertSpan[InVertIdx].texcoord[InUVIdx];
 		}
 
 		virtual uint32_t GetVertexCount() const override
