@@ -1,0 +1,268 @@
+{
+    "lights": [],
+    "materials": [
+        {
+            "name": "Ground.001",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Ground.Ground.0_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "Ground_diffuse.png",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "MAIN.002",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Cube.007.MAIN.0_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "MAIN_diffuse.png",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "Lamp.003.Window.0.BakeMat",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Lamp.003.Window.0_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "Lamp.003_Window_0_BakedTexture.PNG",
+                        "uvmap": "UVMap_DiffuseBake"
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "BH2.MAIN.0.BakeMat",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "BH2.MAIN.0_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "BH2_MAIN_0_BakedTexture.PNG",
+                        "uvmap": "UVMap_DiffuseBake"
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "Window",
+            "textures": {
+                "alpha": [],
+                "diffuse": [],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "MAIN.001",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Cube.007.MAIN.0.001_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "MAIN_diffuse.png",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "materials": [
+                "Ground.001"
+            ],
+            "mesh": "Ground_Ground_0",
+            "name": "Ground.Ground.0",
+            "transform": {
+                "location": [
+                    0.02,
+                    0.0508,
+                    -8.0998
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "BH2.MAIN.0.BakeMat"
+            ],
+            "mesh": "BH2_MAIN_0",
+            "name": "BH2.MAIN.0",
+            "transform": {
+                "location": [
+                    5.0563,
+                    -0.0,
+                    -12.3024
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Window"
+            ],
+            "mesh": "BH2_Window_0",
+            "name": "BH2.Window.0",
+            "transform": {
+                "location": [
+                    5.0563,
+                    -0.0,
+                    -12.3024
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Lamp.003.Window.0.BakeMat"
+            ],
+            "mesh": "Lamp2_Window_0",
+            "name": "Lamp.003.Window.0",
+            "transform": {
+                "location": [
+                    2.4222,
+                    0.0,
+                    -12.6669
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "MAIN.002"
+            ],
+            "mesh": "Cube_MAIN.001_0.001",
+            "name": "Cube.007.MAIN.0",
+            "transform": {
+                "location": [
+                    3.698,
+                    0.005,
+                    -6.9694
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "MAIN.001"
+            ],
+            "mesh": "Cube_MAIN.001_0",
+            "name": "Cube.007.MAIN.0.001",
+            "transform": {
+                "location": [
+                    4.2571,
+                    0.0294,
+                    -15.3922
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        }
+    ]
+}

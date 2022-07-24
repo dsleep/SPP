@@ -21,7 +21,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
-#define ALLOW_IMGUI 1
+#define ALLOW_IMGUI 0
 
 namespace SPP
 {
@@ -1354,12 +1354,12 @@ namespace SPP
 			auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
 
 			// Deferred shading layout
-			std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > setLayoutBindings;
+			_setLayoutBindings.clear();
 
-			MergeBindingSet(vsSet, setLayoutBindings);
-			MergeBindingSet(psSet, setLayoutBindings);
+			MergeBindingSet(vsSet, _setLayoutBindings);
+			MergeBindingSet(psSet, _setLayoutBindings);
 
-			for (auto& curSet : setLayoutBindings)
+			for (auto& curSet : _setLayoutBindings)
 			{
 				std::vector<VkDescriptorSetLayoutBinding>& curBindingSet = curSet.second;
 
@@ -1376,13 +1376,13 @@ namespace SPP
 				}
 			}
 
-			_descriptorSetLayouts.resize(setLayoutBindings.size());
+			_descriptorSetLayouts.resize(_setLayoutBindings.size());
 			
 			// step through sets numerically
 			for (int32_t Iter = 0, foundIdx = 0; Iter < 4; Iter++)
 			{
-				auto foundSet = setLayoutBindings.find(Iter);
-				if(foundSet != setLayoutBindings.end())
+				auto foundSet = _setLayoutBindings.find(Iter);
+				if(foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
 					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[foundIdx]));
@@ -1579,10 +1579,9 @@ namespace SPP
 		{
 			auto& csShaderSets = InCS->GetAs<VulkanShader>().GetLayoutSets();
 
-			std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > setLayoutBindings;
-			MergeBindingSet(csShaderSets, setLayoutBindings);
+			MergeBindingSet(csShaderSets, _setLayoutBindings);
 
-			for (auto& curSet : setLayoutBindings)
+			for (auto& curSet : _setLayoutBindings)
 			{
 				std::vector<VkDescriptorSetLayoutBinding>& curBindingSet = curSet.second;
 
@@ -1599,13 +1598,13 @@ namespace SPP
 				}
 			}
 
-			_descriptorSetLayouts.resize(setLayoutBindings.size());
+			_descriptorSetLayouts.resize(_setLayoutBindings.size());
 
 			// step through sets numerically
 			for (int32_t Iter = 0, foundIdx = 0; Iter < 4; Iter++)
 			{
-				auto foundSet = setLayoutBindings.find(Iter);
-				if (foundSet != setLayoutBindings.end())
+				auto foundSet = _setLayoutBindings.find(Iter);
+				if (foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
 					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[foundIdx]));

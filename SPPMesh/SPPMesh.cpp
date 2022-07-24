@@ -140,7 +140,6 @@ namespace SPP
 
 			//calc bitagent
 
-			//setup indices
 			curIndices[Iter] = Iter;
 		}
 

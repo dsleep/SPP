@@ -409,6 +409,9 @@ namespace SPP
 
 		VkRenderPass _renderPass = nullptr;
 
+		// for debugging or just leave in?!
+		std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > _setLayoutBindings;
+
 		virtual void _MakeResident() override {}
 		virtual void _MakeUnresident() override {}
 
@@ -436,7 +439,11 @@ namespace SPP
 		const VkPipelineLayout &GetVkPipelineLayout()
 		{
 			return _pipelineLayout;
-		}		
+		}
+		const std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> >& GetDescriptorSetLayoutBindings()
+		{
+			return _setLayoutBindings;
+		}
 
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
 

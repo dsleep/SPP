@@ -19,7 +19,13 @@ namespace SPP
 		static std::vector<VertexStream> vertexStreams;
 		if (vertexStreams.empty())
 		{
-			vertexStreams.push_back(CreateVertexStream(InPlaceholder, InPlaceholder.position, InPlaceholder.normal, InPlaceholder.texcoord[0], InPlaceholder.color));
+			vertexStreams.push_back(
+				CreateVertexStream(InPlaceholder, 
+					InPlaceholder.position,
+					InPlaceholder.normal, 
+					InPlaceholder.texcoord[0], 
+					InPlaceholder.texcoord[1], 
+					InPlaceholder.color));
 		}
 		return vertexStreams;
 	}

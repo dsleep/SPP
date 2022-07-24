@@ -31,9 +31,14 @@ namespace SPP
 
 		auto vsShader = AllocateObject<OShader>("MeshVS", FileScene);
 		auto psShader = AllocateObject<OShader>("MeshPS", FileScene);
+		auto vsLMShader = AllocateObject<OShader>("MeshLMVS", FileScene);
+		auto psLMShader = AllocateObject<OShader>("MeshLMPS", FileScene);
 
 		vsShader->Initialize(EShaderType::Vertex, "shaders/SimpleTextureMesh.hlsl", "main_vs");
 		psShader->Initialize(EShaderType::Pixel, "shaders/SimpleTextureMesh.hlsl", "main_ps");
+
+		vsLMShader->Initialize(EShaderType::Vertex, "shaders/SimpleTextureLightMapMesh.hlsl", "main_vs");
+		psLMShader->Initialize(EShaderType::Pixel, "shaders/SimpleTextureLightMapMesh.hlsl", "main_ps");
 
 		if (!materials.isNull() && materials.isArray())
 		{
@@ -47,12 +52,7 @@ namespace SPP
 				std::string MatName = jName.asCString();
 				auto meshMat = AllocateObject<OMaterial>(MatName + ".mat", FileScene);
 
-				auto &matshaders = meshMat->GetShaders();
-				matshaders.push_back(vsShader);
-				matshaders.push_back(psShader);
-
-				MaterialMap[jName.asCString()] = meshMat;
-
+				bool bFoundLightMap = false;
 				if (!textures.isNull())
 				{
 					Json::Value diffuse = textures.get("diffuse", Json::Value::nullSingleton());
@@ -69,6 +69,11 @@ namespace SPP
 							std::string CurTextureName = jName.asCString();
 							std::string CurUVMap = jUVMap.asCString();
 							auto foundTexture = TextureMap.find(CurTextureName);
+
+							bool IsLightMap = (CurUVMap == "UVMap_Lightmap");
+							bFoundLightMap |= IsLightMap;
+							int32_t TextureIndex = IsLightMap ? 1 : 0;
+
 							if (foundTexture == TextureMap.end())
 							{
 								auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
@@ -76,16 +81,28 @@ namespace SPP
 								curTexture->LoadFromDisk( ((ParentPath + "/") + CurTextureName).c_str() );
 
 								TextureMap[CurTextureName] = curTexture;
-								meshMat->SetTexture(curTexture, 0);
+								meshMat->SetTexture(curTexture, TextureIndex);
 							}
 							else
 							{
-								meshMat->SetTexture(foundTexture->second, 0);
+								meshMat->SetTexture(foundTexture->second, TextureIndex);
 							}
-							// just stop at 1 for now
-							break;
 						}
 					}
+				}
+
+				auto& matshaders = meshMat->GetShaders();				
+				MaterialMap[jName.asCString()] = meshMat;
+
+				if (bFoundLightMap)
+				{
+					matshaders.push_back(vsLMShader);					
+					matshaders.push_back(psLMShader);
+				}
+				else
+				{
+					matshaders.push_back(vsShader);
+					matshaders.push_back(psShader);
 				}
 			}
 		}

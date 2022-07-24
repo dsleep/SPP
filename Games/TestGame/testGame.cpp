@@ -117,7 +117,7 @@ public:
 		InitializePhysX();
 
 #if 1
-		_gameworld = LoadJsonGameScene(*AssetPath("scenes/smallscene/smallscene.spj"));
+		_gameworld = LoadJsonGameScene(*AssetPath("scenes/scenewithlightmaps/scenewithlightmaps.spj"));
 		AddToRoot(_gameworld);
 
 #if 1

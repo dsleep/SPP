@@ -277,6 +277,7 @@ namespace SPP
 		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
 
 		auto& descriptorSetLayouts = meshPSO->GetDescriptorSetLayouts();
+		auto& descriptorSetLayoutBindings = meshPSO->GetDescriptorSetLayoutBindings();
 		auto setStartIdx = meshPSO->GetStartIdx();
 
 		std::vector<VkDescriptorSet> locaDrawSets;
@@ -310,18 +311,32 @@ namespace SPP
 		}
 		//set 1
 		{
-			auto& textures = _material->GetTextureArray();
-			auto gpuTexture = textures.empty() ? GGlobalVulkanGI->GetDefaultTexture() : textures[0]->GetGPUTexture();
-			auto &currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
+			auto foundFirstSet = descriptorSetLayoutBindings.find(1);
 
-			VkDescriptorImageInfo textureInfo = currentVulkanTexture.GetDescriptor();
+			VkDescriptorImageInfo textureInfo[4];
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+			auto& textures = _material->GetTextureArray();			
+			
 
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(locaDrawSets[1],
-					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &textureInfo),
-				vks::initializers::writeDescriptorSet(locaDrawSets[1],
-					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &textureInfo),
-			};
+			if (foundFirstSet != descriptorSetLayoutBindings.end())
+			{
+				int32_t TextureCount = foundFirstSet->second.size() / 2;
+
+				for (int32_t Iter = 0; Iter < TextureCount; Iter++)
+				{
+					auto gpuTexture = (Iter < textures.size()) ?
+						textures[Iter]->GetGPUTexture() :
+						GGlobalVulkanGI->GetDefaultTexture();
+						
+					auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
+					textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
+
+					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(locaDrawSets[1],
+						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (Iter*2) + 0, &textureInfo[Iter]));
+					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(locaDrawSets[1],
+						VK_DESCRIPTOR_TYPE_SAMPLER, (Iter * 2) + 1, &textureInfo[Iter]));
+				}
+			}
 
 			vkUpdateDescriptorSets(vulkanDevice,
 				static_cast<uint32_t>(writeDescriptorSets.size()),
