@@ -2,48 +2,6 @@
     "lights": [],
     "materials": [
         {
-            "name": "Ground.001",
-            "textures": {
-                "alpha": [],
-                "diffuse": [
-                    {
-                        "name": "Ground.Ground.0_baked.PNG",
-                        "uvmap": "UVMap_Lightmap"
-                    },
-                    {
-                        "name": "Ground_diffuse.png",
-                        "uvmap": ""
-                    }
-                ],
-                "emissive": [],
-                "metallic": [],
-                "normal": [],
-                "roughness": [],
-                "specular": []
-            }
-        },
-        {
-            "name": "MAIN.002",
-            "textures": {
-                "alpha": [],
-                "diffuse": [
-                    {
-                        "name": "Cube.007.MAIN.0_baked.PNG",
-                        "uvmap": "UVMap_Lightmap"
-                    },
-                    {
-                        "name": "MAIN_diffuse.png",
-                        "uvmap": ""
-                    }
-                ],
-                "emissive": [],
-                "metallic": [],
-                "normal": [],
-                "roughness": [],
-                "specular": []
-            }
-        },
-        {
             "name": "Lamp.003.Window.0.BakeMat",
             "textures": {
                 "alpha": [],
@@ -55,6 +13,27 @@
                     {
                         "name": "Lamp.003_Window_0_BakedTexture.PNG",
                         "uvmap": "UVMap_DiffuseBake"
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "MAIN.001",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Cube.007.MAIN.0.001_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "MAIN_diffuse.png",
+                        "uvmap": ""
                     }
                 ],
                 "emissive": [],
@@ -86,10 +65,19 @@
             }
         },
         {
-            "name": "Window",
+            "name": "MAIN.002",
             "textures": {
                 "alpha": [],
-                "diffuse": [],
+                "diffuse": [
+                    {
+                        "name": "Cube.007.MAIN.0_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "MAIN_diffuse.png",
+                        "uvmap": ""
+                    }
+                ],
                 "emissive": [],
                 "metallic": [],
                 "normal": [],
@@ -98,16 +86,37 @@
             }
         },
         {
-            "name": "MAIN.001",
+            "name": "Window",
             "textures": {
                 "alpha": [],
                 "diffuse": [
                     {
-                        "name": "Cube.007.MAIN.0.001_baked.PNG",
+                        "name": "BH2.Window.0_baked.PNG",
                         "uvmap": "UVMap_Lightmap"
                     },
                     {
-                        "name": "MAIN_diffuse.png",
+                        "name": "SimpleBlue.PNG",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "Ground.001",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Ground.Ground.0_baked.PNG",
+                        "uvmap": "UVMap_Lightmap"
+                    },
+                    {
+                        "name": "Ground_diffuse.png",
                         "uvmap": ""
                     }
                 ],
