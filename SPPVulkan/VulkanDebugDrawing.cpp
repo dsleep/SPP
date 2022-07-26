@@ -5,7 +5,10 @@
 #include "VulkanDebugDrawing.h"
 #include "VulkanDevice.h"
 #include "VulkanRenderScene.h"
+#include "VulkanBuffer.h"
 #include <chrono>
+
+#define MAX_LINES 1500
 
 namespace SPP
 {
@@ -32,11 +35,10 @@ namespace SPP
 		Vector3 color;
 	};
 
-	struct LineSet
-	{
-		std::vector< Vector3 > lines;
-		Vector3 color;
-		std::chrono::system_clock::time_point expirationTime;
+	struct ColoredLine
+	{		
+		ColoredVertex start;
+		ColoredVertex end;
 	};
 
 	const std::vector<VertexStream>& GetVertexStreams(const ColoredVertex& InPlaceholder)
@@ -58,10 +60,15 @@ namespace SPP
 		std::shared_ptr< class GD_Shader > _simplePS;
 		std::shared_ptr<GD_Material> _simpleDebugMaterial;
 		GPUReferencer< GPUInputLayout > _layout;
-		GPUReferencer < VulkanPipelineState > _state;
+		GPUReferencer< VulkanPipelineState > _state;
 		
 		std::mutex _lineLock;
-		std::list< LineSet > _lineSets;
+
+		bool bUpdateLines = false;
+		std::vector< ColoredLine > _lines;
+		std::shared_ptr< ArrayResource > _linesResource;
+		GPUReferencer < VulkanBuffer > _lineBuffer;
+		uint32_t _gpuLineCount = 0;
 
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
@@ -100,6 +107,10 @@ namespace SPP
 				nullptr,
 				nullptr,
 				nullptr);
+
+			_linesResource = std::make_shared<ArrayResource>();
+			_linesResource->InitializeFromType<ColoredLine>(MAX_LINES);
+			_lineBuffer = Make_GPU(VulkanBuffer, InOwner, GPUBufferType::Vertex, _linesResource);
 		}
 
 		virtual void Shutdown()
@@ -120,21 +131,14 @@ namespace SPP
 
 	}
 
-	void VulkanDebugDrawing::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color, float Duration)
+	void VulkanDebugDrawing::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
 	{
-		LineSet newSet;
-		newSet.lines.reserve(2);
-		newSet.color = Color;
-		newSet.expirationTime = std::chrono::system_clock::now() + std::chrono::milliseconds((uint32_t)(Duration * 1000.0f));
-
-		newSet.lines.push_back(Start.cast<float>());
-		newSet.lines.push_back(End.cast<float>());
-
 		std::unique_lock<std::mutex> lock(_impl->_lineLock);
-		_impl->_lineSets.push_back(newSet);
+		_impl->_lines.push_back({ ColoredVertex{ Start.cast<float>(), Color }, ColoredVertex{ End.cast<float>(), Color } } );
+		_impl->bUpdateLines = true;
 	}
 
-	void VulkanDebugDrawing::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color, float Duration)
+	void VulkanDebugDrawing::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color)
 	{
 		auto minValue = (Center - Extents).cast<float>();
 		auto maxValue = (Center + Extents).cast<float>();
@@ -151,32 +155,21 @@ namespace SPP
 		bottomPoints[1] = Vector3(maxValue[0], maxValue[1], minValue[2]);
 		bottomPoints[2] = Vector3(maxValue[0], maxValue[1], maxValue[2]);
 		bottomPoints[3] = Vector3(minValue[0], maxValue[1], maxValue[2]);
-
-		LineSet newSet;
-		newSet.lines.reserve(4 * 6);
-		newSet.color = Color;
-		newSet.expirationTime = std::chrono::system_clock::now() + std::chrono::milliseconds( (uint32_t)(Duration * 1000.0f) );
-
+		
+		std::unique_lock<std::mutex> lock(_impl->_lineLock);
 		for (int32_t Iter = 0; Iter < 4; Iter++)
 		{
 			int32_t nextPoint = (Iter + 1) % 4;
 
-			newSet.lines.push_back(topPoints[Iter]);
-			newSet.lines.push_back(topPoints[nextPoint]);
-
-			newSet.lines.push_back(bottomPoints[Iter]);
-			newSet.lines.push_back(bottomPoints[nextPoint]);
-
-			newSet.lines.push_back(topPoints[Iter]);
-			newSet.lines.push_back(bottomPoints[Iter]);
+			_impl->_lines.push_back({ ColoredVertex{ topPoints[Iter], Color }, ColoredVertex{ topPoints[nextPoint], Color } });
+			_impl->_lines.push_back({ ColoredVertex{ bottomPoints[Iter], Color }, ColoredVertex{ bottomPoints[nextPoint], Color } });
+			_impl->_lines.push_back({ ColoredVertex{ topPoints[Iter], Color }, ColoredVertex{ bottomPoints[Iter], Color } });
 		}
-
-		std::unique_lock<std::mutex> lock(_impl->_lineLock);
-		_impl->_lineSets.push_back(newSet);
+		_impl->bUpdateLines = true;
 	}
 
 
-	void VulkanDebugDrawing::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color, float Duration)
+	void VulkanDebugDrawing::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color)
 	{
 
 	}
@@ -192,6 +185,24 @@ namespace SPP
 		_impl->Shutdown();
 	}
 
+	void VulkanDebugDrawing::PrepareForDraw()
+	{
+		std::unique_lock<std::mutex> lock(_impl->_lineLock);
+		if (_impl->bUpdateLines)
+		{
+			auto lastLineCount = _impl->_gpuLineCount;
+			_impl->_gpuLineCount = _impl->_lines.size();
+			auto updateCount = _impl->_gpuLineCount - lastLineCount;
+
+			auto lineSpan = _impl->_linesResource->GetSpan< ColoredLine >();
+
+			memcpy(&lineSpan[lastLineCount], &_impl->_lines[lastLineCount], sizeof(ColoredLine) * updateCount);
+			_impl->_lineBuffer->UpdateDirtyRegion(lastLineCount, updateCount);
+
+			_impl->bUpdateLines = false;
+		}
+	}
+
 	void VulkanDebugDrawing::Draw()
 	{
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
@@ -203,39 +214,13 @@ namespace SPP
 
 		std::unique_lock<std::mutex> lock(_impl->_lineLock);
 
-		for (auto Iter = _impl->_lineSets.begin(); Iter != _impl->_lineSets.end();)
-		{
-			bool bExpired = false;
-
-			if (bExpired)
-			{
-				Iter = _impl->_lineSets.erase(Iter);
-			}
-			else
-			{
-
-
-				Iter++;
-			}
-		}
-
 		/*
-		auto vulkanMesh = std::dynamic_pointer_cast<GD_VulkanStaticMesh>(_mesh);
-		auto meshPSO = _state;
-
-		auto gpuVertexBuffer = vulkanMesh->GetVertexBuffer()->GetGPUBuffer();
-		auto gpuIndexBuffer = vulkanMesh->GetIndexBuffer()->GetGPUBuffer();
-
-		auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
-		auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
-
 		auto parentScene = (VulkanRenderScene*)_parentScene;
 		auto cameraBuffer = parentScene->GetCameraBuffer();
 		auto drawConstBuffer = parentScene->GetCameraBuffer();
 
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkVB.GetBuffer(), offsets);
-		vkCmdBindIndexBuffer(commandBuffer, vulkIB.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_impl->_lineBuffer->GetBuffer(), offsets);
 
 		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
 
@@ -282,7 +267,7 @@ namespace SPP
 			meshPSO->GetVkPipelineLayout(),
 			setStartIdx,
 			locaDrawSets.size(), locaDrawSets.data(), ARRAY_SIZE(uniform_offsets), uniform_offsets);
-		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1, 0, 0, 0);
+		vkCmdDraw(commandBuffer, _impl->_gpuLineCount * 2, _impl->_gpuLineCount, 0, 0);
 		*/
 	}
 	
