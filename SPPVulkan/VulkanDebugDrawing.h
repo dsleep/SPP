@@ -28,8 +28,9 @@ namespace SPP
 		void Initialize(class GraphicsDevice* InOwner);
 		void Shutdown();
 
-		void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Color3& Color, float Duration = 1.0f);
-		void AddDebugSphere(const Vector3d& Center, float Radius, float Duration = 1.0f);	
+		void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color = Vector3(1, 1, 1), float Duration = 1.0f);
+		void AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color = Vector3(1,1,1), float Duration = 1.0f);
+		void AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color = Vector3(1, 1, 1), float Duration = 1.0f);
 
 		void Draw();
 	};

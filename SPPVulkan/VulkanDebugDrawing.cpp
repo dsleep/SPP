@@ -5,7 +5,7 @@
 #include "VulkanDebugDrawing.h"
 #include "VulkanDevice.h"
 #include "VulkanRenderScene.h"
-
+#include <chrono>
 
 namespace SPP
 {
@@ -32,6 +32,13 @@ namespace SPP
 		Vector3 color;
 	};
 
+	struct LineSet
+	{
+		std::vector< Vector3 > lines;
+		Vector3 color;
+		std::chrono::system_clock::time_point expirationTime;
+	};
+
 	const std::vector<VertexStream>& GetVertexStreams(const ColoredVertex& InPlaceholder)
 	{
 		static std::vector<VertexStream> vertexStreams;
@@ -44,15 +51,18 @@ namespace SPP
 
 	struct VulkanDebugDrawing::DataImpl
 	{
-	private:
+	public:
+		
 		GPUReferencer < VulkanPipelineState > _PSO;
 		std::shared_ptr< class GD_Shader > _simpleVS;
 		std::shared_ptr< class GD_Shader > _simplePS;
 		std::shared_ptr<GD_Material> _simpleDebugMaterial;
 		GPUReferencer< GPUInputLayout > _layout;
 		GPUReferencer < VulkanPipelineState > _state;
+		
+		std::mutex _lineLock;
+		std::list< LineSet > _lineSets;
 
-	public:
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
@@ -71,7 +81,6 @@ namespace SPP
 			_layout = Make_GPU(VulkanInputLayout, InOwner); 
 			ColoredVertex dummyVert;
 			_layout->InitializeLayout(GetVertexStreams(dummyVert));
-
 
 			auto vsRef = _simpleVS->GetGPURef();
 			auto psRef = _simplePS->GetGPURef();
@@ -111,6 +120,67 @@ namespace SPP
 
 	}
 
+	void VulkanDebugDrawing::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color, float Duration)
+	{
+		LineSet newSet;
+		newSet.lines.reserve(2);
+		newSet.color = Color;
+		newSet.expirationTime = std::chrono::system_clock::now() + std::chrono::milliseconds((uint32_t)(Duration * 1000.0f));
+
+		newSet.lines.push_back(Start.cast<float>());
+		newSet.lines.push_back(End.cast<float>());
+
+		std::unique_lock<std::mutex> lock(_impl->_lineLock);
+		_impl->_lineSets.push_back(newSet);
+	}
+
+	void VulkanDebugDrawing::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color, float Duration)
+	{
+		auto minValue = (Center - Extents).cast<float>();
+		auto maxValue = (Center + Extents).cast<float>();
+
+		Vector3 topPoints[4];
+		Vector3 bottomPoints[4];
+
+		topPoints[0] = Vector3(minValue[0], minValue[1], minValue[2]);
+		topPoints[1] = Vector3(maxValue[0], minValue[1], minValue[2]);
+		topPoints[2] = Vector3(maxValue[0], minValue[1], maxValue[2]);
+		topPoints[3] = Vector3(minValue[0], minValue[1], maxValue[2]);
+
+		bottomPoints[0] = Vector3(minValue[0], maxValue[1], minValue[2]);
+		bottomPoints[1] = Vector3(maxValue[0], maxValue[1], minValue[2]);
+		bottomPoints[2] = Vector3(maxValue[0], maxValue[1], maxValue[2]);
+		bottomPoints[3] = Vector3(minValue[0], maxValue[1], maxValue[2]);
+
+		LineSet newSet;
+		newSet.lines.reserve(4 * 6);
+		newSet.color = Color;
+		newSet.expirationTime = std::chrono::system_clock::now() + std::chrono::milliseconds( (uint32_t)(Duration * 1000.0f) );
+
+		for (int32_t Iter = 0; Iter < 4; Iter++)
+		{
+			int32_t nextPoint = (Iter + 1) % 4;
+
+			newSet.lines.push_back(topPoints[Iter]);
+			newSet.lines.push_back(topPoints[nextPoint]);
+
+			newSet.lines.push_back(bottomPoints[Iter]);
+			newSet.lines.push_back(bottomPoints[nextPoint]);
+
+			newSet.lines.push_back(topPoints[Iter]);
+			newSet.lines.push_back(bottomPoints[Iter]);
+		}
+
+		std::unique_lock<std::mutex> lock(_impl->_lineLock);
+		_impl->_lineSets.push_back(newSet);
+	}
+
+
+	void VulkanDebugDrawing::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color, float Duration)
+	{
+
+	}
+
 	void VulkanDebugDrawing::Initialize(class GraphicsDevice* InOwner)
 	{
 		_owner = InOwner;
@@ -130,6 +200,24 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+
+		std::unique_lock<std::mutex> lock(_impl->_lineLock);
+
+		for (auto Iter = _impl->_lineSets.begin(); Iter != _impl->_lineSets.end();)
+		{
+			bool bExpired = false;
+
+			if (bExpired)
+			{
+				Iter = _impl->_lineSets.erase(Iter);
+			}
+			else
+			{
+
+
+				Iter++;
+			}
+		}
 
 		/*
 		auto vulkanMesh = std::dynamic_pointer_cast<GD_VulkanStaticMesh>(_mesh);
