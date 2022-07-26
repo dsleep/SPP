@@ -130,7 +130,7 @@ namespace SPP
         }
         virtual ~GD_Resource()
         {
-
+            SE_ASSERT(IsOnGPUThread());
         }
     };
 
