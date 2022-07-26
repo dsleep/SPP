@@ -26,7 +26,7 @@ namespace SPP
 {
 	struct IntersectionInfo
 	{
-		Vector3 location;
+		Vector3d location;
 		Vector3 normal;
 		std::string hitName;
 	};

@@ -187,8 +187,7 @@ namespace SPP
 
 		std::unique_ptr<VulkanFramebuffer> _colorTarget;
 		std::unique_ptr<VulkanFramebuffer> _deferredMaterialMRTs;
-
-		// Synchronization semaphores
+ 		// Synchronization semaphores
 		struct {
 			// Swap chain image presentation
 			VkSemaphore presentComplete;
@@ -385,7 +384,6 @@ namespace SPP
 		virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() override;
 
 		virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255, 255, 255)) override;
-
 	};
 
 	class VulkanPipelineState : public PipelineState

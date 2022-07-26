@@ -37,7 +37,7 @@ namespace SPP
 	{
 		// make sure its an initialized one
 		return (GPUThread == std::this_thread::get_id()) ||
-			(GPUThread != std::thread::id());
+			(GPUThread == std::thread::id());
 	}
 
 	GPUThreadIDOverride::GPUThreadIDOverride()

@@ -9,12 +9,15 @@
 #include "VulkanShaders.h"
 #include "VulkanDebug.h"
 #include "VulkanFrameBuffer.hpp"
+#include "VulkanDebugDrawing.h"
+#include "VulkanRenderScene.h"
 
 #include <unordered_set>
 #include "SPPLogging.h"
 #include "SPPSceneRendering.h"
 #include "SPPGraphicsO.h"
 #include "SPPSDFO.h"
+
 #include "vulkan/vulkan_win32.h"
 
 //IMGUI
@@ -435,7 +438,6 @@ namespace SPP
 				textureAccess[Iter][3] = 255;
 			}
 			_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
-				
 		}
 
 		return true;

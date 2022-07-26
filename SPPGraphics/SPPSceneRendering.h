@@ -175,7 +175,7 @@ namespace SPP
 
 		GD_RenderScene(GraphicsDevice* InOwner) : _owner(InOwner)
 		{
-			_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 45.0f, 1.77f);
+			_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 65.0f, 1.77f);
 			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
 		}
 		virtual ~GD_RenderScene() {}
@@ -282,6 +282,10 @@ namespace SPP
 		virtual void BeginFrame() { };
 		virtual void Draw() { };
 		virtual void EndFrame() { };
+
+		virtual void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color = Vector3(1, 1, 1)) {}
+		virtual void AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color = Vector3(1, 1, 1)) {}
+		virtual void AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color = Vector3(1, 1, 1)) {}
 	};	
 
 	enum class EShapeOp : uint32_t

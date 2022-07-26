@@ -128,7 +128,7 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 	
 	uint ShapeHitCount = 0;
 	
-    for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount; ++ShapeIdx)
+    for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < 32; ++ShapeIdx)
     {
 		shapeProcessedData[ShapeIdx].ViewToShapeMatrix = mul( GetTranslationMatrix( float3(ViewConstants.ViewPosition - DrawConstants.Translation) ), Shapes[ShapeIdx].invTransform );
 	
@@ -161,7 +161,7 @@ float processShapes( in float3 pos, out float3 hitColor )
 {
     float d = 1e10;
             
-    for (uint i = 0; i < DrawParams.ShapeCount; ++i)
+    for (uint i = 0; i < DrawParams.ShapeCount && i < 32; ++i)
     {
 		if (shapeProcessedData[i].IsHit == false)
 		{

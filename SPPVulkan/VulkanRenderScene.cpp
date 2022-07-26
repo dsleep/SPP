@@ -92,6 +92,8 @@ namespace SPP
 		
 		_meshvertexShader = _owner->CreateShader();
 		_meshpixelShader = _owner->CreateShader();
+
+		_debugDrawer = std::make_unique< VulkanDebugDrawing >(_owner);
 	}
 
 	VulkanRenderScene::~VulkanRenderScene()
@@ -108,6 +110,7 @@ namespace SPP
 		_meshpixelShader->Initialize(EShaderType::Pixel);
 		_meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
 			
+		_debugDrawer->Initialize();
 
 		//_debugVS = Vulkan_CreateShader(EShaderType::Vertex);
 		//_debugVS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
@@ -313,6 +316,19 @@ namespace SPP
 		}
 	}
 
+	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
+	{
+		_debugDrawer->AddDebugLine(Start, End, Color);
+	}
+	void VulkanRenderScene::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color)
+	{
+		_debugDrawer->AddDebugBox(Center, Extents, Color);
+	}
+	void VulkanRenderScene::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color)
+	{
+		_debugDrawer->AddDebugSphere(Center, Radius, Color);
+	}
+
 	//void VulkanRenderScene::DrawDebug()
 	//{
 		//if (_lines.empty()) return;
@@ -465,6 +481,8 @@ namespace SPP
 			renderItem->PrepareToDraw();
 		}
 
+		_debugDrawer->PrepareForDraw();
+
 		extern VkDevice GGlobalVulkanDevice;
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
@@ -475,7 +493,7 @@ namespace SPP
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
 		//UPDATE UNIFORMS
-		_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
+		//_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
 		_viewGPU.BuildCameraMatrices();
 
 		Planed frustumPlanes[6];
@@ -602,6 +620,8 @@ namespace SPP
 		{
 			renderItem->Draw();
 		}
+
+		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);
 

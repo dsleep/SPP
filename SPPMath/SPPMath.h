@@ -220,6 +220,15 @@ namespace SPP
     using Plane = PlaneT< float >;
     using Planed = PlaneT< double >;
 
+    inline Vector4 ToVector4(const Vector3& InVector)
+    {
+        return Vector4(InVector[0], InVector[1], InVector[2], 1.0f);
+    }
+
+    inline Vector3 ToVector3(const Vector4& InVector)
+    {
+        return InVector.head<3>();
+    }
 
     template<typename T>
     T RandomFloat(T a, T b) {

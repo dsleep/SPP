@@ -22,10 +22,10 @@ namespace SPP
 		class GraphicsDevice* _owner = nullptr;
 
 	public:
-		VulkanDebugDrawing();
+		VulkanDebugDrawing(class GraphicsDevice* InOwner);
 		~VulkanDebugDrawing();
 
-		void Initialize(class GraphicsDevice* InOwner);
+		void Initialize();
 		void Shutdown();
 
 		void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color = Vector3(1, 1, 1));
@@ -33,6 +33,6 @@ namespace SPP
 		void AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color = Vector3(1, 1, 1));
 
 		void PrepareForDraw();
-		void Draw();
+		void Draw(class VulkanRenderScene* InScene);
 	};
 }

@@ -31,7 +31,7 @@ namespace SPP
 
     namespace Intersection
     {
-        bool Intersect_RaySphere(const Ray& InRay, const Sphere& InSphere, Vector3& intersectionPoint, float* timeToHit)
+        bool Intersect_RaySphere(const Ray& InRay, const Sphere& InSphere, Vector3d& intersectionPoint, float* timeToHit)
         {
             Vector3 m = InRay.GetOrigin().cast<float>() - InSphere.GetCenter();
             float b = m.dot(InRay.GetDirection());
@@ -49,7 +49,7 @@ namespace SPP
 
             // If t is negative, ray started inside sphere so clamp t to zero 
             if (t < 0.0f) t = 0.0f;
-            intersectionPoint = InRay.GetOrigin().cast<float>() + t * InRay.GetDirection();
+            intersectionPoint = InRay.GetOrigin() + (InRay.GetDirection() * t).cast<double>();
 
             if (timeToHit)
             {

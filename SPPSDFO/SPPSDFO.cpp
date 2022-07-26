@@ -113,16 +113,6 @@ namespace SPP
 		}
 	}
 
-	inline Vector4 ToVector4(const Vector3& InVector)
-	{
-		return Vector4(InVector[0], InVector[1], InVector[2], 1.0f);
-	}
-
-	inline Vector3 ToVector3(const Vector4& InVector)
-	{
-		return InVector.head<3>();
-	}
-
 	bool OShapeGroup::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const
 	{
 		SE_ASSERT(_children.size() == _shapeCache.size());
@@ -182,6 +172,7 @@ namespace SPP
 
 			if (d < 0.001f)
 			{
+				oInfo.location = p.cast<double>() + _translation;
 				return true;
 			}
 

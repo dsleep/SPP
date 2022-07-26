@@ -7,6 +7,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include "VulkanDebugDrawing.h"
 #include "SPPVulkan.h"
 #include "SPPSceneRendering.h"
 
@@ -99,6 +100,8 @@ namespace SPP
 		std::shared_ptr<GD_Material> _defaultMaterial;
 		std::shared_ptr< class GD_Shader > _meshvertexShader, _meshpixelShader;
 
+		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
+
 	public:
 		VulkanRenderScene(GraphicsDevice* InOwner);
 		virtual ~VulkanRenderScene();
@@ -150,5 +153,10 @@ namespace SPP
 		virtual void BeginFrame() override;
 		virtual void Draw() override;		
 		virtual void EndFrame() override {}
+
+		virtual void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color = Vector3(1, 1, 1)) override;
+		virtual void AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color = Vector3(1, 1, 1)) override;
+		virtual void AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color = Vector3(1, 1, 1)) override;
+
 	};
 }

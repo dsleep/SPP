@@ -121,7 +121,7 @@ public:
 		AddToRoot(_gameworld);
 
 #if 1
-		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/singlesphere.mcsg"));
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleFace.mcsg"));
 
 		auto& topLayer = loadedElements.front();
 
@@ -218,7 +218,7 @@ public:
 		_gameworld->AddChild(_startingGroup);
 
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
-
+		
 		_charCapsule = AllocateObject<VgCapsuleElement>("currentCapsule", nullptr);
 		auto& curPos = _charCapsule->GetPosition();
 		curPos[1] = 5.0;
@@ -362,6 +362,7 @@ public:
 		if (!_graphicsDevice) return;
 
 		auto currentElapsedMS = _timer.getElapsedMilliseconds();
+
 		
 		if (currentElapsedMS < 16.666f)
 		{
@@ -381,6 +382,9 @@ public:
 		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
 
 		auto& cam = renderableSceneShared->GetCamera();
+
+		cam.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)WindowSizeX / (float)WindowSizeY);
+
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();
 		_lastTime = CurrentTime;
@@ -447,8 +451,10 @@ public:
 
 		auto& cam = renderableSceneShared->GetCamera();
 
-		Vector4 MousePosNear = Vector4(((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), ((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 0.0f, 1.0f);
-		Vector4 MousePosFar = Vector4(MousePosNear[0], MousePosNear[1], 0.1f, 1.0f);
+		Vector4 MousePosNear = Vector4(
+			((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), 
+			((_mousePosition[1] / (float)WindowSizeY) * 2.0f - 1.0f), 0.0f, 1.0f);
+		Vector4 MousePosFar = Vector4(MousePosNear[0], MousePosNear[1], 1.0f, 1.0f);
 
 		Vector4 MouseLocalNear = MousePosNear * cam.GetInvViewProjMatrix();
 		MouseLocalNear /= MouseLocalNear[3];
@@ -460,11 +466,53 @@ public:
 		Vector3 MouseRay = (MouseEnd - MouseStart).normalized();
 
 		Ray ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay);
+
+
 		IntersectionInfo hitInfo;
 		if(_startingGroup->Intersect_Ray(ray, hitInfo))
 		{
 			// hit something
 			SPP_QL("hit something");
+
+			//renderableSceneShared->AddDebugLine(MouseStart.cast<double>() + cam.GetCameraPosition(),
+			//	hitInfo.location, Vector3(1,0,0));
+
+			static uint32_t simpleCnt = 44;
+			OShape* newShape = nullptr;
+			std::string shapeName = std::string_format("shape_%s_%d", "shoot", simpleCnt++);
+			newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
+
+			auto WorldToLocal = _startingGroup->GenerateLocalToWorld(true).inverse();
+
+			Vector3d localTransform = ToVector3(ToVector4((hitInfo.location - _startingGroup->GetPosition()).cast<float>()) * WorldToLocal).cast<double>();
+			
+			newShape->SetTransformArgs(
+				{
+					.translation = localTransform,
+					.rotation = Vector3(1,1,1),
+					.scale = Vector3(7,7,7)
+				});
+
+			EShapeType shapeType = EShapeType::Sphere;
+			EShapeOp shapeOp = EShapeOp::Subtract;
+
+			newShape->SetShapeArgs(
+				{
+					.shapeType = shapeType,
+					.shapeOp = shapeOp,
+					.shapeBlendFactor = 0,
+					.shapeColor = Color3(255,0,0)
+				}
+			);
+			_startingGroup->AddChild(newShape);
+
+			_gameworld->RemoveChild(_startingGroup);
+			_gameworld->AddChild(_startingGroup);
+		}
+		else
+		{
+			//renderableSceneShared->AddDebugLine(MouseStart.cast<double>() + cam.GetCameraPosition(),
+			//	MouseEnd.cast<double>() + cam.GetCameraPosition());
 		}
 	}
 
