@@ -175,7 +175,10 @@ namespace SPP
 				// not visible to root
 				if (InObj->GetTempFlags() & GC_DYING)
 				{
-					delete InObj;
+					if (InObj->Finalize())
+					{
+						delete InObj;
+					}
 				}
 				return true;
 			});

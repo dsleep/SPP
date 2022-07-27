@@ -49,6 +49,7 @@ namespace SPP
 		class OElement* _parent = nullptr;
 		std::vector<OElement*> _children;
 
+		virtual bool Finalize() override;
 		bool _bIsStatic = true;
 
 	public:

@@ -96,6 +96,11 @@ namespace SPP
 		}
 	}
 
+	bool OElement::Finalize()
+	{
+
+	}
+
 	OElement* OElement::GetTopBeforeScene()
 	{
 		if (_parent == _scene || _parent == nullptr)
