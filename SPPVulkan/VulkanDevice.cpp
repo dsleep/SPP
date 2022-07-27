@@ -24,7 +24,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
-#define ALLOW_IMGUI 0
+#define ALLOW_IMGUI 1
 
 namespace SPP
 {
@@ -1056,7 +1056,7 @@ namespace SPP
 		auto currentElapsedMS = priorFrame.getElapsedMilliseconds();
 		if (currentElapsedMS > 5)
 		{
-			SPP_LOG(LOG_VULKAN, LOG_INFO, "LONG FRAME");
+			SPP_LOG(LOG_VULKAN, LOG_INFO, "LONG FRAME waited %fms", currentElapsedMS);
 		}
 
 		VK_CHECK_RESULT(vkResetFences(device, 1, &_waitFences[currentBuffer]->Get()));
@@ -1149,6 +1149,7 @@ namespace SPP
 			_FPS.resize(30);
 		}
 		_FPS[_currentFPSIdx] = currentElapsedMS;
+
 #if ALLOW_IMGUI
 
 		ImGui::SetCursorPosX(width - 325);

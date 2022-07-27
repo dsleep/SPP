@@ -116,7 +116,7 @@ namespace SPP
 	class SPP_OBJECT_API SPPObject : public SPPDirectory
 	{
 		friend SPP_OBJECT_API void IterateObjects(const std::function<bool(SPPObject*)>& InFunction);
-		friend void GC_MarkAndSweep();
+		friend SPP_OBJECT_API void GC_MarkAndSweep();
 
 		RTTR_ENABLE()
 		RTTR_REGISTRATION_FRIEND

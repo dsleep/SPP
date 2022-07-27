@@ -36,6 +36,11 @@ namespace SPP
 		}
 		SE_ASSERT(bFoundEle);
 		InChild->_parent = nullptr;
+
+		if (InChild->_scene)
+		{
+			InChild->RemovedFromScene();
+		}
 	}
 
 	void OElement::AddedToScene(class OScene* InScene)
@@ -98,7 +103,22 @@ namespace SPP
 
 	bool OElement::Finalize()
 	{
+		if (SPPObject::Finalize())
+		{
+			if (_parent)
+			{
+				_parent->RemoveChild(this);
 
+				while(_children.size())
+				{
+					RemoveChild(_children.front());
+				}
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 	OElement* OElement::GetTopBeforeScene()

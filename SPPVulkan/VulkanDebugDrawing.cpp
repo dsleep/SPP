@@ -204,6 +204,10 @@ namespace SPP
 
 	void VulkanDebugDrawing::Draw(VulkanRenderScene *InScene)
 	{
+		if (!_impl->_gpuLineCount)
+		{
+			return;
+		}
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
@@ -247,8 +251,7 @@ namespace SPP
 		}
 
 		uint32_t uniform_offsets[] = {
-			(sizeof(GPUViewConstants)) * currentFrame,
-			0
+			(sizeof(GPUViewConstants)) * currentFrame
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _impl->_state->GetVkPipeline());

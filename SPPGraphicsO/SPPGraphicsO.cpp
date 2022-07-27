@@ -175,7 +175,10 @@ namespace SPP
 
 		if (_renderableMesh)
 		{
-			_renderableMesh->RemoveFromRenderScene();
+			GPUThreaPool->enqueue([_renderableMesh = this->_renderableMesh]()
+			{
+				_renderableMesh->RemoveFromRenderScene();
+			});
 			_renderableMesh.reset();
 		}
 	}
