@@ -34,17 +34,23 @@ namespace SPP
 		GPUReferencer< GPUShader> InDS,
 		GPUReferencer< GPUShader> InCS);
 
-	class GD_VulkanStaticMesh : public GD_StaticMesh
+	class RT_VulkanStaticMesh : public RT_StaticMesh
 	{
+		CLASS_RT_RESOURCE();
+
+	protected:
+		RT_VulkanStaticMesh(GraphicsDevice* InOwner) : RT_StaticMesh(InOwner) {}
+
 	public:
-		GD_VulkanStaticMesh(GraphicsDevice* InOwner) : GD_StaticMesh(InOwner) {}
 
 		virtual void Initialize() override;
-		virtual ~GD_VulkanStaticMesh() {}
+		virtual ~RT_VulkanStaticMesh() {}
 	};
 		
-	class GD_VulkanRenderableMesh : public GD_RenderableMesh
+	class RT_VulkanRenderableMesh : public RT_RenderableMesh
 	{
+		CLASS_RT_RESOURCE();
+
 	protected:
 
 		GPUReferencer < VulkanPipelineState > _state;
@@ -52,24 +58,28 @@ namespace SPP
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
 		bool bPendingUpdate = false;
 
-	public:
-		GD_VulkanRenderableMesh(GraphicsDevice* InOwner) : GD_RenderableMesh(InOwner) {}
-		virtual ~GD_VulkanRenderableMesh() {}
 
-		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
+		RT_VulkanRenderableMesh(GraphicsDevice* InOwner) : RT_RenderableMesh(InOwner) {}
+	public:
+		virtual ~RT_VulkanRenderableMesh() {}
+
+		virtual void _AddToRenderScene(class RT_RenderScene* InScene) override;
 		virtual void _RemoveFromRenderScene() override;
 
 		virtual void PrepareToDraw() override;
 		virtual void Draw() override;
 	};
 
-	class GD_Vulkan_Material : public GD_Material
+	class RT_Vulkan_Material : public RT_Material
 	{
+		CLASS_RT_RESOURCE();
+
 	protected:
 
+		RT_Vulkan_Material(GraphicsDevice* InOwner) : RT_Material(InOwner) {}
+
 	public:
-		GD_Vulkan_Material(GraphicsDevice* InOwner) : GD_Material(InOwner) {}
-		virtual ~GD_Vulkan_Material() {} 
+		virtual ~RT_Vulkan_Material() {} 
 
 		GPUReferencer < VulkanPipelineState > GetPipelineState(EDrawingTopology topology,
 			GPUReferencer<GPUInputLayout> layout)
@@ -97,39 +107,39 @@ namespace SPP
 		}
 	};
 
-	std::shared_ptr< class GD_Material > VulkanGraphicsDevice::CreateMaterial()
+	std::shared_ptr< class RT_Material > VulkanGraphicsDevice::CreateMaterial()
 	{
-		return std::make_shared<GD_Vulkan_Material>(this);
+		return Make_RT_Resource(RT_Vulkan_Material, this);
 	}
 
-	std::shared_ptr< class GD_StaticMesh > VulkanGraphicsDevice::CreateStaticMesh()
+	std::shared_ptr< class RT_StaticMesh > VulkanGraphicsDevice::CreateStaticMesh()
 	{
-		return std::make_shared< GD_VulkanStaticMesh >(this);
+		return Make_RT_Resource( RT_VulkanStaticMesh, this);
 	}
 
-	std::shared_ptr< class GD_RenderableMesh > VulkanGraphicsDevice::CreateRenderableMesh()
+	std::shared_ptr< class RT_RenderableMesh > VulkanGraphicsDevice::CreateRenderableMesh()
 	{
-		return std::make_shared<GD_VulkanRenderableMesh>(this);
+		return Make_RT_Resource( RT_VulkanRenderableMesh, this);
 	}
 
-	std::shared_ptr< class GD_Material> VulkanGraphicsDevice::GetDefaultMaterial()
+	std::shared_ptr< class RT_Material> VulkanGraphicsDevice::GetDefaultMaterial()
 	{
 		return _defaultMaterial;
 	}
 
 
-	void GD_VulkanStaticMesh::Initialize()
+	void RT_VulkanStaticMesh::Initialize()
 	{
-		GD_StaticMesh::Initialize();
+		RT_StaticMesh::Initialize();
 
 		_layout = Make_GPU(VulkanInputLayout, _owner); 
 		_layout->InitializeLayout(_vertexStreams);		
 	}
 
 
-	void GD_VulkanRenderableMesh::_AddToRenderScene(class GD_RenderScene* InScene)
+	void RT_VulkanRenderableMesh::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
-		GD_RenderableMesh::_AddToRenderScene(InScene);
+		RT_RenderableMesh::_AddToRenderScene(InScene);
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
@@ -140,12 +150,12 @@ namespace SPP
 		bPendingUpdate = true;
 	}
 
-	void GD_VulkanRenderableMesh::_RemoveFromRenderScene()
+	void RT_VulkanRenderableMesh::_RemoveFromRenderScene()
 	{
-		GD_RenderableMesh::_RemoveFromRenderScene();
+		RT_RenderableMesh::_RemoveFromRenderScene();
 	}
 
-	void GD_VulkanRenderableMesh::PrepareToDraw()
+	void RT_VulkanRenderableMesh::PrepareToDraw()
 	{
 		if (!_state)
 		{
@@ -155,8 +165,8 @@ namespace SPP
 				_material = _owner->GetDefaultMaterial();
 			}
 
-			//auto vulkanMesh = std::dynamic_pointer_cast<GD_VulkanStaticMesh>(_mesh);
-			auto vulkanMat = std::dynamic_pointer_cast<GD_Vulkan_Material>(_material);
+			//auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
+			auto vulkanMat = std::dynamic_pointer_cast<RT_Vulkan_Material>(_material);
 
 			SE_ASSERT(vulkanMat);
 			SE_ASSERT(_mesh);
@@ -248,7 +258,7 @@ namespace SPP
 		//}
 	//}
 
-	void GD_VulkanRenderableMesh::Draw()
+	void RT_VulkanRenderableMesh::Draw()
 	{		
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
@@ -257,7 +267,7 @@ namespace SPP
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
-		auto vulkanMesh = std::dynamic_pointer_cast<GD_VulkanStaticMesh>(_mesh);
+		auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
 		auto meshPSO = _state;
 
 		auto gpuVertexBuffer = vulkanMesh->GetVertexBuffer()->GetGPUBuffer();

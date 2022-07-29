@@ -56,8 +56,8 @@ namespace SPP
 	public:
 		
 		GPUReferencer < VulkanPipelineState > _PSO;
-		std::shared_ptr< class GD_Shader > _simpleVS;
-		std::shared_ptr< class GD_Shader > _simplePS;
+		std::shared_ptr< class RT_Shader > _simpleVS;
+		std::shared_ptr< class RT_Shader > _simplePS;
 		GPUReferencer< GPUInputLayout > _layout;
 		GPUReferencer< VulkanPipelineState > _state;
 		

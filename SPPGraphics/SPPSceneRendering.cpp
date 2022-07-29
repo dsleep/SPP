@@ -7,7 +7,7 @@
 
 namespace SPP
 {
-	void Renderable::_AddToRenderScene(class GD_RenderScene* InScene)
+	void Renderable::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
 		SE_ASSERT(InScene);
 		SE_ASSERT(IsOnGPUThread());
@@ -23,13 +23,13 @@ namespace SPP
 		_parentScene = nullptr;
 	};
 
-	GD_StaticMesh::GD_StaticMesh(GraphicsDevice* InOwner) : GD_Resource(InOwner)
+	RT_StaticMesh::RT_StaticMesh(GraphicsDevice* InOwner) : RT_Resource(InOwner)
 	{
 		_vertexBuffer = _owner->CreateBuffer(GPUBufferType::Vertex);
 		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
 	}
 
-	void GD_StaticMesh::Initialize()
+	void RT_StaticMesh::Initialize()
 	{
 		SE_ASSERT(IsOnGPUThread());
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);

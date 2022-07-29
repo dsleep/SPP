@@ -48,11 +48,11 @@ namespace SPP
 
 	protected:
 		ORenderableScene(const std::string& InName, SPPDirectory* InParent);
-		std::shared_ptr<GD_RenderScene> _renderScene;
+		std::shared_ptr<RT_RenderScene> _renderScene;
 		class GraphicsDevice* _owningDevice = nullptr;
 
 	public:
-		GD_RenderScene* GetRenderScene()
+		RT_RenderScene* GetRenderScene()
 		{
 			return _renderScene.get();
 		}
@@ -81,14 +81,14 @@ namespace SPP
 		std::shared_ptr< ArrayResource > _rawImgData;
 		std::shared_ptr< ImageMeta > _metaInfo;
 
-		std::shared_ptr< class GD_Texture > _texture;
+		std::shared_ptr< class RT_Texture > _texture;
 
 	public:
 		OTexture(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
 		bool LoadFromDisk(const char *FileName);
 
-		std::shared_ptr< class GD_Texture > GetDeviceTexture()
+		std::shared_ptr< class RT_Texture > GetDeviceTexture()
 		{
 			return _texture;
 		}
@@ -108,7 +108,7 @@ namespace SPP
 		OMesh(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 		
 		std::shared_ptr<Mesh> _mesh;
-		std::shared_ptr<GD_StaticMesh> _renderMesh;
+		std::shared_ptr<RT_StaticMesh> _renderMesh;
 
 	public:
 		void SetMesh(std::shared_ptr<Mesh> InMesh)
@@ -123,7 +123,7 @@ namespace SPP
 		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
 		virtual void UinitializeGraphicsDeviceResources();
 
-		std::shared_ptr<GD_StaticMesh> GetDeviceMesh()
+		std::shared_ptr<RT_StaticMesh> GetDeviceMesh()
 		{
 			return _renderMesh;
 		}
@@ -142,7 +142,7 @@ namespace SPP
 		EShaderType _shaderType;
 		std::string _filePath;
 		std::string _entryPoint;
-		std::shared_ptr<GD_Shader> _shader;
+		std::shared_ptr<RT_Shader> _shader;
 
 	public:
 		void Initialize(EShaderType InType, const char *InFilePath, const char* EntryPoint = "main")
@@ -158,7 +158,7 @@ namespace SPP
 			return _shaderType;
 		}
 		
-		std::shared_ptr<GD_Shader> GetShader()
+		std::shared_ptr<RT_Shader> GetShader()
 		{
 			return _shader;
 		}
@@ -178,7 +178,7 @@ namespace SPP
 		std::vector<OShader*> _shaders;
 		std::vector<OTexture*> _textures;
 
-		std::shared_ptr<GD_Material> _material;
+		std::shared_ptr<RT_Material> _material;
 
 	public:
 		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
@@ -192,7 +192,7 @@ namespace SPP
 			}
 			_textures[CurrentIdx] = InTexture;
 		}
-		void SetMaterial(std::shared_ptr<GD_Material> InMat)
+		void SetMaterial(std::shared_ptr<RT_Material> InMat)
 		{
 			_material = InMat;
 		}
@@ -200,7 +200,7 @@ namespace SPP
 		{
 			return _shaders;
 		}
-		std::shared_ptr<GD_Material> GetMaterial()
+		std::shared_ptr<RT_Material> GetMaterial()
 		{
 			return _material;
 		}
@@ -233,7 +233,7 @@ namespace SPP
 		OMesh* _meshObj = nullptr;
 		OMaterial* _materialObj = nullptr;
 
-		std::shared_ptr<GD_RenderableMesh> _renderableMesh;
+		std::shared_ptr<RT_RenderableMesh> _renderableMesh;
 
 	public:
 		void SetMesh(OMesh* InMesh)

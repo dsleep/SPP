@@ -80,7 +80,7 @@ private:
 
 	ESelectionMode _selectionMode = ESelectionMode::None;
 	std::unique_ptr<SPP::ApplicationWindow> app;
-	GD_RenderScene* renderableSceneShared = nullptr;
+	RT_RenderScene* renderableSceneShared = nullptr;
 	std::future<bool> graphicsResults;
 
 	VgCapsuleElement* _charCapsule = nullptr;

@@ -16,7 +16,7 @@ namespace SPP
 	class SPP_GRAPHICS_API Renderable : public IOctreeElement
 	{
 	protected:
-		class GD_RenderScene* _parentScene = nullptr;
+		class RT_RenderScene* _parentScene = nullptr;
 		OctreeLinkPtr _octreeLink = nullptr;
 		
 		float _radius = 1.0f;
@@ -30,7 +30,7 @@ namespace SPP
 		bool _bSelected = false;
 		bool _bIsStatic = false;
 
-		virtual void _AddToRenderScene(class GD_RenderScene* InScene);
+		virtual void _AddToRenderScene(class RT_RenderScene* InScene);
 		virtual void _RemoveFromRenderScene();
 
 	public:
@@ -90,7 +90,7 @@ namespace SPP
 			return _scale;
 		}
 
-		GPU_CALL AddToRenderScene(class GD_RenderScene* InScene)
+		GPU_CALL AddToRenderScene(class RT_RenderScene* InScene)
 		{
 			this->_AddToRenderScene(InScene);
 			co_return;
@@ -150,7 +150,7 @@ namespace SPP
 		}
 	};
 			
-	class SPP_GRAPHICS_API GD_RenderScene
+	class SPP_GRAPHICS_API RT_RenderScene
 	{
 	protected:
 		Camera _viewCPU;
@@ -173,12 +173,12 @@ namespace SPP
 
 	public:
 
-		GD_RenderScene(GraphicsDevice* InOwner) : _owner(InOwner)
+		RT_RenderScene(GraphicsDevice* InOwner) : _owner(InOwner)
 		{
 			_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 65.0f, 1.77f);
 			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
 		}
-		virtual ~GD_RenderScene() {}
+		virtual ~RT_RenderScene() {}
 
 		virtual void AddedToGraphicsDevice() {};
 
@@ -195,7 +195,7 @@ namespace SPP
 			_skyBox = InSkyBox;
 		}
 
-		virtual std::shared_ptr<GD_Material> GetDefaultMaterial() { return nullptr; }
+		virtual std::shared_ptr<RT_Material> GetDefaultMaterial() { return nullptr; }
 
 		template<typename... T>
 		void SetColorTargets(T... args)
@@ -315,13 +315,14 @@ namespace SPP
 		EShapeOp shapeOp = EShapeOp::Add;		
 	};
 
-	class SPP_GRAPHICS_API GD_RenderableSignedDistanceField : public Renderable, public GD_Resource
+	class SPP_GRAPHICS_API RT_RenderableSignedDistanceField : public Renderable, public RT_Resource
 	{
 	protected:
 		std::vector< SDFShape > _shapes;
 		Vector3 _color = { 0,0,0 };
 		GPUReferencer< GPUShader > _customShader;
 
+		RT_RenderableSignedDistanceField(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
 	public:
 		struct Args : Renderable::Args
 		{
@@ -340,15 +341,14 @@ namespace SPP
 		virtual bool Is3dRenderable() const override { return false; }
 		virtual bool IsPostRenderable() const override { return true; }
 
-		GD_RenderableSignedDistanceField(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
-		virtual ~GD_RenderableSignedDistanceField() {}
-		//GD_RenderableSignedDistanceField(Args&& InArgs) : Renderable((Renderable::Args)InArgs)
+		virtual ~RT_RenderableSignedDistanceField() {}
+		//RT_RenderableSignedDistanceField(Args&& InArgs) : Renderable((Renderable::Args)InArgs)
 		//{
 		//	_shapes = InArgs.shapes;
 		//	_color = InArgs.color;
 		//}
 
-		//GD_RenderableSignedDistanceField() : Renderable() {}
+		//RT_RenderableSignedDistanceField() : Renderable() {}
 
 		std::vector< SDFShape >& GetShapes()
 		{
@@ -364,7 +364,7 @@ namespace SPP
 		}
 	};
 
-	class SPP_GRAPHICS_API GD_StaticMesh : public GD_Resource
+	class SPP_GRAPHICS_API RT_StaticMesh : public RT_Resource
 	{
 	protected:
 		EDrawingTopology _topology = EDrawingTopology::TriangleList;
@@ -375,8 +375,10 @@ namespace SPP
 		
 		GPUReferencer<GPUInputLayout> _layout;
 
-		std::shared_ptr<GD_Buffer> _vertexBuffer;
-		std::shared_ptr<GD_Buffer> _indexBuffer;
+		std::shared_ptr<RT_Buffer> _vertexBuffer;
+		std::shared_ptr<RT_Buffer> _indexBuffer;
+
+		RT_StaticMesh(GraphicsDevice* InOwner);
 
 	public:
 		struct Args 
@@ -387,8 +389,6 @@ namespace SPP
 			std::shared_ptr<ArrayResource> indexResource;
 		};
 
-		GD_StaticMesh(GraphicsDevice* InOwner);
-
 		void SetMeshArgs(const Args& InArgs)
 		{
 			_topology = InArgs.topology;
@@ -397,13 +397,13 @@ namespace SPP
 			_indexResource = InArgs.indexResource;
 		}
 
-		virtual ~GD_StaticMesh() {}
+		virtual ~RT_StaticMesh() {}
 
-		std::shared_ptr<GD_Buffer> GetVertexBuffer()
+		std::shared_ptr<RT_Buffer> GetVertexBuffer()
 		{
 			return _vertexBuffer;
 		}
-		std::shared_ptr<GD_Buffer> GetIndexBuffer()
+		std::shared_ptr<RT_Buffer> GetIndexBuffer()
 		{
 			return _indexBuffer;
 		}
@@ -419,21 +419,24 @@ namespace SPP
 		virtual void Initialize();
 	};
 
-	class SPP_GRAPHICS_API GD_RenderableMesh : public Renderable, public GD_Resource
+	class SPP_GRAPHICS_API RT_RenderableMesh : public Renderable, public RT_Resource
 	{
+		CLASS_RT_RESOURCE();
+
 	protected:
-		std::shared_ptr<GD_StaticMesh> _mesh;
-		std::shared_ptr<GD_Material> _material;
+		std::shared_ptr<RT_StaticMesh> _mesh;
+		std::shared_ptr<RT_Material> _material;
+
+		RT_RenderableMesh(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
 
 	public:
 		struct Args
 		{
-			std::shared_ptr<GD_StaticMesh> mesh;
-			std::shared_ptr<GD_Material> material;
+			std::shared_ptr<RT_StaticMesh> mesh;
+			std::shared_ptr<RT_Material> material;
 		};
 
-		GD_RenderableMesh(GraphicsDevice* InOwner) : Renderable(), GD_Resource(InOwner) {}
-		virtual ~GD_RenderableMesh() {}
+		virtual ~RT_RenderableMesh() {}
 		void SetRenderableMeshArgs(const Args& InArgs)
 		{
 			_mesh = InArgs.mesh;

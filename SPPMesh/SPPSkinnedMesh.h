@@ -132,7 +132,7 @@ namespace SPP
 
 	};
 
-	//class SPP_MESH_API RenderableSkinnedMesh : public GD_RenderableMesh
+	//class SPP_MESH_API RenderableSkinnedMesh : public RT_RenderableMesh
 	//{
 	//protected:
 	//	std::vector< std::shared_ptr<MeshElement> > _meshElements;

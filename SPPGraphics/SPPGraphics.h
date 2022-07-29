@@ -118,31 +118,43 @@ namespace SPP
     template<typename T>
     class GPUReferencer;
 
-    class SPP_GRAPHICS_API GD_Resource
+    #define Make_RT_Resource(T,...) _Make_RT_Resource<T>( __LINE__, __FILE__, ##__VA_ARGS__); 
+    #define CLASS_RT_RESOURCE() \
+            template<typename T, typename ... Args> \
+            friend std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, class GraphicsDevice* InOwner, Args&& ... args);
+
+    class SPP_GRAPHICS_API RT_Resource
     {
+        CLASS_RT_RESOURCE();
+
     protected:
         GraphicsDevice* _owner = nullptr;
 
-    public:        
-        GD_Resource(GraphicsDevice* InOwner) : _owner(InOwner)
+        RT_Resource(GraphicsDevice* InOwner) : _owner(InOwner)
         {
             SE_ASSERT(IsOnCPUThread());
         }
-        virtual ~GD_Resource()
+
+    public:        
+       
+        virtual ~RT_Resource()
         {
             SE_ASSERT(IsOnGPUThread());
         }
     };
+       
+  
 
     class SPP_GRAPHICS_API GraphicsDevice
     {
     protected:
-        std::vector< class GD_RenderScene* > _renderScenes;
+        std::vector< class RT_RenderScene* > _renderScenes;
 
-        virtual void INTERNAL_AddScene(class GD_RenderScene* InScene);
-        virtual void INTERNAL_RemoveScene(class GD_RenderScene* InScene);
+        virtual void INTERNAL_AddScene(class RT_RenderScene* InScene);
+        virtual void INTERNAL_RemoveScene(class RT_RenderScene* InScene);
 
         std::list< class GPUResource* > _resources;
+        std::list< std::shared_ptr< RT_Resource > > _renderThreadResources;
 
         std::future<bool> _currentFrame;
       
@@ -151,6 +163,9 @@ namespace SPP
 
         virtual void PushResource(class GPUResource* InResource);
         virtual void PopResource(class GPUResource* InResource);
+
+        virtual void PushRenderThreadResource(std::shared_ptr< RT_Resource > InResource);
+
         virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) = 0;
         virtual void Shutdown() = 0;
         virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight) = 0;
@@ -160,8 +175,8 @@ namespace SPP
 
         virtual void DyingResource(class GPUResource* InResourceToKill) = 0;
 
-        GPU_CALL AddScene(class GD_RenderScene* InScene);
-        GPU_CALL RemoveScene(class GD_RenderScene* InScene);
+        GPU_CALL AddScene(class RT_RenderScene* InScene);
+        GPU_CALL RemoveScene(class RT_RenderScene* InScene);
 
         virtual void Flush() {}
         virtual void SyncGPUData();
@@ -179,27 +194,36 @@ namespace SPP
         //virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;
         //virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;
         //virtual GPUReferencer< GPURenderTarget > CreateRenderTarget(int32_t Width, int32_t Height, TextureFormat Format) = 0;
-        //virtual std::shared_ptr< class GD_Material > CreateMaterial() = 0;
+        //virtual std::shared_ptr< class RT_Material > CreateMaterial() = 0;
 
-        virtual std::shared_ptr< class GD_Texture > CreateTexture() = 0;
-        virtual std::shared_ptr< class GD_Shader > CreateShader() = 0;
-        virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) = 0;
+        virtual std::shared_ptr< class RT_Texture > CreateTexture() = 0;
+        virtual std::shared_ptr< class RT_Shader > CreateShader() = 0;
+        virtual std::shared_ptr< class RT_Buffer > CreateBuffer(GPUBufferType InType) = 0;
 
-        virtual std::shared_ptr< class GD_Material > CreateMaterial() = 0;
+        virtual std::shared_ptr< class RT_Material > CreateMaterial() = 0;
 
-        //virtual std::shared_ptr< class GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
-        virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() = 0;
+        //virtual std::shared_ptr< class RT_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) = 0;
+        virtual std::shared_ptr< class RT_RenderScene > CreateRenderScene() = 0;
         
-        virtual std::shared_ptr< class GD_RenderableMesh > CreateRenderableMesh() = 0;
-        virtual std::shared_ptr< class GD_StaticMesh > CreateStaticMesh() = 0;
-        //virtual std::shared_ptr< class GD_RenderableMesh > CreateSkinnedMesh() = 0;
+        virtual std::shared_ptr< class RT_RenderableMesh > CreateRenderableMesh() = 0;
+        virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() = 0;
+        //virtual std::shared_ptr< class RT_RenderableMesh > CreateSkinnedMesh() = 0;
 
-        virtual std::shared_ptr< class GD_Material> GetDefaultMaterial() = 0;
+        virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() = 0;
 
-        virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() = 0;
+        virtual std::shared_ptr< class RT_RenderableSignedDistanceField > CreateSignedDistanceField() = 0;
 
         virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255,255,255)) {}
     };
+
+
+    template<typename T, typename ... Args>
+    std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, class GraphicsDevice* InOwner, Args&& ... args)
+    {        
+        auto Sp = std::shared_ptr<T>(new T(InOwner, args...));
+        InOwner->PushRenderThreadResource(Sp);
+        return Sp;
+    }
 
     struct IGraphicsInterface
     {

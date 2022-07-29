@@ -836,7 +836,27 @@ namespace SPP
 	}
 
 	void VulkanGraphicsDevice::Shutdown()
-	{
+	{		
+		GPUThreadIDOverride tempOverride;
+
+		for (bool bFoundSomething = true; bFoundSomething;)
+		{
+			bFoundSomething = false;
+
+			for (auto iter = _renderThreadResources.begin(); iter != _renderThreadResources.end(); )
+			{
+				if ( (*iter) && iter->use_count() == 1)
+				{
+					iter = _renderThreadResources.erase(iter); // _advances_ iter, so this loop is not infinite
+					bFoundSomething = true;
+				}
+				else
+				{
+					++iter;
+				}
+			}
+		}
+
 		auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
 		while (CurResource)
 		{
@@ -1761,17 +1781,17 @@ namespace SPP
 		return Make_GPU(VulkanTexture, this, Width, Height, Format, RawData, InMetaInfo);
 	}
 
-	std::shared_ptr< class GD_Texture > VulkanGraphicsDevice::CreateTexture()
+	std::shared_ptr< class RT_Texture > VulkanGraphicsDevice::CreateTexture()
 	{
-		return std::make_shared< GD_Texture>(this);
+		return Make_RT_Resource( RT_Texture, this );
 	}
-	std::shared_ptr< class GD_Shader > VulkanGraphicsDevice::CreateShader()
+	std::shared_ptr< class RT_Shader > VulkanGraphicsDevice::CreateShader()
 	{
-		return std::make_shared< GD_Shader>(this);
+		return Make_RT_Resource( RT_Shader, this);
 	}
-	std::shared_ptr< class GD_Buffer > VulkanGraphicsDevice::CreateBuffer(GPUBufferType InType)
+	std::shared_ptr< class RT_Buffer > VulkanGraphicsDevice::CreateBuffer(GPUBufferType InType)
 	{
-		return std::make_shared< GD_Buffer>(this);
+		return Make_RT_Resource( RT_Buffer, this);
 	}
 	
 	
@@ -1787,19 +1807,19 @@ namespace SPP
 	//{
 	//	return nullptr;
 	//}
-	//virtual std::shared_ptr< GD_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
+	//virtual std::shared_ptr< RT_ComputeDispatch > CreateComputeDispatch(GPUReferencer< GPUShader> InCS) override
 	//{
 	//	return nullptr;
 	//}
-	//virtual std::shared_ptr<GD_RenderScene> CreateRenderScene() override
+	//virtual std::shared_ptr<RT_RenderScene> CreateRenderScene() override
 	//{
 	//	return std::make_shared< VulkanRenderScene >();
 	//}
-	//virtual std::shared_ptr<GD_RenderableMesh> CreateRenderableMesh() override
+	//virtual std::shared_ptr<RT_RenderableMesh> CreateRenderableMesh() override
 	//{
 	//	return nullptr;
 	//}
-	//virtual std::shared_ptr<GD_RenderableSignedDistanceField> CreateRenderableSDF(GD_RenderableSignedDistanceField::Args&& InArgs) override
+	//virtual std::shared_ptr<RT_RenderableSignedDistanceField> CreateRenderableSDF(RT_RenderableSignedDistanceField::Args&& InArgs) override
 	//{
 	//	return Vulkan_CreateSDF(InArgs);
 	//}

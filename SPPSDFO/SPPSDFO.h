@@ -91,7 +91,7 @@ namespace SPP
 
 	protected:
 		OShapeGroup(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent) { }
-		std::shared_ptr<GD_RenderableSignedDistanceField> _renderableSDF;
+		std::shared_ptr<RT_RenderableSignedDistanceField> _renderableSDF;
 		std::vector<SDFShape> _shapeCache;
 		Vector3 _color = { 0.5f,0.5f,0.5f };
 		GPUReferencer< GPUShader > _shaderOverride;

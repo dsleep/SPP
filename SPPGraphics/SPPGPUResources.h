@@ -495,14 +495,18 @@ namespace SPP
         virtual ~GPURenderTarget() { }
     };
 
-    class SPP_GRAPHICS_API GD_Shader : public GD_Resource
+
+    class SPP_GRAPHICS_API RT_Shader : public RT_Resource
     {
+        CLASS_RT_RESOURCE();
+
     protected:
         GPUReferencer< GPUShader > _shader;
                
-    public:
-        GD_Shader(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
-        virtual ~GD_Shader() {}
+        RT_Shader(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+
+    public:       
+        virtual ~RT_Shader() {}
         virtual void Initialize(EShaderType InType)
         {
             _shader = _owner->_gxCreateShader(InType);
@@ -522,14 +526,17 @@ namespace SPP
         }
     };
 
-    class SPP_GRAPHICS_API GD_Texture : public GD_Resource
+    class SPP_GRAPHICS_API RT_Texture : public RT_Resource
     {
+        CLASS_RT_RESOURCE();
+
     protected:
         GPUReferencer< GPUTexture > _texture;
 
+        RT_Texture(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+
     public:
-        GD_Texture(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
-        virtual ~GD_Texture() {}
+        virtual ~RT_Texture() {}
         virtual void Initialize(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr)
         {
             _texture = _owner->_gxCreateTexture(Width, Height, Format, RawData, InMetaInfo);
@@ -540,27 +547,30 @@ namespace SPP
         }
     };
 
-    class SPP_GRAPHICS_API GD_Material : public GD_Resource
+    class SPP_GRAPHICS_API RT_Material : public RT_Resource
     {
-    protected:
-        std::shared_ptr< GD_Shader > _vertexShader;
-        std::shared_ptr< GD_Shader > _pixelShader;
+        CLASS_RT_RESOURCE();
 
-        std::vector< std::shared_ptr<GD_Texture> > _textureArray;
+    protected:
+        std::shared_ptr< RT_Shader > _vertexShader;
+        std::shared_ptr< RT_Shader > _pixelShader;
+
+        std::vector< std::shared_ptr<RT_Texture> > _textureArray;
 
         EBlendState _blendState = EBlendState::Disabled;
         ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;
         EDepthState _depthState = EDepthState::Enabled;
 
+        RT_Material(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+
     public:
-        GD_Material(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
-        virtual ~GD_Material() {}
+        virtual ~RT_Material() {}
 
         struct Args
         {
-            std::shared_ptr< GD_Shader > vertexShader;
-            std::shared_ptr< GD_Shader > pixelShader;
-            std::vector< std::shared_ptr<GD_Texture> > textureArray;
+            std::shared_ptr< RT_Shader > vertexShader;
+            std::shared_ptr< RT_Shader > pixelShader;
+            std::vector< std::shared_ptr<RT_Texture> > textureArray;
         };
 
         void SetMaterialArgs(const Args &InArgs)
@@ -570,7 +580,7 @@ namespace SPP
             _textureArray = InArgs.textureArray;
         }
 
-        std::vector< std::shared_ptr<GD_Texture> > &GetTextureArray()
+        std::vector< std::shared_ptr<RT_Texture> > &GetTextureArray()
         {
             return _textureArray;
         }
@@ -578,14 +588,16 @@ namespace SPP
 
    
 
-    class SPP_GRAPHICS_API GD_Buffer : public GD_Resource
+    class SPP_GRAPHICS_API RT_Buffer : public RT_Resource
     {
+        CLASS_RT_RESOURCE();
+
     protected:
         GPUReferencer< GPUBuffer > _buffer;
 
-    public:
-        GD_Buffer(GraphicsDevice* InOwner) : GD_Resource(InOwner) {}
+        RT_Buffer(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
 
+    public:
         virtual void Initialize(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
         {
             _buffer = _owner->_gxCreateBuffer(InType, InCpuData);
@@ -598,15 +610,15 @@ namespace SPP
     };
    
 
-    class SPP_GRAPHICS_API GD_ComputeDispatch : public GD_Resource
+    class SPP_GRAPHICS_API RT_ComputeDispatch : public RT_Resource
     {
     protected:        
         std::vector< std::shared_ptr< ArrayResource> > _constants;
         std::vector< GPUReferencer< GPUTexture > > _textures;
         GPUReferencer< GPUShader > _compute;
 
+        RT_ComputeDispatch(GraphicsDevice* InOwner, GPUReferencer< GPUShader> InCS) : RT_Resource(InOwner), _compute(InCS) { }
     public:
-        GD_ComputeDispatch(GraphicsDevice* InOwner, GPUReferencer< GPUShader> InCS) : GD_Resource(InOwner), _compute(InCS) { }
 
         void SetTextures(const std::vector< GPUReferencer<GPUTexture> > &InTextures)
         {

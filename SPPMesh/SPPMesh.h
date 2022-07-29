@@ -355,7 +355,7 @@ namespace SPP
 		std::shared_ptr< ArrayResource > VertexResource;
 		std::shared_ptr< ArrayResource > IndexResource;
 
-		//std::shared_ptr< GD_Material > material;
+		//std::shared_ptr< RT_Material > material;
 
 		virtual MeshTypes GetType() const
 		{

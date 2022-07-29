@@ -84,7 +84,7 @@ namespace SPP
 	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
 	
 
-	VulkanRenderScene::VulkanRenderScene(GraphicsDevice* InOwner) : GD_RenderScene(InOwner)
+	VulkanRenderScene::VulkanRenderScene(GraphicsDevice* InOwner) : RT_RenderScene(InOwner)
 	{
 		//SE_ASSERT(I());
 
@@ -437,12 +437,12 @@ namespace SPP
 
 	void VulkanRenderScene::AddRenderable(Renderable* InRenderable)
 	{
-		GD_RenderScene::AddRenderable(InRenderable);
+		RT_RenderScene::AddRenderable(InRenderable);
 	}
 
 	void VulkanRenderScene::RemoveRenderable(Renderable* InRenderable)
 	{
-		GD_RenderScene::RemoveRenderable(InRenderable);
+		RT_RenderScene::RemoveRenderable(InRenderable);
 	}
 
 #define MAX_MESH_ELEMENTS 1024
@@ -464,7 +464,7 @@ namespace SPP
 	//};
 	//
 
-	std::shared_ptr< class GD_RenderScene > VulkanGraphicsDevice::CreateRenderScene()
+	std::shared_ptr< class RT_RenderScene > VulkanGraphicsDevice::CreateRenderScene()
 	{
 		return std::make_shared<VulkanRenderScene>(this);
 	}

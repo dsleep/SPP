@@ -52,7 +52,7 @@ namespace SPP
 		uint32_t shapeOp;
 	};
 
-	class VulkanRenderScene : public GD_RenderScene
+	class VulkanRenderScene : public RT_RenderScene
 	{
 	protected:
 		//D3D12PartialResourceMemory _currentFrameMem;
@@ -97,8 +97,8 @@ namespace SPP
 		// Descriptor set pool
 		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
 		
-		std::shared_ptr<GD_Material> _defaultMaterial;
-		std::shared_ptr< class GD_Shader > _meshvertexShader, _meshpixelShader;
+		std::shared_ptr<RT_Material> _defaultMaterial;
+		std::shared_ptr< class RT_Shader > _meshvertexShader, _meshpixelShader;
 
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
 
@@ -133,7 +133,7 @@ namespace SPP
 		virtual void AddedToGraphicsDevice() override;
 
 
-		virtual std::shared_ptr<GD_Material> GetDefaultMaterial() override
+		virtual std::shared_ptr<RT_Material> GetDefaultMaterial() override
 		{
 			return _defaultMaterial;
 		}

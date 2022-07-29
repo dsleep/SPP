@@ -71,7 +71,7 @@ namespace SPP
 			if (!thisRenderableScene->GetGraphicsDevice()
 				|| !thisRenderableScene->GetRenderScene()) return;
 
-			GD_RenderableSignedDistanceField::Args sdfArgs;
+			RT_RenderableSignedDistanceField::Args sdfArgs;
 
 			sdfArgs.position = _translation;
 			sdfArgs.eulerRotationYPR = _rotation;

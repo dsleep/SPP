@@ -70,7 +70,7 @@ private:
 
 	ESelectionMode _selectionMode = ESelectionMode::None;
 	std::unique_ptr<SPP::ApplicationWindow> app;
-	std::shared_ptr<GD_RenderScene> renderableSceneShared;
+	std::shared_ptr<RT_RenderScene> renderableSceneShared;
 	std::future<bool> graphicsResults;
 
 public:

@@ -224,8 +224,8 @@ namespace SPP
 #endif
 
 		GPUReferencer< GPUTexture > _defaultTexture;
-		std::shared_ptr<GD_Material> _defaultMaterial;
-		std::shared_ptr< class GD_Shader > _meshvertexShader, _meshpixelShader;
+		std::shared_ptr<RT_Material> _defaultMaterial;
+		std::shared_ptr< class RT_Shader > _meshvertexShader, _meshpixelShader;
 
 		std::shared_ptr< ArrayResource > _staticInstanceDrawInfoCPU;
 		TSpan< StaticDrawParams > _staticInstanceDrawInfoSpan;
@@ -369,19 +369,19 @@ namespace SPP
 		virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override;
 
 		//
-		virtual std::shared_ptr< class GD_Texture > CreateTexture() override;
-		virtual std::shared_ptr< class GD_Shader > CreateShader() override;
-		virtual std::shared_ptr< class GD_Buffer > CreateBuffer(GPUBufferType InType) override;
+		virtual std::shared_ptr< class RT_Texture > CreateTexture() override;
+		virtual std::shared_ptr< class RT_Shader > CreateShader() override;
+		virtual std::shared_ptr< class RT_Buffer > CreateBuffer(GPUBufferType InType) override;
 
-		virtual std::shared_ptr< class GD_Material > CreateMaterial() override;
-		virtual std::shared_ptr< class GD_RenderScene > CreateRenderScene() override;
+		virtual std::shared_ptr< class RT_Material > CreateMaterial() override;
+		virtual std::shared_ptr< class RT_RenderScene > CreateRenderScene() override;
 
-		virtual std::shared_ptr< class GD_RenderableMesh > CreateRenderableMesh() override;
+		virtual std::shared_ptr< class RT_RenderableMesh > CreateRenderableMesh() override;
 
-		virtual std::shared_ptr< class GD_Material> GetDefaultMaterial() override;
+		virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() override;
 
-		virtual std::shared_ptr< class GD_StaticMesh > CreateStaticMesh() override;
-		virtual std::shared_ptr< class GD_RenderableSignedDistanceField > CreateSignedDistanceField() override;
+		virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() override;
+		virtual std::shared_ptr< class RT_RenderableSignedDistanceField > CreateSignedDistanceField() override;
 
 		virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255, 255, 255)) override;
 	};

@@ -23,7 +23,7 @@ namespace SPP
 	// lazy externs
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	
-	class VulkanSDF : public GD_RenderableSignedDistanceField
+	class VulkanSDF : public RT_RenderableSignedDistanceField
 	{
 	protected:		
 
@@ -43,9 +43,9 @@ namespace SPP
 
 		GPUReferencer< PipelineState > _customPSO;
 
-		virtual void _AddToRenderScene(class GD_RenderScene* InScene) override;
+		virtual void _AddToRenderScene(class RT_RenderScene* InScene) override;
 	public:
-		VulkanSDF(GraphicsDevice* InOwner) : GD_RenderableSignedDistanceField(InOwner) {}
+		VulkanSDF(GraphicsDevice* InOwner) : RT_RenderableSignedDistanceField(InOwner) {}
 		virtual void Draw() override;
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
@@ -54,13 +54,13 @@ namespace SPP
 	{
 	private:
 		GPUReferencer < VulkanPipelineState > _PSO;
-		std::shared_ptr< class GD_Shader > _CS;
+		std::shared_ptr< class RT_Shader > _CS;
 
 	public:
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
-			//std::dynamic_pointer_cast<GD_Vulkan_Material>
+			//std::dynamic_pointer_cast<RT_Vulkan_Material>
 			_CS = InOwner->CreateShader();
 			_CS->Initialize(EShaderType::Compute);
 			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
@@ -94,19 +94,19 @@ namespace SPP
 
 	GlobalVulkanSDFResources GVulkanSDFResrouces;
 
-	//std::shared_ptr<GD_RenderableSignedDistanceField> Vulkan_CreateSDF()
+	//std::shared_ptr<RT_RenderableSignedDistanceField> Vulkan_CreateSDF()
 	//{
 	//	return std::make_shared< VulkanSDF >();
 	//}
 	
-	std::shared_ptr< class GD_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
+	std::shared_ptr< class RT_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
 	{
 		return std::make_shared<VulkanSDF>(this);
 	}
 
-	void VulkanSDF::_AddToRenderScene(class GD_RenderScene* InScene)
+	void VulkanSDF::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
-		GD_RenderableSignedDistanceField::_AddToRenderScene(InScene);
+		RT_RenderableSignedDistanceField::_AddToRenderScene(InScene);
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();

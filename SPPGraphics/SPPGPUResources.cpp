@@ -106,25 +106,25 @@ namespace SPP
 		GTextureAvailIDs.push_back(_uniqueID);
 	}
 
-	void GraphicsDevice::INTERNAL_AddScene(class GD_RenderScene* InScene)
+	void GraphicsDevice::INTERNAL_AddScene(class RT_RenderScene* InScene)
 	{
 		_renderScenes.push_back(InScene);
 		InScene->AddedToGraphicsDevice();
 	}
 
-	void GraphicsDevice::INTERNAL_RemoveScene(class GD_RenderScene* InScene)
+	void GraphicsDevice::INTERNAL_RemoveScene(class RT_RenderScene* InScene)
 	{
 		_renderScenes.erase(std::remove(_renderScenes.begin(), _renderScenes.end(), InScene), _renderScenes.end());
 		//InScene->removed();
 	}
 
-	GPU_CALL GraphicsDevice::AddScene(class GD_RenderScene *InScene)
+	GPU_CALL GraphicsDevice::AddScene(class RT_RenderScene *InScene)
 	{
 		INTERNAL_AddScene(InScene);
 		co_return;
 	}
 
-	GPU_CALL GraphicsDevice::RemoveScene(class GD_RenderScene* InScene)
+	GPU_CALL GraphicsDevice::RemoveScene(class RT_RenderScene* InScene)
 	{
 		INTERNAL_RemoveScene(InScene);
 		co_return;

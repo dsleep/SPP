@@ -216,9 +216,9 @@ namespace SPP
 	{
 		if (!_material)
 		{
-			std::shared_ptr< GD_Shader > vertexShader;
-			std::shared_ptr< GD_Shader > pixelShader;
-			std::vector< std::shared_ptr<GD_Texture> > textureArray;
+			std::shared_ptr< RT_Shader > vertexShader;
+			std::shared_ptr< RT_Shader > pixelShader;
+			std::vector< std::shared_ptr<RT_Texture> > textureArray;
 
 			for (auto& shader : _shaders)
 			{

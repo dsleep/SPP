@@ -85,4 +85,10 @@ namespace SPP
 	{
 		_resources.remove(InResource);
 	}
+
+	void GraphicsDevice::PushRenderThreadResource(std::shared_ptr< RT_Resource > InResource)
+	{
+		SE_ASSERT(IsOnCPUThread());
+		_renderThreadResources.push_back(InResource);
+	}
 }
