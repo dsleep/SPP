@@ -57,7 +57,8 @@ namespace SPP
 		return(hasDepth() || hasStencil());
 	}
 
-	VulkanFramebuffer::VulkanFramebuffer(GraphicsDevice* InOwner, vks::VulkanDevice* vulkanDevice) : _owner(InOwner)
+	VulkanFramebuffer::VulkanFramebuffer(GraphicsDevice* InOwner, vks::VulkanDevice* vulkanDevice,
+		uint32_t InWidth, uint32_t InHeight) : _owner(InOwner), width(InWidth), height(InHeight)
 	{
 		assert(vulkanDevice);
 		this->vulkanDevice = vulkanDevice;

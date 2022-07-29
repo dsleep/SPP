@@ -112,14 +112,24 @@ bool hit_sphere(const vec3& center, float radius, const ray& r){
 
 struct ShapeProcessed
 {
-	float4x4 ViewToShapeMatrix;
 	float rayScalar;
     bool IsHit;
     float T0;
     float T1;
 };
 
+
 static ShapeProcessed shapeProcessedData[MAX_SHAPES];
+groupshared float4x4 ViewToShapeMatrices[MAX_SHAPES];
+
+void ShapeGenerateShared()
+{
+	[unroll]
+	for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < 32; ++ShapeIdx)
+	{
+		ViewToShapeMatrices[ShapeIdx] = mul(GetTranslationMatrix(float3(ViewConstants.ViewPosition - DrawConstants.Translation)), Shapes[ShapeIdx].invTransform);
+	}
+}
 
 uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 {
@@ -128,12 +138,11 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 	
 	uint ShapeHitCount = 0;
 	
+	[unroll]
     for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < 32; ++ShapeIdx)
     {
-		shapeProcessedData[ShapeIdx].ViewToShapeMatrix = mul( GetTranslationMatrix( float3(ViewConstants.ViewPosition - DrawConstants.Translation) ), Shapes[ShapeIdx].invTransform );
-	
-		float3 rayStart = mul(float4(ro, 1.0), shapeProcessedData[ShapeIdx].ViewToShapeMatrix).xyz;
-		float3 rayUnitEnd = mul(float4(ro + rd, 1.0), shapeProcessedData[ShapeIdx].ViewToShapeMatrix).xyz;
+		float3 rayStart = mul(float4(ro, 1.0), ViewToShapeMatrices[ShapeIdx]).xyz;
+		float3 rayUnitEnd = mul(float4(ro + rd, 1.0), ViewToShapeMatrices[ShapeIdx]).xyz;
 		shapeProcessedData[ShapeIdx].rayScalar = 1.0f / length(rayStart - rayUnitEnd);
 		float3 rayDirection = normalize(rayStart - rayUnitEnd);
 				
@@ -149,73 +158,70 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 			T1 = max( shapeProcessedData[ShapeIdx].T1 * shapeProcessedData[ShapeIdx].rayScalar, T1 );
         }
     }
-	
-	
+
     return ShapeHitCount;
 }
-
-
 
 // slight expansion to a buffer of these shapes... very WIP
 float processShapes( in float3 pos, out float3 hitColor )
 {
     float d = 1e10;
-            
+    
+	[unroll]
     for (uint i = 0; i < DrawParams.ShapeCount && i < 32; ++i)
     {
-		if (shapeProcessedData[i].IsHit == false)
+		[branch]
+		if (shapeProcessedData[i].IsHit)
 		{
-			continue;
-		}
-	 
-        float cD = 1e10;
+			float cD = 1e10;
 
-        float3 samplePos = mul(float4(pos, 1.0), shapeProcessedData[i].ViewToShapeMatrix).xyz;
-        if (Shapes[i].shapeType == 1)
-        {
-            cD = sdSphere(samplePos, 1);
-        } 
-        else if (Shapes[i].shapeType == 2)
-        {
-            cD = sdBox(samplePos, float3(1,1,1) );
-        }
-		else if (Shapes[i].shapeType == 3)
-        {
-            cD = sdCappedCylinder(samplePos, 1, 1 );
-        }
-		
-		cD *= shapeProcessedData[i].rayScalar;
-		
-		float lastD = d;
-		
-        if (Shapes[i].shapeOp == 0)
-        {
+			float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrices[i]).xyz;
+			if (Shapes[i].shapeType == 1)
+			{
+				cD = sdSphere(samplePos, 1);
+			}
+			else if (Shapes[i].shapeType == 2)
+			{
+				cD = sdBox(samplePos, float3(1, 1, 1));
+			}
+			else if (Shapes[i].shapeType == 3)
+			{
+				cD = sdCappedCylinder(samplePos, 1, 1);
+			}
+
+			cD *= shapeProcessedData[i].rayScalar;
+
+			float lastD = d;
+
+			if (Shapes[i].shapeOp == 0)
+			{
 #if ALLOW_SMOOTHING
-			d = opSmoothUnion(d, cD, Shapes[i].shapeParams.x);
+				d = opSmoothUnion(d, cD, Shapes[i].shapeParams.x);
 #else
-            d = opUnion(d, cD);
+				d = opUnion(d, cD);
 #endif
-        }
-        else if (Shapes[i].shapeOp == 1)
-        {
+			}
+			else if (Shapes[i].shapeOp == 1)
+			{
 #if ALLOW_SMOOTHING
-			d = opSmoothSubtraction(cD, d, Shapes[i].shapeParams.x);
+				d = opSmoothSubtraction(cD, d, Shapes[i].shapeParams.x);
 #else
-            d = opSubtraction(cD, d);
+				d = opSubtraction(cD, d);
 #endif            
-        }
-        else if (Shapes[i].shapeOp == 2)
-        {	
+			}
+			else if (Shapes[i].shapeOp == 2)
+			{
 #if ALLOW_SMOOTHING
-			d = opSmoothIntersection(cD, d, Shapes[i].shapeParams.x);
+				d = opSmoothIntersection(cD, d, Shapes[i].shapeParams.x);
 #else
-            d = opIntersection(cD, d);
+				d = opIntersection(cD, d);
 #endif 
-        }
-		
-		if(lastD != d)
-		{		
-			hitColor = Shapes[i].shapeColor;
+			}
+
+			if (lastD != d)
+			{
+				hitColor = Shapes[i].shapeColor;
+			}
 		}
     }
 	
@@ -227,8 +233,10 @@ float processShapes( in float3 pos, out float3 hitColor )
 // rd: ray direction
 float raymarch(float3 ro, float3 rd, float T0, float T1, out float3 hitColor) 
 {
-    const int maxstep = 32;
+    const int maxstep = 16;
     float t = T0; // current distance traveled along ray
+
+	[unroll]
     for (int i = 0; i < maxstep; ++i) 
     {
         float3 p = ro + rd * t; // World space position of sample
@@ -266,12 +274,13 @@ float3 calcNormal(float3 pos)
         e.xxx * processShapes(pos + e.xxx * ep, dummyColor));
 }
 
-float4 renderSDF( float3 ro, float3 rd ) 
+float4 renderSDF( in float3 ro, in float3 rd ) 
 { 
 	float hitDistance = -1000;
 	float T0, T1;
     uint hitCount = shapeCullAndProcess(ro, rd, T0, T1);
 
+	[branch]
 	if( hitCount > 0 )
 	{	 
 		float3 hitColor;

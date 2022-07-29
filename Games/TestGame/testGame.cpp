@@ -125,9 +125,9 @@ public:
 
 		int32_t shapeGCnt = 0;
 		int32_t simpleCnt = 0;
-		for (int32_t IterY = -1; IterY <= 1; IterY++)
+		for (int32_t IterY = -3; IterY <= 3; IterY++)
 		{
-			for (int32_t IterX = -1; IterX <= 1; IterX++)
+			for (int32_t IterX = -3; IterX <= 3; IterX++)
 			{
 				auto& topLayer = loadedElements.front();
 
@@ -135,8 +135,8 @@ public:
 				_startingGroup = AllocateObject<OShapeGroup>(shapeGroupName.c_str(), _gameworld);
 				_startingGroup->GetPosition()[1] = 1;
 
-				_startingGroup->GetPosition()[0] = IterX;
-				_startingGroup->GetPosition()[2] = IterY;
+				_startingGroup->GetPosition()[0] = (float)IterX * 1.2f;
+				_startingGroup->GetPosition()[2] = (float)IterY * 1.2f;
 
 				_startingGroup->GetRotation()[0] = 90;
 				_startingGroup->GetRotation()[1] = -90;

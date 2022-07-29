@@ -11,8 +11,10 @@ RWTexture2D<float4> colorImage : register(u1);
 [[vk::binding(5, 0)]]
 RWTexture2D<float> depthImage : register(u2);
 
-[numthreads(32, 32, 1)]
-void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
+[numthreads(16, 16, 1)]
+void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID, 
+	uint3 LocalInvocationID : SV_GroupThreadID,
+	uint GI : SV_GroupIndex)
 {
 	float2 pixelPosition = float2( GlobalInvocationID.x / (float)ViewConstants.FrameExtents.x, GlobalInvocationID.y / (float)ViewConstants.FrameExtents.y );
 	pixelPosition = (pixelPosition - 0.5f) * 2.0f;
@@ -32,6 +34,13 @@ void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 
 	float3 rayOrigin = raystart.xyz;
 	float3 rayDirection = normalize(rayStop.xyz - raystart.xyz);
+
+	if (GI == 0)
+	{
+		ShapeGenerateShared();
+	}
+
+	GroupMemoryBarrierWithGroupSync();
 	
 	float4 outRender = renderSDF(rayOrigin, rayDirection);
 	float4 localWorldPos = float4(rayOrigin + rayDirection * outRender.w, 1.0f);

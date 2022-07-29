@@ -602,7 +602,7 @@ namespace SPP
 
 		//if (_skyBox)
 		{
-			DrawSkyBox();
+			//DrawSkyBox();
 		}
 
 		//#if 1

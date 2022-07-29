@@ -554,7 +554,7 @@ namespace SPP
 
 		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
 
-		_colorTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice);
+		_colorTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
 		_colorTarget->addAttachment(
 			{
 				.width = width,
