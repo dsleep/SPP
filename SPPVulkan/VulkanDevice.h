@@ -149,8 +149,11 @@ namespace SPP
 		void* deviceCreatepNextChain = nullptr;
 		/** @brief Logical device, application's view of the physical device (GPU) */
 		VkDevice device = nullptr;
+
 		// Handle to the device graphics queue that command buffers are submitted to
-		VkQueue queue;
+		VkQueue graphicsQueue;
+		VkQueue computeQueue;
+
 		// Depth buffer format (selected during Vulkan initialization)
 		VkFormat depthFormat;
 		
@@ -185,6 +188,7 @@ namespace SPP
 		// Wraps the swap chain to present images (framebuffers) to the windowing system
 		VulkanSwapChain swapChain;
 
+		GPUReferencer< GPUTexture > _depthColor;
 		std::unique_ptr<VulkanFramebuffer> _colorTarget;
 		std::unique_ptr<VulkanFramebuffer> _deferredMaterialMRTs;
  		// Synchronization semaphores
@@ -270,8 +274,12 @@ namespace SPP
 			return vulkanDevice;
 		}
 
-		VkQueue GetDeviceQueue() {
-			return queue;
+		VkQueue GetGraphicsQueue() {
+			return graphicsQueue;
+		}
+
+		VkQueue GetComputeQueue() {
+			return computeQueue;
 		}
 
 		VkFramebuffer GetActiveFrameBuffer()
@@ -313,6 +321,11 @@ namespace SPP
 		GPUReferencer< GPUTexture > GetDefaultTexture()
 		{
 			return _defaultTexture;
+		}
+
+		GPUReferencer< GPUTexture > GetDepthColor()
+		{
+			return _depthColor;
 		}
 
 		VkRenderPass GetBackBufferRenderPass()

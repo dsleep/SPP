@@ -24,7 +24,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
-#define ALLOW_IMGUI 1
+#define ALLOW_IMGUI 0
 
 namespace SPP
 {
@@ -403,7 +403,8 @@ namespace SPP
 		swapChain.connect(instance, physicalDevice, device);
 
 		// Get a graphics queue from the device
-		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
+		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
+		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &computeQueue);
 
 		// Find a suitable depth format
 		VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
@@ -551,6 +552,8 @@ namespace SPP
 	{
 		swapChain.create(&width, &height, settings.vsync);
 
+		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
+
 		_colorTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice);
 		_colorTarget->addAttachment(
 			{
@@ -566,8 +569,8 @@ namespace SPP
 				.width = width,
 				.height = height,
 				.layerCount = 1,
-				.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+				.format = VK_FORMAT_D32_SFLOAT,
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
 			}
 		);		
 		VK_CHECK_RESULT(_colorTarget->createRenderPass());
@@ -1020,7 +1023,7 @@ namespace SPP
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &curCopier.cmdBuf->Get();
 			// Submit to the queue
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, curCopier.fence->Get()));
+			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, curCopier.fence->Get()));
 
 			curCopier.bHasBegun = false;
 		}
@@ -1243,9 +1246,9 @@ namespace SPP
 		submitInfo.commandBufferCount = 1;                           // One command buffer
 
 		// Submit to the graphics queue passing a wait fence
-		VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, _waitFences[currentBuffer]->Get()));
+		VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, _waitFences[currentBuffer]->Get()));
 
-		VkResult result = swapChain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
+		VkResult result = swapChain.queuePresent(graphicsQueue, currentBuffer, semaphores.renderComplete);
 		if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) 
 		{
 			if (result == VK_ERROR_OUT_OF_DATE_KHR) 

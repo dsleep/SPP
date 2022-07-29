@@ -6,6 +6,7 @@
 #include "VulkanRenderScene.h"
 #include "VulkanDevice.h"
 #include "VulkanShaders.h"
+#include "VulkanTexture.h"
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -546,8 +547,9 @@ namespace SPP
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-		
+
 		auto &camPos = _viewGPU.GetCameraPosition();
 		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
 		GGlobalVulkanGI->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
@@ -625,10 +627,71 @@ namespace SPP
 
 		vkCmdEndRenderPass(commandBuffer);
 
+
+		auto &DepthColorTexture = GGlobalVulkanGI->GetDepthColor()->GetAs<VulkanTexture>();
+
+		auto ColorTarget = GGlobalVulkanGI->GetColorTarget();
+		auto& colorAttachment = ColorTarget->GetFrontAttachment();
+		auto& depthAttachment = ColorTarget->GetBackAttachment();
+
+		VkMemoryRequirements memReqs;
+		vkGetImageMemoryRequirements(vulkanDevice, depthAttachment.image->Get(), &memReqs);
+
+		auto curDepthScratch = scratchBuffer.GetWritable(memReqs.size, currentFrame);
+
+		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
+			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+
+		VkBufferImageCopy region = {};
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		region.imageSubresource.layerCount = 1;
+		region.imageExtent.width = DeviceExtents[0];
+		region.imageExtent.height = DeviceExtents[1];
+		region.imageExtent.depth = 1;
+		region.bufferOffset = curDepthScratch.offsetFromBase;
+		vkCmdCopyImageToBuffer(commandBuffer, 
+			depthAttachment.image->Get(), 
+			VK_IMAGE_LAYOUT_GENERAL,
+			curDepthScratch.buffer, 
+			1, 
+			&region);
+
+		vkGetImageMemoryRequirements(vulkanDevice, DepthColorTexture.GetVkImage(), &memReqs);
+		SE_ASSERT(memReqs.size == curDepthScratch.size);
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+		vkCmdCopyBufferToImage(
+			commandBuffer,
+			curDepthScratch.buffer,
+			DepthColorTexture.GetVkImage(),
+			VK_IMAGE_LAYOUT_GENERAL,
+			1,
+			&region
+		);
+
+		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+
+
+		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
 		for (auto renderItem : _renderablesPost)
 		{
 			renderItem->Draw();
 		}
+
+		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
 		WriteToFrame();
 	};

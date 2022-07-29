@@ -123,64 +123,77 @@ public:
 #if 1
 		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleFace.mcsg"));
 
-		auto& topLayer = loadedElements.front();
-
+		int32_t shapeGCnt = 0;
 		int32_t simpleCnt = 0;
-		_startingGroup = AllocateObject<OShapeGroup>(topLayer.Name.c_str(), _gameworld);
-		_startingGroup->GetPosition()[1] = 1;
-		_startingGroup->GetRotation()[0] = 90;
-		_startingGroup->GetRotation()[1] = -90;
-
-		_startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
-
-		for (auto& curShape : topLayer.Shapes )
+		for (int32_t IterY = -1; IterY <= 1; IterY++)
 		{
-			OShape* newShape = nullptr;
-			std::string shapeName = std::string_format("shape_%s_%d", curShape.Name.c_str(), simpleCnt);
-			newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
-			
-			newShape->SetTransformArgs(
-				{
-					.translation = curShape.Translation.cast<double>(),
-					.rotation = curShape.Rotation.eulerAngles(0,1,2) * 57.2958f,
-					.scale = curShape.Scale
-				});
-
-			EShapeType shapeType = EShapeType::Sphere;
-			EShapeOp shapeOp = EShapeOp::Add;
-
-			switch (curShape.Type)
+			for (int32_t IterX = -1; IterX <= 1; IterX++)
 			{
-			case EMagicaCSG_ShapeType::Cube:
-				shapeType = EShapeType::Box;
-				break;
-			case EMagicaCSG_ShapeType::Cylinder:
-				shapeType = EShapeType::Cylinder;
-				break;
-			}
+				auto& topLayer = loadedElements.front();
 
-			switch (curShape.Mode)
-			{
-			case EMagicaCSG_ShapeOP::Subtract:
-				shapeOp = EShapeOp::Subtract;
-				break;
-			case EMagicaCSG_ShapeOP::Intersect:
-				shapeOp = EShapeOp::Intersect;
-				break;
-			}
+				std::string shapeGroupName = std::string_format("shapeG_%s_%d", topLayer.Name.c_str(), shapeGCnt++);
+				_startingGroup = AllocateObject<OShapeGroup>(shapeGroupName.c_str(), _gameworld);
+				_startingGroup->GetPosition()[1] = 1;
 
-			newShape->SetShapeArgs(
+				_startingGroup->GetPosition()[0] = IterX;
+				_startingGroup->GetPosition()[2] = IterY;
+
+				_startingGroup->GetRotation()[0] = 90;
+				_startingGroup->GetRotation()[1] = -90;
+
+				_startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
+
+				for (auto& curShape : topLayer.Shapes)
 				{
-					.shapeType = shapeType,
-					.shapeOp = shapeOp,
-					.shapeBlendFactor = curShape.Blend / 64.0f,
-					.shapeColor = curShape.Color
+					OShape* newShape = nullptr;
+					std::string shapeName = std::string_format("shape_%s_%d", curShape.Name.c_str(), simpleCnt++);
+					newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
+
+					newShape->SetTransformArgs(
+						{
+							.translation = curShape.Translation.cast<double>(),
+							.rotation = curShape.Rotation.eulerAngles(0,1,2) * 57.2958f,
+							.scale = curShape.Scale
+						});
+
+					EShapeType shapeType = EShapeType::Sphere;
+					EShapeOp shapeOp = EShapeOp::Add;
+
+					switch (curShape.Type)
+					{
+					case EMagicaCSG_ShapeType::Cube:
+						shapeType = EShapeType::Box;
+						break;
+					case EMagicaCSG_ShapeType::Cylinder:
+						shapeType = EShapeType::Cylinder;
+						break;
+					}
+
+					switch (curShape.Mode)
+					{
+					case EMagicaCSG_ShapeOP::Subtract:
+						shapeOp = EShapeOp::Subtract;
+						break;
+					case EMagicaCSG_ShapeOP::Intersect:
+						shapeOp = EShapeOp::Intersect;
+						break;
+					}
+
+					newShape->SetShapeArgs(
+						{
+							.shapeType = shapeType,
+							.shapeOp = shapeOp,
+							.shapeBlendFactor = curShape.Blend / 64.0f,
+							.shapeColor = curShape.Color
+						}
+					);
+
+					_startingGroup->AddChild(newShape);
 				}
-			);
-			simpleCnt++;
-			_startingGroup->AddChild(newShape);
-		}
 
+				_gameworld->AddChild(_startingGroup);
+			}
+		}
 #else
 		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup", _gameworld);
 
@@ -215,7 +228,6 @@ public:
 		startingGroup->AddChild(startingSphere2);
 #endif
 
-		_gameworld->AddChild(_startingGroup);
 
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
 		

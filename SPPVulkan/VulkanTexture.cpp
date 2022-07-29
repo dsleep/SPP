@@ -176,6 +176,7 @@ namespace SPP
 			vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
 
 			memAllocInfo.allocationSize = memReqs.size;
+			imageByteSize = memReqs.size;
 
 			memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 			VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
@@ -253,7 +254,7 @@ namespace SPP
 			vkGetImageMemoryRequirements(device->logicalDevice, mappableImage, &memReqs);
 			// Set memory allocation size to required memory size
 			memAllocInfo.allocationSize = memReqs.size;
-
+			imageByteSize = memReqs.size;
 			// Get memory type that can be mapped to host memory
 			memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -436,6 +437,7 @@ namespace SPP
 		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
+		imageByteSize = memReqs.size;
 
 		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
@@ -517,7 +519,97 @@ namespace SPP
 		: GPUTexture(InOwner, Width, Height, Format, RawData, InMetaInfo)
 	{
 		fromBuffer(RawData->GetElementData(), RawData->GetTotalSize(), VK_FORMAT_R8G8B8A8_UNORM,
-			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetDeviceQueue());
+			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetGraphicsQueue());
+	}
+
+	VkFormat SPPToVulkan(TextureFormat InFormat)
+	{
+		switch (InFormat)
+		{
+		case TextureFormat::RGBA_8888:
+			return VK_FORMAT_R8G8B8A8_UNORM;
+		case TextureFormat::R32F:
+			return VK_FORMAT_R32_SFLOAT;
+		}
+
+		SE_ASSERT(false);
+		return VK_FORMAT_UNDEFINED;
+	}
+
+	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) : GPUTexture(InOwner, Width, Height, Format, nullptr, nullptr)
+	{
+		width = Width;
+		height = Height;
+		mipLevels = 1;
+		layerCount = 1;
+
+		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
+		VkFormat format = SPPToVulkan(Format);
+		VkFilter filter = VK_FILTER_NEAREST;
+		VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | 
+			VK_IMAGE_USAGE_STORAGE_BIT | 
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		// Create optimal tiled target image
+		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
+		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageCreateInfo.format = format;
+		imageCreateInfo.mipLevels = 1;
+		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		imageCreateInfo.extent = { width, height, 1 };
+		imageCreateInfo.usage = imageUsageFlags;
+		// Ensure that the TRANSFER_DST bit is set for staging
+		if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
+		{
+			imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		}
+		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+
+		VkMemoryRequirements memReqs = { 0 };
+		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+
+		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
+		memAllocInfo.allocationSize = memReqs.size;
+		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+
+		imageByteSize = memReqs.size;
+
+		// Create sampler
+		VkSamplerCreateInfo samplerCreateInfo = {};
+		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerCreateInfo.magFilter = filter;
+		samplerCreateInfo.minFilter = filter;
+		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.mipLodBias = 0.0f;
+		samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
+		samplerCreateInfo.minLod = 0.0f;
+		samplerCreateInfo.maxLod = 0.0f;
+		samplerCreateInfo.maxAnisotropy = 1.0f;
+		VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
+
+		// Create image view
+		VkImageViewCreateInfo viewCreateInfo = {};
+		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewCreateInfo.pNext = NULL;
+		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewCreateInfo.format = format;
+		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		viewCreateInfo.subresourceRange.levelCount = 1;
+		viewCreateInfo.image = image;
+		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+
+		// Update descriptor image info member that can be used for setting up descriptor sets
+		updateDescriptor();
 	}
 
 	void VulkanTexture::UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize)

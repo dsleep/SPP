@@ -6,6 +6,7 @@
 
 #include "VulkanDevice.h"
 #include "VulkanRenderScene.h"
+#include "VulkanTexture.h"
 #include "SPPSDFO.h"
 
 #include "SPPFileSystem.h"
@@ -198,7 +199,8 @@ namespace SPP
 
 		auto ColorTarget = GGlobalVulkanGI->GetColorTarget();
 		auto& colorAttachment = ColorTarget->GetFrontAttachment();
-		auto& depthAttachment = ColorTarget->GetBackAttachment();
+
+		auto& DepthColorTexture = GGlobalVulkanGI->GetDepthColor()->GetAs<VulkanTexture>();
 		
 		VkDescriptorBufferInfo drawParamsInfo;
 		drawParamsInfo.buffer = _drawParamsBuffer->GetBuffer();
@@ -212,7 +214,7 @@ namespace SPP
 
 		VkDescriptorImageInfo frameColorInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
 		frameColorInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		VkDescriptorImageInfo frameDepthInfo = ColorTarget->GetBackImageInfo();
+		VkDescriptorImageInfo frameDepthInfo = DepthColorTexture.GetDescriptor();
 		frameDepthInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -243,15 +245,13 @@ namespace SPP
 			0
 		};
 
-		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_GENERAL,
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
-		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_GENERAL,
-			{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
+		//vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+		//	VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+		//	VK_IMAGE_LAYOUT_GENERAL,
+		//	{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 },
+		//	VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		//	VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, csPSO->GetVkPipeline());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, 
@@ -260,15 +260,13 @@ namespace SPP
 			ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDispatch(commandBuffer, DeviceExtents[0] / 32, DeviceExtents[1] / 32, 1);		
 
-		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
-			VK_IMAGE_LAYOUT_GENERAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
-		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
-			VK_IMAGE_LAYOUT_GENERAL,
-			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-			{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 });
+		//vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+		//	VK_IMAGE_LAYOUT_GENERAL,
+		//	VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+		//	{ VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1 },
+		//	VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+		//	VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 	}
 
 	

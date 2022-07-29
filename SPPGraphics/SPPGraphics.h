@@ -108,6 +108,7 @@ namespace SPP
         GRAY_BC4,
         RGB_BC1,
         D24_S8,
+        R32F,
         R32G32B32A32F,
         R32G32B32A32
     };

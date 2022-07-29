@@ -45,6 +45,7 @@ namespace SPP
 		uint32_t              layerCount;
 		VkDescriptorImageInfo descriptor;
 		VkSampler             sampler;
+		uint32_t		      imageByteSize;
 
 		void updateDescriptor();
 		void destroy();	
@@ -53,6 +54,16 @@ namespace SPP
 		const VkDescriptorImageInfo& GetDescriptor()
 		{
 			return descriptor;
+		}
+
+		uint32_t GetImageSize() const
+		{
+			return imageByteSize;
+		}
+
+		VkImage GetVkImage() const
+		{
+			return image;
 		}
 	};
 
@@ -85,6 +96,7 @@ namespace SPP
 			VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format);
 
 		void UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize);
 		virtual ~VulkanTexture() 
