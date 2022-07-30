@@ -1079,7 +1079,7 @@ namespace SPP
 		auto currentElapsedMS = priorFrame.getElapsedMilliseconds();
 		if (currentElapsedMS > 5)
 		{
-			SPP_LOG(LOG_VULKAN, LOG_INFO, "LONG FRAME waited %fms", currentElapsedMS);
+			SPP_LOG(LOG_VULKAN, LOG_VERBOSE, "LONG FRAME waited %fms", currentElapsedMS);
 		}
 
 		VK_CHECK_RESULT(vkResetFences(device, 1, &_waitFences[currentBuffer]->Get()));

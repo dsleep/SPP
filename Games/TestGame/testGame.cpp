@@ -87,7 +87,7 @@ private:
 	VgEnvironment* _gameworld = nullptr;
 	std::shared_ptr< PhysicsCharacter > _characterCapsule;
 
-	OShapeGroup* _startingGroup = nullptr;
+	std::vector<OShapeGroup*> _startingGroups;
 
 public:
 	
@@ -121,33 +121,33 @@ public:
 		AddToRoot(_gameworld);
 
 #if 1
-		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/simpleFace.mcsg"));
+		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/testhumanoid.mcsg"));
 
 		int32_t shapeGCnt = 0;
 		int32_t simpleCnt = 0;
-		for (int32_t IterY = -3; IterY <= 3; IterY++)
+		for (int32_t IterY = 0; IterY <= 0; IterY++)
 		{
-			for (int32_t IterX = -3; IterX <= 3; IterX++)
+			for (int32_t IterX = 0; IterX <= 0; IterX++)
 			{
 				auto& topLayer = loadedElements.front();
 
 				std::string shapeGroupName = std::string_format("shapeG_%s_%d", topLayer.Name.c_str(), shapeGCnt++);
-				_startingGroup = AllocateObject<OShapeGroup>(shapeGroupName.c_str(), _gameworld);
-				_startingGroup->GetPosition()[1] = 1;
+				auto startingGroup = AllocateObject<OShapeGroup>(shapeGroupName.c_str(), _gameworld);
+				startingGroup->GetPosition()[1] = 1;
 
-				_startingGroup->GetPosition()[0] = (float)IterX * 1.2f;
-				_startingGroup->GetPosition()[2] = (float)IterY * 1.2f;
+				startingGroup->GetPosition()[0] = (float)IterX * 1.2f;
+				startingGroup->GetPosition()[2] = (float)IterY * 1.2f;
 
-				_startingGroup->GetRotation()[0] = 90;
-				_startingGroup->GetRotation()[1] = -90;
+				startingGroup->GetRotation()[0] = 90;
+				startingGroup->GetRotation()[1] = -90;
 
-				_startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
+				startingGroup->GetScale() = Vector3(1.0f / 50.0f, 1.0f / 50.0f, 1.0f / 50.0f);
 
 				for (auto& curShape : topLayer.Shapes)
 				{
 					OShape* newShape = nullptr;
 					std::string shapeName = std::string_format("shape_%s_%d", curShape.Name.c_str(), simpleCnt++);
-					newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
+					newShape = AllocateObject<OShape>(shapeName.c_str(), startingGroup);
 
 					newShape->SetTransformArgs(
 						{
@@ -183,15 +183,16 @@ public:
 						{
 							.shapeType = shapeType,
 							.shapeOp = shapeOp,
-							.shapeBlendFactor = curShape.Blend / 64.0f,
+							.shapeBlendFactor = curShape.Blend / 50.0f,
 							.shapeColor = curShape.Color
 						}
 					);
 
-					_startingGroup->AddChild(newShape);
+					startingGroup->AddChild(newShape);
 				}
 
-				_gameworld->AddChild(_startingGroup);
+				_gameworld->AddChild(startingGroup);
+				_startingGroups.push_back(startingGroup);
 			}
 		}
 #else
@@ -456,7 +457,7 @@ public:
 
 	void MouseClick()
 	{
-		if (!_graphicsDevice || !_startingGroup) return;
+		if (!_graphicsDevice || _startingGroups.empty()) return;
 
 		auto WindowSizeX = _graphicsDevice->GetDeviceWidth();
 		auto WindowSizeY = _graphicsDevice->GetDeviceHeight();
@@ -479,52 +480,54 @@ public:
 
 		Ray ray(MouseStart.cast<double>() + cam.GetCameraPosition(), MouseRay);
 
-
-		IntersectionInfo hitInfo;
-		if(_startingGroup->Intersect_Ray(ray, hitInfo))
+		for (auto& _startingGroup : _startingGroups)
 		{
-			// hit something
-			SPP_QL("hit something");
+			IntersectionInfo hitInfo;
+			if (_startingGroup->Intersect_Ray(ray, hitInfo))
+			{
+				// hit something
+				SPP_QL("hit something");
 
-			//renderableSceneShared->AddDebugLine(MouseStart.cast<double>() + cam.GetCameraPosition(),
-			//	hitInfo.location, Vector3(1,0,0));
+				//renderableSceneShared->AddDebugLine(MouseStart.cast<double>() + cam.GetCameraPosition(),
+				//	hitInfo.location, Vector3(1,0,0));
 
-			static uint32_t simpleCnt = 44;
-			OShape* newShape = nullptr;
-			std::string shapeName = std::string_format("shape_%s_%d", "shoot", simpleCnt++);
-			newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
+				static uint32_t simpleCnt = 44;
+				OShape* newShape = nullptr;
+				std::string shapeName = std::string_format("shape_%s_%d", "shoot", simpleCnt++);
+				newShape = AllocateObject<OShape>(shapeName.c_str(), _startingGroup);
 
-			auto WorldToLocal = _startingGroup->GenerateLocalToWorld(true).inverse();
+				auto WorldToLocal = _startingGroup->GenerateLocalToWorld(true).inverse();
 
-			Vector3d localTransform = ToVector3(ToVector4((hitInfo.location - _startingGroup->GetPosition()).cast<float>()) * WorldToLocal).cast<double>();
-			
-			newShape->SetTransformArgs(
-				{
-					.translation = localTransform,
-					.rotation = Vector3(1,1,1),
-					.scale = Vector3(7,7,7)
-				});
+				Vector3d localTransform = ToVector3(ToVector4((hitInfo.location - _startingGroup->GetPosition()).cast<float>()) * WorldToLocal).cast<double>();
 
-			EShapeType shapeType = EShapeType::Sphere;
-			EShapeOp shapeOp = EShapeOp::Subtract;
+				newShape->SetTransformArgs(
+					{
+						.translation = localTransform,
+						.rotation = Vector3(1,1,1),
+						.scale = Vector3(7,7,7)
+					});
 
-			newShape->SetShapeArgs(
-				{
-					.shapeType = shapeType,
-					.shapeOp = shapeOp,
-					.shapeBlendFactor = 0,
-					.shapeColor = Color3(255,0,0)
-				}
-			);
-			_startingGroup->AddChild(newShape);
+				EShapeType shapeType = EShapeType::Sphere;
+				EShapeOp shapeOp = EShapeOp::Subtract;
 
-			_gameworld->RemoveChild(_startingGroup);
-			_gameworld->AddChild(_startingGroup);
-		}
-		else
-		{
-			//renderableSceneShared->AddDebugLine(MouseStart.cast<double>() + cam.GetCameraPosition(),
-			//	MouseEnd.cast<double>() + cam.GetCameraPosition());
+				newShape->SetShapeArgs(
+					{
+						.shapeType = shapeType,
+						.shapeOp = shapeOp,
+						.shapeBlendFactor = 0,
+						.shapeColor = Color3(255,0,0)
+					}
+				);
+				_startingGroup->AddChild(newShape);
+
+				_gameworld->RemoveChild(_startingGroup);
+				_gameworld->AddChild(_startingGroup);
+			}
+			else
+			{
+				//renderableSceneShared->AddDebugLine(MouseStart.cast<double>() + cam.GetCameraPosition(),
+				//	MouseEnd.cast<double>() + cam.GetCameraPosition());
+			}
 		}
 	}
 

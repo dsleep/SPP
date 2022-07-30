@@ -178,7 +178,7 @@ namespace SPP
 		auto currentElapsedMS = priorFrame.getElapsedMilliseconds();
 		if (currentElapsedMS > 5)
 		{
-			SPP_QL( "_currentFrame long wait");
+			//SPP_QL( "_currentFrame long wait");
 		}
 
 		// tiny window in between gpu thread calls

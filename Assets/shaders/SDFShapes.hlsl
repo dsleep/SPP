@@ -33,7 +33,7 @@ ConstantBuffer<DrawParams>          DrawParams                : register(b3);
 [[vk::binding(3, 0)]]
 StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
-#define ALLOW_SMOOTHING 0
+#define ALLOW_SMOOTHING 1
 
 void SwapFloat(inout float InA, inout float InB)
 {
@@ -146,7 +146,7 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 		shapeProcessedData[ShapeIdx].rayScalar = 1.0f / length(rayStart - rayUnitEnd);
 		float3 rayDirection = normalize(rayStart - rayUnitEnd);
 				
-        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 1.05f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
+        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 5.15f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
         if (shapeProcessedData[ShapeIdx].IsHit)
         {
             ShapeHitCount++;
@@ -233,7 +233,7 @@ float processShapes( in float3 pos, out float3 hitColor )
 // rd: ray direction
 float raymarch(float3 ro, float3 rd, float T0, float T1, out float3 hitColor) 
 {
-    const int maxstep = 16;
+    const int maxstep = 48;
     float t = T0; // current distance traveled along ray
 
 	[unroll]
