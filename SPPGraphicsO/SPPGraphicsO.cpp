@@ -88,6 +88,8 @@ namespace SPP
 		}
 
 		SE_ASSERT(childCopy.size() == _children.size());
+		// preserve order
+		_children = childCopy;
 
 		InGraphicsDevice->AddScene(_renderScene.get());
 	}
@@ -110,6 +112,8 @@ namespace SPP
 		}
 
 		SE_ASSERT(childCopy.size() == _children.size());
+		// preserve order
+		_children = childCopy;
 	}
 
 	void ORenderableElement::UpdateSelection(bool IsSelected)

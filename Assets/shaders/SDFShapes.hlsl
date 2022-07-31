@@ -146,7 +146,7 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 		shapeProcessedData[ShapeIdx].rayScalar = 1.0f / length(rayStart - rayUnitEnd);
 		float3 rayDirection = normalize(rayStart - rayUnitEnd);
 				
-        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 5.15f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
+        shapeProcessedData[ShapeIdx].IsHit = intersect_ray_sphere(rayStart, rayDirection, float3(0,0,0), 2.0f, shapeProcessedData[ShapeIdx].T0, shapeProcessedData[ShapeIdx].T1);
         if (shapeProcessedData[ShapeIdx].IsHit)
         {
             ShapeHitCount++;
