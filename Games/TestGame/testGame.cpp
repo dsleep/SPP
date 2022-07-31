@@ -125,9 +125,9 @@ public:
 
 		int32_t shapeGCnt = 0;
 		int32_t simpleCnt = 0;
-		for (int32_t IterY = 0; IterY <= 0; IterY++)
+		for (int32_t IterY = 0; IterY <= 1; IterY++)
 		{
-			for (int32_t IterX = 0; IterX <= 0; IterX++)
+			for (int32_t IterX = 0; IterX <= 1; IterX++)
 			{
 				auto& topLayer = loadedElements.front();
 

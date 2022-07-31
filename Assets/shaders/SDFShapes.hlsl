@@ -33,6 +33,9 @@ ConstantBuffer<DrawParams>          DrawParams                : register(b3);
 [[vk::binding(3, 0)]]
 StructuredBuffer<SDFShape>          Shapes                    : register(t0, space0);
 
+
+#define MAX_STEPS 32
+#define MAX_SHAPES 48
 #define ALLOW_SMOOTHING 1
 
 void SwapFloat(inout float InA, inout float InB)
@@ -108,8 +111,6 @@ bool hit_sphere(const vec3& center, float radius, const ray& r){
 }
 */
 
-#define MAX_STEPS 48
-#define MAX_SHAPES 64
 
 struct ShapeProcessed
 {
@@ -177,6 +178,10 @@ float processShapes( in float3 pos, out float3 hitColor )
 			float cD = 1e10;
 
 			float3 samplePos = mul(float4(pos, 1.0), ViewToShapeMatrices[i]).xyz;
+
+			cD = sdSphere(samplePos, 1);
+
+			/*
 			if (Shapes[i].shapeType == 1)
 			{
 				cD = sdSphere(samplePos, 1);
@@ -189,6 +194,7 @@ float processShapes( in float3 pos, out float3 hitColor )
 			{
 				cD = sdCappedCylinder(samplePos, 1, 1);
 			}
+			*/
 
 			cD *= shapeProcessedData[i].rayScalar;
 
