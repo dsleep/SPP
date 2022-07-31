@@ -504,7 +504,7 @@ public:
 					{
 						.translation = localTransform,
 						.rotation = Vector3(1,1,1),
-						.scale = Vector3(7,7,7)
+						.scale = Vector3(3,3,3)
 					});
 
 				EShapeType shapeType = EShapeType::Sphere;
