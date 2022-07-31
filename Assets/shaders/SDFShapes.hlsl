@@ -108,7 +108,8 @@ bool hit_sphere(const vec3& center, float radius, const ray& r){
 }
 */
 
-#define MAX_SHAPES 30
+#define MAX_STEPS 48
+#define MAX_SHAPES 64
 
 struct ShapeProcessed
 {
@@ -125,7 +126,7 @@ groupshared float4x4 ViewToShapeMatrices[MAX_SHAPES];
 void ShapeGenerateShared()
 {
 	[unroll]
-	for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < 32; ++ShapeIdx)
+	for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < MAX_SHAPES; ++ShapeIdx)
 	{
 		ViewToShapeMatrices[ShapeIdx] = mul(GetTranslationMatrix(float3(ViewConstants.ViewPosition - DrawConstants.Translation)), Shapes[ShapeIdx].invTransform);
 	}
@@ -139,7 +140,7 @@ uint shapeCullAndProcess(in float3 ro, in float3 rd, out float T0, out float T1)
 	uint ShapeHitCount = 0;
 	
 	[unroll]
-    for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < 32; ++ShapeIdx)
+    for (uint ShapeIdx = 0; ShapeIdx < DrawParams.ShapeCount && ShapeIdx < MAX_SHAPES; ++ShapeIdx)
     {
 		float3 rayStart = mul(float4(ro, 1.0), ViewToShapeMatrices[ShapeIdx]).xyz;
 		float3 rayUnitEnd = mul(float4(ro + rd, 1.0), ViewToShapeMatrices[ShapeIdx]).xyz;
@@ -168,7 +169,7 @@ float processShapes( in float3 pos, out float3 hitColor )
     float d = 1e10;
     
 	[unroll]
-    for (uint i = 0; i < DrawParams.ShapeCount && i < 32; ++i)
+    for (uint i = 0; i < DrawParams.ShapeCount && i < MAX_SHAPES; ++i)
     {
 		[branch]
 		if (shapeProcessedData[i].IsHit)
@@ -233,11 +234,10 @@ float processShapes( in float3 pos, out float3 hitColor )
 // rd: ray direction
 float raymarch(float3 ro, float3 rd, float T0, float T1, out float3 hitColor) 
 {
-    const int maxstep = 48;
     float t = T0; // current distance traveled along ray
 
 	[unroll]
-    for (int i = 0; i < maxstep; ++i) 
+    for (int i = 0; i < MAX_STEPS; ++i)
     {
         float3 p = ro + rd * t; // World space position of sample
         float d = processShapes(p, hitColor);       // Sample of distance field (see processShapes())

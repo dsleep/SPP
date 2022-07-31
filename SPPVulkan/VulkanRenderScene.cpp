@@ -641,7 +641,7 @@ namespace SPP
 
 		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
 
 		VkBufferImageCopy region = {};
@@ -653,7 +653,7 @@ namespace SPP
 		region.bufferOffset = curDepthScratch.offsetFromBase;
 		vkCmdCopyImageToBuffer(commandBuffer, 
 			depthAttachment.image->Get(), 
-			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			curDepthScratch.buffer, 
 			1, 
 			&region);
@@ -663,20 +663,30 @@ namespace SPP
 
 		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
+
+		vks::tools::setImageLayout(commandBuffer, DepthColorTexture.GetVkImage(),
+			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
 		vkCmdCopyBufferToImage(
 			commandBuffer,
 			curDepthScratch.buffer,
 			DepthColorTexture.GetVkImage(),
-			VK_IMAGE_LAYOUT_GENERAL,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&region
 		);
 
-		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+		vks::tools::setImageLayout(commandBuffer, DepthColorTexture.GetVkImage(),
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_GENERAL,
+			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
-
 
 		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
