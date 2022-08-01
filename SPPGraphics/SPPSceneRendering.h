@@ -169,6 +169,8 @@ namespace SPP
 
 		GPUReferencer< GPUTexture > _skyBox;
 
+		GPUReferencer< GPUTexture > _offscreenUI;
+
 		GraphicsDevice* _owner = nullptr;
 
 	public:

@@ -47,6 +47,9 @@
 
 #define MAX_LOADSTRING 100
 
+SPP_OVERLOAD_ALLOCATORS
+
+
 using namespace SPP;
 using namespace std::chrono_literals;
 
@@ -78,6 +81,8 @@ private:
 	std::shared_ptr<RT_RenderScene> renderableSceneShared;
 	std::future<bool> graphicsResults;
 
+	VgEnvironment* _emptyScene = nullptr;
+
 public:
 	void Initialize(HINSTANCE hInstance)
 	{
@@ -88,7 +93,16 @@ public:
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
-			
+	
+		InitializePhysX();
+
+		GetGameEngineVersion();
+
+		_emptyScene = AllocateObject<VgEnvironment>("simple", nullptr);
+
+		_emptyScene->AddToGraphicsDevice(_graphicsDevice.get());
+
+
 		//SPP::MakeResidentAllGPUResources();
 
 		std::mutex tickMutex;
