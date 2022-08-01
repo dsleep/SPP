@@ -21,7 +21,7 @@ def GetJSONName():
 	print("Version: " + VersionValue)	
 	
 	if SystemName == 'Windows':
-		return 'Prereqs_VS2019.json'
+		return 'Prereqs_VS2022.json'
 	elif SystemName == 'Darwin' and ReleaseValue.startswith( '21' ) :
 		return 'Prereqs_MAC_12.json'
 	elif SystemName == 'Linux':	
