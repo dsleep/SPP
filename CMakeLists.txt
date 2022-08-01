@@ -178,6 +178,7 @@ if(OS_WINDOWS)
 				"SPPCapture" 
 				"SPPVideo"
 				"SPPPhysX"
+				"SPPXAudio2"
 				"SPPGameEngine" )
 				
 	if(INCLUE_WEBSERVER)
