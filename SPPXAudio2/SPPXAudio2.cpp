@@ -73,12 +73,12 @@ namespace SPP
             HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
             UINT32 flags = 0;
-#if defined(_DEBUG)
+#ifdef _DEBUG
             flags |= XAUDIO2_DEBUG_ENGINE;
 #endif
             hr = XAudio2Create(&pXAudio2, flags);
 
-#if defined(_DEBUG)
+#ifdef _DEBUG
             XAUDIO2_DEBUG_CONFIGURATION debug = {};
             debug.TraceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS;
             debug.BreakMask = XAUDIO2_LOG_ERRORS;
