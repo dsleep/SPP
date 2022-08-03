@@ -529,6 +529,10 @@ namespace SPP
 		{
 		case TextureFormat::RGBA_8888:
 			return VK_FORMAT_R8G8B8A8_UNORM;
+		case TextureFormat::BGRA_8888:
+			return VK_FORMAT_B8G8R8A8_UNORM;
+
+			
 		case TextureFormat::R32F:
 			return VK_FORMAT_R32_SFLOAT;
 		}

@@ -165,7 +165,7 @@ namespace SPP
 			_offscreenUI->GetWidth() != dwidth ||
 			_offscreenUI->GetHeight() != dheight )
 		{
-			_offscreenUI = _owner->_gxCreateTexture(dwidth, dheight, TextureFormat::RGBA_8888);
+			_offscreenUI = _owner->_gxCreateTexture(dwidth, dheight, TextureFormat::BGRA_8888);
 		}
 	};
 	void RT_RenderScene::Draw() { };

@@ -102,6 +102,7 @@ namespace SPP
         UNKNOWN,
         RGB_888,
         RGBA_8888,
+        BGRA_8888,
         RGBA_BC7,
         DDS_UNKNOWN,
         RG_BC5,
