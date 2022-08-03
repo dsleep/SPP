@@ -127,19 +127,31 @@ namespace SPP
         public CefDisplayHandler,
         public CefLifeSpanHandler,
         public CefLoadHandler,
-        public CefRenderHandler
+        public CefRenderHandler,
+        public CefRequestHandler,
+        public CefResourceRequestHandler
     {
     private:
         int desiredWidth = 1280;
         int desiredHeight = 720;
-        std::vector< ColoRGBA > ColorData;
         std::function< void(const std::string&) > _JSONNativeFunc;
 
         std::function< void(int,int,int,int,const void*,int,int) > _OnPaint;
 
+
+        // Manages the registration and delivery of resources.
+        CefRefPtr<CefResourceManager> _resource_manager;
+
     public:
         OffScreenHandler()
         {
+            _resource_manager = new CefResourceManager();
+
+            //SPP - DS
+            std::filesystem::path SPP_ROOT = std::filesystem::absolute(std::filesystem::current_path() / "..");
+            auto currentPath = SPP_ROOT.generic_string();
+            _resource_manager->AddContentProvider("http://spp/", currentPath.c_str(), std::string(), 100, std::string());
+            _resource_manager->AddDirectoryProvider("http://spp/", currentPath.c_str(), 100, std::string());
 
         }
         ~OffScreenHandler()
@@ -176,6 +188,47 @@ namespace SPP
             CEF_REQUIRE_UI_THREAD();
             // Set the title of the window using platform APIs.
             PlatformTitleChange(browser, title);
+        }
+
+        // CefResourceRequestHandler methods
+        virtual  cef_return_value_t OnBeforeResourceLoad(
+            CefRefPtr<CefBrowser> browser,
+            CefRefPtr<CefFrame> frame,
+            CefRefPtr<CefRequest> request,
+            CefRefPtr<CefRequestCallback> callback) OVERRIDE
+        {
+            CEF_REQUIRE_IO_THREAD();
+
+            return _resource_manager->OnBeforeResourceLoad(browser, frame, request,
+                callback);
+        }
+
+
+        CefRefPtr<CefRequestHandler> GetRequestHandler() OVERRIDE { return this; }
+
+
+        virtual CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(
+            CefRefPtr<CefBrowser> browser,
+            CefRefPtr<CefFrame> frame,
+            CefRefPtr<CefRequest> request,
+            bool is_navigation,
+            bool is_download,
+            const CefString& request_initiator,
+            bool& disable_default_handling) OVERRIDE
+        {
+            CEF_REQUIRE_IO_THREAD();
+            return this;
+        }
+
+
+        virtual CefRefPtr<CefResourceHandler> GetResourceHandler(
+            CefRefPtr<CefBrowser> browser,
+            CefRefPtr<CefFrame> frame,
+            CefRefPtr<CefRequest> request) OVERRIDE
+        {
+            CEF_REQUIRE_IO_THREAD();
+
+            return _resource_manager->GetResourceHandler(browser, frame, request);
         }
 
         // CefLifeSpanHandler methods:
@@ -344,7 +397,6 @@ namespace SPP
             int width,
             int height) OVERRIDE
         {   
-            ColorData.resize(width * height);
             
             for (auto Iter = dirtyRects.begin(); Iter != dirtyRects.end(); Iter++)
             {

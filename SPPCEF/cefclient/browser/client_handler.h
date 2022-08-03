@@ -223,7 +223,8 @@ namespace client {
 			const CefString& errorText,
 			const CefString& failedUrl) OVERRIDE;
 
-		// CefRequestHandler methods
+		
+// CefRequestHandler methods
 		bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
 			CefRefPtr<CefFrame> frame,
 			CefRefPtr<CefRequest> request,
@@ -270,7 +271,6 @@ namespace client {
 		void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
 			TerminationStatus status) OVERRIDE;
 		void OnDocumentAvailableInMainFrame(CefRefPtr<CefBrowser> browser) OVERRIDE;
-
 		// CefResourceRequestHandler methods
 		cef_return_value_t OnBeforeResourceLoad(
 			CefRefPtr<CefBrowser> browser,

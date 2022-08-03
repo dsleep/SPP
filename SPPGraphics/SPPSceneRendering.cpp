@@ -66,29 +66,29 @@ namespace SPP
 
 	PooledChunkBuffer GPooledBuffer;
 
-	struct ColoRGBA
+	struct ColoBGRA
 	{
-		uint8_t r;
-		uint8_t g;
 		uint8_t b;
+		uint8_t g;		
+		uint8_t r;
 		uint8_t a;
 	};
 
 	void RT_RenderScene::PushUIUpdate(const Vector2i& FullSize, const Vector2i& Start, const Vector2i& Extents, const void* Memory, uint32_t MemorySize)
 	{
-		uint32_t UpdateSize = Extents[0] * Extents[1] * sizeof(ColoRGBA);
+		uint32_t UpdateSize = Extents[0] * Extents[1] * sizeof(ColoBGRA);
 		auto CurrentChunk = GPooledBuffer.GetChunk(UpdateSize);
 
 		auto startX = Start[0];
 		auto startY = Start[1];
-		auto copySize = sizeof(ColoRGBA) * Extents[1];
+		auto copySize = sizeof(ColoBGRA) * Extents[0];
 
 		for (int32_t RowIter = 0; RowIter < Extents[1]; RowIter++)
 		{
 			int32_t SrcIdx = ((startY + RowIter) * FullSize[0]) + startX;
 			int32_t DstIdx = RowIter * Extents[0];
 
-			memcpy((ColoRGBA*)CurrentChunk->data + DstIdx, (ColoRGBA*)Memory + SrcIdx, copySize);
+			memcpy((ColoBGRA*)CurrentChunk->data + DstIdx, (ColoBGRA*)Memory + SrcIdx, copySize);
 		}
 
 		auto gpuCommand = GPUThreaPool->enqueue([CurrentChunk = CurrentChunk, Start, Extents, UpdateSize, this]()

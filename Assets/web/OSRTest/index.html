@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html>
   <head>
-  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
-  
-	<link rel="stylesheet" href="darktheme.css">
-	
+  		
   <style>
+  
+  @font-face {
+  font-family: 'AtarianSystem';
+  src: URL('SF Atarian System.ttf') format('truetype');
+}
   
 html,
 body {
   height: 100%;
   width: 100%;
   margin: 0;
-}
-
-body {
-  background-image: linear-gradient(to bottom, #000004 , #232323 30px , #171717);
-
+  font-size: 40px;
+   font-family: AtarianSystem;
 }
 p
 {
@@ -24,13 +23,36 @@ p
 	margin: 0;
 	padding: 4px;	
 }
+
+.center {
+  margin: auto;
+  position: fixed; /* or absolute */
+  top: 50%;
+  left: 50%;
+
+  
+  padding: 10px;
+  text-align: center;
+}
+
+.outline {
+	/*border: 3px solid black;*/
+
+}
+
   </style>
     <meta charset="utf-8">
-    <title>SPP Remote Desktop</title>
+    <title>APP</title>
   </head>
-  <body>
+  <body style="background-color:rgba(0, 0, 0, 0);">
   
-	  TEST AREA
+  <div class="center">
+  <p class="outline">SHOOTING RANGE</p>
+  <p class="outline">ONLINE PLAY</p>
+  <p class="outline">SETTINGS</p>
+  <p class="outline">EXIT</p>
+</div>
+	  
 	
   </body>
 </html>
