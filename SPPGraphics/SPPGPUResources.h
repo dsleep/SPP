@@ -325,6 +325,16 @@ namespace SPP
             std::shared_ptr< ArrayResource > RawData = nullptr, 
             std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
         virtual ~GPUTexture();
+        virtual void PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Memory, uint32_t MemorySize) {};
+
+        int32_t GetWidth() const
+        {
+            return _width;
+        }
+        int32_t GetHeight() const
+        {
+            return _height;
+        }
         uint32_t GetID() const { return _uniqueID; }
         virtual const char* GetName() const override
         {

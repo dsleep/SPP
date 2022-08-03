@@ -98,12 +98,12 @@ namespace SPP
 		GPU_CALL RemoveFromRenderScene()
 		{
 			this->_RemoveFromRenderScene();
-			co_return;
+co_return;
 		}
-		
+
 		virtual void PrepareToDraw() {}
 		virtual void DrawDebug(std::vector< struct DebugVertex >& lines) { };
-		virtual void Draw() { };		
+		virtual void Draw() { };
 
 		Matrix4x4 GenerateLocalToWorldMatrix() const
 		{
@@ -149,7 +149,7 @@ namespace SPP
 			return _octreeLink;
 		}
 	};
-			
+
 	class SPP_GRAPHICS_API RT_RenderScene
 	{
 	protected:
@@ -175,27 +175,15 @@ namespace SPP
 
 	public:
 
-		RT_RenderScene(GraphicsDevice* InOwner) : _owner(InOwner)
-		{
-			_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0,0,0), 65.0f, 1.77f);
-			_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
-		}
-		virtual ~RT_RenderScene() {}
+		RT_RenderScene(GraphicsDevice* InOwner);
+		virtual ~RT_RenderScene();
 
-		virtual void AddedToGraphicsDevice() {};
+		virtual void AddedToGraphicsDevice();
 
-		void SetRenderToBackBuffer(bool bInRenderToBackBuffer)
-		{
-			_bRenderToBackBuffer = bInRenderToBackBuffer;
-		}
-		void SetUseBackBufferDepthWithCustomColor(bool bInUseBackBufferDepths)
-		{
-			_bUseBBWithCustomColor = bInUseBackBufferDepths;
-		}
-		void SetSkyBox(GPUReferencer< GPUTexture > InSkyBox)
-		{
-			_skyBox = InSkyBox;
-		}
+		void SetRenderToBackBuffer(bool bInRenderToBackBuffer);
+		void SetUseBackBufferDepthWithCustomColor(bool bInUseBackBufferDepths);
+		void SetSkyBox(GPUReferencer< GPUTexture > InSkyBox);
+		void PushUIUpdate(const Vector2i& FullSize, const Vector2i& Start, const Vector2i& Extents, const void* Memory, uint32_t MemorySize);
 
 		virtual std::shared_ptr<RT_Material> GetDefaultMaterial() { return nullptr; }
 
@@ -217,53 +205,10 @@ namespace SPP
 			}
 		}
 
-		void SetDepthTarget(GPUReferencer< GPURenderTarget > InActiveDepth)
-		{
-			_activeDepth = InActiveDepth;
-		}
-
-		void UnsetAllRTs()
-		{
-			for (int32_t Iter = 0; Iter < ARRAY_SIZE(_activeRTs); Iter++)
-			{
-				_activeRTs[Iter].Reset();
-			}
-			_activeDepth.Reset();
-		}
-
-		virtual void AddRenderable(Renderable *InRenderable)
-		{
-			SE_ASSERT(IsOnGPUThread());
-
-			if (InRenderable->Is3dRenderable())
-			{
-				_renderables3d.push_back(InRenderable);
-			}
-
-			if (InRenderable->IsPostRenderable())
-			{
-				_renderablesPost.push_back(InRenderable);
-			}
-
-			_octree.AddElement(InRenderable);
-		}
-
-		virtual void RemoveRenderable(Renderable *InRenderable)
-		{
-			SE_ASSERT(IsOnGPUThread());
-
-			if (InRenderable->Is3dRenderable())
-			{
-				_renderables3d.remove(InRenderable);
-			}
-
-			if (InRenderable->IsPostRenderable())
-			{
-				_renderablesPost.remove(InRenderable);
-			}
-
-			_octree.RemoveElement(InRenderable);
-		}
+		void SetDepthTarget(GPUReferencer< GPURenderTarget > InActiveDepth);
+		void UnsetAllRTs();
+		virtual void AddRenderable(Renderable* InRenderable);
+		virtual void RemoveRenderable(Renderable* InRenderable);
 
 		Camera& GetCamera()
 		{
@@ -276,14 +221,11 @@ namespace SPP
 			return *(T*)this;
 		}
 
-		virtual void PrepareScenesToDraw()
-		{ 
-			_viewGPU = _viewCPU;
-		};
+		virtual void PrepareScenesToDraw();
 
-		virtual void BeginFrame() { };
-		virtual void Draw() { };
-		virtual void EndFrame() { };
+		virtual void BeginFrame();
+		virtual void Draw();
+		virtual void EndFrame();
 
 		virtual void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color = Vector3(1, 1, 1)) {}
 		virtual void AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color = Vector3(1, 1, 1)) {}

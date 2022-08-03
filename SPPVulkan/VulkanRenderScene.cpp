@@ -54,7 +54,7 @@ namespace SPP
 			auto vulkPSO = Make_GPU(VulkanPipelineState,InOwner);
 			vulkPSO->ManualSetRenderPass(backbufferFrameData.renderPass);
 			_fullscreenColorPSO = vulkPSO;
-			vulkPSO->Initialize(EBlendState::Disabled,
+			vulkPSO->Initialize(EBlendState::AlphaBlend,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
 				EDrawingTopology::TriangleStrip,
@@ -473,6 +473,8 @@ namespace SPP
 
 	void VulkanRenderScene::BeginFrame()
 	{
+		RT_RenderScene::BeginFrame();
+
 		for (auto renderItem : _renderables3d)
 		{
 			renderItem->PrepareToDraw();
@@ -758,29 +760,60 @@ namespace SPP
 		auto& curPSO = FullScreenWritePSO->GetAs<VulkanPipelineState>();
 		auto& descriptorSetLayouts = curPSO.GetDescriptorSetLayouts();
 
-		std::vector<VkDescriptorSet> locaDrawSets;
-		locaDrawSets.resize(descriptorSetLayouts.size());
+		// main scene to back buffer
+		{
+			std::vector<VkDescriptorSet> locaDrawSets;
+			locaDrawSets.resize(descriptorSetLayouts.size());
 
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
 
-		VkDescriptorImageInfo textureInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();	
+			VkDescriptorImageInfo textureInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(locaDrawSets[0],
-					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &textureInfo),
-				vks::initializers::writeDescriptorSet(locaDrawSets[0],
-					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &textureInfo),
-		};
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(locaDrawSets[0],
+						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &textureInfo),
+					vks::initializers::writeDescriptorSet(locaDrawSets[0],
+						VK_DESCRIPTOR_TYPE_SAMPLER, 1, &textureInfo),
+			};
 
-		vkUpdateDescriptorSets(vulkanDevice,
-			static_cast<uint32_t>(writeDescriptorSets.size()),
-			writeDescriptorSets.data(), 0, nullptr);
+			vkUpdateDescriptorSets(vulkanDevice,
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, curPSO.GetVkPipeline());
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			curPSO.GetVkPipelineLayout(), 0, locaDrawSets.size(), locaDrawSets.data(), 0, nullptr);
-		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, curPSO.GetVkPipeline());
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				curPSO.GetVkPipelineLayout(), 0, locaDrawSets.size(), locaDrawSets.data(), 0, nullptr);
+			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+		}
+
+		// ui to back buffer
+		if(_offscreenUI)
+		{
+			std::vector<VkDescriptorSet> locaDrawSets;
+			locaDrawSets.resize(descriptorSetLayouts.size());
+
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
+
+			VkDescriptorImageInfo textureInfo = _offscreenUI->GetAs<VulkanTexture>().GetDescriptor();
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(locaDrawSets[0],
+						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &textureInfo),
+					vks::initializers::writeDescriptorSet(locaDrawSets[0],
+						VK_DESCRIPTOR_TYPE_SAMPLER, 1, &textureInfo),
+			};
+
+			vkUpdateDescriptorSets(vulkanDevice,
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, curPSO.GetVkPipeline());
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				curPSO.GetVkPipelineLayout(), 0, locaDrawSets.size(), locaDrawSets.data(), 0, nullptr);
+			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+		}
 
 		vkCmdEndRenderPass(commandBuffer);
 	}

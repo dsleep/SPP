@@ -78,7 +78,7 @@ private:
 
 	ESelectionMode _selectionMode = ESelectionMode::None;
 	std::unique_ptr<SPP::ApplicationWindow> app;
-	std::shared_ptr<RT_RenderScene> renderableSceneShared;
+	RT_RenderScene* renderableScene = nullptr;
 	std::future<bool> graphicsResults;
 
 	VgEnvironment* _emptyScene = nullptr;
@@ -101,7 +101,7 @@ public:
 		_emptyScene = AllocateObject<VgEnvironment>("simple", nullptr);
 
 		_emptyScene->AddToGraphicsDevice(_graphicsDevice.get());
-
+		renderableScene = _emptyScene->GetRenderScene();
 
 		//SPP::MakeResidentAllGPUResources();
 
@@ -247,7 +247,7 @@ public:
 	void OnBrowserPaint(int rectX, int rectY, int rectWidth, int rectHeight,
 		const void* imgBufer, int imgWidth, int imgHeight)
 	{
-
+		renderableScene->PushUIUpdate(Vector2i(imgWidth, imgHeight), Vector2i(rectX, rectY), Vector2i(rectWidth, rectHeight), imgBufer, imgWidth * imgWidth * 4);
 	}
 };
 

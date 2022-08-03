@@ -130,8 +130,8 @@ namespace SPP
         public CefRenderHandler
     {
     private:
-        int desiredWidth = 768;
-        int desiredHeight = 768;
+        int desiredWidth = 1280;
+        int desiredHeight = 720;
         std::vector< ColoRGBA > ColorData;
         std::function< void(const std::string&) > _JSONNativeFunc;
 
@@ -354,17 +354,6 @@ namespace SPP
                 _OnPaint(rect.x, rect.y, rect.width, rect.height, buffer, width, height);
 
 
-                auto startX = rect.x;
-                auto startY = rect.y;
-                auto copySize = sizeof(ColoRGBA) * rect.width;
-
-                for (int32_t RowIter = 0; RowIter < rect.height; RowIter++)
-                {
-                    int32_t DstIdx = ((startY + RowIter) * desiredWidth) + startX;
-                    int32_t SrcIdx = DstIdx;
-
-                    memcpy(&ColorData[DstIdx], (const ColoRGBA*)buffer + SrcIdx, copySize);
-                }
             }
         }
 

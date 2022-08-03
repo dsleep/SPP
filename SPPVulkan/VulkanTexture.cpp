@@ -6,6 +6,7 @@
 
 #include <VulkanTexture.h>
 
+
 namespace SPP
 {
 	extern VkDevice GGlobalVulkanDevice;
@@ -543,6 +544,7 @@ namespace SPP
 		mipLevels = 1;
 		layerCount = 1;
 
+		auto copyQueue = GGlobalVulkanGI->GetGraphicsQueue();
 		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
 		VkFormat format = SPPToVulkan(Format);
 		VkFilter filter = VK_FILTER_NEAREST;
@@ -559,7 +561,7 @@ namespace SPP
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageCreateInfo.extent = { width, height, 1 };
 		imageCreateInfo.usage = imageUsageFlags;
 		// Ensure that the TRANSFER_DST bit is set for staging
@@ -578,6 +580,21 @@ namespace SPP
 		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
 		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
 
+		// Use a separate command buffer for texture loading
+		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+		vks::tools::setImageLayout(
+			copyCmd,
+			image,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_GENERAL,
+			subresourceRange);
+				
+		device->flushCommandBuffer(copyCmd, copyQueue);
+
+		this->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		imageByteSize = memReqs.size;
 
 		// Create sampler
@@ -608,14 +625,23 @@ namespace SPP
 		viewCreateInfo.image = image;
 		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
 
+		
+
 		// Update descriptor image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 	}
 
 	void VulkanTexture::UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize)
 	{
+		
+	}
+
+	void VulkanTexture::PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Data, uint32_t DataSize)
+	{
+		SE_ASSERT(IsOnGPUThread());
+
 		//HACK just assumes RGBA8888
-		SE_ASSERT((Width * Height * 4) == DataSize);
+		SE_ASSERT((Extents[0] * Extents[1] * 4) == DataSize);
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
 		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
@@ -627,23 +653,19 @@ namespace SPP
 		bufferCopyRegion.imageSubresource.mipLevel = 0;
 		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 		bufferCopyRegion.imageSubresource.layerCount = 1;
-		bufferCopyRegion.imageExtent.width = width;
-		bufferCopyRegion.imageExtent.height = height;
+		bufferCopyRegion.imageExtent.width = Extents[0];
+		bufferCopyRegion.imageExtent.height = Extents[1];
 		bufferCopyRegion.imageExtent.depth = 1;
 		bufferCopyRegion.bufferOffset = WritableChunk.offsetFromBase;
-		bufferCopyRegion.imageOffset.x = rectX;
-		bufferCopyRegion.imageOffset.y = rectY;
+		bufferCopyRegion.imageOffset.x = Start[0];
+		bufferCopyRegion.imageOffset.y = Start[1];
 
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = mipLevels;
-		subresourceRange.layerCount = 1;
+		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 		vks::tools::setImageLayout(
 			cmdBuffer,
 			image,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			subresourceRange);
 
@@ -659,10 +681,9 @@ namespace SPP
 			cmdBuffer,
 			image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
 	}
-
 	///**
 	//* Load a 2D texture array including all mip levels
 	//*

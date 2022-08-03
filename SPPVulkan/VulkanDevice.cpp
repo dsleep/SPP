@@ -1520,6 +1520,31 @@ namespace SPP
 			VkPipelineColorBlendAttachmentState blendAttachmentState[1] = {};
 			blendAttachmentState[0].colorWriteMask = 0xf;
 			blendAttachmentState[0].blendEnable = VK_FALSE;
+			
+			switch (InBlendState)
+			{
+			case EBlendState::Additive:
+				blendAttachmentState[0].blendEnable = VK_TRUE;
+				blendAttachmentState[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendAttachmentState[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendAttachmentState[0].colorBlendOp = VK_BLEND_OP_ADD;
+				blendAttachmentState[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendAttachmentState[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendAttachmentState[0].alphaBlendOp = VK_BLEND_OP_ADD;
+				blendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				break;
+			case EBlendState::AlphaBlend:
+				blendAttachmentState[0].blendEnable = VK_TRUE;
+				blendAttachmentState[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+				blendAttachmentState[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				blendAttachmentState[0].colorBlendOp = VK_BLEND_OP_ADD;
+				blendAttachmentState[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+				blendAttachmentState[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				blendAttachmentState[0].alphaBlendOp = VK_BLEND_OP_ADD;
+				blendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				break;
+			}
+
 			VkPipelineColorBlendStateCreateInfo colorBlendState = {};
 			colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 			colorBlendState.attachmentCount = 1;
@@ -1781,7 +1806,14 @@ namespace SPP
 
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) 
 	{
-		return Make_GPU(VulkanTexture, this, Width, Height, Format, RawData, InMetaInfo);
+		if (RawData) 
+		{
+			return Make_GPU(VulkanTexture, this, Width, Height, Format, RawData, InMetaInfo);
+		}
+		else
+		{
+			return Make_GPU(VulkanTexture, this, Width, Height, Format);
+		}
 	}
 
 	std::shared_ptr< class RT_Texture > VulkanGraphicsDevice::CreateTexture()

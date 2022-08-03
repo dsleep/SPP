@@ -244,7 +244,13 @@ namespace SPP
     {
         return (num + denom - 1) / denom;
     }
-    
+
+    template <typename T, typename U>
+    T RoundUp(T num, U round)
+    {
+        return ((num + round - 1) & ~(round - 1));
+    }
+
     //radians = ( degrees * pi ) / 180 ;
 	
 	template<typename T>
@@ -387,6 +393,12 @@ namespace SPP
         Eigen::AngleAxisf zAngle(InEulerAngles[2] * degToRad, Vector3::UnitZ());
 
         return (zAngle * xAngle) * yAngle;
+    }
+
+    template <typename T> 
+    int8_t sgn(T val) 
+    {
+        return (T(0) < val) - (val < T(0));
     }
 		
     SPP_MATH_API uint32_t GetMathVersion();
