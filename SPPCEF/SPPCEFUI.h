@@ -29,9 +29,19 @@ namespace SPP
 		std::function< void() > Shutdown;
 	};
 
+	struct OSRInputInterface
+	{
+		virtual void keyDown(uint8_t) = 0;
+		virtual void keyUp(uint8_t) = 0;
+		virtual void mouseDown(int32_t, int32_t, uint8_t) = 0;
+		virtual void mouseUp(int32_t, int32_t, uint8_t) = 0;
+		virtual void mouseMove(int32_t, int32_t, uint8_t) = 0;
+	};
+
 	struct OSRBrowserCallbacks
 	{
 		std::function< void(int, int, int, int, const void*, int, int) > OnPaint;
+		std::function< void(OSRInputInterface*) > OnInit;
 	};
 
 	class SPP_CEFUI_API CEFMessageList

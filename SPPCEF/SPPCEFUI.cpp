@@ -123,13 +123,16 @@ namespace SPP
         uint8_t a;
     };
 
+
+
     class OffScreenHandler : public CefClient,
         public CefDisplayHandler,
         public CefLifeSpanHandler,
         public CefLoadHandler,
         public CefRenderHandler,
         public CefRequestHandler,
-        public CefResourceRequestHandler
+        public CefResourceRequestHandler,
+        public OSRInputInterface
     {
     private:
         int desiredWidth = 1280;
@@ -437,29 +440,98 @@ namespace SPP
             return modifiers;
         }
 
-        void MouseEvent()
-        {
+        // OSRInputInterface
+
+		virtual void keyDown(uint8_t) override
+		{
+
+		}
+		virtual void keyUp(uint8_t) override
+		{
+
+		}
+
+        int32_t _last_click_count = 1;
+        CefBrowserHost::MouseButtonType _last_click_button = (CefBrowserHost::MouseButtonType) 4;
+
+		virtual void mouseDown(int32_t x, int32_t y, uint8_t mouseBtn) override
+		{
             if (browser_list_.empty())
                 return;
 
-            auto &topBrowser = browser_list_.front();
+            auto& topBrowser = browser_list_.front();
             auto browser_host = topBrowser->GetHost();
 
+            CefBrowserHost::MouseButtonType btnType = (CefBrowserHost::MouseButtonType)mouseBtn;
+
+            CefMouseEvent mouse_event;
+            mouse_event.x = x;
+            mouse_event.y = y;
+            mouse_event.modifiers = 0;
+
+            if ( btnType == _last_click_button)
+            {
+                ++_last_click_count;
+            }
+            else
+            {
+                _last_click_count = 1;
+            }
+            _last_click_button = btnType;
+
+            //last_click_count_
+            browser_host->SendMouseClickEvent(mouse_event, btnType, false, _last_click_count);
+		}
+
+		virtual void mouseUp(int32_t x, int32_t y, uint8_t mouseBtn) override
+		{
+            if (browser_list_.empty())
+                return;
+
+            auto& topBrowser = browser_list_.front();
+            auto browser_host = topBrowser->GetHost();
+
+            CefBrowserHost::MouseButtonType btnType = (CefBrowserHost::MouseButtonType)mouseBtn;
+
+            CefMouseEvent mouse_event;
+            mouse_event.x = x;
+            mouse_event.y = y;
+            mouse_event.modifiers = 0;
+
+            if (btnType == _last_click_button)
+            {
+                ++_last_click_count;
+            }
+            else
+            {
+                _last_click_count = 1;
+            }
+            _last_click_button = btnType;
+
+            //last_click_count_
+            browser_host->SendMouseClickEvent(mouse_event, btnType, true, _last_click_count);
+		}
+
+		virtual void mouseMove(int32_t x, int32_t y, uint8_t mod) override
+		{
+            if (browser_list_.empty())
+                return;
+
+            auto& topBrowser = browser_list_.front();
+            auto browser_host = topBrowser->GetHost();
+
+            CefMouseEvent mouse_event = {};
+            mouse_event.x = x;
+            mouse_event.y = y;
+            mouse_event.modifiers = 0;// GetCefMouseModifiers(wParam);
+            browser_host->SendMouseMoveEvent(mouse_event, false);
+        }
+
+		void MouseEvent()
+        {     
             //browser_host->WasResized();
 
-            //CefMouseEvent mouse_event;
-            //mouse_event.x = x;
-            //mouse_event.y = y;
-            //mouse_event.modifiers = GetCefMouseModifiers(wParam);
-            //browser_host->SendMouseClickEvent(mouse_event, btnType, false, last_click_count_);
-
-            //CefMouseEvent mouse_event;
-            //mouse_event.x = x;
-            //mouse_event.y = y;
-            //mouse_event.modifiers = GetCefMouseModifiers(wParam);
-            //browser_host->SendMouseMoveEvent(mouse_event, false);
-
-            //CefMouseEvent mouse_event;
+                 //CefMouseEvent mouse_event;
             //mouse_event.x = screen_point.x;
             //mouse_event.y = screen_point.y;
             //mouse_event.modifiers = GetCefMouseModifiers(wParam);
@@ -576,6 +648,11 @@ namespace SPP
 
         handler->SetJSONToNativeFunc(std::bind(&JavascriptInterface::NativeFromJS_JSON_Callback, localInterface.get(), std::placeholders::_1));
         handler->SetPaintFunction(InCallbacks.OnPaint);
+
+        if (InCallbacks.OnInit)
+        {
+            InCallbacks.OnInit(handler.get());
+        }
 
         // Create the browser asynchronously.
         CefBrowserHost::CreateBrowser(window_info, handler, StartupURL, browser_settings, nullptr, nullptr);

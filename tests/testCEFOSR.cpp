@@ -83,6 +83,8 @@ private:
 
 	VgEnvironment* _emptyScene = nullptr;
 
+	OSRInputInterface* _OSRRef = nullptr;
+
 public:
 	void Initialize(HINSTANCE hInstance)
 	{
@@ -211,6 +213,11 @@ public:
 			_selectionMode = ESelectionMode::Turn;
 			_mouseCaptureSpot = Vector2i(mouseX, mouseY);
 		}
+
+		if (_OSRRef)
+		{
+			_OSRRef->mouseDown(mouseX, mouseY, mouseButton);
+		}
 	}
 
 	void MouseUp(int32_t mouseX, int32_t mouseY, uint8_t mouseButton)
@@ -220,6 +227,11 @@ public:
 		{
 			_selectionMode = ESelectionMode::None;
 			CaptureWindow(nullptr);
+		}
+
+		if (_OSRRef)
+		{
+			_OSRRef->mouseUp(mouseX, mouseY, mouseButton);
 		}
 	}
 
@@ -237,6 +249,11 @@ public:
 			//auto& cam = renderableSceneShared->GetCamera();
 			//cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
 		}
+
+		if (_OSRRef)
+		{
+			_OSRRef->mouseMove(mouseX, mouseY, MouseState);
+		}
 	}
 
 	void OnResize(int32_t InWidth, int32_t InHeight)
@@ -248,6 +265,11 @@ public:
 		const void* imgBufer, int imgWidth, int imgHeight)
 	{
 		renderableScene->PushUIUpdate(Vector2i(imgWidth, imgHeight), Vector2i(rectX, rectY), Vector2i(rectWidth, rectHeight), imgBufer, imgWidth * imgWidth * 4);
+	}
+
+	void OnInit(OSRInputInterface* inRef)
+	{
+		_OSRRef = inRef;
 	}
 };
 
@@ -304,7 +326,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 							std::placeholders::_5,
 							std::placeholders::_6,
 							std::placeholders::_7
-						 )
+						 ),
+						.OnInit = std::bind(&SimpleViewer::OnInit,
+							&viewer,
+							std::placeholders::_1
+						)						
 					});
 			});
 
