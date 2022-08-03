@@ -6,7 +6,7 @@
   
   @font-face {
   font-family: 'AtarianSystem';
-  src: URL('./SF Atarian System.ttf') format('truetype');
+  src: URL('SF Atarian System.ttf') format('truetype');
 }
   
 html,
@@ -22,25 +22,6 @@ p
     line-height: 1;
 	margin: 0;
 	padding: 4px;	
-	font-family: AtarianSystem;
-	text-shadow:1px 1px 10px #fff, 1px 1px 10px #ccc;
-}
-
-
-@-webkit-keyframes glow {
-  from {
-    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
-  }
-  
-  to {
-    text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
-  }
-}
-
-p:hover
-{ 
-color: red;
-
 }
 
 .center {
@@ -49,10 +30,9 @@ color: red;
   top: 50%;
   left: 50%;
 
-	background-color:rgba(0, 0, 0, 255);
+  
   padding: 10px;
   text-align: center;
-  border-radius: 25px;
 }
 
 .outline {
