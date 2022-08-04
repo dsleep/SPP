@@ -11,6 +11,8 @@
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanDebugDrawing.h"
 #include "VulkanRenderScene.h"
+#include "SPPGraphics.h"
+#include "ThreadPool.h"
 
 #include <unordered_set>
 #include "SPPLogging.h"
@@ -886,8 +888,16 @@ namespace SPP
 	{
 		if (width != NewWidth || height != NewHeight)
 		{
+			auto isSet = GPUThreaPool->enqueue([]()
+				{
+					//do stuff
+				});
+			isSet.wait();
+
 			// Ensure all operations on the device have been finished before destroying resources
 			vkDeviceWaitIdle(device);
+
+			GPUThreadIDOverride tempOverride;
 
 			// Recreate swap chain
 			width = NewWidth;
