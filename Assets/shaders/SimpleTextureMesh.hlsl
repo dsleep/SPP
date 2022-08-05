@@ -11,8 +11,8 @@ struct VertexShaderInput
 
 struct PixelShaderInput
 {
-	float4 pixelPosition	: SV_POSITION;
-	float2 uv				: TEXCOORD;
+	float4 pixelPosition				: SV_POSITION;
+	[[vk::location(0)]] float2 uv		: TEXCOORD0;
 };
 
 [[vk::binding(0, 1)]]

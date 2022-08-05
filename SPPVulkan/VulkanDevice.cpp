@@ -886,6 +886,8 @@ namespace SPP
 
 	void VulkanGraphicsDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
 	{
+		SE_ASSERT(IsOnCPUThread());
+
 		if (width != NewWidth || height != NewHeight)
 		{
 			auto isSet = GPUThreaPool->enqueue([]()

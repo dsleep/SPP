@@ -467,7 +467,7 @@ namespace SPP
 		meshDesc.triangles.data = indices;
 		meshDesc.triangles.stride = indexStride;
 
-		//meshDesc.flags |= PxMeshFlag::eFLIPNORMALS;
+		meshDesc.flags |= PxMeshFlag::eFLIPNORMALS;
 
 		PxCookingParams params = gCooking->getParams();
 
@@ -899,7 +899,7 @@ namespace SPP
 			//DS - hmm why the -negative
 
 			Eigen::AngleAxisf xAngle(InRotationEulerDegrees[0] * degToRad, Vector3::UnitX());
-			Eigen::AngleAxisf yAngle(InRotationEulerDegrees[1] * degToRad, Vector3::UnitY());
+			Eigen::AngleAxisf yAngle(InRotationEulerDegrees[1] * degToRad, -Vector3::UnitY());
 			Eigen::AngleAxisf zAngle(InRotationEulerDegrees[2] * degToRad, Vector3::UnitZ());
 			return (zAngle * xAngle) * yAngle;
 		}
@@ -1003,7 +1003,7 @@ namespace SPP
 			//
 			capsuleDesc.userData = InElement;
 			PxController* ctrl = _controllerManager->createController(capsuleDesc);
-			
+						
 			return std::make_shared< PhysXCharacter >(ctrl);
 		}
 
