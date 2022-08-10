@@ -46,6 +46,7 @@
 #include <condition_variable>
 
 #include "SPPGarbageCollection.h"
+#include "SPPAnimation.h"
 
 #define MAX_LOADSTRING 100
 
@@ -115,6 +116,9 @@ public:
 		/////////////SCENE SETUP
 
 		InitializePhysX();
+		InitializeAnimation();
+		
+		auto value = LoadSkeleton(*AssetPath("meshes/simplehumanrigged_mocap.skj"));
 
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/scenewithlightmaps/scenewithlightmaps.spj"));
