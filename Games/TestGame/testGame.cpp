@@ -119,7 +119,7 @@ public:
 		InitializeAnimation();
 		
 		auto value = LoadSkeleton(*AssetPath("meshes/simplehumanrigged_mocap.skj"));
-
+		auto value2 = LoadAnimations(*AssetPath("meshes/testhumanoid.anj"));
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/scenewithlightmaps/scenewithlightmaps.spj"));
 		AddToRoot(_gameworld);

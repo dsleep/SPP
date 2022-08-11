@@ -48,6 +48,21 @@ namespace SPP
 		}
 	}
 
+	template <typename K, typename V, typename FuncConstr>
+	V& MapFindOrAdd(std::map <K, V>& m, const K& key, const FuncConstr &InFunc)
+	{
+		auto it = m.find(key);
+		if (it == m.end())
+		{
+			auto [iter, inserted] = m.insert({ key, InFunc() });
+			return iter->second;
+		}
+		else
+		{
+			return it->second;
+		}
+	}
+
 	inline static bool StartsWith(const std::string& s, const std::string& part)
 	{
 		const size_t partsize = part.size();

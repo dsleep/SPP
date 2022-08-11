@@ -82,6 +82,9 @@ target_sources(SPPCore
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPooledChunkBuffer.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPooledChunkBuffer.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPBase64.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPBase64.h"
         )	
 	
 if(OS_WINDOWS)

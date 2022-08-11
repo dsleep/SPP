@@ -26,4 +26,5 @@ namespace SPP
 	SPP_ANIMATION_API uint32_t GetAnimationVersion();
 	SPP_ANIMATION_API void InitializeAnimation();
 	SPP_ANIMATION_API void* LoadSkeleton(const char* FilePath);
+	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath);
 }
