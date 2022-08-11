@@ -131,8 +131,47 @@ namespace SPP
 
 		Rotation_X,
 		Rotation_Y,
-		Rotation_Z
+		Rotation_Z,
+
+		Scale_X,
+		Scale_Y,
+		Scale_Z
 	};
+
+	namespace EAnimLinkFlags
+	{
+		const uint32_t LocationShift = 0;
+		const uint32_t RotationEulerShift = 3;
+		const uint32_t RotationQuatShift = 6;
+		const uint32_t ScaleShift = 10;
+
+		enum Values
+		{
+			EmptySet = 0,
+
+			Location_X = 1 << 0,
+			Location_Y = 1 << 1,
+			Location_Z = 1 << 2,
+			
+			RotationEuler_X = 1 << 3,
+			RotationEuler_Y = 1 << 4,
+			RotationEuler_Z = 1 << 5,
+
+			RotationQuat_X = 1 << 6,
+			RotationQuat_Y = 1 << 7,
+			RotationQuat_Z = 1 << 8,
+			RotationQuat_W = 1 << 9,
+
+			Scale_X = 1 << 10,
+			Scale_Y = 1 << 11,
+			Scale_Z = 1 << 12,
+
+			LocationValues = Location_X | Location_Y | Location_Z,
+			RotationEulerValues = RotationEuler_X | RotationEuler_Y | RotationEuler_Z,
+			RotationQuatValues = RotationQuat_X | RotationQuat_Y | RotationQuat_Z | RotationQuat_W,
+			ScaleValues = Scale_X | Scale_Y | Scale_Z
+		};
+	}
 
 	struct TrackLink
 	{
@@ -160,6 +199,8 @@ namespace SPP
 					oLink.linkType = (EAnimLinkType)((uint8_t)EAnimLinkType::Location_X + arrayIdx);
 					return true;
 				}
+
+				//TODO QUAT
 			}
 		}
 
@@ -174,8 +215,12 @@ namespace SPP
 
 	struct BoneTrackSet
 	{
+		Vector2 Range = Vector2(std::numeric_limits<float>::max(), std::numeric_limits<float>::min());
+
+		std::map< float, uint16_t > flags;
 		std::map< float, Vector3 > locations;
 		std::map< float, Vector3 > rotations;
+		std::map< float, Vector4 > quatRotations;
 	};
 
 	void FillTrack(BoneTrackSet &BoneSet, const TrackLink &link, std::vector<Vector2> keys)
@@ -187,8 +232,15 @@ namespace SPP
 		case EAnimLinkType::Location_Z:
 			for (auto& curKey : keys)
 			{
+				auto typeOffset = (uint8_t)link.linkType - (uint8_t)EAnimLinkType::Location_X;
+
 				auto& curValue = MapFindOrAdd(BoneSet.locations, curKey[0], [] { return Vector3(0, 0, 0); });
-				curValue[(uint8_t)link.linkType - (uint8_t)EAnimLinkType::Location_X] = curKey[1];
+				curValue[typeOffset] = curKey[1];
+
+				BoneSet.Range[0] = std::min(BoneSet.Range[0], curKey[0]);
+				BoneSet.Range[1] = std::max(BoneSet.Range[1], curKey[0]);
+
+				//BoneSet.flags[curKey[0]] |= (1 << (EAnimLinkFlags::LocationShift + typeOffset));
 			}
 			break;
 		case EAnimLinkType::Rotation_X:
@@ -196,8 +248,32 @@ namespace SPP
 		case EAnimLinkType::Rotation_Z:
 			for (auto& curKey : keys)
 			{
+				auto typeOffset = (uint8_t)link.linkType - (uint8_t)EAnimLinkType::Rotation_X;
+
 				auto & curValue = MapFindOrAdd(BoneSet.rotations, curKey[0], []{ return Vector3(0, 0, 0); });
-				curValue[(uint8_t)link.linkType - (uint8_t)EAnimLinkType::Rotation_X] = curKey[1];
+				curValue[typeOffset] = curKey[1];
+
+				BoneSet.Range[0] = std::min(BoneSet.Range[0], curKey[0]);
+				BoneSet.Range[1] = std::max(BoneSet.Range[1], curKey[0]);
+
+				//BoneSet.flags[curKey[0]] |= (1 << (EAnimLinkFlags::RotationEulerShift + typeOffset));
+			}
+			break;
+		case EAnimLinkType::Quat_X:
+		case EAnimLinkType::Quat_Y:
+		case EAnimLinkType::Quat_Z:
+		case EAnimLinkType::Quat_W:
+			for (auto& curKey : keys)
+			{
+				auto typeOffset = (uint8_t)link.linkType - (uint8_t)EAnimLinkType::Quat_X;
+
+				auto& curValue = MapFindOrAdd(BoneSet.quatRotations, curKey[0], [] { return Vector4(0, 0, 0, 0); });
+				curValue[typeOffset] = curKey[1];
+
+				BoneSet.Range[0] = std::min(BoneSet.Range[0], curKey[0]);
+				BoneSet.Range[1] = std::max(BoneSet.Range[1], curKey[0]);
+
+				//BoneSet.flags[curKey[0]] |= (1 << (EAnimLinkFlags::RotationQuatShift + typeOffset));
 			}
 			break;
 		}
@@ -258,6 +334,16 @@ namespace SPP
 					}
 				}
 
+				Vector2 TotalRange = Vector2(std::numeric_limits<float>::max(), std::numeric_limits<float>::min());
+				for (auto& [key, value] : boneTracks)
+				{
+					TotalRange[0] = std::min(TotalRange[0], value.Range[0]);
+					TotalRange[1] = std::max(TotalRange[1], value.Range[1]);
+				}
+
+				float TotalDuration = TotalRange[1] / 60.0f;
+				float RangeRescale = 1.0f / TotalDuration;
+
 				// track should now be filled
 				// 
 				// Creates a RawAnimation.
@@ -265,9 +351,11 @@ namespace SPP
 
 				// Sets animation duration (to 1.4s).
 				// All the animation keyframes times must be within range [0, duration].
-				raw_animation.duration = 1.4f;
-
+				raw_animation.duration = TotalDuration;
 				raw_animation.tracks.resize(boneTracks.size());
+
+				//TODO report is only part of location,rotation, etc values were set
+				bool reportPartials = true;				
 
 				for (auto& [key, value] : boneTracks)
 				{
@@ -277,7 +365,7 @@ namespace SPP
 					{
 						auto& valVec = curVal.second;
 						const ozz::animation::offline::RawAnimation::RotationKey newKey = {
-							curVal.first, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2]) };
+							curVal.first * RangeRescale, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2]) };
 						raw_animation.tracks[trackIdx].rotations.push_back(newKey);
 					}
 
@@ -285,9 +373,17 @@ namespace SPP
 					{
 						auto& valVec = curVal.second;
 						const ozz::animation::offline::RawAnimation::RotationKey newKey = {
-							curVal.first, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2])};
+							curVal.first * RangeRescale, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2])};
 						raw_animation.tracks[trackIdx].rotations.push_back(newKey);
-					}					
+					}	
+
+					for (auto& curVal : value.quatRotations)
+					{
+						auto& valVec = curVal.second;
+						const ozz::animation::offline::RawAnimation::RotationKey newKey = {
+							curVal.first * RangeRescale, ozz::math::Quaternion(valVec[0], valVec[1], valVec[2], valVec[3]) };
+						raw_animation.tracks[trackIdx].rotations.push_back(newKey);
+					}
 				}
 
 				SE_ASSERT(raw_animation.Validate());
