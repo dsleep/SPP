@@ -6,6 +6,7 @@
 
 #include "SPPCore.h"
 #include "SPPMath.h"
+#include "SPPObject.h"
 
 #if _WIN32 && !defined(SPP_ANIMATION_STATIC)
 
@@ -27,4 +28,16 @@ namespace SPP
 	SPP_ANIMATION_API void InitializeAnimation();
 	SPP_ANIMATION_API void* LoadSkeleton(const char* FilePath);
 	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath);
+
+	class SPP_ANIMATION_API OSkeleton : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OSkeleton(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
+
+	public:	
+		virtual ~OSkeleton() { }
+	};
 }

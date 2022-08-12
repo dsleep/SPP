@@ -359,6 +359,7 @@ namespace SPP
 
 				for (auto& [key, value] : boneTracks)
 				{
+					//TODO MATCH SKELETON TRACKS
 					uint32_t trackIdx = 0;
 
 					for (auto& curVal : value.locations)
@@ -402,4 +403,16 @@ namespace SPP
 
 		return nullptr;
 	}
+}
+
+
+using namespace SPP;
+
+RTTR_REGISTRATION
+{
+	rttr::registration::class_<OSkeleton>("OSkeleton")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		);
 }
