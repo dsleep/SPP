@@ -33,18 +33,26 @@ namespace SPP
 		AddDLLSearchPath("../3rdParty/ozz-animation/lib");
 	}
 
-	void RecursiveGenerationBones(ozz::animation::offline::RawSkeleton::Joint &CurrentJoint, Json::Value &CurBoneV)
+	struct OSkeleton::Impl
+	{
+		ozz::unique_ptr<ozz::animation::Skeleton> skeleton;
+	};
+
+	OSkeleton::OSkeleton(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent), _impl(new Impl()) { }
+	OSkeleton::~OSkeleton() { }
+
+	void RecursiveGenerationBones(ozz::animation::offline::RawSkeleton::Joint& CurrentJoint, Json::Value& CurBoneV)
 	{
 		Json::Value nameV = CurBoneV.get("name", Json::Value::nullSingleton());
 		Json::Value boneL = CurBoneV.get("l", Json::Value::nullSingleton());
 		Json::Value boneR = CurBoneV.get("r", Json::Value::nullSingleton());
-		Json::Value boneS = CurBoneV.get("s", Json::Value::nullSingleton());		
+		Json::Value boneS = CurBoneV.get("s", Json::Value::nullSingleton());
 		Json::Value childrenV = CurBoneV.get("children", Json::Value::nullSingleton());
-		
+
 		std::vector<std::string> lA = std::str_split(std::string(boneL.asCString()), ' ');
 		std::vector<std::string> rA = std::str_split(std::string(boneR.asCString()), ' ');
 		std::vector<std::string> sA = std::str_split(std::string(boneS.asCString()), ' ');
-		
+
 		CurrentJoint.name = nameV.asCString();
 		CurrentJoint.transform.translation = ozz::math::Float3(std::atof(lA[0].c_str()), std::atof(lA[1].c_str()), std::atof(lA[2].c_str()));
 		CurrentJoint.transform.rotation = ozz::math::Quaternion(std::atof(rA[0].c_str()), std::atof(rA[1].c_str()), std::atof(rA[2].c_str()), std::atof(rA[3].c_str()));
@@ -62,7 +70,7 @@ namespace SPP
 		}
 	}
 
-	void *LoadSkeleton(const char* FilePath)
+	OSkeleton* LoadSkeleton(const char* FilePath)
 	{
 		Json::Value JsonScene;
 		if (!FileToJson(FilePath, JsonScene))
@@ -71,19 +79,21 @@ namespace SPP
 		}
 
 		std::string ParentPath = stdfs::path(FilePath).parent_path().generic_string();
-		std::string SimpleSceneName = stdfs::path(FilePath).stem().generic_string();
+		std::string SkelName = stdfs::path(FilePath).stem().generic_string();
 
 		//////////////////////////////////////////////////////////////////////////////
-		  // The first section builds a RawSkeleton from custom data.
-		  //////////////////////////////////////////////////////////////////////////////
+		// The first section builds a RawSkeleton from custom data.
+		//////////////////////////////////////////////////////////////////////////////
 
-		  // Creates a RawSkeleton.
+		auto oSkeleton = AllocateObject<OSkeleton>(SkelName, nullptr);
+
+		// Creates a RawSkeleton.
 		ozz::animation::offline::RawSkeleton raw_skeleton;
 
 		Json::Value nameV = JsonScene.get("name", Json::Value::nullSingleton());
 		Json::Value rootBonesV = JsonScene.get("bones", Json::Value::nullSingleton());
 
-		if (!rootBonesV.isNull() && rootBonesV.isArray())				
+		if (!rootBonesV.isNull() && rootBonesV.isArray())
 		{
 			raw_skeleton.roots.resize(rootBonesV.size());
 
@@ -112,12 +122,16 @@ namespace SPP
 		// a new runtime skeleton instance.
 		// This operation will fail and return an empty unique_ptr if the RawSkeleton
 		// isn't valid.
-		ozz::unique_ptr<ozz::animation::Skeleton> skeleton = builder(raw_skeleton);
+		oSkeleton->_impl->skeleton = builder(raw_skeleton);
+
+		auto jointNames = oSkeleton->_impl->skeleton->joint_names();
+		auto joinParents = oSkeleton->_impl->skeleton->joint_parents();
+		auto jointRestPoses = oSkeleton->_impl->skeleton->joint_rest_poses();
 
 		// ...use the skeleton as you want...
 		return nullptr;
 	}
-	
+
 	enum class EAnimLinkType
 	{
 		Location_X = 0,
@@ -152,7 +166,7 @@ namespace SPP
 			Location_X = 1 << 0,
 			Location_Y = 1 << 1,
 			Location_Z = 1 << 2,
-			
+
 			RotationEuler_X = 1 << 3,
 			RotationEuler_Y = 1 << 4,
 			RotationEuler_Z = 1 << 5,
@@ -179,7 +193,7 @@ namespace SPP
 		EAnimLinkType linkType;
 	};
 
-	bool GetLinkFromString(const std::string &InString, TrackLink& oLink, uint8_t arrayIdx)
+	bool GetLinkFromString(const std::string& InString, TrackLink& oLink, uint8_t arrayIdx)
 	{
 		if (StartsWith(InString, "pose.bones"))
 		{
@@ -223,7 +237,7 @@ namespace SPP
 		std::map< float, Vector4 > quatRotations;
 	};
 
-	void FillTrack(BoneTrackSet &BoneSet, const TrackLink &link, std::vector<Vector2> keys)
+	void FillTrack(BoneTrackSet& BoneSet, const TrackLink& link, std::vector<Vector2> keys)
 	{
 		switch (link.linkType)
 		{
@@ -250,7 +264,7 @@ namespace SPP
 			{
 				auto typeOffset = (uint8_t)link.linkType - (uint8_t)EAnimLinkType::Rotation_X;
 
-				auto & curValue = MapFindOrAdd(BoneSet.rotations, curKey[0], []{ return Vector3(0, 0, 0); });
+				auto& curValue = MapFindOrAdd(BoneSet.rotations, curKey[0], [] { return Vector3(0, 0, 0); });
 				curValue[typeOffset] = curKey[1];
 
 				BoneSet.Range[0] = std::min(BoneSet.Range[0], curKey[0]);
@@ -290,9 +304,9 @@ namespace SPP
 		Json::Value actionsV = JsonScene.get("actions", Json::Value::nullSingleton());
 
 		if (!actionsV.isNull() && actionsV.isArray())
-		{				
+		{
 			for (int32_t Iter = 0; Iter < actionsV.size(); Iter++)
-			{				
+			{
 				auto curActionV = actionsV[Iter];
 
 				Json::Value nameV = curActionV.get("name", Json::Value::nullSingleton());
@@ -314,14 +328,14 @@ namespace SPP
 						std::string DataBlob = dataV.asCString();
 
 						std::string dataPath = dataPathV.asCString();
-						uint8_t arrayIdx = (uint8_t) dataPathIdxV.asInt();
-						
+						uint8_t arrayIdx = (uint8_t)dataPathIdxV.asInt();
+
 						TrackLink link;
 						bool bDidLink = GetLinkFromString(dataPath, link, arrayIdx);
 						SE_ASSERT(bDidLink);
 						if (bDidLink)
 						{
-							auto& boneTrack = MapFindOrAdd(boneTracks,link.boneName);
+							auto& boneTrack = MapFindOrAdd(boneTracks, link.boneName);
 
 							auto keyData = base64_decode(DataBlob);
 							std::vector<Vector2> keys;
@@ -355,7 +369,7 @@ namespace SPP
 				raw_animation.tracks.resize(boneTracks.size());
 
 				//TODO report is only part of location,rotation, etc values were set
-				bool reportPartials = true;				
+				bool reportPartials = true;
 
 				for (auto& [key, value] : boneTracks)
 				{
@@ -374,9 +388,9 @@ namespace SPP
 					{
 						auto& valVec = curVal.second;
 						const ozz::animation::offline::RawAnimation::RotationKey newKey = {
-							curVal.first * RangeRescale, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2])};
+							curVal.first * RangeRescale, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2]) };
 						raw_animation.tracks[trackIdx].rotations.push_back(newKey);
-					}	
+					}
 
 					for (auto& curVal : value.quatRotations)
 					{

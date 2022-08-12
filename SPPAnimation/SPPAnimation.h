@@ -26,18 +26,34 @@ namespace SPP
 {		
 	SPP_ANIMATION_API uint32_t GetAnimationVersion();
 	SPP_ANIMATION_API void InitializeAnimation();
-	SPP_ANIMATION_API void* LoadSkeleton(const char* FilePath);
-	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath);
+	
+	struct BoneWithTransform
+	{
+		std::string Name;
+
+		Vector3 Location;
+		Quarternion Rotation;
+		Vector3 Scale;
+	};
 
 	class SPP_ANIMATION_API OSkeleton : public SPPObject
 	{
 		RTTR_ENABLE(SPPObject);
 		RTTR_REGISTRATION_FRIEND
+		friend SPP_ANIMATION_API OSkeleton* LoadSkeleton(const char* FilePath);
+
+		struct Impl;
+		std::unique_ptr<Impl> _impl;
 
 	protected:
-		OSkeleton(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
+		OSkeleton(const std::string& InName, SPPDirectory* InParent);
+		std::vector< BoneWithTransform > _bones;
 
 	public:	
-		virtual ~OSkeleton() { }
+		virtual ~OSkeleton();
 	};
+
+
+	SPP_ANIMATION_API OSkeleton* LoadSkeleton(const char* FilePath);
+	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath);
 }
