@@ -225,7 +225,12 @@ namespace SPP
 			{
 				oLink.boneName = boneSplit[1];
 
-				if (EndsWith(InString, "rotation_euler"))
+				if (EndsWith(InString, "rotation_quaternion"))
+				{
+					oLink.linkType = (EAnimLinkType)((uint8_t)EAnimLinkType::Quat_X + arrayIdx);
+					return true;
+				}
+				else if (EndsWith(InString, "rotation_euler"))
 				{
 					oLink.linkType = (EAnimLinkType)((uint8_t)EAnimLinkType::Rotation_X + arrayIdx);
 					return true;
@@ -235,10 +240,15 @@ namespace SPP
 					oLink.linkType = (EAnimLinkType)((uint8_t)EAnimLinkType::Location_X + arrayIdx);
 					return true;
 				}
-
-				//TODO QUAT
+				else if (EndsWith(InString, "scale"))
+				{
+					oLink.linkType = (EAnimLinkType)((uint8_t)EAnimLinkType::Scale_X + arrayIdx);
+					return true;
+				}
 			}
 		}
+
+		SE_ASSERT(false);
 
 		return false;
 	}
@@ -278,6 +288,11 @@ namespace SPP
 
 				//BoneSet.flags[curKey[0]] |= (1 << (EAnimLinkFlags::LocationShift + typeOffset));
 			}
+			break;
+		case EAnimLinkType::Scale_X:
+		case EAnimLinkType::Scale_Y:
+		case EAnimLinkType::Scale_Z:
+			// we messing with scale?
 			break;
 		case EAnimLinkType::Rotation_X:
 		case EAnimLinkType::Rotation_Y:
@@ -325,16 +340,16 @@ namespace SPP
 
 		auto& refBones = referenceSkel->GetBoneMap();
 
-		Json::Value actionsV = JsonScene.get("actions", Json::Value::nullSingleton());
+		//Json::Value actionsV = JsonScene.get("actions", Json::Value::nullSingleton());
 
-		if (!actionsV.isNull() && actionsV.isArray())
+		//if (!actionsV.isNull() && actionsV.isArray())
 		{
-			for (int32_t Iter = 0; Iter < actionsV.size(); Iter++)
+			//for (int32_t Iter = 0; Iter < actionsV.size(); Iter++)
 			{
-				auto curActionV = actionsV[Iter];
+				//auto curActionV = actionsV[Iter];
 
-				Json::Value nameV = curActionV.get("name", Json::Value::nullSingleton());
-				Json::Value tracksV = curActionV.get("tracks", Json::Value::nullSingleton());
+				Json::Value nameV = JsonScene.get("name", Json::Value::nullSingleton());
+				Json::Value tracksV = JsonScene.get("tracks", Json::Value::nullSingleton());
 
 				std::map<std::string, BoneTrackSet> boneTracks;
 
@@ -380,7 +395,7 @@ namespace SPP
 				}
 
 				float TotalDuration = TotalRange[1] / 60.0f;
-				float RangeRescale = 1.0f / TotalDuration;
+				float RangeRescale = (1.0f / 60.0f);
 
 				// track should now be filled
 				// 
@@ -389,12 +404,14 @@ namespace SPP
 
 				// Sets animation duration (to 1.4s).
 				// All the animation keyframes times must be within range [0, duration].
-				raw_animation.duration = TotalDuration;
+				const float uglyEpsilon = 0.01f;
+				raw_animation.duration = TotalDuration + uglyEpsilon;
 				raw_animation.tracks.resize(boneTracks.size());
 
 				//TODO report is only part of location,rotation, etc values were set
 				bool reportPartials = true;
 
+				raw_animation.name = nameV.asCString();		
 				raw_animation.tracks.resize(refBones.size());
 
 				for (auto& [key, value] : boneTracks)
@@ -406,9 +423,9 @@ namespace SPP
 					for (auto& curVal : value.locations)
 					{
 						auto& valVec = curVal.second;
-						const ozz::animation::offline::RawAnimation::RotationKey newKey = {
-							curVal.first * RangeRescale, ozz::math::Quaternion::FromEuler(valVec[0], valVec[1], valVec[2]) };
-						raw_animation.tracks[trackIdx].rotations.push_back(newKey);
+						const ozz::animation::offline::RawAnimation::TranslationKey newKey = {
+							curVal.first * RangeRescale, ozz::math::Float3(valVec[0], valVec[1], valVec[2]) };
+						raw_animation.tracks[trackIdx].translations.push_back(newKey);
 					}
 
 					for (auto& curVal : value.rotations)
