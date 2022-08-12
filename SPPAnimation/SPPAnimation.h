@@ -27,13 +27,16 @@ namespace SPP
 	SPP_ANIMATION_API uint32_t GetAnimationVersion();
 	SPP_ANIMATION_API void InitializeAnimation();
 	
-	struct BoneWithTransform
+	struct DTransform
 	{
-		std::string Name;
-
 		Vector3 Location;
 		Quarternion Rotation;
 		Vector3 Scale;
+	};
+
+	struct BoneWithTransform : public DTransform
+	{
+		std::string Name;
 	};
 
 	class SPP_ANIMATION_API OSkeleton : public SPPObject
@@ -47,13 +50,25 @@ namespace SPP
 
 	protected:
 		OSkeleton(const std::string& InName, SPPDirectory* InParent);
+		
+		std::map<std::string, uint16_t> _boneMap;
 		std::vector< BoneWithTransform > _bones;
+		std::vector< uint16_t > _parentIdxMap;
 
 	public:	
 		virtual ~OSkeleton();
+
+		const std::vector< BoneWithTransform > &GetBones()
+		{
+			return _bones;
+		}
+		const std::map<std::string, uint16_t>& GetBoneMap()
+		{
+			return _boneMap;
+		}
 	};
 
 
 	SPP_ANIMATION_API OSkeleton* LoadSkeleton(const char* FilePath);
-	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath);
+	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel);
 }

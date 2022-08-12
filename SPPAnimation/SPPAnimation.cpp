@@ -41,7 +41,7 @@ namespace SPP
 	OSkeleton::OSkeleton(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent), _impl(new Impl()) { }
 	OSkeleton::~OSkeleton() { }
 
-	void RecursiveGenerationBones(ozz::animation::offline::RawSkeleton::Joint& CurrentJoint, Json::Value& CurBoneV)
+	void RecursiveGenerationBones(ozz::animation::offline::RawSkeleton::Joint& CurrentJoint, Json::Value& CurBoneV, std::map<std::string, DTransform> &boneTransformMap)
 	{
 		Json::Value nameV = CurBoneV.get("name", Json::Value::nullSingleton());
 		Json::Value boneL = CurBoneV.get("l", Json::Value::nullSingleton());
@@ -58,6 +58,14 @@ namespace SPP
 		CurrentJoint.transform.rotation = ozz::math::Quaternion(std::atof(rA[0].c_str()), std::atof(rA[1].c_str()), std::atof(rA[2].c_str()), std::atof(rA[3].c_str()));
 		CurrentJoint.transform.scale = ozz::math::Float3(std::atof(sA[0].c_str()), std::atof(sA[1].c_str()), std::atof(sA[2].c_str()));
 
+		DTransform transform;
+		std::string boneName = nameV.asCString();
+		transform.Location = Vector3(CurrentJoint.transform.translation.x, CurrentJoint.transform.translation.y, CurrentJoint.transform.translation.z);
+		transform.Rotation = Quarternion(CurrentJoint.transform.rotation.x, CurrentJoint.transform.rotation.y, CurrentJoint.transform.rotation.z, CurrentJoint.transform.rotation.w);
+		transform.Scale = Vector3(CurrentJoint.transform.scale.x, CurrentJoint.transform.scale.y, CurrentJoint.transform.scale.z);
+
+		boneTransformMap[boneName] = transform;
+
 		if (!childrenV.isNull() && childrenV.isArray())
 		{
 			CurrentJoint.children.resize(childrenV.size());
@@ -65,7 +73,7 @@ namespace SPP
 			for (int32_t Iter = 0; Iter < childrenV.size(); Iter++)
 			{
 				auto childBoneV = childrenV[Iter];
-				RecursiveGenerationBones(CurrentJoint.children[Iter], childBoneV);
+				RecursiveGenerationBones(CurrentJoint.children[Iter], childBoneV, boneTransformMap);
 			}
 		}
 	}
@@ -93,6 +101,8 @@ namespace SPP
 		Json::Value nameV = JsonScene.get("name", Json::Value::nullSingleton());
 		Json::Value rootBonesV = JsonScene.get("bones", Json::Value::nullSingleton());
 
+		std::map<std::string, DTransform> transformMap;
+
 		if (!rootBonesV.isNull() && rootBonesV.isArray())
 		{
 			raw_skeleton.roots.resize(rootBonesV.size());
@@ -100,7 +110,7 @@ namespace SPP
 			for (int32_t Iter = 0; Iter < rootBonesV.size(); Iter++)
 			{
 				auto currentBoneV = rootBonesV[Iter];
-				RecursiveGenerationBones(raw_skeleton.roots[Iter], currentBoneV);
+				RecursiveGenerationBones(raw_skeleton.roots[Iter], currentBoneV, transformMap);
 			}
 		}
 
@@ -123,13 +133,25 @@ namespace SPP
 		// This operation will fail and return an empty unique_ptr if the RawSkeleton
 		// isn't valid.
 		oSkeleton->_impl->skeleton = builder(raw_skeleton);
-
+				
+		auto jointParents = oSkeleton->_impl->skeleton->joint_parents();
 		auto jointNames = oSkeleton->_impl->skeleton->joint_names();
-		auto joinParents = oSkeleton->_impl->skeleton->joint_parents();
-		auto jointRestPoses = oSkeleton->_impl->skeleton->joint_rest_poses();
 
-		// ...use the skeleton as you want...
-		return nullptr;
+		SE_ASSERT(jointNames.size() == transformMap.size() &&
+			jointNames.size() == jointParents.size());
+
+		oSkeleton->_bones.resize(jointNames.size());
+		oSkeleton->_parentIdxMap.resize(jointParents.size());
+		
+		for (int32_t Iter = 0; Iter < jointNames.size(); Iter++)
+		{
+			oSkeleton->_bones[Iter].Name = jointNames[Iter];
+			reinterpret_cast<DTransform&>(oSkeleton->_bones[Iter]) = transformMap[oSkeleton->_bones[Iter].Name];
+			oSkeleton->_parentIdxMap[Iter] = jointParents[Iter];
+			oSkeleton->_boneMap[oSkeleton->_bones[Iter].Name] = Iter;
+		}
+
+		return oSkeleton;
 	}
 
 	enum class EAnimLinkType
@@ -293,13 +315,15 @@ namespace SPP
 		}
 	}
 
-	void* LoadAnimations(const char* FilePath)
+	void* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel)
 	{
 		Json::Value JsonScene;
 		if (!FileToJson(FilePath, JsonScene))
 		{
 			return nullptr;
 		}
+
+		auto& refBones = referenceSkel->GetBoneMap();
 
 		Json::Value actionsV = JsonScene.get("actions", Json::Value::nullSingleton());
 
@@ -371,10 +395,13 @@ namespace SPP
 				//TODO report is only part of location,rotation, etc values were set
 				bool reportPartials = true;
 
+				raw_animation.tracks.resize(refBones.size());
+
 				for (auto& [key, value] : boneTracks)
 				{
-					//TODO MATCH SKELETON TRACKS
-					uint32_t trackIdx = 0;
+					auto getBoneIdx = refBones.find(key);
+					SE_ASSERT(getBoneIdx != refBones.end());
+					uint32_t trackIdx = getBoneIdx->second;
 
 					for (auto& curVal : value.locations)
 					{
