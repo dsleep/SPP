@@ -5,8 +5,7 @@ add_library(SPPGameEngine SHARED "")
 
 set_target_properties( SPPGameEngine PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPGameEngine SPPCore SPPObject SPPMath SPPPhysX SPPSceneO SPPGraphicsO )
-
+add_dependencies( SPPGameEngine SPPCore SPPObject SPPMath SPPPhysX SPPSceneO SPPGraphicsO SPPAnimation )
 
 # will need define to not create empty dll export
 target_compile_definitions(SPPGameEngine

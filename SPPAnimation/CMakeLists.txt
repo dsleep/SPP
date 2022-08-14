@@ -15,8 +15,7 @@ target_compile_definitions(SPPAnimation
 target_sources(SPPAnimation
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPAnimation.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPAnimation.cpp" 
-				
+		"${CMAKE_CURRENT_LIST_DIR}/SPPAnimation.cpp" 				
 		)
 
 target_include_directories(SPPAnimation 

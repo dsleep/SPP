@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(SPPTestGame_API VERSION 1.0.0 LANGUAGES CXX)
 
 add_executable( testGame WIN32 "")
-add_dependencies( testGame SPPGameEngine SPPSDFO SPPAnimation SPPXAudio2 ${SPPGDI} )			
+add_dependencies( testGame SPPGameEngine SPPSDFO SPPXAudio2 ${SPPGDI} )			
 target_sources( testGame 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/testGame.cpp" )		

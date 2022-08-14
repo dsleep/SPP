@@ -43,7 +43,9 @@ namespace SPP
 	{
 		RTTR_ENABLE(SPPObject);
 		RTTR_REGISTRATION_FRIEND
+
 		friend SPP_ANIMATION_API OSkeleton* LoadSkeleton(const char* FilePath);
+		friend class SPP_ANIMATION_API OAnimator;
 
 		struct Impl;
 		std::unique_ptr<Impl> _impl;
@@ -58,6 +60,8 @@ namespace SPP
 	public:	
 		virtual ~OSkeleton();
 
+		uint16_t GetBoneIndex(const std::string& BoneName);
+
 		const std::vector< BoneWithTransform > &GetBones()
 		{
 			return _bones;
@@ -68,7 +72,50 @@ namespace SPP
 		}
 	};
 
+	class SPP_ANIMATION_API OAnimation : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+		
+		friend SPP_ANIMATION_API OAnimation* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel);
+		friend class SPP_ANIMATION_API OAnimator;
+
+		struct Impl;
+		std::unique_ptr<Impl> _impl;
+
+	protected:
+		OAnimation(const std::string& InName, SPPDirectory* InParent);
+
+	public:
+		virtual ~OAnimation();
+	};
+
+	class SPP_ANIMATION_API OAnimator : public SPPObject
+	{
+		RTTR_ENABLE(SPPObject);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+
+		struct Impl;
+		std::unique_ptr<Impl> _impl;
+
+		OSkeleton* _skeleton = nullptr;
+		std::map< std::string, OAnimation* > _animTable;
+
+		OAnimator(const std::string& InName, SPPDirectory* InParent);
+
+	public:
+
+		void SetSkeleton(OSkeleton* InSkeleton);
+
+		//void SetupSamplerLayer()
+		void PlayAnimation(const std::string& AnimName);
+
+		virtual ~OAnimator();
+	};
+
 
 	SPP_ANIMATION_API OSkeleton* LoadSkeleton(const char* FilePath);
-	SPP_ANIMATION_API void* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel);
+	SPP_ANIMATION_API OAnimation* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel);
 }

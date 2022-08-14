@@ -5,13 +5,21 @@
 #include "SPPAnimation.h"
 #include "SPPPlatformCore.h"
 
+#include "ozz/base/maths/simd_math.h"
+#include "ozz/base/maths/soa_transform.h"
+
 #include "ozz/animation/offline/raw_skeleton.h"
 #include "ozz/animation/offline/skeleton_builder.h"
-#include "ozz/animation/runtime/skeleton.h"
-
 #include "ozz/animation/offline/animation_builder.h"
 #include "ozz/animation/offline/raw_animation.h"
+#include "ozz/animation/offline/animation_optimizer.h"
+
 #include "ozz/animation/runtime/animation.h"
+#include "ozz/animation/runtime/blending_job.h"
+#include "ozz/animation/runtime/local_to_model_job.h"
+#include "ozz/animation/runtime/sampling_job.h"
+#include "ozz/animation/runtime/skeleton.h"
+#include "ozz/animation/runtime/skeleton_utils.h"
 
 #include "SPPJsonUtils.h"
 #include "SPPFileSystem.h"
@@ -35,11 +43,16 @@ namespace SPP
 
 	struct OSkeleton::Impl
 	{
-		ozz::unique_ptr<ozz::animation::Skeleton> skeleton;
+		std::shared_ptr<ozz::animation::Skeleton> skeleton;
 	};
 
 	OSkeleton::OSkeleton(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent), _impl(new Impl()) { }
 	OSkeleton::~OSkeleton() { }
+
+	uint16_t OSkeleton::GetBoneIndex(const std::string& BoneName)
+	{
+		return MapFindOrFunc(_boneMap, BoneName, []() { return -1; });
+	}
 
 	void RecursiveGenerationBones(ozz::animation::offline::RawSkeleton::Joint& CurrentJoint, Json::Value& CurBoneV, std::map<std::string, DTransform> &boneTransformMap)
 	{
@@ -133,7 +146,8 @@ namespace SPP
 		// This operation will fail and return an empty unique_ptr if the RawSkeleton
 		// isn't valid.
 		oSkeleton->_impl->skeleton = builder(raw_skeleton);
-				
+			
+		auto jointCount = oSkeleton->_impl->skeleton->num_joints();
 		auto jointParents = oSkeleton->_impl->skeleton->joint_parents();
 		auto jointNames = oSkeleton->_impl->skeleton->joint_names();
 
@@ -330,13 +344,33 @@ namespace SPP
 		}
 	}
 
-	void* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel)
+	//////
+
+	struct OAnimation::Impl
+	{
+		std::shared_ptr<ozz::animation::Animation> animation;
+	};
+
+	OAnimation::OAnimation(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent), _impl(new Impl()) { }
+	OAnimation::~OAnimation() { }
+
+	OAnimation* LoadAnimations(const char* FilePath, OSkeleton* referenceSkel)
 	{
 		Json::Value JsonScene;
 		if (!FileToJson(FilePath, JsonScene))
 		{
 			return nullptr;
 		}
+
+		std::string ParentPath = stdfs::path(FilePath).parent_path().generic_string();
+		std::string AnimName = stdfs::path(FilePath).stem().generic_string();
+
+		//////////////////////////////////////////////////////////////////////////////
+		// The first section builds a RawSkeleton from custom data.
+		//////////////////////////////////////////////////////////////////////////////
+
+		auto oAnimation = AllocateObject<OAnimation>(AnimName, nullptr);
+
 
 		auto& refBones = referenceSkel->GetBoneMap();
 
@@ -450,25 +484,114 @@ namespace SPP
 				// Creates a AnimationBuilder instance.
 				ozz::animation::offline::AnimationBuilder builder;
 
+
+				//OPTIMIZER
+				//ozz::animation::offline::AnimationOptimizer optimizer;
+				//ASSERT_TRUE(optimizer(input, *skeleton, &output));
+
 				// Executes the builder on the previously prepared RawAnimation, which returns
 				// a new runtime animation instance.
 				// This operation will fail and return an empty unique_ptr if the RawAnimation
 				// isn't valid.
-				ozz::unique_ptr<ozz::animation::Animation> animation = builder(raw_animation);
+
+				oAnimation->_impl->animation = builder(raw_animation);
 			}
 		}
 
+		return oAnimation;
+	}
 
-		return nullptr;
+
+	//////
+
+	struct AnimationSampler
+	{
+		// Blending weight_setting for the layer.
+		float weight_setting = 1.0f;
+
+		// Runtime animation.
+		std::shared_ptr<ozz::animation::Animation> animation;
+
+		// Sampling context.
+		ozz::animation::SamplingJob::Context context;
+
+		// Buffer of local transforms as sampled from animation_.
+		ozz::vector<ozz::math::SoaTransform> locals;
+
+		// Per-joint weights used to define the partial animation mask. Allows to
+		// select which joints are considered during blending, and their individual
+		// weight_setting.
+		ozz::vector<ozz::math::SimdFloat4> joint_weights;
+	};
+
+	struct OAnimator::Impl
+	{
+		std::vector< std::shared_ptr< AnimationSampler > > activeAnimations;
+
+		// Buffer of local transforms which stores the blending result.
+		std::vector<ozz::math::SoaTransform> blended_locals;
+
+		// Buffer of model space matrices. These are computed by the local-to-model
+		// job after the blending stage.
+		std::vector<ozz::math::Float4x4> models;
+	};
+
+	OAnimator::OAnimator(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent), _impl(new Impl()) { }
+	OAnimator::~OAnimator() { }
+
+	void OAnimator::SetSkeleton(OSkeleton* InSkeleton)
+	{
+		_skeleton = InSkeleton;
+		auto ozzSkel = _skeleton->_impl->skeleton;
+
+		const int num_joints = ozzSkel->num_joints();
+		const int num_soa_joints = ozzSkel->num_soa_joints();
+
+		// Allocates local space runtime buffers of blended data.
+		_impl->blended_locals.resize(num_soa_joints);
+		// Allocates model space runtime buffers of blended data.
+		_impl->models.resize(num_joints);
+	}
+
+	void OAnimator::PlayAnimation(const std::string& AnimName)
+	{
+		SE_ASSERT(_skeleton);
+
+		auto ozzSkel = _skeleton->_impl->skeleton;
+
+		const int num_joints = ozzSkel->num_joints();
+		const int num_soa_joints = ozzSkel->num_soa_joints();
+
+		std::shared_ptr< AnimationSampler > newAnim = std::make_shared< AnimationSampler >();
+
+		// Allocates sampler runtime buffers
+		newAnim->locals.resize(num_soa_joints);
+		// Allocates per-joint weights used for the partial animation. Note that
+		// this is a Soa structure.
+		newAnim->joint_weights.resize(num_soa_joints);
+		// Allocates a context that matches animation requirements.
+		newAnim->context.Resize(num_joints);
+
 	}
 }
-
 
 using namespace SPP;
 
 RTTR_REGISTRATION
 {
 	rttr::registration::class_<OSkeleton>("OSkeleton")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		);
+
+	rttr::registration::class_<OAnimation>("OAnimation")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		);
+
+	rttr::registration::class_<OAnimator>("OAnimator")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
