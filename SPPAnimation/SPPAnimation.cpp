@@ -4,6 +4,7 @@
 
 #include "SPPAnimation.h"
 #include "SPPPlatformCore.h"
+#include "SPPLogging.h"
 
 #include "ozz/base/maths/simd_math.h"
 #include "ozz/base/maths/soa_transform.h"
@@ -29,8 +30,11 @@
 
 SPP_OVERLOAD_ALLOCATORS
 
+
 namespace SPP
 {
+	LogEntry LOG_ANIM("Animation");
+
 	uint32_t GetAnimationVersion()
 	{
 		return 1;
@@ -501,6 +505,12 @@ namespace SPP
 		return oAnimation;
 	}
 
+	bool OAnimation::Matches(OSkeleton* CompareSkeleton) const
+	{
+		//TODO proper compare
+		return true;
+	}
+
 
 	//////
 
@@ -513,7 +523,9 @@ namespace SPP
 		std::shared_ptr<ozz::animation::Animation> animation;
 
 		// Sampling context.
+
 		ozz::animation::SamplingJob::Context context;
+		ozz::animation::SamplingJob sampling_job;
 
 		// Buffer of local transforms as sampled from animation_.
 		ozz::vector<ozz::math::SoaTransform> locals;
@@ -522,6 +534,9 @@ namespace SPP
 		// select which joints are considered during blending, and their individual
 		// weight_setting.
 		ozz::vector<ozz::math::SimdFloat4> joint_weights;
+
+		//
+		ozz::vector<ozz::math::Float4x4> models_transforms;
 	};
 
 	struct OAnimator::Impl
@@ -553,11 +568,25 @@ namespace SPP
 		_impl->models.resize(num_joints);
 	}
 
+	void OAnimator::AddAnimation(OAnimation* InAnimation)
+	{		
+		SE_ASSERT(InAnimation->Matches(_skeleton));
+		_animTable[InAnimation->_impl->animation->name()] = InAnimation;
+	}
+
 	void OAnimator::PlayAnimation(const std::string& AnimName)
 	{
 		SE_ASSERT(_skeleton);
 
-		auto ozzSkel = _skeleton->_impl->skeleton;
+		auto findAnim = _animTable.find(AnimName);
+
+		if (findAnim == _animTable.end())
+		{
+			SPP_LOG(LOG_ANIM, LOG_WARNING, "PlayAnimation cant find animation %s", AnimName.c_str());
+			return;
+		}
+
+		std::shared_ptr<ozz::animation::Skeleton> ozzSkel = _skeleton->_impl->skeleton;
 
 		const int num_joints = ozzSkel->num_joints();
 		const int num_soa_joints = ozzSkel->num_soa_joints();
@@ -571,7 +600,37 @@ namespace SPP
 		newAnim->joint_weights.resize(num_soa_joints);
 		// Allocates a context that matches animation requirements.
 		newAnim->context.Resize(num_joints);
+		newAnim->models_transforms.resize(num_joints);
+				
+		newAnim->animation = findAnim->second->_impl->animation;
+		newAnim->sampling_job.animation = newAnim->animation.get();
+		newAnim->sampling_job.context = &newAnim->context;
+		
+		//TODO needs to tick this
+		newAnim->sampling_job.ratio = 0.5f;
+		newAnim->sampling_job.output = ozz::make_span(newAnim->locals);
 
+		if (!newAnim->sampling_job.Run())
+		{
+			SPP_LOG(LOG_ANIM, LOG_WARNING, "sampling_job failed to run");
+		}
+
+		// Converts from local space to model space matrices.
+		// Gets the output of the blending stage, and converts it to model space.
+
+		// Setup local-to-model conversion job.
+		ozz::animation::LocalToModelJob ltm_job;
+		ltm_job.skeleton = ozzSkel.get();
+		ltm_job.input = make_span(newAnim->locals);
+		ltm_job.output = make_span(newAnim->models_transforms);
+
+		// Run ltm job.
+		if (!ltm_job.Run()) 
+		{
+			SPP_LOG(LOG_ANIM, LOG_WARNING, "ltm_job failed to run");
+		}
+
+		_impl->activeAnimations.push_back(newAnim);		
 	}
 }
 
@@ -589,11 +648,15 @@ RTTR_REGISTRATION
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
-		);
+		)
+		;
 
 	rttr::registration::class_<OAnimator>("OAnimator")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
-		);
+		)
+		.property("_animTable", &OAnimator::_animTable)(rttr::policy::prop::as_reference_wrapper)
+		.property("_skeleton", &OAnimator::_skeleton)(rttr::policy::prop::as_reference_wrapper)
+		;
 }

@@ -120,6 +120,14 @@ public:
 		
 		auto value = LoadSkeleton(*AssetPath("meshes/simplehumanrigged_mocap.skj"));
 		auto value2 = LoadAnimations(*AssetPath("meshes/testhumanoid.anj"), value);
+
+		auto animatorTest = AllocateObject<OAnimator>("testanim", nullptr);
+
+		animatorTest->SetSkeleton(value);
+		animatorTest->AddAnimation(value2);
+
+		animatorTest->PlayAnimation("Action");
+
 #if 1
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/scenewithlightmaps/scenewithlightmaps.spj"));
 		AddToRoot(_gameworld);

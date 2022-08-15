@@ -87,6 +87,7 @@ namespace SPP
 		OAnimation(const std::string& InName, SPPDirectory* InParent);
 
 	public:
+		bool Matches(OSkeleton* CompareSkeleton) const;
 		virtual ~OAnimation();
 	};
 
@@ -108,6 +109,7 @@ namespace SPP
 	public:
 
 		void SetSkeleton(OSkeleton* InSkeleton);
+		void AddAnimation(OAnimation* InAnimation);
 
 		//void SetupSamplerLayer()
 		void PlayAnimation(const std::string& AnimName);
