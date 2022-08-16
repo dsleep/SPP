@@ -124,7 +124,17 @@ namespace SPP
 
 		void ClearTag(uint8_t InTag)
 		{
-
+			for (auto Iter = _pendingPurge.begin(); Iter != _pendingPurge.end();)
+			{
+				if (Iter->_tag == InTag)
+				{
+					Iter = _pendingPurge.erase(Iter);
+				}
+				else
+				{
+					Iter++;
+				}
+			}
 		}
 
 		void ClearAll()

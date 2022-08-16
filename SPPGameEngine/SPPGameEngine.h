@@ -107,6 +107,21 @@ namespace SPP
 		virtual void RemovedFromScene() override;
 	};
 
+
+	class SPP_GAMEENGINE_API VgRig : public VgEntity
+	{
+		RTTR_ENABLE(VgEntity);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		VgRig(const std::string& InName, SPPDirectory* InParent);
+
+	public:
+		virtual void Update(float DeltaTime);
+		virtual ~VgRig() { }
+	};
+
+
 	SPP_GAMEENGINE_API uint32_t GetGameEngineVersion();
 }
 

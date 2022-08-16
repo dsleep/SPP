@@ -939,6 +939,21 @@ namespace SPP
 	{
 		SE_ASSERT(swapChain.imageCount);
 
+		// static pool
+		//{
+		//	std::vector<VkDescriptorPoolSize> simplePool = {
+		//		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 30),
+		//		vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 30),
+		//	};
+		//	auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);
+
+		//	poolCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		//	poolCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+
+		//	VkDescriptorPool staticPool;
+		//	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &staticPool));
+		//}
+
 		{
 			std::vector<VkDescriptorPoolSize> simplePool = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),

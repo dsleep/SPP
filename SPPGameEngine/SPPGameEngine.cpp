@@ -92,6 +92,16 @@ namespace SPP
 		_translation = _physicsPrimitive->GetPosition();
 	}
 
+	//
+	VgRig::VgRig(const std::string& InName, SPPDirectory* InParent) : VgEntity(InName, InParent)
+	{
+	}
+
+	void VgRig::Update(float DeltaTime)
+	{
+
+	}
+
 	uint32_t GetGameEngineVersion()
 	{
 		return 1;
@@ -126,6 +136,13 @@ RTTR_REGISTRATION
 		;
 
 	rttr::registration::class_<VgCapsuleElement>("VgCapsuleElement")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
+
+	rttr::registration::class_<VgRig>("VgRig")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr

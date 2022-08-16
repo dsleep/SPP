@@ -302,9 +302,7 @@ namespace SPP
 
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
-
 		
-
 		//set 0
 		{
 			VkDescriptorBufferInfo perFrameInfo;

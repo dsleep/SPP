@@ -29,6 +29,7 @@ target_link_libraries( SPPGameEngine
 		SPPPhysX
 		SPPSceneO 
 		SPPGraphicsO
+		SPPAnimation
 		)
 
 target_include_directories(SPPGameEngine 
