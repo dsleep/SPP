@@ -56,6 +56,9 @@ namespace SPP
 		GPUReferencer < VulkanPipelineState > _state;
 		std::shared_ptr< ArrayResource > _drawConstants;
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
+
+		std::shared_ptr<StaticDrawLeaseManager::Lease> _staticDrawLease;
+
 		bool bPendingUpdate = false;
 
 
@@ -122,12 +125,6 @@ namespace SPP
 		return Make_RT_Resource( RT_VulkanRenderableMesh, this);
 	}
 
-	std::shared_ptr< class RT_Material> VulkanGraphicsDevice::GetDefaultMaterial()
-	{
-		return _defaultMaterial;
-	}
-
-
 	void RT_VulkanStaticMesh::Initialize()
 	{
 		RT_StaticMesh::Initialize();
@@ -136,18 +133,28 @@ namespace SPP
 		_layout->InitializeLayout(_vertexStreams);		
 	}
 
-
 	void RT_VulkanRenderableMesh::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
 		RT_RenderableMesh::_AddToRenderScene(InScene);
 
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
-		
-		_drawConstants = std::make_shared< ArrayResource >();
-		_drawConstants->InitializeFromType< GPUDrawConstants >(1);	
 
-		bPendingUpdate = true;
+		if (_bIsStatic)
+		{
+			_staticDrawLease = GGlobalVulkanGI->GetStaticDrawLease();
+
+			auto curData = _staticDrawLease->Access();
+			curData.data.LocalToWorldScaleRotation = _cachedRotationScale;
+			curData.data.Translation = _position;
+		}
+		else
+		{
+			_drawConstants = std::make_shared< ArrayResource >();
+			_drawConstants->InitializeFromType< GPUDrawConstants >(1);
+			
+			bPendingUpdate = true;
+		}
 	}
 
 	void RT_VulkanRenderableMesh::_RemoveFromRenderScene()
@@ -162,7 +169,7 @@ namespace SPP
 			if (!_material)
 			{
 				SE_ASSERT(false);
-				_material = _owner->GetDefaultMaterial();
+				//_material = _owner->GetDefaultMaterial();
 			}
 
 			//auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
@@ -176,7 +183,7 @@ namespace SPP
 			SE_ASSERT(_state);
 		}
 
-		if (bPendingUpdate)
+		if (!_bIsStatic && bPendingUpdate)
 		{
 			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
 			auto& curData = uniformData[0];
@@ -296,6 +303,8 @@ namespace SPP
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
 
+		
+
 		//set 0
 		{
 			VkDescriptorBufferInfo perFrameInfo;
@@ -304,9 +313,20 @@ namespace SPP
 			perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
 			VkDescriptorBufferInfo drawConstsInfo;
-			drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
-			drawConstsInfo.offset = 0;
-			drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+
+			if (_bIsStatic)
+			{
+				auto staticDrawBuffer = GGlobalVulkanGI->GetStaticInstanceDrawBuffer();
+				drawConstsInfo.buffer = staticDrawBuffer->GetBuffer();
+				drawConstsInfo.offset = 0;
+				drawConstsInfo.range = staticDrawBuffer->GetPerElementSize();
+			}
+			else
+			{
+				drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
+				drawConstsInfo.offset = 0;
+				drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
+			}
 
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 				vks::initializers::writeDescriptorSet(locaDrawSets[0],
@@ -355,7 +375,7 @@ namespace SPP
 
 		uint32_t uniform_offsets[] = {
 			(sizeof(GPUViewConstants)) * currentFrame,
-			0
+			_bIsStatic ? (sizeof(StaticDrawParams) * _staticDrawLease->GetIndex()) : 0
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPSO->GetVkPipeline());

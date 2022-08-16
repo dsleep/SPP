@@ -229,7 +229,10 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		OMeshElement(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) { }
+		OMeshElement(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) 
+		{
+			_bIsStatic = true;
+		}
 		OMesh* _meshObj = nullptr;
 		OMaterial* _materialObj = nullptr;
 

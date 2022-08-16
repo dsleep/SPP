@@ -87,27 +87,39 @@ namespace SPP
 	};
 
 	template<typename IndexedData>
-	class FrameTrackedLeaseManager : public LeaseManager< IndexedData, uint8_t >
+	class DeviceLeaseManager : public LeaseManager< IndexedData >
 	{
 	protected:
-		using LM = LeaseManager< IndexedData, uint8_t >;
+		using LM = LeaseManager< IndexedData >;
 
 		struct Purged
 		{
+			// this is the lock that prevents other resources uses it, its non copy moved around until
+			// we are ready for it to be accessed on ~BitReference
 			BitReference _bitRef;
 			uint8_t _tag;
 		};
 		std::list< Purged > _pendingPurge;
 
+		std::function< void(LM::Lease &) > _func;
+		class VulkanGraphicsDevice* _owner = nullptr;
+		
 	public:
-		FrameTrackedLeaseManager(IndexedData& InIndexor) : LM(InIndexor)
-		{
 
+		DeviceLeaseManager(class VulkanGraphicsDevice* InOwner,
+			IndexedData& InIndexor,
+			const std::function< void(LM::Lease&) >& InFunc) :
+			_owner(InOwner), _func(InFunc), LM(InIndexor)
+		{ }
+
+		virtual void LeaseUpdated(typename LM::Lease& InLease) override
+		{
+			_func(InLease);
 		}
 
 		virtual void EndLease(typename LM::Lease& InLease) override
 		{
-			_pendingPurge.push_back({ std::move(InLease.GetBitReference()), InLease.GetTag() });
+			_pendingPurge.push_back({ std::move(InLease.GetBitReference()), _owner->GetCurrentFrame() });
 		}
 
 		void ClearTag(uint8_t InTag)
@@ -120,6 +132,8 @@ namespace SPP
 			_pendingPurge.empty();
 		}
 	};
+
+	using StaticDrawLeaseManager = DeviceLeaseManager< TSpan< StaticDrawParams > >;
 
 	class VulkanGraphicsDevice : public GraphicsDevice
 	{
@@ -228,14 +242,12 @@ namespace SPP
 #endif
 
 		GPUReferencer< GPUTexture > _defaultTexture;
-		std::shared_ptr<RT_Material> _defaultMaterial;
-		std::shared_ptr< class RT_Shader > _meshvertexShader, _meshpixelShader;
 
 		std::shared_ptr< ArrayResource > _staticInstanceDrawInfoCPU;
 		TSpan< StaticDrawParams > _staticInstanceDrawInfoSpan;
 		GPUReferencer< class VulkanBuffer > _staticInstanceDrawInfoGPU;
 
-		std::unique_ptr< FrameTrackedLeaseManager< TSpan< StaticDrawParams > > > _staticInstanceDrawLeaseManager;
+		std::unique_ptr< StaticDrawLeaseManager > _staticInstanceDrawLeaseManager;
 
 		VkDescriptorPool _globalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;
@@ -270,6 +282,11 @@ namespace SPP
 		{
 		}
 
+		uint8_t GetCurrentFrame() 
+		{
+			return (uint8_t)currentBuffer;
+		}
+
 		vks::VulkanDevice* GetVKSVulkanDevice() {
 			return vulkanDevice;
 		}
@@ -280,6 +297,11 @@ namespace SPP
 
 		VkQueue GetComputeQueue() {
 			return computeQueue;
+		}
+
+		auto GetStaticDrawLease()
+		{
+			return _staticInstanceDrawLeaseManager->GetLease();
 		}
 
 		VkFramebuffer GetActiveFrameBuffer()
@@ -316,6 +338,11 @@ namespace SPP
 		PerFrameStagingBuffer& GetPerFrameScratchBuffer()
 		{
 			return _perFrameScratchBuffer;
+		}
+
+		auto GetStaticInstanceDrawBuffer()
+		{
+			return _staticInstanceDrawInfoGPU;
 		}
 
 		GPUReferencer< GPUTexture > GetDefaultTexture()
@@ -391,7 +418,7 @@ namespace SPP
 
 		virtual std::shared_ptr< class RT_RenderableMesh > CreateRenderableMesh() override;
 
-		virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() override;
+		//virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() override;
 
 		virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() override;
 		virtual std::shared_ptr< class RT_RenderableSignedDistanceField > CreateSignedDistanceField() override;

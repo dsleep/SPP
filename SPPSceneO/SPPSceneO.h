@@ -50,7 +50,7 @@ namespace SPP
 		std::vector<OElement*> _children;
 
 		virtual bool Finalize() override;
-		bool _bIsStatic = true;
+		bool _bIsStatic = false;
 
 	public:
 		struct TransformArgs

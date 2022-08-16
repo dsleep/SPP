@@ -451,29 +451,15 @@ namespace SPP
 
 	void VulkanGraphicsDevice::createStaticDrawInfo()
 	{
-		//move to nicer spot
-		_defaultMaterial = CreateMaterial();
-
-		_meshvertexShader = CreateShader();
-		_meshpixelShader = CreateShader();
-	
-		_defaultMaterial->SetMaterialArgs({ .vertexShader = _meshvertexShader, .pixelShader = _meshpixelShader });
-
-		_meshvertexShader->Initialize(EShaderType::Vertex);
-		_meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
-		_meshpixelShader->Initialize(EShaderType::Pixel);
-		_meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
-
-		//create buffer and simple descriptor set of camera and 
-
-		//std::shared_ptr< ArrayResource > _staticInstanceDrawInfoCPU;
-		//GPUReferencer< class VulkanBuffer > _staticInstanceDrawInfoGPU;
-
 		_staticInstanceDrawInfoCPU = std::make_shared< ArrayResource >();
 		_staticInstanceDrawInfoSpan = _staticInstanceDrawInfoCPU->InitializeFromType< StaticDrawParams >(250000);
 		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(this, GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
 
-		_staticInstanceDrawLeaseManager = std::make_unique <  FrameTrackedLeaseManager< TSpan< StaticDrawParams > > >(_staticInstanceDrawInfoSpan);
+		_staticInstanceDrawLeaseManager = std::make_unique < StaticDrawLeaseManager >(this, _staticInstanceDrawInfoSpan, 
+			[this](StaticDrawLeaseManager::Lease &InLease)
+			{
+				this->_staticInstanceDrawInfoGPU->UpdateDirtyRegion(InLease.GetIndex(), 1);
+			});
 	}
 
 	//void VulkanGraphicsDevice::createPBRLayout()
@@ -778,6 +764,8 @@ namespace SPP
 		setupSwapChain();
 		createCommandBuffers();
 		createSynchronizationPrimitives();
+
+		createStaticDrawInfo();
 
 		setupRenderPass();
 		setupFrameBuffer();

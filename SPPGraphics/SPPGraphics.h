@@ -211,7 +211,7 @@ namespace SPP
         virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() = 0;
         //virtual std::shared_ptr< class RT_RenderableMesh > CreateSkinnedMesh() = 0;
 
-        virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() = 0;
+        //virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() = 0;
 
         virtual std::shared_ptr< class RT_RenderableSignedDistanceField > CreateSignedDistanceField() = 0;
 

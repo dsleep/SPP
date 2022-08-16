@@ -57,7 +57,8 @@ namespace SPP
 		~BitSetArray();
 	};
 
-	template<typename IndexedData, typename LeaseTag>
+
+	template<typename IndexedData>
 	class LeaseManager
 	{
 	protected:
@@ -65,7 +66,7 @@ namespace SPP
 		std::unique_ptr<BitSetArray> _bitArray;
 
 	public:
-		class Lease
+		class Lease 
 		{
 			NO_COPY_ALLOWED(Lease);
 
@@ -73,30 +74,50 @@ namespace SPP
 			BitReference _bitRef;
 			LeaseManager* _owner = nullptr;
 			IndexedData::value_type& _data;
-			LeaseTag _tag;
 
 		public:
+			struct LeaseWrite
+			{
+				NO_COPY_ALLOWED(LeaseWrite);
+
+				IndexedData::value_type& data;
+				Lease& lease;
+
+				LeaseWrite(IndexedData::value_type& InData, Lease& InLease) : data(InData), lease(InLease)
+				{
+
+				}
+
+				~LeaseWrite()
+				{
+					lease.Update();
+				}
+			};
+
 			Lease(LeaseManager* InOwner, 
 				IndexedData::value_type& InData, 
-				BitReference &&InBitRef,
-				const LeaseTag &InTag) : _owner(InOwner), _data(InData), _bitRef(std::move(InBitRef)), _tag(InTag)
+				BitReference &&InBitRef) : _owner(InOwner), _data(InData), _bitRef(std::move(InBitRef))
 			{
 			}
 			~Lease()
 			{
 				_owner->EndLease(*this);
 			}
-			IndexedData::value_type& GetData()
+			LeaseWrite Access()
 			{
-				return _data;
-			}
-			const LeaseTag& GetTag()
-			{
-				return _tag;
+				return LeaseWrite(_data,*this);
 			}
 			BitReference& GetBitReference()
 			{
 				return _bitRef;
+			}
+			void Update()
+			{
+				_owner->LeaseUpdated(*this);
+			}
+			auto GetIndex()
+			{
+				return _bitRef.Index();
 			}
 		};
 
@@ -105,7 +126,7 @@ namespace SPP
 			_bitArray = std::make_unique< BitSetArray >(_leasor.size());
 		}
 
-		std::shared_ptr<Lease> GetLease(const LeaseTag &InTag)
+		std::shared_ptr<Lease> GetLease()
 		{
 			BitReference freeElement = _bitArray->GetFirstFree();
 			if (!freeElement.IsValid())
@@ -113,7 +134,12 @@ namespace SPP
 				return nullptr;
 			}
 			auto& leaseData = _leasor[freeElement.Index()];
-			return std::make_shared< Lease >(this, leaseData, std::move(freeElement), InTag);
+			return std::make_shared< Lease >(this, leaseData, std::move(freeElement));
+		}
+
+		virtual void LeaseUpdated(Lease& InLease)
+		{
+
 		}
 
 		virtual void EndLease(Lease& InLease)

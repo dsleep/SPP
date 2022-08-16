@@ -168,6 +168,7 @@ namespace SPP
 				.position = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTopBeforeScene()->GetPosition(),
 				.eulerRotationYPR = _rotation,
 				.scale = _scale,
+				.bIsStatic = _bIsStatic
 				});
 
 			_renderableMesh->AddToRenderScene(thisRenderableScene->GetRenderScene());
