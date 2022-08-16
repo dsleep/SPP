@@ -499,8 +499,7 @@ namespace SPP
 		//_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
 		_viewGPU.BuildCameraMatrices();
 
-		Planed frustumPlanes[6];
-		_viewGPU.GetFrustumPlanes(frustumPlanes);
+		_viewGPU.GetFrustumPlanes(_frustumPlanes);
 
 		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
 		GPUViewConstants& curCam = cameraSpan[currentFrame];
@@ -511,9 +510,9 @@ namespace SPP
 		curCam.ViewPosition = _viewGPU.GetCameraPosition();
 		curCam.FrameExtents = DeviceExtents;
 
-		for (int32_t Iter = 0; Iter < ARRAY_SIZE(frustumPlanes); Iter++)
+		for (int32_t Iter = 0; Iter < ARRAY_SIZE(_frustumPlanes); Iter++)
 		{
-			curCam.FrustumPlanes[Iter] = frustumPlanes[Iter].coeffs();
+			curCam.FrustumPlanes[Iter] = _frustumPlanes[Iter].coeffs();
 		}
 
 		curCam.RecipTanHalfFovy = _viewGPU.GetRecipTanHalfFovy();
@@ -607,24 +606,20 @@ namespace SPP
 			//DrawSkyBox();
 		}
 
-		//#if 1
-		//		_octree.WalkElements(frustumPlanes, [](const IOctreeElement* InElement) -> bool
-		//			{
-		//				((Renderable*)InElement)->Draw();
-		//				return true;
-		//			});
-		//#else
-		//		for (auto renderItem : _renderables)
-		//		{
-		//			renderItem->Draw();
-		//		}
-		//#endif
+		#if 1
+			_octree.WalkElements(_frustumPlanes, [](const IOctreeElement* InElement) -> bool
+				{
+					((Renderable*)InElement)->Draw();
+					return true;
+				});
+		#else
+			for (auto renderItem : _renderables3d)
+			{
+				renderItem->Draw();
+			}
+		#endif
 
-		for (auto renderItem : _renderables3d)
-		{
-			renderItem->Draw();
-		}
-
+		
 		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);

@@ -956,14 +956,14 @@ namespace SPP
 
 		{
 			std::vector<VkDescriptorPoolSize> simplePool = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 5000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 5000),
 				
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 1000),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 5000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 5000),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 5000),
 			};
-			auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 1000);
+			auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(simplePool, 5000);
 
 			for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 			{

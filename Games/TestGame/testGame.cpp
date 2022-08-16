@@ -128,11 +128,10 @@ public:
 
 		animatorTest->PlayAnimation("Action");
 
-#if 1
-		_gameworld = LoadJsonGameScene(*AssetPath("scenes/scenewithlightmaps/scenewithlightmaps.spj"));
+		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		AddToRoot(_gameworld);
 
-#if 1
+#if 0
 		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/testhumanoid.mcsg"));
 
 		int32_t shapeGCnt = 0;
@@ -207,41 +206,7 @@ public:
 				_startingGroups.push_back(startingGroup);
 			}
 		}
-#else
-		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup", _gameworld);
-
-		startingGroup->GetScale() = Vector3(1.0f / 2, 1.0f / 2, 1.0f / 2);
-		startingGroup->GetRotation()[0] = 90;
-		startingGroup->GetPosition()[1] = 1;
-
-		auto startingSphere = AllocateObject<OShape>("sphere", startingGroup);
-		auto startingSphere2 = AllocateObject<OShape>("sphere2", startingGroup);
-		startingSphere->GetPosition()[1] = 1;
-		startingSphere2->GetPosition()[1] = 2;
-		startingSphere->GetScale() = Vector3(2, 2, 2);
-		startingSphere->GetScale() = Vector3(2, 1, 2);
-
-		startingSphere->SetShapeArgs(
-			{
-				.shapeType = EShapeType::Sphere,
-				.shapeOp = EShapeOp::Add,
-				.shapeBlendFactor = 0.0f
-			}
-		);
-
-		startingSphere2->SetShapeArgs(
-			{
-				.shapeType = EShapeType::Sphere,
-				.shapeOp = EShapeOp::Add,
-				.shapeBlendFactor = 0.0f
-			}
-		);
-
-		startingGroup->AddChild(startingSphere);
-		startingGroup->AddChild(startingSphere2);
 #endif
-
-
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
 		
 		_charCapsule = AllocateObject<VgCapsuleElement>("currentCapsule", nullptr);
@@ -254,53 +219,6 @@ public:
 
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[1] = 5;
-#else
-
-		auto meshtest = std::make_shared< Mesh>();
-		meshtest->LoadMesh(*AssetPath("meshes/trianglesphere.obj"));
-
-		auto meshvertexShader = _graphicsDevice->CreateShader();
-		auto meshpixelShader = _graphicsDevice->CreateShader();
-
-		auto meshMaterial = _graphicsDevice->CreateMaterial();
-
-		meshMaterial->SetMaterialArgs({ .vertexShader = meshvertexShader, .pixelShader = meshpixelShader });
-
-		auto gpuCommand = GPUThreaPool->enqueue([meshvertexShader, meshpixelShader]()
-			{
-				meshvertexShader->Initialize(EShaderType::Vertex);
-				meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
-				meshpixelShader->Initialize(EShaderType::Pixel);
-				meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
-			});
-		gpuCommand.wait();
-
-		auto _renderableScene = AllocateObject<ORenderableScene>("rScene", nullptr);
-
-		renderableSceneShared = _renderableScene->GetRenderSceneShared();
-
-		auto loadedMesh = AllocateObject<OMesh>("simpleMesh", nullptr);
-		loadedMesh->SetMesh(meshtest);
-
-		auto meshMat = AllocateObject<OMaterial>("simplerMaterial", nullptr);
-		meshMat->SetMaterial(meshMaterial);
-
-		auto meshElement = AllocateObject<OMeshElement>("simpleMeshElement", nullptr);
-		meshElement->SetMesh(loadedMesh);
-		meshElement->SetMaterial(meshMat);
-
-		auto& cam = renderableSceneShared->GetCamera();
-		cam.GetCameraPosition()[2] = -20;
-
-		auto startingGroup = AllocateObject<OShapeGroup>("ShapeGroup", nullptr);
-		auto startingSphere = AllocateObject<OSDFSphere>("sphere", startingGroup);
-		startingSphere->SetRadius(10);
-		startingGroup->AddChild(startingSphere);
-		_renderableScene->AddChild(startingGroup);
-		_renderableScene->AddChild(meshElement);
-
-		_graphicsDevice->AddScene(renderableSceneShared);
-#endif
 
 		//SPP::MakeResidentAllGPUResources();
 

@@ -102,6 +102,8 @@ namespace SPP
 
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
 
+		Planed _frustumPlanes[6];		
+
 	public:
 		VulkanRenderScene(GraphicsDevice* InOwner);
 		virtual ~VulkanRenderScene();
