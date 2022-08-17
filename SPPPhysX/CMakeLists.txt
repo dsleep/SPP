@@ -36,7 +36,7 @@ target_include_directories(SPPPhysX
 		
 target_link_directories(SPPPhysX 
 	PRIVATE
-		debug "${THIRD_PARTY}/PhysX1.4/PhysX/bin/win.x86_64.vc143.md/debug" optimized "${THIRD_PARTY}/PhysX1.4/PhysX/bin/win.x86_64.vc143.md/release" )
+		"${THIRD_PARTY}/PhysX1.4/PhysX/bin/win.x86_64.vc143.md" )
 		
 list(APPEND 
 		PhysxDependencies 
@@ -50,9 +50,11 @@ list(APPEND
 			"PhysXExtensions_static_64"
 			"PhysXPvdSDK_static_64" )
 
-target_link_libraries(SPPPhysX 
-	PRIVATE
-		${PhysxDependencies} )
+foreach(curDepend ${PhysxDependencies})
+	target_link_libraries(SPPPhysX 
+		PRIVATE
+			debug "debug/${curDepend}" optimized  "release/${curDepend}" )
+endforeach()
 
 install(TARGETS SPPPhysX DESTINATION "${SPP_ROOT}/INSTALL")
 
