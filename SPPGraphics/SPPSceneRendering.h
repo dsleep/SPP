@@ -13,6 +13,41 @@
 
 namespace SPP
 {	
+	enum class DrawingType
+	{
+		Opaque,
+		Transparent,
+		PostEffect
+	};
+
+	enum class DrawingMovement
+	{
+		Static,
+		Dynamic
+	};
+
+	enum class DrawingFilter
+	{
+		None,
+		Masked
+	};
+
+	enum class DrawingData
+	{
+		StaticMesh,
+		SkinnedMesh,
+		Particle,
+		SDF
+	};
+
+	struct DrawingInfo
+	{
+		DrawingType drawingType = DrawingType::Opaque;
+		DrawingMovement drawingMovement = DrawingMovement::Static;
+		DrawingFilter drawingFilter = DrawingFilter::None;
+		DrawingData drawingData = DrawingData::StaticMesh;
+	};
+
 	class SPP_GRAPHICS_API Renderable : public IOctreeElement
 	{
 	protected:
@@ -29,6 +64,8 @@ namespace SPP
 
 		bool _bSelected = false;
 		bool _bIsStatic = false;
+
+		DrawingInfo _drawingInfo;
 
 		virtual void _AddToRenderScene(class RT_RenderScene* InScene);
 		virtual void _RemoveFromRenderScene();
@@ -70,6 +107,11 @@ namespace SPP
 		virtual bool Is3dRenderable() const { return true; }
 		virtual bool IsPostRenderable() const { return false; }
 
+		const DrawingInfo &GetDrawingInfo() const
+		{
+			return _drawingInfo;
+		}
+
 		void SetSelected(bool InSelect)
 		{
 			_bSelected = InSelect;
@@ -98,7 +140,7 @@ namespace SPP
 		GPU_CALL RemoveFromRenderScene()
 		{
 			this->_RemoveFromRenderScene();
-co_return;
+			co_return;
 		}
 
 		virtual void PrepareToDraw() {}
@@ -158,6 +200,7 @@ co_return;
 
 		LooseOctree _octree;
 		std::list<Renderable*> _renderables3d;
+		std::vector<Renderable*> _visible3d;
 
 		std::list<Renderable*> _renderablesPost;
 

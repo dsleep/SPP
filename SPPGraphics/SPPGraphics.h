@@ -26,12 +26,12 @@
 
 namespace SPP
 {
-	SPP_GRAPHICS_API extern std::unique_ptr<class ThreadPool> GPUThreaPool;
+    SPP_GRAPHICS_API extern std::unique_ptr<class ThreadPool> GPUThreaPool;
 
-	SPP_GRAPHICS_API void IntializeGraphicsThread();	
+    SPP_GRAPHICS_API void IntializeGraphicsThread();
     SPP_GRAPHICS_API void ShutdownGraphicsThread();
 
-	SPP_GRAPHICS_API bool IsOnGPUThread();
+    SPP_GRAPHICS_API bool IsOnGPUThread();
 
     class SPP_GRAPHICS_API GPUThreadIDOverride
     {
@@ -68,12 +68,12 @@ namespace SPP
 
     class GPU_CALL
     {
-    public:  
+    public:
         using promise_type = gpu_coroutine_promise;
         using coro_handle = std::coroutine_handle<promise_type>;
 
         GPU_CALL(coro_handle InHandle);
-        ~GPU_CALL(){}
+        ~GPU_CALL() {}
     };
 
 
@@ -86,7 +86,7 @@ namespace SPP
         Domain,
         Mesh,
         Amplification,
-        NumValues,        
+        NumValues,
     };
 
     enum class GPUBufferType
@@ -114,6 +114,7 @@ namespace SPP
         R32G32B32A32
     };
 
+    
 
     class GraphicsDevice;
 

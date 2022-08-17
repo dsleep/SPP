@@ -557,6 +557,17 @@ namespace SPP
         }
     };
 
+    enum class TexturePurpose : uint8_t
+    {
+        Diffuse,
+        Emissive,
+        Metallic,
+        Normal,
+        Roughness,
+        Alpha,
+        Lightmap
+    };
+
     class SPP_GRAPHICS_API RT_Material : public RT_Resource
     {
         CLASS_RT_RESOURCE();
@@ -566,6 +577,7 @@ namespace SPP
         std::shared_ptr< RT_Shader > _pixelShader;
 
         std::vector< std::shared_ptr<RT_Texture> > _textureArray;
+        std::map< TexturePurpose, std::shared_ptr<RT_Texture> > _textureMap;
 
         EBlendState _blendState = EBlendState::Disabled;
         ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;

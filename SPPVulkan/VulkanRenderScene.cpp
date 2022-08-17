@@ -606,9 +606,17 @@ namespace SPP
 			//DrawSkyBox();
 		}
 
+		int32_t curVisible = 0;
+		_visible3d.resize(_renderables3d.size());
+
 		#if 1
-			_octree.WalkElements(_frustumPlanes, [](const IOctreeElement* InElement) -> bool
+			_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
 				{
+					auto curRenderable = ((Renderable*)InElement);
+					_visible3d[curVisible++] = curRenderable;
+					auto& drawInfo = curRenderable->GetDrawingInfo();
+
+					//drawInfo.drawingType == DrawingType::Opaque
 					((Renderable*)InElement)->Draw();
 					return true;
 				});
