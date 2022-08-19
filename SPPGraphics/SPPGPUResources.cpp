@@ -17,6 +17,24 @@
 
 namespace SPP
 {
+	const char* ToString(TexturePurpose InValue)
+	{
+		SE_ASSERT(InValue >= TexturePurpose::Diffuse && InValue <= TexturePurpose::Lightmap);
+
+		static const char* stringValues[] =
+		{
+			"Diffuse",
+			"Emissive",
+			"Metallic",
+			"Normal",
+			"Roughness",
+			"Alpha",
+			"Lightmap"
+		};
+		
+		return stringValues[(uint8_t)InValue];
+	}
+
 	//template<typename T>
 	//class ThreadSafeList
 	//{

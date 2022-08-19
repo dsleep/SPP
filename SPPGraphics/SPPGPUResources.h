@@ -559,29 +559,34 @@ namespace SPP
 
     enum class TexturePurpose : uint8_t
     {
-        Diffuse,
+        Diffuse = 0,
         Emissive,
         Metallic,
         Normal,
         Roughness,
         Alpha,
-        Lightmap
+        Lightmap,
+        MAX
     };
+
+    SPP_GRAPHICS_API const char* ToString(TexturePurpose InValue);
 
     class SPP_GRAPHICS_API RT_Material : public RT_Resource
     {
         CLASS_RT_RESOURCE();
 
     protected:
-        std::shared_ptr< RT_Shader > _vertexShader;
-        std::shared_ptr< RT_Shader > _pixelShader;
+        //std::shared_ptr< RT_Shader > _vertexShader;
+        //std::shared_ptr< RT_Shader > _pixelShader;
 
-        std::vector< std::shared_ptr<RT_Texture> > _textureArray;
+        //std::vector< std::shared_ptr<RT_Texture> > _textureArray;
         std::map< TexturePurpose, std::shared_ptr<RT_Texture> > _textureMap;
 
         EBlendState _blendState = EBlendState::Disabled;
         ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;
         EDepthState _depthState = EDepthState::Enabled;
+
+        uint32_t _updateID = 1;
 
         RT_Material(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
 
@@ -590,21 +595,26 @@ namespace SPP
 
         struct Args
         {
-            std::shared_ptr< RT_Shader > vertexShader;
-            std::shared_ptr< RT_Shader > pixelShader;
-            std::vector< std::shared_ptr<RT_Texture> > textureArray;
+           // std::shared_ptr< RT_Shader > vertexShader;
+            //std::shared_ptr< RT_Shader > pixelShader;
+            std::map< TexturePurpose, std::shared_ptr<RT_Texture> > textureMap;
         };
+
+        uint32_t GetUpdateID()
+        {
+            return _updateID;
+        }
 
         void SetMaterialArgs(const Args &InArgs)
         {
-            _vertexShader = InArgs.vertexShader;
-            _pixelShader = InArgs.pixelShader;
-            _textureArray = InArgs.textureArray;
+            //_vertexShader = InArgs.vertexShader;
+            //_pixelShader = InArgs.pixelShader;
+            _textureMap = InArgs.textureMap;
         }
 
-        std::vector< std::shared_ptr<RT_Texture> > &GetTextureArray()
+        std::map< TexturePurpose, std::shared_ptr<RT_Texture> > &GetTextureMap()
         {
-            return _textureArray;
+            return _textureMap;
         }
     };
 

@@ -12,6 +12,19 @@
 #include "SPPMesh.h"
 #include "SPPLogging.h"
 
+
+namespace std
+{		
+	template<>
+	struct hash<SPP::MaterialKey>
+	{
+		std::size_t operator()(const SPP::MaterialKey& InValue) const noexcept
+		{
+			return InValue.Hash();
+		}
+	};
+}
+
 namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
@@ -82,18 +95,153 @@ namespace SPP
 		}
 	};
 
+	class GlobalOpaqueDrawerResources : public GlobalGraphicsResource
+	{
+	private:
+		GPUReferencer < VulkanShader > _opaqueVS, _opaquePS, _opaquePSWithLightMap, _opaqueVSWithLightMap;
+		GPUReferencer< SafeVkDescriptorSetLayout > _opaqueVSLayout;
+
+	public:
+		// called on render thread
+		virtual void Initialize(class GraphicsDevice* InOwner)
+		{
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+
+			_opaqueVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_opaquePS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_opaqueVSWithLightMap = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_opaquePSWithLightMap = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+
+			_opaqueVS->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_vs");
+			_opaquePS->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_ps");
+			_opaqueVSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_vs");
+			_opaquePSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_ps");
+
+			auto& vsSet = _opaqueVS->GetLayoutSets();
+			_opaqueVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+		}
+
+		GPUReferencer< SafeVkDescriptorSetLayout > GetOpaqueVSLayout()
+		{
+			return _opaqueVSLayout;
+		}
+
+		virtual void Shutdown(class GraphicsDevice* InOwner)
+		{
+			_opaqueVS.Reset();
+			_opaquePS.Reset();
+			_opaqueVSWithLightMap.Reset();
+			_opaquePSWithLightMap.Reset();
+		}
+	};
+
 	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
+	GlobalOpaqueDrawerResources GVulkanOpaqueResrouces;
+		
+	class OpaqueDrawer
+	{
+	protected:
+		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
+		VulkanGraphicsDevice* _owningDevice = nullptr;
+		VulkanRenderScene* _owningScene = nullptr;
+
+		std::unordered_map< MaterialKey, GPUReferencer< SafeVkDescriptorSet > > _materialDescriptorCache;
+
+	public:
+		OpaqueDrawer(VulkanRenderScene *InScene) : _owningScene(InScene)
+		{
+			_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+			auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
+
+			auto meshVSLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+			_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
+
+			auto cameraBuffer = InScene->GetCameraBuffer();
+
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+			VkDescriptorBufferInfo drawConstsInfo;
+			auto staticDrawBuffer = GGlobalVulkanGI->GetStaticInstanceDrawBuffer();
+			drawConstsInfo.buffer = staticDrawBuffer->GetBuffer();
+			drawConstsInfo.offset = 0;
+			drawConstsInfo.range = staticDrawBuffer->GetPerElementSize();
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+			};
+
+			vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+		}
+
+		GPUReferencer< SafeVkDescriptorSet > GetMaterialDescriptorSet(VkDescriptorSetLayout InSetLayout,
+			const std::vector<VkDescriptorSetLayoutBinding> &textureBindings, 
+			std::shared_ptr<RT_Material> InMat)
+		{
+			MaterialKey matKey(InMat);
+
+			auto findCachedItem = _materialDescriptorCache.find(matKey);
+			
+			if (findCachedItem != _materialDescriptorCache.end())
+			{
+				return findCachedItem->second;
+			}
+			else
+			{
+				VkDescriptorImageInfo textureInfo[4];
+
+				auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+				int32_t TextureCount = textureBindings.size() / 2;
+				auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, InSetLayout, globalSharedPool);
+
+				auto& textureMap = InMat->GetTextureMap();
+				for (int32_t Iter = 0; Iter < TextureCount; Iter++)
+				{
+					auto getTexture = textureMap.find((TexturePurpose)Iter);
+
+					auto gpuTexture = getTexture != textureMap.end() ?
+						getTexture->second->GetGPUTexture() :
+						GGlobalVulkanGI->GetDefaultTexture();
+
+					auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
+					textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
+
+					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
+						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (Iter * 2) + 0, &textureInfo[Iter]));
+					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
+						VK_DESCRIPTOR_TYPE_SAMPLER, (Iter * 2) + 1, &textureInfo[Iter]));
+				}
+
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+					static_cast<uint32_t>(writeDescriptorSets.size()),
+					writeDescriptorSets.data(), 0, nullptr);
+
+				_materialDescriptorCache[matKey] = newTextureDescSet;
+			}
+
+
+		}
+
+		void Render()
+		{
+
+		}
+	};
+
 	
 
 	VulkanRenderScene::VulkanRenderScene(GraphicsDevice* InOwner) : RT_RenderScene(InOwner)
 	{
 		//SE_ASSERT(I());
-
-		_defaultMaterial = _owner->CreateMaterial();
 		
-		_meshvertexShader = _owner->CreateShader();
-		_meshpixelShader = _owner->CreateShader();
-
 		_debugDrawer = std::make_unique< VulkanDebugDrawing >(_owner);
 	}
 
@@ -104,13 +252,13 @@ namespace SPP
 
 	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
-		_defaultMaterial->SetMaterialArgs({ .vertexShader = _meshvertexShader, .pixelShader = _meshpixelShader });
-
+		//_defaultMaterial->SetMaterialArgs({ .vertexShader = _meshvertexShader, .pixelShader = _meshpixelShader });
+/*
 		_meshvertexShader->Initialize(EShaderType::Vertex);
 		_meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
 		_meshpixelShader->Initialize(EShaderType::Pixel);
 		_meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
-			
+	*/		
 		_debugDrawer->Initialize();
 
 		//_debugVS = Vulkan_CreateShader(EShaderType::Vertex);
@@ -209,112 +357,7 @@ namespace SPP
 		_cameraData = std::make_shared< ArrayResource >();
 		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
 		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
-
-		_drawConstants = std::make_shared< ArrayResource >();
-		_drawConstants->InitializeFromType< GPUDrawConstants >(InFlightFrames);
-		_drawConstantsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawConstants);
-
-		_drawParams = std::make_shared< ArrayResource >();
-		_drawParams->InitializeFromType< GPUDrawParams >(InFlightFrames);
-		_drawParamsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawParams);
-
-		_shapes = std::make_shared< ArrayResource >();
-		_shapes->InitializeFromType< SDFShape >(InFlightFrames);
-		_shapesBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Array, _drawParams);
-
-
-		//
-
-		//PER FRAME DESCRIPTOR SET (1 set using VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		//{
-		//	std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
-		//		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_ALL_GRAPHICS, 0)
-		//	};
-		//	auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
-
-		//	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice, &layoutCreateInfo, nullptr, &_perFrameSetLayout));
-
-		//	//
-		//	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perFrameSetLayout, 1);
-		//	VkResult allocateCall = vkAllocateDescriptorSets(vulkanDevice, &allocInfo, &_perFrameDescriptorSet);
-
-		//	VkDescriptorBufferInfo perFrameInfo;
-		//	perFrameInfo.buffer = _cameraBuffer->GetBuffer();
-		//	perFrameInfo.offset = 0;
-		//	perFrameInfo.range = _cameraBuffer->GetPerElementSize();
-
-		//	VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(_perFrameDescriptorSet,
-		//		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo);
-		//	vkUpdateDescriptorSets(vulkanDevice, 1, &writeDescriptorSet, 0, nullptr);
-		//}
-
-
-		std::vector<VkDescriptorPoolSize> mainPool = {
-
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32),
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_SAMPLER, 32)
-		};
-
-		auto poolCreateInfo = vks::initializers::descriptorPoolCreateInfo(mainPool, 2);
-		poolCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
-		VK_CHECK_RESULT(vkCreateDescriptorPool(vulkanDevice, &poolCreateInfo, nullptr, &_descriptorPool));
-
-
-		//PER DRAW DESCRIPTOR SET
-		{
-			std::vector<VkDescriptorSetLayoutBinding> descriptSetLayout = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
-			};
-			auto layoutCreateInfo = vks::initializers::descriptorSetLayoutCreateInfo(descriptSetLayout.data(), static_cast<uint32_t>(descriptSetLayout.size()));
-
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanDevice, &layoutCreateInfo, nullptr, &_perDrawSetLayout));
-
-			//
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_descriptorPool, &_perDrawSetLayout, 1);
-			VkResult allocateCall = vkAllocateDescriptorSets(vulkanDevice, &allocInfo, &_perDrawDescriptorSet);
-
-			VkDescriptorBufferInfo perFrameInfo;
-			perFrameInfo.buffer = _cameraBuffer->GetBuffer();
-			perFrameInfo.offset = 0;
-			perFrameInfo.range = _cameraBuffer->GetPerElementSize();
-
-			VkDescriptorBufferInfo drawConstsInfo;
-			drawConstsInfo.buffer = _drawConstantsBuffer->GetBuffer();
-			drawConstsInfo.offset = 0;
-			drawConstsInfo.range = _drawConstantsBuffer->GetPerElementSize();
-
-			VkDescriptorBufferInfo drawParamsInfo;
-			drawParamsInfo.buffer = _drawParamsBuffer->GetBuffer();
-			drawParamsInfo.offset = 0;
-			drawParamsInfo.range = _drawParamsBuffer->GetPerElementSize();
-
-			VkDescriptorBufferInfo shapesInfo;
-			shapesInfo.buffer = _shapesBuffer->GetBuffer();
-			shapesInfo.offset = 0;
-			shapesInfo.range = _shapesBuffer->GetPerElementSize();
-
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
-				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2, &drawParamsInfo),
-				vks::initializers::writeDescriptorSet(_perDrawDescriptorSet,
-					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 3, &shapesInfo)
-			};
-
-			vkUpdateDescriptorSets(vulkanDevice,
-				static_cast<uint32_t>(writeDescriptorSets.size()),
-				writeDescriptorSets.data(), 0, nullptr);
-		}
+				
 	}
 
 	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
@@ -330,111 +373,6 @@ namespace SPP
 		_debugDrawer->AddDebugSphere(Center, Radius, Color);
 	}
 
-	//void VulkanRenderScene::DrawDebug()
-	//{
-		//if (_lines.empty()) return;
-
-		//auto pd3dDevice = GGraphicsDevice->GetDevice();
-		//auto perDrawSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-		//auto cmdList = GGraphicsDevice->GetCommandList();
-		//auto currentFrame = GGraphicsDevice->GetFrameCount();
-
-		////_octree.WalkNodes([&](const AABBi& InAABB) -> bool
-		////	{
-		////		auto minValue = InAABB.GetMin().cast<float>();
-		////		auto maxValue = InAABB.GetMax().cast<float>();
-
-		////		Vector3 topPoints[4];
-		////		Vector3 bottomPoints[4];
-
-		////		topPoints[0] = Vector3(minValue[0], minValue[1], minValue[2]);
-		////		topPoints[1] = Vector3(maxValue[0], minValue[1], minValue[2]);
-		////		topPoints[2] = Vector3(maxValue[0], minValue[1], maxValue[2]);
-		////		topPoints[3] = Vector3(minValue[0], minValue[1], maxValue[2]);
-
-		////		bottomPoints[0] = Vector3(minValue[0], maxValue[1], minValue[2]);
-		////		bottomPoints[1] = Vector3(maxValue[0], maxValue[1], minValue[2]);
-		////		bottomPoints[2] = Vector3(maxValue[0], maxValue[1], maxValue[2]);
-		////		bottomPoints[3] = Vector3(minValue[0], maxValue[1], maxValue[2]);
-
-		////		for (int32_t Iter = 0; Iter < 4; Iter++)
-		////		{
-		////			int32_t nextPoint = (Iter + 1) % 4;
-
-		////			_lines.push_back({ topPoints[Iter], Vector3(1,1,1) });
-		////			_lines.push_back({ topPoints[nextPoint], Vector3(1,1,1) });
-
-		////			_lines.push_back({ bottomPoints[Iter], Vector3(1,1,1) });
-		////			_lines.push_back({ bottomPoints[nextPoint], Vector3(1,1,1) });
-
-		////			_lines.push_back({ topPoints[Iter], Vector3(1,1,1) });
-		////			_lines.push_back({ bottomPoints[Iter], Vector3(1,1,1) });
-		////		}
-
-		////		return true;
-		////	});
-
-		//ID3D12RootSignature* rootSig = nullptr;
-
-		//if (_debugVS)
-		//{
-		//	rootSig = _debugVS->GetAs<D3D12Shader>().GetRootSignature();
-		//}
-
-		//cmdList->SetGraphicsRootSignature(rootSig);
-
-		////table 0, shared all constant, scene stuff 
-		//{
-		//	cmdList->SetGraphicsRootConstantBufferView(0, GetGPUAddrOfViewConstants());
-
-		//	CD3DX12_VIEWPORT m_viewport(0.0f, 0.0f, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-		//	CD3DX12_RECT m_scissorRect(0, 0, GGraphicsDevice->GetDeviceWidth(), GGraphicsDevice->GetDeviceHeight());
-		//	cmdList->RSSetViewports(1, &m_viewport);
-		//	cmdList->RSSetScissorRects(1, &m_scissorRect);
-		//}
-
-		////table 1, VS only constants
-		//{
-		//	auto pd3dDevice = GGraphicsDevice->GetDevice();
-
-		//	_declspec(align(256u))
-		//		struct GPUDrawConstants
-		//	{
-		//		//altered viewposition translated
-		//		Matrix4x4 LocalToWorldScaleRotation;
-		//		Vector3d Translation;
-		//	};
-
-		//	Matrix4x4 matId = Matrix4x4::Identity();
-		//	Vector3d dummyVec(0, 0, 0);
-
-		//	// write local to world
-		//	auto HeapAddrs = perDrawSratchMem->GetWritable(sizeof(GPUDrawConstants), currentFrame);
-		//	WriteMem(HeapAddrs, offsetof(GPUDrawConstants, LocalToWorldScaleRotation), matId);
-		//	WriteMem(HeapAddrs, offsetof(GPUDrawConstants, Translation), dummyVec);
-
-		//	cmdList->SetGraphicsRootConstantBufferView(1, HeapAddrs.gpuAddr);
-		//}
-
-		//cmdList->SetPipelineState(_debugPSO->GetState());
-		//cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-
-		//auto perFrameSratchMem = GGraphicsDevice->GetPerFrameScratchMemory();
-
-		//auto heapChunk = perFrameSratchMem->GetWritable(_lines.size() * sizeof(DebugVertex), currentFrame);
-
-		//memcpy(heapChunk.cpuAddr, _lines.data(), _lines.size() * sizeof(DebugVertex));
-
-		//D3D12_VERTEX_BUFFER_VIEW vbv;
-		//vbv.BufferLocation = heapChunk.gpuAddr;
-		//vbv.StrideInBytes = sizeof(DebugVertex);
-		//vbv.SizeInBytes = heapChunk.size;;
-		//cmdList->IASetVertexBuffers(0, 1, &vbv);
-		//cmdList->DrawInstanced(_lines.size(), 1, 0, 0);
-
-		//_lines.clear();
-	//}
-
 
 	void VulkanRenderScene::AddRenderable(Renderable* InRenderable)
 	{
@@ -446,30 +384,10 @@ namespace SPP
 		RT_RenderScene::RemoveRenderable(InRenderable);
 	}
 
-#define MAX_MESH_ELEMENTS 1024
-#define MAX_TEXTURE_COUNT 2048
-#define DYNAMIC_MAX_COUNT 20 * 1024
-
-	//
-	//static DescriptorTableConfig _tableRegions[] =
-	//{
-	//	{ HDT_ShapeInfos, 1 },
-	//	{ HDT_MeshInfos, 1 },
-	//	{ HDT_MeshletVertices, MAX_MESH_ELEMENTS },
-	//	{ HDT_MeshletResource, MAX_MESH_ELEMENTS },
-	//	{ HDT_UniqueVertexIndices, MAX_MESH_ELEMENTS },
-	//	{ HDT_PrimitiveIndices, MAX_MESH_ELEMENTS },
-
-	//	{ HDT_Textures, MAX_TEXTURE_COUNT },
-	//	{ HDT_Dynamic, DYNAMIC_MAX_COUNT },
-	//};
-	//
-
 	std::shared_ptr< class RT_RenderScene > VulkanGraphicsDevice::CreateRenderScene()
 	{
 		return std::make_shared<VulkanRenderScene>(this);
 	}
-
 
 	void VulkanRenderScene::BeginFrame()
 	{
@@ -517,29 +435,14 @@ namespace SPP
 
 		curCam.RecipTanHalfFovy = _viewGPU.GetRecipTanHalfFovy();
 		_cameraBuffer->UpdateDirtyRegion(currentFrame, 1);
+	}
+		
+	void VulkanRenderScene::OpaqueDepthPass()
+	{
+	}
 
-		{
-			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();
-			auto& curData = uniformData[currentFrame];
-			curData.LocalToWorldScaleRotation = Matrix4x4::Identity();
-			curData.Translation = Vector3d(0, 0, 0);
-			_drawConstantsBuffer->UpdateDirtyRegion(currentFrame, 1);
-		}
-
-		{
-			auto uniformData = _drawParams->GetSpan<GPUDrawParams>();
-			auto& curData = uniformData[currentFrame];
-			curData.ShapeCount = 0;
-			curData.ShapeColor = Vector3(0, 0, 0);
-			_drawParamsBuffer->UpdateDirtyRegion(currentFrame, 1);
-		}
-
-		{
-			auto uniformData = _shapes->GetSpan<SDFShape>();
-			auto& curData = uniformData[currentFrame];
-			memset(&curData, 0, sizeof(curData));
-			_shapesBuffer->UpdateDirtyRegion(currentFrame, 1);
-		}
+	void VulkanRenderScene::OpaquePass()
+	{
 	}
 
 	void VulkanRenderScene::Draw()
@@ -608,6 +511,9 @@ namespace SPP
 
 		int32_t curVisible = 0;
 		_visible3d.resize(_renderables3d.size());
+
+		_opaques.resize(_renderables3d.size());
+		_translucents.resize(_renderables3d.size());
 
 		#if 1
 			_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
@@ -759,7 +665,7 @@ namespace SPP
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		//
-		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
+		auto CurPool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 		auto& curPSO = FullScreenWritePSO->GetAs<VulkanPipelineState>();
 		auto& descriptorSetLayouts = curPSO.GetDescriptorSetLayouts();
 
@@ -823,26 +729,26 @@ namespace SPP
 
 	void VulkanRenderScene::DrawSkyBox()
 	{
-		extern VkDevice GGlobalVulkanDevice;
-		extern VulkanGraphicsDevice* GGlobalVulkanGI;
+		//extern VkDevice GGlobalVulkanDevice;
+		//extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
-		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
-		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
-		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		//auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
+		//auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		//auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+		//auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
+		//auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
-		uint32_t uniform_offsets[] = {
-			(sizeof(GPUViewConstants)) * currentFrame,
-			(sizeof(GPUDrawConstants)) * currentFrame,
-			(sizeof(GPUDrawParams)) * currentFrame,
-			(sizeof(SDFShape)) * currentFrame,
-		};
+		//uint32_t uniform_offsets[] = {
+		//	(sizeof(GPUViewConstants)) * currentFrame,
+		//	(sizeof(GPUDrawConstants)) * currentFrame,
+		//	(sizeof(GPUDrawParams)) * currentFrame,
+		//	(sizeof(SDFShape)) * currentFrame,
+		//};
 
-		auto& rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipeline());
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
-			&_perDrawDescriptorSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);
-		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+		//auto& rayPSO = _fullscreenRaySDFPSO->GetAs<VulkanPipelineState>();
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipeline());
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rayPSO.GetVkPipelineLayout(), 0, 1,
+		//	&_perDrawDescriptorSet, ARRAY_SIZE(uniform_offsets), uniform_offsets);
+		//vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 	}
 }

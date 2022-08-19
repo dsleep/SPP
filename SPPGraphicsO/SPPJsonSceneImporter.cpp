@@ -18,6 +18,10 @@ namespace SPP
 			return nullptr;
 		}
 
+		return nullptr;
+
+		//TODO fix this?
+#if 0
 		std::string ParentPath = stdfs::path(FilePath).parent_path().generic_string();
 		std::string SimpleSceneName = stdfs::path(FilePath).stem().generic_string();
 		auto FileScene = AllocateObject<ORenderableScene>(SimpleSceneName, nullptr);
@@ -169,5 +173,6 @@ namespace SPP
 		}
 
 		return FileScene;
+#endif
 	}
 }

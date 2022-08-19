@@ -175,7 +175,7 @@ namespace SPP
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto csPSO = GVulkanSDFResrouces.GetPSO();
 
-		auto activePool = GGlobalVulkanGI->GetActiveDescriptorPool();
+		auto activePool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 		auto& descriptorSetLayouts = csPSO->GetDescriptorSetLayouts();
 
 		std::vector<VkDescriptorSet> locaDrawSets;

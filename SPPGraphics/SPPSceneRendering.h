@@ -46,6 +46,25 @@ namespace SPP
 		DrawingMovement drawingMovement = DrawingMovement::Static;
 		DrawingFilter drawingFilter = DrawingFilter::None;
 		DrawingData drawingData = DrawingData::StaticMesh;
+
+
+		bool operator <(const DrawingInfo& InCompare) const
+		{
+			if (drawingType != InCompare.drawingType)
+			{
+				return drawingType < InCompare.drawingType;
+			}
+			else if (drawingMovement != InCompare.drawingMovement)
+			{
+				return drawingMovement < InCompare.drawingMovement;
+			}
+			else if (drawingFilter != InCompare.drawingFilter)
+			{
+				return drawingFilter < InCompare.drawingFilter;
+			}
+
+			return drawingData < InCompare.drawingData;
+		}
 	};
 
 	class SPP_GRAPHICS_API Renderable : public IOctreeElement
@@ -110,6 +129,11 @@ namespace SPP
 		const DrawingInfo &GetDrawingInfo() const
 		{
 			return _drawingInfo;
+		}
+
+		bool operator <(const Renderable& InCompare) const
+		{
+			return _drawingInfo < InCompare.GetDrawingInfo();;
 		}
 
 		void SetSelected(bool InSelect)
@@ -200,7 +224,11 @@ namespace SPP
 
 		LooseOctree _octree;
 		std::list<Renderable*> _renderables3d;
+
 		std::vector<Renderable*> _visible3d;
+
+		std::vector<Renderable*> _opaques;
+		std::vector<Renderable*> _translucents;
 
 		std::list<Renderable*> _renderablesPost;
 
@@ -229,6 +257,11 @@ namespace SPP
 		void PushUIUpdate(const Vector2i& FullSize, const Vector2i& Start, const Vector2i& Extents, const void* Memory, uint32_t MemorySize);
 
 		virtual std::shared_ptr<RT_Material> GetDefaultMaterial() { return nullptr; }
+
+		GraphicsDevice* GetOwner() const
+		{
+			return _owner;
+		}
 
 		template<typename... T>
 		void SetColorTargets(T... args)

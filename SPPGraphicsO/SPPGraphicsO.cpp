@@ -221,10 +221,12 @@ namespace SPP
 	{
 		if (!_material)
 		{
-			std::shared_ptr< RT_Shader > vertexShader;
-			std::shared_ptr< RT_Shader > pixelShader;
-			std::vector< std::shared_ptr<RT_Texture> > textureArray;
+			//std::shared_ptr< RT_Shader > vertexShader;
+			//std::shared_ptr< RT_Shader > pixelShader;
+			//std::vector< std::shared_ptr<RT_Texture> > textureArray;
 
+			std::map<TexturePurpose, std::shared_ptr<RT_Texture> > textureMap;
+/*
 			for (auto& shader : _shaders)
 			{
 				shader->InitializeGraphicsDeviceResources(InGD);
@@ -237,20 +239,23 @@ namespace SPP
 				{
 					pixelShader = shader->GetShader();
 				}
-			}
+			}*/
 
-			for (auto& texture : _textures)
+			for (auto& [key, value] : _textures)
 			{
-				texture->InitializeGraphicsDeviceResources(InGD);
-				textureArray.push_back(texture->GetDeviceTexture());
+				if (value)
+				{
+					value->InitializeGraphicsDeviceResources(InGD);
+					textureMap[key] = value->GetDeviceTexture();
+				}
 			}
 
 			_material = InGD->CreateMaterial();
 			_material->SetMaterialArgs(
 				{
-					.vertexShader = vertexShader,
-					.pixelShader = pixelShader,
-					.textureArray = textureArray
+					//.vertexShader = vertexShader,
+					//.pixelShader = pixelShader,
+					.textureMap = textureMap
 				}
 			);
 		}
@@ -361,7 +366,7 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
-		.property("_shaders", &OMaterial::_shaders)(rttr::policy::prop::as_reference_wrapper)
+		//.property("_shaders", &OMaterial::_shaders)(rttr::policy::prop::as_reference_wrapper)
 		.property("_textures", &OMaterial::_textures)(rttr::policy::prop::as_reference_wrapper)
 		;
 

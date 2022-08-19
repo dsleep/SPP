@@ -222,7 +222,7 @@ namespace SPP
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_impl->_lineBuffer->GetBuffer(), offsets);
 
-		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
+		auto CurPool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 
 		auto& descriptorSetLayouts = _impl->_state->GetDescriptorSetLayouts();
 		auto setStartIdx = _impl->_state->GetStartIdx();

@@ -55,55 +55,64 @@ namespace SPP
 				bool bFoundLightMap = false;
 				if (!textures.isNull())
 				{
-					Json::Value diffuse = textures.get("diffuse", Json::Value::nullSingleton());
-
-					if (!diffuse.isNull() && diffuse.isArray())
+					for (int32_t TexIter = 0; TexIter < (int32_t)TexturePurpose::MAX; TexIter++)
 					{
-						for (int32_t Iter = 0; Iter < diffuse.size(); Iter++)
+						std::string TextureUse = ToString((TexturePurpose)TexIter);
+						inlineToLower(TextureUse);
+
+						Json::Value textureValue = textures.get(TextureUse.c_str(), Json::Value::nullSingleton());
+
+						if (!textureValue.isNull() && textureValue.isArray())
 						{
-							auto currentTexture = diffuse[Iter];
-
-							Json::Value jName = currentTexture.get("name", Json::Value::nullSingleton());
-							Json::Value jUVMap = currentTexture.get("uvmap", Json::Value::nullSingleton());
-
-							std::string CurTextureName = jName.asCString();
-							std::string CurUVMap = jUVMap.asCString();
-							auto foundTexture = TextureMap.find(CurTextureName);
-
-							bool IsLightMap = (CurUVMap == "UVMap_Lightmap");
-							bFoundLightMap |= IsLightMap;
-							int32_t TextureIndex = IsLightMap ? 1 : 0;
-
-							if (foundTexture == TextureMap.end())
+							for (int32_t Iter = 0; Iter < textureValue.size(); Iter++)
 							{
-								auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
+								auto currentTexture = textureValue[Iter];
 
-								curTexture->LoadFromDisk( ((ParentPath + "/") + CurTextureName).c_str() );
+								Json::Value jName = currentTexture.get("name", Json::Value::nullSingleton());
+								Json::Value jUVMap = currentTexture.get("uvmap", Json::Value::nullSingleton());
 
-								TextureMap[CurTextureName] = curTexture;
-								meshMat->SetTexture(curTexture, TextureIndex);
-							}
-							else
-							{
-								meshMat->SetTexture(foundTexture->second, TextureIndex);
+								std::string CurTextureName = jName.asCString();
+								std::string CurUVMap = jUVMap.asCString();
+								auto foundTexture = TextureMap.find(CurTextureName);
+
+								// diffuse and named uv
+								bool IsLightMap = (Iter == 0) &&(CurUVMap == "UVMap_Lightmap");
+								bFoundLightMap |= IsLightMap;
+								int32_t TextureIndex = IsLightMap ? 1 : 0;
+
+								if (foundTexture == TextureMap.end())
+								{
+									auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
+
+									curTexture->LoadFromDisk(((ParentPath + "/") + CurTextureName).c_str());
+
+									TextureMap[CurTextureName] = curTexture;
+
+									meshMat->SetTexture(bFoundLightMap ? TexturePurpose::Lightmap : (TexturePurpose)TexIter, curTexture);
+								}
+								else
+								{
+
+									meshMat->SetTexture(bFoundLightMap ? TexturePurpose::Lightmap : (TexturePurpose)TexIter, foundTexture->second);
+								}
 							}
 						}
 					}
 				}
 
-				auto& matshaders = meshMat->GetShaders();				
+				//auto& matshaders = meshMat->GetShaders();				
 				MaterialMap[jName.asCString()] = meshMat;
 
-				if (bFoundLightMap)
-				{
-					matshaders.push_back(vsLMShader);					
-					matshaders.push_back(psLMShader);
-				}
-				else
-				{
-					matshaders.push_back(vsShader);
-					matshaders.push_back(psShader);
-				}
+				//if (bFoundLightMap)
+				//{
+				//	matshaders.push_back(vsLMShader);					
+				//	matshaders.push_back(psLMShader);
+				//}
+				//else
+				//{
+				//	matshaders.push_back(vsShader);
+				//	matshaders.push_back(psShader);
+				//}
 			}
 		}
 

@@ -143,6 +143,7 @@ namespace SPP
 		}
 	};
 
+
 	using StaticDrawLeaseManager = DeviceLeaseManager< TSpan< StaticDrawParams > >;
 
 	class VulkanGraphicsDevice : public GraphicsDevice
@@ -260,6 +261,9 @@ namespace SPP
 		std::unique_ptr< StaticDrawLeaseManager > _staticInstanceDrawLeaseManager;
 
 		VkDescriptorPool _globalPool;
+
+		// free and updates supported
+		VkDescriptorPool _sharedGlobalPool;
 		std::vector< VkDescriptorPool >  _perDrawPools;
 		std::map< VulkanPipelineStateKey, GPUReferencer< class VulkanPipelineState > > _piplineStateMap;
 
@@ -319,9 +323,14 @@ namespace SPP
 			return _frameBuffers[currentBuffer]->Get();
 		}
 
-		VkDescriptorPool GetActiveDescriptorPool()
+		VkDescriptorPool GetPerFrameResetDescriptorPool()
 		{
 			return _perDrawPools[currentBuffer];
+		}
+
+		VkDescriptorPool GetPersistentDescriptorPool()
+		{
+			return _sharedGlobalPool;
 		}
 
 		uint8_t GetActiveFrame()

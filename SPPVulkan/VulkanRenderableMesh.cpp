@@ -2,11 +2,15 @@
 // Distributed under MIT license, or public domain if desired and
 // recognized in your jurisdiction.
 
+
 #include "SPPVulkan.h"
-#include "VulkanDevice.h"
+
+#include "VulkanRenderableMesh.h"
+
 #include "VulkanShaders.h"
 #include "VulkanRenderScene.h"
 #include "VulkanTexture.h"
+
 #include "SPPGraphics.h"
 #include "SPPGraphicsO.h"
 #include "SPPFileSystem.h"
@@ -34,81 +38,27 @@ namespace SPP
 		GPUReferencer< GPUShader> InDS,
 		GPUReferencer< GPUShader> InCS);
 
-	class RT_VulkanStaticMesh : public RT_StaticMesh
+	GPUReferencer < VulkanPipelineState > RT_Vulkan_Material::GetPipelineState(EDrawingTopology topology,
+		GPUReferencer<GPUShader> vsShader,
+		GPUReferencer<GPUShader> psShader,
+		GPUReferencer<GPUInputLayout> layout)
 	{
-		CLASS_RT_RESOURCE();
+		SE_ASSERT(vsShader && psShader);
 
-	protected:
-		RT_VulkanStaticMesh(GraphicsDevice* InOwner) : RT_StaticMesh(InOwner) {}
-
-	public:
-
-		virtual void Initialize() override;
-		virtual ~RT_VulkanStaticMesh() {}
-	};
-		
-	class RT_VulkanRenderableMesh : public RT_RenderableMesh
-	{
-		CLASS_RT_RESOURCE();
-
-	protected:
-
-		GPUReferencer < VulkanPipelineState > _state;
-		std::shared_ptr< ArrayResource > _drawConstants;
-		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
-
-		std::shared_ptr<StaticDrawLeaseManager::Lease> _staticDrawLease;
-
-		bool bPendingUpdate = false;
-
-
-		RT_VulkanRenderableMesh(GraphicsDevice* InOwner) : RT_RenderableMesh(InOwner) {}
-	public:
-		virtual ~RT_VulkanRenderableMesh() {}
-
-		virtual void _AddToRenderScene(class RT_RenderScene* InScene) override;
-		virtual void _RemoveFromRenderScene() override;
-
-		virtual void PrepareToDraw() override;
-		virtual void Draw() override;
-	};
-
-	class RT_Vulkan_Material : public RT_Material
-	{
-		CLASS_RT_RESOURCE();
-
-	protected:
-
-		RT_Vulkan_Material(GraphicsDevice* InOwner) : RT_Material(InOwner) {}
-
-	public:
-		virtual ~RT_Vulkan_Material() {} 
-
-		GPUReferencer < VulkanPipelineState > GetPipelineState(EDrawingTopology topology,
-			GPUReferencer<GPUInputLayout> layout)
-		{
-			SE_ASSERT(_vertexShader && _pixelShader);
-
-			auto vsRef = _vertexShader->GetGPURef();
-			auto psRef = _pixelShader->GetGPURef();
-
-			SE_ASSERT(vsRef && psRef);
-
-			return GetVulkanPipelineState(_owner,
-				_blendState,
-				_rasterizerState,
-				_depthState,
-				topology,
-				layout,
-				vsRef,
-				psRef,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr);
-		}
-	};
+		return GetVulkanPipelineState(_owner,
+			_blendState,
+			_rasterizerState,
+			_depthState,
+			topology,
+			layout,
+			vsShader,
+			psShader,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr,
+			nullptr);
+	}
 
 	std::shared_ptr< class RT_Material > VulkanGraphicsDevice::CreateMaterial()
 	{
@@ -162,6 +112,7 @@ namespace SPP
 		RT_RenderableMesh::_RemoveFromRenderScene();
 	}
 
+	// MOVE THIS, its a mesh it doesn't have specifics
 	void RT_VulkanRenderableMesh::PrepareToDraw()
 	{
 		if (!_state)
@@ -173,12 +124,12 @@ namespace SPP
 			}
 
 			//auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
-			auto vulkanMat = std::dynamic_pointer_cast<RT_Vulkan_Material>(_material);
+			//auto vulkanMat = std::dynamic_pointer_cast<RT_Vulkan_Material>(_material);
 
-			SE_ASSERT(vulkanMat);
-			SE_ASSERT(_mesh);
-			SE_ASSERT(_mesh->GetLayout());
-			_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
+			//SE_ASSERT(vulkanMat);
+			//SE_ASSERT(_mesh);
+			//SE_ASSERT(_mesh->GetLayout());
+			//_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
 
 			SE_ASSERT(_state);
 		}
@@ -291,7 +242,7 @@ namespace SPP
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vulkVB.GetBuffer(), offsets);
 		vkCmdBindIndexBuffer(commandBuffer, vulkIB.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		auto CurPool = GGlobalVulkanGI->GetActiveDescriptorPool();
+		auto CurPool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 
 		auto& descriptorSetLayouts = meshPSO->GetDescriptorSetLayouts();
 		auto& descriptorSetLayoutBindings = meshPSO->GetDescriptorSetLayoutBindings();
@@ -341,30 +292,31 @@ namespace SPP
 		{
 			auto foundFirstSet = descriptorSetLayoutBindings.find(1);
 
-			VkDescriptorImageInfo textureInfo[4];
+			//FIXME
+			//VkDescriptorImageInfo textureInfo[4];
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-			auto& textures = _material->GetTextureArray();			
-			
+			//auto& textures = _material->GetTextureArray();			
+			//
 
-			if (foundFirstSet != descriptorSetLayoutBindings.end())
-			{
-				int32_t TextureCount = foundFirstSet->second.size() / 2;
+			//if (foundFirstSet != descriptorSetLayoutBindings.end())
+			//{
+			//	int32_t TextureCount = foundFirstSet->second.size() / 2;
 
-				for (int32_t Iter = 0; Iter < TextureCount; Iter++)
-				{
-					auto gpuTexture = (Iter < textures.size()) ?
-						textures[Iter]->GetGPUTexture() :
-						GGlobalVulkanGI->GetDefaultTexture();
-						
-					auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
-					textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
+			//	for (int32_t Iter = 0; Iter < TextureCount; Iter++)
+			//	{
+			//		auto gpuTexture = (Iter < textures.size()) ?
+			//			textures[Iter]->GetGPUTexture() :
+			//			GGlobalVulkanGI->GetDefaultTexture();
+			//			
+			//		auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
+			//		textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
 
-					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(locaDrawSets[1],
-						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (Iter*2) + 0, &textureInfo[Iter]));
-					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(locaDrawSets[1],
-						VK_DESCRIPTOR_TYPE_SAMPLER, (Iter * 2) + 1, &textureInfo[Iter]));
-				}
-			}
+			//		writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(locaDrawSets[1],
+			//			VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (Iter*2) + 0, &textureInfo[Iter]));
+			//		writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(locaDrawSets[1],
+			//			VK_DESCRIPTOR_TYPE_SAMPLER, (Iter * 2) + 1, &textureInfo[Iter]));
+			//	}
+			//}
 
 			vkUpdateDescriptorSets(vulkanDevice,
 				static_cast<uint32_t>(writeDescriptorSets.size()),

@@ -52,6 +52,56 @@ namespace SPP
 		uint32_t shapeOp;
 	};
 
+	struct MaterialKey
+	{
+	private:
+		size_t _hash = 0;
+
+	public:
+		std::weak_ptr<RT_Material> mat;
+		uint32_t updateID = 0;
+
+		MaterialKey(std::shared_ptr<RT_Material> InMat)
+		{
+			mat = InMat;
+			updateID = InMat->GetUpdateID();
+			_hash = (UINT_PTR)InMat.get() ^ updateID;
+		}
+
+		bool IsValid()
+		{
+			if (auto lckVal = mat.lock())
+			{
+				return (updateID == lckVal->GetUpdateID());
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		size_t Hash() const
+		{
+			return _hash;
+		}
+
+		bool operator< (const MaterialKey& cmpTo) const
+		{
+			if (mat.owner_before(cmpTo.mat))
+			{
+				return updateID < cmpTo.updateID;
+			}
+
+			return false;
+		}
+
+		bool operator==(const MaterialKey& cmpTo) const
+		{
+			return !(*this < cmpTo) && !(cmpTo < *this);
+		}
+	};
+
+
 	class VulkanRenderScene : public RT_RenderScene
 	{
 	protected:
@@ -79,26 +129,7 @@ namespace SPP
 		std::shared_ptr< ArrayResource > _cameraData;
 		GPUReferencer< class VulkanBuffer > _cameraBuffer;
 
-		std::shared_ptr< ArrayResource > _drawConstants;
-		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
-
-		std::shared_ptr< ArrayResource > _drawParams;
-		GPUReferencer< class VulkanBuffer > _drawParamsBuffer;
-
-		std::shared_ptr< ArrayResource > _shapes;
-		GPUReferencer< class VulkanBuffer > _shapesBuffer;
-
-		VkDescriptorSetLayout _perFrameSetLayout = VK_NULL_HANDLE;
-		VkDescriptorSetLayout _perDrawSetLayout = VK_NULL_HANDLE;
-
-		VkDescriptorSet _perFrameDescriptorSet = VK_NULL_HANDLE;
-		VkDescriptorSet _perDrawDescriptorSet = VK_NULL_HANDLE;
-
-		// Descriptor set pool
-		VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
-		
 		std::shared_ptr<RT_Material> _defaultMaterial;
-		std::shared_ptr< class RT_Shader > _meshvertexShader, _meshpixelShader;
 
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
 
@@ -160,5 +191,8 @@ namespace SPP
 		virtual void AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color = Vector3(1, 1, 1)) override;
 		virtual void AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color = Vector3(1, 1, 1)) override;
 
+
+		void OpaqueDepthPass();
+		void OpaquePass();
 	};
 }

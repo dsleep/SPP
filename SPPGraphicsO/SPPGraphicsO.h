@@ -175,31 +175,27 @@ namespace SPP
 	protected:
 		OMaterial(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
-		std::vector<OShader*> _shaders;
-		std::vector<OTexture*> _textures;
+		//std::vector<OShader*> _shaders;
 
 		std::shared_ptr<RT_Material> _material;
+		std::map<TexturePurpose, OTexture*> _textures;
 
 	public:
 		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
 		virtual void UinitializeGraphicsDeviceResources();
 
-		void SetTexture(OTexture* InTexture, uint8_t CurrentIdx)
+		void SetTexture(TexturePurpose InTP, OTexture* InTexture)
 		{
-			if (_textures.size() <= CurrentIdx)
-			{
-				_textures.resize(CurrentIdx + 1);
-			}
-			_textures[CurrentIdx] = InTexture;
+			_textures[InTP] = InTexture;
 		}
-		void SetMaterial(std::shared_ptr<RT_Material> InMat)
-		{
-			_material = InMat;
-		}
-		std::vector<OShader*> &GetShaders()
-		{
-			return _shaders;
-		}
+		//void SetMaterial(std::shared_ptr<RT_Material> InMat)
+		//{
+		//	_material = InMat;
+		//}
+		//std::vector<OShader*> &GetShaders()
+		//{
+		//	return _shaders;
+		//}
 		std::shared_ptr<RT_Material> GetMaterial()
 		{
 			return _material;
