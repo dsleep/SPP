@@ -115,24 +115,24 @@ namespace SPP
 	// MOVE THIS, its a mesh it doesn't have specifics
 	void RT_VulkanRenderableMesh::PrepareToDraw()
 	{
-		if (!_state)
-		{
-			if (!_material)
-			{
-				SE_ASSERT(false);
-				//_material = _owner->GetDefaultMaterial();
-			}
+		//if (!_state)
+		//{
+		//	if (!_material)
+		//	{
+		//		SE_ASSERT(false);
+		//		//_material = _owner->GetDefaultMaterial();
+		//	}
 
-			//auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
-			//auto vulkanMat = std::dynamic_pointer_cast<RT_Vulkan_Material>(_material);
+		//	//auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
+		//	//auto vulkanMat = std::dynamic_pointer_cast<RT_Vulkan_Material>(_material);
 
-			//SE_ASSERT(vulkanMat);
-			//SE_ASSERT(_mesh);
-			//SE_ASSERT(_mesh->GetLayout());
-			//_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
+		//	//SE_ASSERT(vulkanMat);
+		//	//SE_ASSERT(_mesh);
+		//	//SE_ASSERT(_mesh->GetLayout());
+		//	//_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
 
-			SE_ASSERT(_state);
-		}
+		//	SE_ASSERT(_state);
+		//}
 
 		if (!_bIsStatic && bPendingUpdate)
 		{
@@ -218,6 +218,7 @@ namespace SPP
 
 	void RT_VulkanRenderableMesh::Draw()
 	{		
+		/*
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
 		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
@@ -334,5 +335,6 @@ namespace SPP
 			setStartIdx,
 			locaDrawSets.size(), locaDrawSets.data(), ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDrawIndexed(commandBuffer, gpuIndexBuffer->GetElementCount(), 1, 0, 0, 0);
+		*/
 	}
 }

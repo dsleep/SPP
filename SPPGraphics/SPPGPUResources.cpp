@@ -133,7 +133,7 @@ namespace SPP
 	void GraphicsDevice::INTERNAL_RemoveScene(class RT_RenderScene* InScene)
 	{
 		_renderScenes.erase(std::remove(_renderScenes.begin(), _renderScenes.end(), InScene), _renderScenes.end());
-		//InScene->removed();
+		InScene->RemovedFromGraphicsDevice();
 	}
 
 	GPU_CALL GraphicsDevice::AddScene(class RT_RenderScene *InScene)

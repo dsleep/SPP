@@ -14,6 +14,25 @@
 
 namespace SPP
 {
+	struct PassCache
+	{
+		PassCache();
+		virtual ~PassCache() {}
+	};
+
+
+	class IVulkanPassCacher
+	{
+	protected:
+		std::shared_ptr<PassCache> passCaches[5];
+
+	public:
+		auto& GetPassCache()
+		{
+			return passCaches;
+		}
+	};
+
 	class RT_VulkanStaticMesh : public RT_StaticMesh
 	{
 		CLASS_RT_RESOURCE();
@@ -22,18 +41,16 @@ namespace SPP
 		RT_VulkanStaticMesh(GraphicsDevice* InOwner) : RT_StaticMesh(InOwner) {}
 
 	public:
-
 		virtual void Initialize() override;
 		virtual ~RT_VulkanStaticMesh() {}
 	};
 
-	class RT_VulkanRenderableMesh : public RT_RenderableMesh
+	class RT_VulkanRenderableMesh : public RT_RenderableMesh, public IVulkanPassCacher
 	{
 		CLASS_RT_RESOURCE();
 
 	protected:
-
-		GPUReferencer < VulkanPipelineState > _state;
+				
 		std::shared_ptr< ArrayResource > _drawConstants;
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
 
@@ -44,6 +61,17 @@ namespace SPP
 
 		RT_VulkanRenderableMesh(GraphicsDevice* InOwner) : RT_RenderableMesh(InOwner) {}
 	public:
+
+		auto GetStaticDrawBufferIndex()
+		{
+			return _staticDrawLease->GetIndex();
+		}
+		
+		auto GetDrawTransformBuffer()
+		{
+			return _drawConstantsBuffer;
+		}
+
 		virtual ~RT_VulkanRenderableMesh() {}
 
 		virtual void _AddToRenderScene(class RT_RenderScene* InScene) override;
@@ -53,7 +81,9 @@ namespace SPP
 		virtual void Draw() override;
 	};
 
-	class RT_Vulkan_Material : public RT_Material
+	
+
+	class RT_Vulkan_Material : public RT_Material, public IVulkanPassCacher
 	{
 		CLASS_RT_RESOURCE();
 

@@ -7,6 +7,8 @@
 #include "VulkanDevice.h"
 #include "VulkanShaders.h"
 #include "VulkanTexture.h"
+#include "VulkanRenderableMesh.h"
+
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -95,11 +97,38 @@ namespace SPP
 		}
 	};
 
+	enum class VertexInputTypes
+	{
+		StaticMesh = 0,
+		SkeletalMesh,
+		Particle,
+		MAX
+	};
+
+	const std::vector<VertexStream>& OP_GetVertexStreams_SM()
+	{
+		static std::vector<VertexStream> vertexStreams;
+		if (vertexStreams.empty())
+		{
+			MeshVertex dummy;
+			vertexStreams.push_back(
+				CreateVertexStream(dummy,
+					dummy.position,
+					dummy.normal,
+					dummy.texcoord[0],
+					dummy.texcoord[1],
+					dummy.color));
+		}
+		return vertexStreams;
+	}
+
 	class GlobalOpaqueDrawerResources : public GlobalGraphicsResource
 	{
 	private:
 		GPUReferencer < VulkanShader > _opaqueVS, _opaquePS, _opaquePSWithLightMap, _opaqueVSWithLightMap;
 		GPUReferencer< SafeVkDescriptorSetLayout > _opaqueVSLayout;
+
+		GPUReferencer< GPUInputLayout > _SMlayout;
 
 	public:
 		// called on render thread
@@ -117,6 +146,9 @@ namespace SPP
 			_opaqueVSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_vs");
 			_opaquePSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_ps");
 
+			_SMlayout = Make_GPU(VulkanInputLayout, InOwner);
+			_SMlayout->InitializeLayout(OP_GetVertexStreams_SM());
+
 			auto& vsSet = _opaqueVS->GetLayoutSets();
 			_opaqueVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
 		}
@@ -124,6 +156,21 @@ namespace SPP
 		GPUReferencer< SafeVkDescriptorSetLayout > GetOpaqueVSLayout()
 		{
 			return _opaqueVSLayout;
+		}
+
+		GPUReferencer< GPUInputLayout > GetSMLayout()
+		{
+			return _SMlayout;
+		}
+
+		GPUReferencer < VulkanShader > GetOpaqueVS()
+		{
+			return _opaqueVS;
+		}
+
+		GPUReferencer < VulkanShader > GetOpaquePS()
+		{
+			return _opaquePS;
 		}
 
 		virtual void Shutdown(class GraphicsDevice* InOwner)
@@ -137,6 +184,8 @@ namespace SPP
 
 	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
 	GlobalOpaqueDrawerResources GVulkanOpaqueResrouces;
+
+	
 		
 	class OpaqueDrawer
 	{
@@ -145,7 +194,7 @@ namespace SPP
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 
-		std::unordered_map< MaterialKey, GPUReferencer< SafeVkDescriptorSet > > _materialDescriptorCache;
+		//std::unordered_map< MaterialKey, GPUReferencer< SafeVkDescriptorSet > > _materialDescriptorCache;
 
 	public:
 		OpaqueDrawer(VulkanRenderScene *InScene) : _owningScene(InScene)
@@ -181,31 +230,46 @@ namespace SPP
 				writeDescriptorSets.data(), 0, nullptr);
 		}
 
-		GPUReferencer< SafeVkDescriptorSet > GetMaterialDescriptorSet(VkDescriptorSetLayout InSetLayout,
-			const std::vector<VkDescriptorSetLayoutBinding> &textureBindings, 
-			std::shared_ptr<RT_Material> InMat)
+		struct OpaqueCache : PassCache
 		{
-			MaterialKey matKey(InMat);
+			GPUReferencer< VulkanPipelineState > state[(uint8_t)VertexInputTypes::MAX];
+			GPUReferencer< SafeVkDescriptorSet > descriptorSet[(uint8_t)VertexInputTypes::MAX];
+			virtual ~OpaqueCache() {}
+		};
 
-			auto findCachedItem = _materialDescriptorCache.find(matKey);
-			
-			if (findCachedItem != _materialDescriptorCache.end())
+		std::shared_ptr< OpaqueCache > GetMaterialCache(VertexInputTypes InVertexInputType,
+			std::shared_ptr<RT_Vulkan_Material> InMat)
+		{
+			const uint8_t OPAQUE_PBR_PASS = 0;
+			auto cached = std::dynamic_pointer_cast<OpaqueCache>( InMat->GetPassCache()[OPAQUE_PBR_PASS] );
+
+			if (!cached)
 			{
-				return findCachedItem->second;
+				cached = std::make_shared< OpaqueCache >();
 			}
-			else
+
+			if(!cached->state[(uint8_t)InVertexInputType])
 			{
+				cached->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
+					GVulkanOpaqueResrouces.GetOpaqueVS(),
+					GVulkanOpaqueResrouces.GetOpaquePS(),
+					GVulkanOpaqueResrouces.GetSMLayout());
+
+				auto &descSetLayouts = cached->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
+
+				const uint8_t TEXTURE_SET_ID = 1;
 				VkDescriptorImageInfo textureInfo[4];
 
 				auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-				int32_t TextureCount = textureBindings.size() / 2;
-				auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, InSetLayout, globalSharedPool);
+				int32_t TextureCount = 1;
+				auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, descSetLayouts[TEXTURE_SET_ID], globalSharedPool);
 
 				auto& textureMap = InMat->GetTextureMap();
 				for (int32_t Iter = 0; Iter < TextureCount; Iter++)
 				{
-					auto getTexture = textureMap.find((TexturePurpose)Iter);
+					auto curTexturePurpose = (TexturePurpose)0;// textureBindings[Iter * 2].binding;
+					auto getTexture = textureMap.find(curTexturePurpose);
 
 					auto gpuTexture = getTexture != textureMap.end() ?
 						getTexture->second->GetGPUTexture() :
@@ -224,15 +288,145 @@ namespace SPP
 					static_cast<uint32_t>(writeDescriptorSets.size()),
 					writeDescriptorSets.data(), 0, nullptr);
 
-				_materialDescriptorCache[matKey] = newTextureDescSet;
+				cached->descriptorSet[(uint8_t)InVertexInputType] = newTextureDescSet;
 			}
 
-
+			return cached;
 		}
 
-		void Render()
+		struct OpaqueMeshCache : PassCache
 		{
+			VkBuffer indexBuffer;
+			VkBuffer vertexBuffer;
 
+			VkDescriptorBufferInfo transformBufferInfo;
+
+			uint32_t staticLeaseIdx;
+			uint32_t indexedCount;
+
+			virtual ~OpaqueMeshCache() {}
+		};
+
+		std::shared_ptr< OpaqueMeshCache > GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
+		{
+			const uint8_t OPAQUE_PBR_PASS = 0;
+			auto cached = std::dynamic_pointer_cast<OpaqueMeshCache>(InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS]);
+
+			if (!cached)
+			{
+				cached = std::make_shared< OpaqueMeshCache >();
+
+				auto vulkSM = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(InVulkanRenderableMesh.GetStaticMesh());
+
+				auto gpuVertexBuffer = vulkSM->GetVertexBuffer()->GetGPUBuffer();
+				auto gpuIndexBuffer = vulkSM->GetIndexBuffer()->GetGPUBuffer();
+
+				auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
+				auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
+
+				cached->indexBuffer = vulkIB.GetBuffer();
+				cached->vertexBuffer = vulkVB.GetBuffer();
+				cached->indexedCount = vulkIB.GetElementCount();				
+
+				if (InVulkanRenderableMesh.IsStatic())
+				{
+					cached->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
+				}
+				else
+				{
+					auto transformBuf = InVulkanRenderableMesh.GetDrawTransformBuffer();
+
+					cached->transformBufferInfo.buffer = transformBuf->GetBuffer();
+					cached->transformBufferInfo.offset = 0;
+					cached->transformBufferInfo.range = transformBuf->GetPerElementSize();
+				}
+			}
+		}
+
+		// TODO cleanupppp
+		void Render(RT_VulkanRenderableMesh &InVulkanRenderableMesh)
+		{
+			auto currentFrame = _owningDevice->GetActiveFrame();
+			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+			auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
+			auto matCache = GetMaterialCache(VertexInputTypes::StaticMesh, vulkanMat);
+			auto meshCache = GetMeshCache(InVulkanRenderableMesh);
+
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &meshCache->vertexBuffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, meshCache->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipeline());
+
+			// if static we have everything pre cached
+			if (InVulkanRenderableMesh.IsStatic())
+			{				
+				uint32_t uniform_offsets[] = {
+					(sizeof(GPUViewConstants)) * currentFrame,
+					(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+				};
+
+				VkDescriptorSet locaDrawSets[] = {
+					_camStaticBufferDescriptorSet->Get(),
+					matCache->descriptorSet[0]->Get()
+				};
+								
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
+					0,
+					ARRAY_SIZE(locaDrawSets), locaDrawSets,
+					ARRAY_SIZE(uniform_offsets), uniform_offsets);
+				
+
+			}
+			// if not static we need to write transforms
+			else
+			{
+				auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
+				auto vsLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+
+				VkDescriptorSet dynamicTransformSet;
+				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
+
+				auto cameraBuffer = _owningScene->GetCameraBuffer();
+
+				VkDescriptorBufferInfo perFrameInfo;
+				perFrameInfo.buffer = cameraBuffer->GetBuffer();
+				perFrameInfo.offset = 0;
+				perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(dynamicTransformSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(dynamicTransformSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
+				};
+
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+					static_cast<uint32_t>(writeDescriptorSets.size()),
+					writeDescriptorSets.data(), 0, nullptr);
+
+				uint32_t uniform_offsets[] = {
+					(sizeof(GPUViewConstants)) * currentFrame,
+					(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+				};
+
+				VkDescriptorSet locaDrawSets[] = {
+					_camStaticBufferDescriptorSet->Get(),
+					dynamicTransformSet
+				};
+
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
+					0,
+					ARRAY_SIZE(locaDrawSets), locaDrawSets,
+					ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			}
+
+			vkCmdDrawIndexed(commandBuffer, meshCache->indexedCount, 1, 0, 0, 0);
 		}
 	};
 
@@ -252,63 +446,14 @@ namespace SPP
 
 	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
-		//_defaultMaterial->SetMaterialArgs({ .vertexShader = _meshvertexShader, .pixelShader = _meshpixelShader });
-/*
-		_meshvertexShader->Initialize(EShaderType::Vertex);
-		_meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
-		_meshpixelShader->Initialize(EShaderType::Pixel);
-		_meshpixelShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
-	*/		
 		_debugDrawer->Initialize();
 
-		//_debugVS = Vulkan_CreateShader(EShaderType::Vertex);
-		//_debugVS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");
 
-		//_debugPS = Vulkan_CreateShader(EShaderType::Pixel);
-		//_debugPS->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_ps");
-
-
-		//_debugLayout = Vulkan_CreateInputLayout();
-
-		//{
-		//	auto& vulkanInputLayout = _debugLayout->GetAs<VulkanInputLayout>();
-		//	DebugVertex dvPattern;
-		//	vulkanInputLayout.Begin();
-		//	vulkanInputLayout.AddVertexStream(dvPattern, dvPattern.position, dvPattern.color);
-		//	vulkanInputLayout.Finalize();
-		//}
-		//	
-		////_debugLayout->InitializeLayout({
-		////		{ "POSITION",  InputLayoutElementType::Float3, offsetof(DebugVertex,position) },
-		////		{ "COLOR",  InputLayoutElementType::Float3, offsetof(DebugVertex,color) }
-		////	});
-
-		//_debugPSO = GetVulkanPipelineState(EBlendState::Disabled,
-		//	ERasterizerState::NoCull,
-		//	EDepthState::Enabled,
-		//	EDrawingTopology::LineList,
-		//	_debugLayout,
-		//	_debugVS,
-		//	_debugPS,
-		//	nullptr,
-		//	nullptr,
-		//	nullptr,
-		//	nullptr,
-		//	nullptr);
-
-		//_debugResource = std::make_shared< ArrayResource >();
-		//_debugResource->InitializeFromType< DebugVertex >(10 * 1024);
-		//_debugBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Vertex, _debugResource);
-
-		//
 		_fullscreenRayVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
 		_fullscreenRaySDFPS = Make_GPU(VulkanShader, _owner, EShaderType::Pixel);
 		_fullscreenRaySDFPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
-
-		//_fullscreenRaySkyBoxPS = Vulkan_CreateShader(EShaderType::Pixel);
-		//_fullscreenRaySkyBoxPS->CompileShaderFromFile("shaders/fullScreenRayCubemapPS.hlsl", "main_ps");
 
 		_fullscreenRayVSLayout = Make_GPU(VulkanInputLayout, _owner); 
 
@@ -331,19 +476,6 @@ namespace SPP
 			nullptr,
 			nullptr);
 
-		//_fullscreenSkyBoxPSO = GetVulkanPipelineState(EBlendState::Disabled,
-		//	ERasterizerState::NoCull,
-		//	EDepthState::Disabled,
-		//	EDrawingTopology::TriangleList,
-		//	_fullscreenRayVSLayout,
-		//	_fullscreenRayVS,
-		//	_fullscreenRaySkyBoxPS,
-		//	nullptr,
-		//	nullptr,
-		//	nullptr,
-		//	nullptr,
-		//	nullptr);
-
 
 		//
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
@@ -358,6 +490,17 @@ namespace SPP
 		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
 		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
 				
+		// drawers
+		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
+	}
+
+	void VulkanRenderScene::RemovedFromGraphicsDevice()
+	{
+		_debugDrawer->Shutdown();
+
+		_cameraBuffer.Reset();
+		_cameraData.reset();
+		_opaqueDrawer.reset();
 	}
 
 	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
@@ -523,7 +666,7 @@ namespace SPP
 					auto& drawInfo = curRenderable->GetDrawingInfo();
 
 					//drawInfo.drawingType == DrawingType::Opaque
-					((Renderable*)InElement)->Draw();
+					//((Renderable*)InElement)->Draw();
 					return true;
 				});
 		#else

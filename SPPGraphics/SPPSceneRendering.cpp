@@ -50,6 +50,7 @@ namespace SPP
 	RT_RenderScene::~RT_RenderScene() {}
 
 	void RT_RenderScene::AddedToGraphicsDevice() {};
+	void RT_RenderScene::RemovedFromGraphicsDevice() {};	
 
 	void RT_RenderScene::SetRenderToBackBuffer(bool bInRenderToBackBuffer)
 	{

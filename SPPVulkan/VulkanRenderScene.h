@@ -109,6 +109,8 @@ namespace SPP
 		////std::vector< D3D12RenderableMesh* > _renderMeshes;
 		//bool _bMeshInstancesDirty = false;
 
+		std::unique_ptr< class OpaqueDrawer > _opaqueDrawer;
+
 		GPUReferencer< GPUShader > _debugVS;
 		GPUReferencer< GPUShader > _debugPS;
 
@@ -164,7 +166,7 @@ namespace SPP
 		}
 
 		virtual void AddedToGraphicsDevice() override;
-
+		virtual void RemovedFromGraphicsDevice() override;		
 
 		virtual std::shared_ptr<RT_Material> GetDefaultMaterial() override
 		{

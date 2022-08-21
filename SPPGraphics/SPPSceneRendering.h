@@ -125,7 +125,9 @@ namespace SPP
 
 		virtual bool Is3dRenderable() const { return true; }
 		virtual bool IsPostRenderable() const { return false; }
-
+		bool IsStatic() const {
+			return _bIsStatic;
+		}
 		const DrawingInfo &GetDrawingInfo() const
 		{
 			return _drawingInfo;
@@ -250,6 +252,7 @@ namespace SPP
 		virtual ~RT_RenderScene();
 
 		virtual void AddedToGraphicsDevice();
+		virtual void RemovedFromGraphicsDevice();
 
 		void SetRenderToBackBuffer(bool bInRenderToBackBuffer);
 		void SetUseBackBufferDepthWithCustomColor(bool bInUseBackBufferDepths);
@@ -455,6 +458,16 @@ namespace SPP
 			std::shared_ptr<RT_StaticMesh> mesh;
 			std::shared_ptr<RT_Material> material;
 		};
+
+		std::shared_ptr<RT_Material> GetMaterial()
+		{
+			return _material;
+		}
+
+		std::shared_ptr<RT_StaticMesh> GetStaticMesh()
+		{
+			return _mesh;
+		}
 
 		virtual ~RT_RenderableMesh() {}
 		void SetRenderableMeshArgs(const Args& InArgs)
