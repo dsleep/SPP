@@ -230,32 +230,34 @@ namespace SPP
 				writeDescriptorSets.data(), 0, nullptr);
 		}
 
-		struct OpaqueCache : PassCache
+		struct OpaqueMaterialCache : PassCache
 		{
 			GPUReferencer< VulkanPipelineState > state[(uint8_t)VertexInputTypes::MAX];
 			GPUReferencer< SafeVkDescriptorSet > descriptorSet[(uint8_t)VertexInputTypes::MAX];
-			virtual ~OpaqueCache() {}
+			virtual ~OpaqueMaterialCache() {}
 		};
 
-		std::shared_ptr< OpaqueCache > GetMaterialCache(VertexInputTypes InVertexInputType,
+		OpaqueMaterialCache*GetMaterialCache(VertexInputTypes InVertexInputType,
 			std::shared_ptr<RT_Vulkan_Material> InMat)
 		{
 			const uint8_t OPAQUE_PBR_PASS = 0;
-			auto cached = std::dynamic_pointer_cast<OpaqueCache>( InMat->GetPassCache()[OPAQUE_PBR_PASS] );
-
+			auto& cached = InMat->GetPassCache()[OPAQUE_PBR_PASS];
+			OpaqueMaterialCache* cacheRef = nullptr;
 			if (!cached)
 			{
-				cached = std::make_shared< OpaqueCache >();
+				cached = std::make_unique< OpaqueMaterialCache >();
 			}
 
-			if(!cached->state[(uint8_t)InVertexInputType])
+			cacheRef = dynamic_cast<OpaqueMaterialCache*>(cached.get());
+
+			if(!cacheRef->state[(uint8_t)InVertexInputType])
 			{
-				cached->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
+				cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
 					GVulkanOpaqueResrouces.GetOpaqueVS(),
 					GVulkanOpaqueResrouces.GetOpaquePS(),
 					GVulkanOpaqueResrouces.GetSMLayout());
 
-				auto &descSetLayouts = cached->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
+				auto &descSetLayouts = cacheRef->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
 
 				const uint8_t TEXTURE_SET_ID = 1;
 				VkDescriptorImageInfo textureInfo[4];
@@ -288,34 +290,39 @@ namespace SPP
 					static_cast<uint32_t>(writeDescriptorSets.size()),
 					writeDescriptorSets.data(), 0, nullptr);
 
-				cached->descriptorSet[(uint8_t)InVertexInputType] = newTextureDescSet;
+				cacheRef->descriptorSet[(uint8_t)InVertexInputType] = newTextureDescSet;
 			}
 
-			return cached;
+			return cacheRef;
 		}
 
 		struct OpaqueMeshCache : PassCache
 		{
-			VkBuffer indexBuffer;
-			VkBuffer vertexBuffer;
+			VkBuffer indexBuffer = nullptr;
+			VkBuffer vertexBuffer = nullptr;
 
 			VkDescriptorBufferInfo transformBufferInfo;
 
-			uint32_t staticLeaseIdx;
-			uint32_t indexedCount;
+			uint32_t staticLeaseIdx = 0;
+			uint32_t indexedCount = 0;
 
 			virtual ~OpaqueMeshCache() {}
 		};
 
-		std::shared_ptr< OpaqueMeshCache > GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
+		OpaqueMeshCache* GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
 		{
 			const uint8_t OPAQUE_PBR_PASS = 0;
-			auto cached = std::dynamic_pointer_cast<OpaqueMeshCache>(InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS]);
+			auto &cached = InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS];
 
 			if (!cached)
 			{
-				cached = std::make_shared< OpaqueMeshCache >();
+				cached = std::make_unique< OpaqueMeshCache >();
+			}
 
+			auto cacheRef = dynamic_cast<OpaqueMeshCache*>(cached.get());
+
+			if(!cacheRef->indexBuffer)
+			{
 				auto vulkSM = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(InVulkanRenderableMesh.GetStaticMesh());
 
 				auto gpuVertexBuffer = vulkSM->GetVertexBuffer()->GetGPUBuffer();
@@ -324,23 +331,25 @@ namespace SPP
 				auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
 				auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
 
-				cached->indexBuffer = vulkIB.GetBuffer();
-				cached->vertexBuffer = vulkVB.GetBuffer();
-				cached->indexedCount = vulkIB.GetElementCount();				
+				cacheRef->indexBuffer = vulkIB.GetBuffer();
+				cacheRef->vertexBuffer = vulkVB.GetBuffer();
+				cacheRef->indexedCount = vulkIB.GetElementCount();
 
 				if (InVulkanRenderableMesh.IsStatic())
 				{
-					cached->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
+					cacheRef->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
 				}
 				else
 				{
 					auto transformBuf = InVulkanRenderableMesh.GetDrawTransformBuffer();
 
-					cached->transformBufferInfo.buffer = transformBuf->GetBuffer();
-					cached->transformBufferInfo.offset = 0;
-					cached->transformBufferInfo.range = transformBuf->GetPerElementSize();
+					cacheRef->transformBufferInfo.buffer = transformBuf->GetBuffer();
+					cacheRef->transformBufferInfo.offset = 0;
+					cacheRef->transformBufferInfo.range = transformBuf->GetPerElementSize();
 				}
 			}
+
+			return cacheRef;
 		}
 
 		// TODO cleanupppp
@@ -378,8 +387,6 @@ namespace SPP
 					0,
 					ARRAY_SIZE(locaDrawSets), locaDrawSets,
 					ARRAY_SIZE(uniform_offsets), uniform_offsets);
-				
-
 			}
 			// if not static we need to write transforms
 			else
@@ -658,25 +665,32 @@ namespace SPP
 		_opaques.resize(_renderables3d.size());
 		_translucents.resize(_renderables3d.size());
 
-		#if 1
-			_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
-				{
-					auto curRenderable = ((Renderable*)InElement);
-					_visible3d[curVisible++] = curRenderable;
-					auto& drawInfo = curRenderable->GetDrawingInfo();
+		//#if 1
+		//	_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
+		//		{
+		//			auto curRenderable = ((Renderable*)InElement);
+		//			if (curRenderable->Is3dRenderable())
+		//			{
+		//				_visible3d[curVisible++] = curRenderable;
+		//			}
 
-					//drawInfo.drawingType == DrawingType::Opaque
-					//((Renderable*)InElement)->Draw();
-					return true;
-				});
-		#else
-			for (auto renderItem : _renderables3d)
-			{
-				renderItem->Draw();
-			}
-		#endif
+		//			auto& drawInfo = curRenderable->GetDrawingInfo();
 
-		
+		//			//drawInfo.drawingType == DrawingType::Opaque
+		//			//((Renderable*)InElement)->Draw();
+		//			return true;
+		//		});
+		//#else
+		//	for (auto renderItem : _renderables3d)
+		//	{
+		//		renderItem->Draw();
+		//	}
+		//#endif
+
+		for (auto& curVis : _renderables3d)
+		{
+			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)curVis);
+		}
 		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);

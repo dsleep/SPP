@@ -101,23 +101,23 @@ namespace SPP
 		};
 		std::list< Purged > _pendingPurge;
 
-		std::function< void(LM::Lease &) > _func;
+		std::function< void(LM::Reservation&) > _func;
 		class VulkanGraphicsDevice* _owner = nullptr;
 		
 	public:
 
 		DeviceLeaseManager(class VulkanGraphicsDevice* InOwner,
 			IndexedData& InIndexor,
-			const std::function< void(LM::Lease&) >& InFunc) :
+			const std::function< void(LM::Reservation&) >& InFunc) :
 			_owner(InOwner), _func(InFunc), LM(InIndexor)
 		{ }
 
-		virtual void LeaseUpdated(typename LM::Lease& InLease) override
+		virtual void LeaseUpdated(typename LM::Reservation& InLease) override
 		{
 			_func(InLease);
 		}
 
-		virtual void EndLease(typename LM::Lease& InLease) override
+		virtual void EndLease(typename LM::Reservation& InLease) override
 		{
 			_pendingPurge.push_back({ std::move(InLease.GetBitReference()), _owner->GetCurrentFrame() });
 		}
@@ -144,7 +144,7 @@ namespace SPP
 	};
 
 
-	using StaticDrawLeaseManager = DeviceLeaseManager< TSpan< StaticDrawParams > >;
+	using StaticDrawPoolManager = DeviceLeaseManager< TSpan< StaticDrawParams > >;
 
 	class VulkanGraphicsDevice : public GraphicsDevice
 	{
@@ -258,7 +258,7 @@ namespace SPP
 		TSpan< StaticDrawParams > _staticInstanceDrawInfoSpan;
 		GPUReferencer< class VulkanBuffer > _staticInstanceDrawInfoGPU;
 
-		std::unique_ptr< StaticDrawLeaseManager > _staticInstanceDrawLeaseManager;
+		std::unique_ptr< StaticDrawPoolManager > _staticInstanceDrawPoolManager;
 
 		VkDescriptorPool _globalPool;
 
@@ -313,9 +313,9 @@ namespace SPP
 			return computeQueue;
 		}
 
-		auto GetStaticDrawLease()
+		auto GetStaticDrawPoolReservation()
 		{
-			return _staticInstanceDrawLeaseManager->GetLease();
+			return _staticInstanceDrawPoolManager->GetLease();
 		}
 
 		VkFramebuffer GetActiveFrameBuffer()

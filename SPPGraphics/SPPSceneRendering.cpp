@@ -122,23 +122,37 @@ namespace SPP
 
 		if (InRenderable->Is3dRenderable())
 		{
+			bool bAdded = false;
 			for (auto Iter = _renderables3d.begin(); Iter != _renderables3d.end(); Iter++)
 			{
 				if ((*InRenderable) < *(*Iter))
 				{
 					_renderables3d.insert(Iter, InRenderable);
+					bAdded = true;
+					break;
 				}
+			}
+			if (!bAdded)
+			{
+				_renderables3d.push_back(InRenderable);
 			}
 		}
 
 		if (InRenderable->IsPostRenderable())
 		{
+			bool bAdded = false;
 			for (auto Iter = _renderablesPost.begin(); Iter != _renderablesPost.end(); Iter++)
 			{
 				if ((*InRenderable) < *(*Iter))
 				{
 					_renderablesPost.insert(Iter, InRenderable);
+					bAdded = true;
+					break;
 				}
+			}
+			if (!bAdded)
+			{
+				_renderables3d.push_back(InRenderable);
 			}
 		}
 

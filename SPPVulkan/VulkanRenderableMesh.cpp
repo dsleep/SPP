@@ -92,9 +92,9 @@ namespace SPP
 
 		if (_bIsStatic)
 		{
-			_staticDrawLease = GGlobalVulkanGI->GetStaticDrawLease();
+			_staticDrawReservation = GGlobalVulkanGI->GetStaticDrawPoolReservation();
 
-			auto curData = _staticDrawLease->Access();
+			auto curData = _staticDrawReservation->Access();
 			curData.data.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.data.Translation = _position;
 		}
@@ -326,7 +326,7 @@ namespace SPP
 
 		uint32_t uniform_offsets[] = {
 			(sizeof(GPUViewConstants)) * currentFrame,
-			_bIsStatic ? (sizeof(StaticDrawParams) * _staticDrawLease->GetIndex()) : 0
+			_bIsStatic ? (sizeof(StaticDrawParams) * _staticDrawReservation->GetIndex()) : 0
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPSO->GetVkPipeline());

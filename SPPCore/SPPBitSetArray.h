@@ -66,9 +66,9 @@ namespace SPP
 		std::unique_ptr<BitSetArray> _bitArray;
 
 	public:
-		class Lease 
+		class Reservation 
 		{
-			NO_COPY_ALLOWED(Lease);
+			NO_COPY_ALLOWED(Reservation);
 
 		private:
 			BitReference _bitRef;
@@ -81,9 +81,9 @@ namespace SPP
 				NO_COPY_ALLOWED(LeaseWrite);
 
 				IndexedData::value_type& data;
-				Lease& lease;
+				Reservation& lease;
 
-				LeaseWrite(IndexedData::value_type& InData, Lease& InLease) : data(InData), lease(InLease)
+				LeaseWrite(IndexedData::value_type& InData, Reservation& InLease) : data(InData), lease(InLease)
 				{
 
 				}
@@ -94,12 +94,12 @@ namespace SPP
 				}
 			};
 
-			Lease(LeaseManager* InOwner, 
+			Reservation(LeaseManager* InOwner, 
 				IndexedData::value_type& InData, 
 				BitReference &&InBitRef) : _owner(InOwner), _data(InData), _bitRef(std::move(InBitRef))
 			{
 			}
-			~Lease()
+			~Reservation()
 			{
 				_owner->EndLease(*this);
 			}
@@ -126,7 +126,7 @@ namespace SPP
 			_bitArray = std::make_unique< BitSetArray >(_leasor.size());
 		}
 
-		std::shared_ptr<Lease> GetLease()
+		std::shared_ptr<Reservation> GetLease()
 		{
 			BitReference freeElement = _bitArray->GetFirstFree();
 			if (!freeElement.IsValid())
@@ -134,15 +134,15 @@ namespace SPP
 				return nullptr;
 			}
 			auto& leaseData = _leasor[freeElement.Index()];
-			return std::make_shared< Lease >(this, leaseData, std::move(freeElement));
+			return std::make_shared< Reservation >(this, leaseData, std::move(freeElement));
 		}
 
-		virtual void LeaseUpdated(Lease& InLease)
+		virtual void LeaseUpdated(Reservation& InLease)
 		{
 
 		}
 
-		virtual void EndLease(Lease& InLease)
+		virtual void EndLease(Reservation& InLease)
 		{
 
 		}

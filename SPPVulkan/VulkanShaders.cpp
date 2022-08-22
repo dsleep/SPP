@@ -272,6 +272,17 @@ namespace SPP
 					VkDescriptorSetLayoutBinding& layout_binding = layout.bindings[i_binding];
 					layout_binding.binding = refl_binding.binding;
 					layout_binding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
+
+					// we only use dynamics to keep it simple
+					if (layout_binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+					{
+						layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+					}
+					else if (layout_binding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+					{
+						layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+					}
+
 					layout_binding.descriptorCount = 1;
 					for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim) {
 						layout_binding.descriptorCount *= refl_binding.array.dims[i_dim];

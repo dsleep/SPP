@@ -455,8 +455,8 @@ namespace SPP
 		_staticInstanceDrawInfoSpan = _staticInstanceDrawInfoCPU->InitializeFromType< StaticDrawParams >(250000);
 		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(this, GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
 
-		_staticInstanceDrawLeaseManager = std::make_unique < StaticDrawLeaseManager >(this, _staticInstanceDrawInfoSpan, 
-			[this](StaticDrawLeaseManager::Lease &InLease)
+		_staticInstanceDrawPoolManager = std::make_unique < StaticDrawPoolManager >(this, _staticInstanceDrawInfoSpan, 
+			[this](StaticDrawPoolManager::Reservation &InLease)
 			{
 				this->_staticInstanceDrawInfoGPU->UpdateDirtyRegion(InLease.GetIndex(), 1);
 			});
@@ -1122,7 +1122,7 @@ namespace SPP
 		}
 		
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
-		_staticInstanceDrawLeaseManager->ClearTag(currentBuffer);
+		_staticInstanceDrawPoolManager->ClearTag(currentBuffer);
 
 		VK_CHECK_RESULT(vkResetDescriptorPool(device, _perDrawPools[currentBuffer], 0));
 
@@ -1408,23 +1408,6 @@ namespace SPP
 			MergeBindingSet(vsSet, _setLayoutBindings);
 			MergeBindingSet(psSet, _setLayoutBindings);
 
-			for (auto& curSet : _setLayoutBindings)
-			{
-				std::vector<VkDescriptorSetLayoutBinding>& curBindingSet = curSet.second;
-
-				for (auto& curBinding : curBindingSet)
-				{
-					if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-					{
-						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-					}
-					else if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-					{
-						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-					}
-				}
-			}
-
 			_descriptorSetLayouts.resize(_setLayoutBindings.size());
 			
 			// step through sets numerically
@@ -1654,23 +1637,6 @@ namespace SPP
 			auto& csShaderSets = InCS->GetAs<VulkanShader>().GetLayoutSets();
 
 			MergeBindingSet(csShaderSets, _setLayoutBindings);
-
-			for (auto& curSet : _setLayoutBindings)
-			{
-				std::vector<VkDescriptorSetLayoutBinding>& curBindingSet = curSet.second;
-
-				for (auto& curBinding : curBindingSet)
-				{
-					if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-					{
-						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-					}
-					else if (curBinding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-					{
-						curBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-					}
-				}
-			}
 
 			_descriptorSetLayouts.resize(_setLayoutBindings.size());
 

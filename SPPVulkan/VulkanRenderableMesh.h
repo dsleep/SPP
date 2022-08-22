@@ -15,8 +15,7 @@
 namespace SPP
 {
 	struct PassCache
-	{
-		PassCache();
+	{		
 		virtual ~PassCache() {}
 	};
 
@@ -24,7 +23,7 @@ namespace SPP
 	class IVulkanPassCacher
 	{
 	protected:
-		std::shared_ptr<PassCache> passCaches[5];
+		std::unique_ptr<PassCache> passCaches[5];
 
 	public:
 		auto& GetPassCache()
@@ -54,7 +53,7 @@ namespace SPP
 		std::shared_ptr< ArrayResource > _drawConstants;
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
 
-		std::shared_ptr<StaticDrawLeaseManager::Lease> _staticDrawLease;
+		std::shared_ptr<StaticDrawPoolManager::Reservation> _staticDrawReservation;
 
 		bool bPendingUpdate = false;
 
@@ -64,7 +63,7 @@ namespace SPP
 
 		auto GetStaticDrawBufferIndex()
 		{
-			return _staticDrawLease->GetIndex();
+			return _staticDrawReservation->GetIndex();
 		}
 		
 		auto GetDrawTransformBuffer()
