@@ -666,20 +666,20 @@ namespace SPP
 		_translucents.resize(_renderables3d.size());
 
 		//#if 1
-		//	_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
-		//		{
-		//			auto curRenderable = ((Renderable*)InElement);
-		//			if (curRenderable->Is3dRenderable())
-		//			{
-		//				_visible3d[curVisible++] = curRenderable;
-		//			}
+			_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
+				{
+					auto curRenderable = ((Renderable*)InElement);
+					if (curRenderable->Is3dRenderable())
+					{
+						_visible3d[curVisible++] = curRenderable;
+					}
 
-		//			auto& drawInfo = curRenderable->GetDrawingInfo();
+					auto& drawInfo = curRenderable->GetDrawingInfo();
 
-		//			//drawInfo.drawingType == DrawingType::Opaque
-		//			//((Renderable*)InElement)->Draw();
-		//			return true;
-		//		});
+					//drawInfo.drawingType == DrawingType::Opaque
+					//((Renderable*)InElement)->Draw();
+					return true;
+				});
 		//#else
 		//	for (auto renderItem : _renderables3d)
 		//	{
@@ -687,10 +687,17 @@ namespace SPP
 		//	}
 		//#endif
 
+#if 1
+		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
+		{
+			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible3d[visIter]);
+		}
+#else
 		for (auto& curVis : _renderables3d)
 		{
 			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)curVis);
 		}
+#endif
 		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);

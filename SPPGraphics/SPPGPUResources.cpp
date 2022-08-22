@@ -159,6 +159,8 @@ namespace SPP
 
 	void GraphicsDevice::BeginFrame()
 	{
+		bFrameActive = true;
+
 		SE_ASSERT(IsOnGPUThread());
 		for (auto& curScene : _renderScenes)
 		{
@@ -180,6 +182,8 @@ namespace SPP
 		{
 			curScene->EndFrame();
 		}
+
+		bFrameActive = false;
 	}
 
 	void GraphicsDevice::RunFrame()

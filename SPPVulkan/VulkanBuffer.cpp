@@ -102,6 +102,32 @@ namespace SPP
 		copyRegion.dstOffset = 0; 
 		copyRegion.size = _size;
 		vkCmdCopyBuffer(cmdBuffer, WritableChunk.buffer, _buffer, 1, &copyRegion);
+
+		//VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+		//bufferBarrier.buffer = _buffer;
+		//bufferBarrier.size = VK_WHOLE_SIZE;
+		//bufferBarrier.srcAccessMask = VK_ACCESS_HOST_READ_BIT;
+		//bufferBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		//bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		//bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		//vkCmdPipelineBarrier(
+		//	cmdBuffer,
+		//	VK_PIPELINE_STAGE_TRANSFER_BIT,
+		//	VK_PIPELINE_STAGE_HOST_BIT,
+		//	VK_FLAGS_NONE,
+		//	0, nullptr,
+		//	1, &bufferBarrier,
+		//	0, nullptr);
+
+
+		//VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+		//bufferBarrier.buffer = _buffer;
+		//bufferBarrier.size = VK_WHOLE_SIZE;
+		//bufferBarrier.srcAccessMask = VK_ACCESS_HOST_READ_BIT;
+		//bufferBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		//bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		//bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	}
 
 	void VulkanBuffer::UpdateDirtyRegion(uint32_t Offset, uint32_t Count)

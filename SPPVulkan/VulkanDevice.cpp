@@ -1013,7 +1013,15 @@ namespace SPP
 	{
 		SE_ASSERT(IsOnGPUThread());
 		SE_ASSERT(!bDrawPhase);
-			
+		
+		// this ok? basically if frame started camera and stuff would be a frame late 
+		// unless we use the draw command buffer... hmmm
+		
+		if (bFrameActive)
+		{
+			return _drawCmdBuffers[currentBuffer]->Get();
+		}
+
 		auto& curCopier = _copyCmdBuffers[currentBuffer];
 
 		if (!curCopier.bHasBegun)

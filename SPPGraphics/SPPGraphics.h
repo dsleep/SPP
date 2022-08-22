@@ -160,6 +160,8 @@ namespace SPP
         std::list< std::shared_ptr< RT_Resource > > _renderThreadResources;
 
         std::future<bool> _currentFrame;
+
+        std::atomic_bool bFrameActive{ false };
       
     public:
         virtual ~GraphicsDevice();

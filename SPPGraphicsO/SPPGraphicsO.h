@@ -239,9 +239,17 @@ namespace SPP
 		{
 			_meshObj = InMesh;
 		}
+		auto GetMesh()
+		{
+			return _meshObj;
+		}
 		void SetMaterial(OMaterial* InMat)
 		{
 			_materialObj = InMat;
+		}
+		auto GetMaterial()
+		{
+			return _materialObj;
 		}
 		virtual bool Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const override;
 

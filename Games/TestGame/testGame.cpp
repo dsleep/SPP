@@ -131,6 +131,52 @@ public:
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		AddToRoot(_gameworld);
 
+		Sphere totalBounds(Vector3(0,0,0), 200);
+
+		// get a COPY of htem
+		auto topChildren = _gameworld->GetChildren();
+		//for (auto& curShild : topChildren)
+		//{
+		//	totalBounds += curShild->Bounds();
+		//}
+				
+		auto MeshType = rttr::type::get<VgMeshElement>();
+
+		for (int32_t IterY = -1; IterY <= 1; IterY++)
+		{			
+			for (int32_t IterX = -1; IterX <= 1; IterX++)
+			{
+				if (!IterX && !IterY)continue;
+
+				Vector3d PositionOffset(totalBounds.GetRadius() * IterX, 0, totalBounds.GetRadius() * IterY);
+
+				//topChildren is a copy
+				for (auto& curShild : topChildren)
+				{
+					auto curChildType = curShild->get_type();
+
+					if (MeshType == curChildType)
+					{
+						auto curMesh = rttr::rttr_cast<VgMeshElement*>(curShild);
+
+						auto newName = std::string_format("%s_%d_%d", curMesh->GetName(), IterY, IterX);
+
+						auto meshElement = AllocateObject<VgMeshElement>(newName.c_str(), _gameworld);
+
+						meshElement->GetRotation() = curMesh->GetRotation();
+						meshElement->GetPosition() = curMesh->GetPosition() + PositionOffset;
+						meshElement->GetScale() = curMesh->GetScale();
+
+						meshElement->SetMesh(curMesh->GetMesh());
+						meshElement->SetMaterial(curMesh->GetMaterial());						
+
+						_gameworld->AddChild(meshElement);
+
+					}
+				}
+			}
+		}
+
 #if 0
 		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/testhumanoid.mcsg"));
 

@@ -62,6 +62,11 @@ namespace SPP
 			return _physicsScene.get();
 		}
 
+		//std::list< VgEntity* >& GetEntities()
+		//{
+		//	return _entities;
+		//}
+
 		virtual void Update(float DeltaTime);
 
 		virtual ~VgEnvironment() { }
