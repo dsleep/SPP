@@ -17,10 +17,10 @@ namespace SPP
         float ScaleX = transformation.block<1, 3>(0, 0).norm();
         float ScaleY = transformation.block<1, 3>(1, 0).norm();
         float ScaleZ = transformation.block<1, 3>(2, 0).norm();
-        return Sphere(transformedCnt.block<1, 3>(0, 0), _radius * ScaleX);
+        return Sphere(transformedCnt.block<1, 3>(0, 0).cast<double>(), _radius * ScaleX);
     }
 
-    Sphere Sphere::Transform(const Vector3& Translate, float Scale) const
+    Sphere Sphere::Transform(const Vector3d& Translate, float Scale) const
     {
         if (!_bValid)
         {
@@ -32,8 +32,8 @@ namespace SPP
     namespace Intersection
     {
         bool Intersect_RaySphere(const Ray& InRay, const Sphere& InSphere, Vector3d& intersectionPoint, float* timeToHit)
-        {
-            Vector3 m = InRay.GetOrigin().cast<float>() - InSphere.GetCenter();
+        {            
+            Vector3 m = (InRay.GetOrigin() - InSphere.GetCenter()).cast<float>();
             float b = m.dot(InRay.GetDirection());
             float c = m.dot(m) - InSphere.GetRadius() * InSphere.GetRadius();
 
@@ -99,15 +99,15 @@ namespace SPP
             return (s1.GetCenter() - s2.GetCenter()).squaredNorm() < RadSq;
         }
 
-        bool Intersect_AABBSphere(const Sphere& InSphere, const AABB &InBox) 
-        {
-            // get box closest point to sphere center by clamping
-            Vector3 closestPt = eigenmax(InBox.GetMin(), eigenmin(InSphere.GetCenter(), InBox.GetMax()));
+        //bool Intersect_AABBSphere(const Sphere& InSphere, const AABB &InBox) 
+        //{
+        //    // get box closest point to sphere center by clamping
+        //    Vector3d closestPt = eigenmax(InBox.GetMin(), eigenmin(InSphere.GetCenter(), InBox.GetMax()));
 
-            // this is the same as isPointInsideSphere
-            float distanceSq = (closestPt - InSphere.GetCenter()).squaredNorm();
+        //    // this is the same as isPointInsideSphere
+        //    float distanceSq = (closestPt - InSphere.GetCenter()).squaredNorm();
 
-            return distanceSq < (InSphere.GetRadius()* InSphere.GetRadius());
-        }
+        //    return distanceSq < (InSphere.GetRadius()* InSphere.GetRadius());
+        //}
     }
 }

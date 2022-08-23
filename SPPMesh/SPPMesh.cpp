@@ -57,7 +57,7 @@ namespace SPP
 		{
 			auto sphRad = InSphere.GetRadius();
 			Vector3 RadiusVec = { sphRad, sphRad, sphRad };
-			DrawAABB(AABB(InSphere.GetCenter() - RadiusVec, InSphere.GetCenter() + RadiusVec), lines);
+			DrawAABB(AABB(InSphere.GetCenter().cast<float>() - RadiusVec, InSphere.GetCenter().cast<float>() + RadiusVec), lines);
 		}
 	}
 
@@ -146,7 +146,7 @@ namespace SPP
 		auto newMeshElement = std::make_shared<MeshElement>();
 		newMeshElement->VertexResource = VertexResource;
 		newMeshElement->IndexResource = IndexResource;
-		newMeshElement->Bounds = MinimumBoundingSphere< MeshVertex>(curVerts.GetData(), VertCount);
+		newMeshElement->Bounds = MinimumBoundingSphere< MeshVertex, Vector3 >(curVerts.GetData(), VertCount);
 		newMeshElement->Name = "smbin";
 
 		_elements.push_back(newMeshElement);

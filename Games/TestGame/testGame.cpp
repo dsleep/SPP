@@ -131,7 +131,7 @@ public:
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		AddToRoot(_gameworld);
 
-		Sphere totalBounds(Vector3(0,0,0), 200);
+		Sphere totalBounds(Vector3d(0,0,0), 200);
 
 		// get a COPY of htem
 		auto topChildren = _gameworld->GetChildren();

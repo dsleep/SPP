@@ -399,6 +399,11 @@ namespace SPP
 		bool LoadMesh(const char* FileName);
 		bool LoadSimpleBinaryMesh(const char* FileName);
 
+		const Sphere& GetBounds() const
+		{
+			return _bounds;
+		}
+
 		std::vector< std::shared_ptr<MeshElement> >& GetMeshElements()
 		{
 			return _elements;

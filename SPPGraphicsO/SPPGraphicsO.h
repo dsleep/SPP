@@ -235,10 +235,8 @@ namespace SPP
 		std::shared_ptr<RT_RenderableMesh> _renderableMesh;
 
 	public:
-		void SetMesh(OMesh* InMesh)
-		{
-			_meshObj = InMesh;
-		}
+		void SetMesh(OMesh* InMesh);
+
 		auto GetMesh()
 		{
 			return _meshObj;

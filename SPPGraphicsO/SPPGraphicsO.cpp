@@ -152,6 +152,29 @@ namespace SPP
 						
 			auto localToWorld = GenerateLocalToWorld(true);	
 
+			Vector3d TopPosition = GetTopBeforeScene()->GetPosition();
+			Vector3d FinalPosition = localToWorld.block<1, 3>(3, 0).cast<double>() + TopPosition;
+			_bounds = Sphere();
+
+			if (_meshObj)
+			{
+				auto curMesh = _meshObj->GetMesh();
+				if (curMesh)
+				{
+					_bounds = curMesh->GetBounds();
+
+					Vector3d newBoundsCenter = (ToVector4(_bounds.GetCenter().cast<float>()) * localToWorld).cast<double>().head<3>() + TopPosition;					
+					float maxScale = std::fabs(std::max(std::max(localToWorld(0, 0), localToWorld(1, 1)), localToWorld(2, 2)));
+										
+					_bounds = Sphere(newBoundsCenter, _bounds.GetRadius() * maxScale);
+				}
+			}
+
+			if (!_bounds)
+			{
+				_bounds = Sphere(FinalPosition, 1);
+			}
+
 			SE_ASSERT(_materialObj);
 
 			_meshObj->InitializeGraphicsDeviceResources(sceneGD);
@@ -165,10 +188,11 @@ namespace SPP
 				});
 
 			_renderableMesh->SetArgs({
-				.position = localToWorld.block<1, 3>(3, 0).cast<double>() + GetTopBeforeScene()->GetPosition(),
+				.position = FinalPosition,
 				.eulerRotationYPR = _rotation,
 				.scale = _scale,
-				.bIsStatic = _bIsStatic
+				.bIsStatic = _bIsStatic,
+				.bounds = _bounds
 				});
 
 			_renderableMesh->AddToRenderScene(thisRenderableScene->GetRenderScene());
@@ -186,6 +210,13 @@ namespace SPP
 			});
 			_renderableMesh.reset();
 		}
+	}
+
+	void OMeshElement::SetMesh(OMesh* InMesh)
+	{
+		if (_meshObj == InMesh) return;
+		_meshObj = InMesh;
+		// update bounds...
 	}
 
 	bool OMeshElement::Intersect_Ray(const Ray& InRay, IntersectionInfo& oInfo) const

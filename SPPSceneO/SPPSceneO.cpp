@@ -177,17 +177,17 @@ namespace SPP
 	OScene::OScene(const std::string& InName, SPPDirectory* InParent) : OElement(InName, InParent)
 	{ 
 		_octree = std::make_unique<LooseOctree>();
-		_octree->Initialize(Vector3d(0, 0, 0), 8192, 1);
+		_octree->Initialize(Vector3d(0, 0, 0), 50000, 3);
 	}
 
 	void OScene::AddChild(OElement* InChild)
 	{
 		OElement::AddChild(InChild);
+		InChild->AddedToScene(this);
 		if (InChild->Bounds())
 		{
 			_octree->AddElement(InChild);
 		}
-		InChild->AddedToScene(this);
 	}
 	void OScene::RemoveChild(OElement* InChild)
 	{

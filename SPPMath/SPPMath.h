@@ -330,6 +330,11 @@ namespace SPP
         return InVertex;
     }
 
+    inline Vector3d& GetPosition(Vector3d& InVertex)
+    {
+        return InVertex;
+    }
+
     inline size_t CRCHash(const uint32_t* dwords, uint32_t dwordCount)
     {
         size_t h = 0;
@@ -369,6 +374,15 @@ namespace SPP
     }
 
     template<>
+    inline BinarySerializer& operator<< <Vector3d> (BinarySerializer& Storage, const Vector3d& Value)
+    {
+        Storage << Value[0];
+        Storage << Value[1];
+        Storage << Value[2];
+        return Storage;
+    }
+
+    template<>
     inline BinarySerializer& operator>> <Vector2> (BinarySerializer& Storage, Vector2& Value)
     {
         Storage >> Value[0];
@@ -378,6 +392,15 @@ namespace SPP
 
     template<>
     inline BinarySerializer& operator>> <Vector3> (BinarySerializer& Storage, Vector3& Value)
+    {
+        Storage >> Value[0];
+        Storage >> Value[1];
+        Storage >> Value[2];
+        return Storage;
+    }
+
+    template<>
+    inline BinarySerializer& operator>> <Vector3d> (BinarySerializer& Storage, Vector3d& Value)
     {
         Storage >> Value[0];
         Storage >> Value[1];

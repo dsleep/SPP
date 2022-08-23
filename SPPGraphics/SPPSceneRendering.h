@@ -73,7 +73,7 @@ namespace SPP
 		class RT_RenderScene* _parentScene = nullptr;
 		OctreeLinkPtr _octreeLink = nullptr;
 		
-		float _radius = 1.0f;
+		Sphere _bounds;
 		
 		Vector3d _position;
 		Vector3 _eulerRotation;
@@ -96,6 +96,7 @@ namespace SPP
 			Vector3 eulerRotationYPR = Vector3(0, 0, 0);
 			Vector3 scale = Vector3(1, 1, 1);
 			bool bIsStatic = false;
+			Sphere bounds;
 		};
 
 		Renderable()
@@ -105,20 +106,13 @@ namespace SPP
 			_scale = Vector3(1, 1, 1);
 		}
 
-		Renderable(Args &&InArgs)
-		{
-			_position = InArgs.position;
-			_eulerRotation = InArgs.eulerRotationYPR;
-			_scale = InArgs.scale;
-			_bIsStatic = InArgs.bIsStatic;
-		}
-
 		void SetArgs(const Args& InArgs)
 		{
 			_position = InArgs.position;
 			_eulerRotation = InArgs.eulerRotationYPR;
 			_scale = InArgs.scale;
 			_bIsStatic = InArgs.bIsStatic;
+			_bounds = InArgs.bounds;
 		}
 
 		virtual ~Renderable() {}
@@ -173,22 +167,6 @@ namespace SPP
 		virtual void DrawDebug(std::vector< struct DebugVertex >& lines) { };
 		virtual void Draw() { };
 
-		Matrix4x4 GenerateLocalToWorldMatrix() const
-		{
-			Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_eulerRotation);
-
-			Matrix3x3 scaleMatrix = Matrix3x3::Identity();
-			scaleMatrix(0, 0) = _scale[0];
-			scaleMatrix(1, 1) = _scale[1];
-			scaleMatrix(2, 2) = _scale[2];
-			Matrix3x3 rotationMatrix = q.matrix();
-			Matrix4x4 localToWorld = Matrix4x4::Identity();
-
-			localToWorld.block<3, 3>(0, 0) = scaleMatrix * rotationMatrix;
-			localToWorld.block<1, 3>(3, 0) = Vector3((float)_position[0], (float)_position[1], (float)_position[2]);
-
-			return localToWorld;
-		}
 
 		Matrix3x3 GenerateRotationScale() const
 		{
@@ -206,7 +184,7 @@ namespace SPP
 
 		virtual Spherei GetBounds() const
 		{
-			return Convert(_position, _radius);
+			return Convert(_bounds);
 		}
 		virtual void SetOctreeLink(OctreeLinkPtr InOctree)
 		{

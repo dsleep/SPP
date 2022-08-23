@@ -1226,8 +1226,7 @@ namespace SPP
 				vertex.normal = BlenderHelper::ToVector3(corNorm);
 			}
 
-			layer.bounds = MinimumBoundingSphere<MeshVertex>(pvertices.GetData(), numVerts);
-
+			layer.bounds = MinimumBoundingSphere<MeshVertex, Vector3>(pvertices.GetData(), numVerts);
 			
 
 			std::vector<uint32_t> indices;

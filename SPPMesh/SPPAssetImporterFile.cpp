@@ -114,7 +114,7 @@ namespace SPP
 						vertex.texcoord[0] = {mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y};
 					}
 				}
-				layer.bounds = MinimumBoundingSphere< MeshVertex>(pvertices, mesh->mNumVertices);
+				layer.bounds = MinimumBoundingSphere< MeshVertex, Vector3 >(pvertices, mesh->mNumVertices);
 			}
 
 			{

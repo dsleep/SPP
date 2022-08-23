@@ -203,7 +203,7 @@ namespace SPP
 
     struct Sphere;
 
-    template<typename MeshVertexType>
+    template<typename MeshVertexType, typename VectorType>
     Sphere MinimumBoundingSphere(MeshVertexType* points, uint32_t count);
 
   
@@ -232,12 +232,12 @@ namespace SPP
     {
     protected:
         bool _bValid = false;
-        Vector3 _center = { 0,0,0 };
+        Vector3d _center = { 0,0,0 };
         float _radius = 1.0f;
 
     public:
         Sphere() {}
-        Sphere(const Vector3& InCenter, float InRadius) : _center(InCenter), _radius(InRadius), _bValid(true) {}
+        Sphere(const Vector3d& InCenter, float InRadius) : _center(InCenter), _radius(InRadius), _bValid(true) {}
 
         operator bool() const
         {
@@ -249,7 +249,7 @@ namespace SPP
             return _bValid;
         }
 
-		const Vector3& GetCenter() const
+		const Vector3d& GetCenter() const
 		{
 			return _center;
 		}
@@ -272,7 +272,7 @@ namespace SPP
                 return;
             }
 
-            Vector3 CenterDir = Other._center - _center;
+            Vector3d CenterDir = Other._center - _center;
             auto dirSizeSq = CenterDir.squaredNorm();
             if (dirSizeSq < 0.01)
             {
@@ -281,7 +281,7 @@ namespace SPP
             else
             {
                 //furthest point on each...
-                Vector3 points[4];
+                Vector3d points[4];
                 CenterDir.normalize();
                 points[0] = Other._center + CenterDir * _radius;
                 points[1] = Other._center + CenterDir * Other._radius;
@@ -289,13 +289,13 @@ namespace SPP
                 points[2] = _center - CenterDir * _radius;
                 points[3] = _center - CenterDir * Other._radius;
 
-                *this = MinimumBoundingSphere(points, 4);
+                *this = MinimumBoundingSphere< Vector3d, Vector3d >(points, 4);
             }
         }
 
         Sphere Transform(const Matrix4x4& transformation) const;
 
-        Sphere Transform(const Vector3& Translate, float Scale) const;
+        Sphere Transform(const Vector3d& Translate, float Scale) const;
     };
 
     struct Sphered
@@ -316,12 +316,13 @@ namespace SPP
 
     inline Spherei Convert(const Sphere& InValue)
     {
+        auto& center = InValue.GetCenter();
         return Spherei{
-            Vector3i((int32_t)std::roundf(InValue.GetCenter()[0]),
-                     (int32_t)std::roundf(InValue.GetCenter()[1]),
-                     (int32_t)std::roundf(InValue.GetCenter()[2])),
+            Vector3i((int32_t)std::round(center[0]),
+                     (int32_t)std::round(center[1]),
+                     (int32_t)std::round(center[2])),
                      //to compensate for rounding
-            (int32_t)std::ceil(InValue.GetRadius() + 0.5f) };
+            (int32_t)std::ceil(InValue.GetRadius() + 0.5)};
     }
 
     inline Spherei Convert(const Vector3d &center, float extent)
@@ -345,10 +346,12 @@ namespace SPP
         return oBounds;
     }
 
-    template<typename MeshVertexType>
+    template<typename MeshVertexType, typename VectorType>
     Sphere MinimumBoundingSphere(MeshVertexType* points, uint32_t count)
     {
         assert(points != nullptr && count != 0);
+
+        using Scalar = VectorType::Scalar;
 
         // Find the min & max points indices along each axis.
         uint32_t minAxis[3] = { 0, 0, 0 };
@@ -356,12 +359,12 @@ namespace SPP
 
         for (uint32_t i = 1; i < count; ++i)
         {
-            float* point = (float*)&GetPosition(*(points + i));
+            VectorType &point = GetPosition(*(points + i));
 
             for (uint32_t j = 0; j < 3; ++j)
             {
-                float* min = (float*)(&GetPosition(points[minAxis[j]]));
-                float* max = (float*)(&GetPosition(points[maxAxis[j]]));
+                VectorType &min = GetPosition(points[minAxis[j]]);
+                VectorType &max = GetPosition(points[maxAxis[j]]);
 
                 minAxis[j] = point[j] < min[j] ? i : minAxis[j];
                 maxAxis[j] = point[j] > max[j] ? i : maxAxis[j];
@@ -369,13 +372,13 @@ namespace SPP
         }
 
         // Find axis with maximum span.
-        float distSqMax = 0.0f;
+        Scalar distSqMax = 0.0f;
         uint32_t axis = 0;
 
         for (uint32_t i = 0; i < 3u; ++i)
         {
-            Vector3& min = GetPosition(points[minAxis[i]]);
-            Vector3& max = GetPosition(points[maxAxis[i]]);
+            VectorType& min = GetPosition(points[minAxis[i]]);
+            VectorType& max = GetPosition(points[maxAxis[i]]);
 
             auto distSq = (max - min).squaredNorm();
             if (distSq > distSqMax)
@@ -386,31 +389,31 @@ namespace SPP
         }
 
         // Calculate an initial starting center point & radius.
-        auto p1 = GetPosition(points[minAxis[axis]]);
-        auto p2 = GetPosition(points[maxAxis[axis]]);
+        VectorType p1 = GetPosition(points[minAxis[axis]]);
+        VectorType p2 = GetPosition(points[maxAxis[axis]]);
 
-        Vector3 center = (p1 + p2) * 0.5f;
-        auto radius = (p2 - p1).norm() * 0.5f;
+        Vector3d center = (p1 + p2).cast<double>() * 0.5;
+        Scalar radius = (p2 - p1).norm() * 0.5;
         auto radiusSq = radius * radius;
 
         // Add all our points to bounding sphere expanding radius & recalculating center point as necessary.
         for (uint32_t i = 0; i < count; ++i)
         {
-            auto point = GetPosition(points[i]);
-            float distSq = (point - center).squaredNorm();
+            Vector3d point = GetPosition(points[i]).cast<double>();
+            Scalar distSq = (point - center).squaredNorm();
 
             if (distSq > radiusSq)
             {
-                float dist = std::sqrt(distSq);
-                float k = (radius / dist) * 0.5f + 0.5f;
+                Scalar dist = std::sqrt(distSq);
+                Scalar k = (radius / dist) * 0.5 + 0.5;
 
-                center = center * k + point * (1.0f - k);
-                radius = (radius + dist) * 0.5f;
+                center = center * k + point * (1.0 - k);
+                radius = (radius + dist) * 0.5;
             }
         }
 
         // Populate a sphere
-        return Sphere( center, radius );
+        return Sphere( center, (float)radius );
     }
 
     template<typename T, typename D>
@@ -521,7 +524,7 @@ namespace SPP
         Storage >> IsValid;
         if (IsValid)
         {
-            Vector3 center;
+            Vector3d center;
             float radius;
             Storage >> center;
             Storage >> radius;
