@@ -254,6 +254,10 @@ public:
 		}
 #endif
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
+
+
+		_gameworld->GetOctree()->Report();
+
 		
 		_charCapsule = AllocateObject<VgCapsuleElement>("currentCapsule", nullptr);
 		auto& curPos = _charCapsule->GetPosition();

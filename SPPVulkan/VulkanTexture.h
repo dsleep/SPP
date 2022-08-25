@@ -35,7 +35,7 @@ namespace SPP
 	{
 	protected:
 		//vks::VulkanDevice *   device;
-		VkFormat			  _format = VK_FORMAT_UNDEFINED;
+		VkFormat			  texformat = VK_FORMAT_UNDEFINED;
 		VkImage               image;
 		VkImageLayout         imageLayout;
 		VkDeviceMemory        deviceMemory;
@@ -97,6 +97,10 @@ namespace SPP
 
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format);
+
+		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, int32_t MipLevelCount, TextureFormat Format, VkImageUsageFlags UsageFlags);
+
+		std::vector< GPUReferencer< SafeVkImageView > > GetMipChainViews();
 
 		virtual void PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Memory, uint32_t MemorySize) override;
 

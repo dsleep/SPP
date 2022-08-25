@@ -109,6 +109,8 @@ namespace SPP
 		////std::vector< D3D12RenderableMesh* > _renderMeshes;
 		//bool _bMeshInstancesDirty = false;
 
+		std::unique_ptr< class DepthDrawer > _depthDrawer;
+
 		std::unique_ptr< class OpaqueDrawer > _opaqueDrawer;
 
 		GPUReferencer< GPUShader > _debugVS;

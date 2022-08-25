@@ -1400,7 +1400,7 @@ namespace SPP
 
 		//auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
 
-		if (InVS && InPS)
+		if (InVS)
 		{
 			auto& inputLayout = InLayout->GetAs<VulkanInputLayout>();
 
@@ -1408,13 +1408,18 @@ namespace SPP
 			std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
 			auto& vsSet = InVS->GetAs<VulkanShader>().GetLayoutSets();
-			auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
+			
 
 			// Deferred shading layout
 			_setLayoutBindings.clear();
 
 			MergeBindingSet(vsSet, _setLayoutBindings);
-			MergeBindingSet(psSet, _setLayoutBindings);
+
+			if (InPS)
+			{
+				auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
+				MergeBindingSet(psSet, _setLayoutBindings);
+			}
 
 			_descriptorSetLayouts.resize(_setLayoutBindings.size());
 			
@@ -1437,7 +1442,7 @@ namespace SPP
 			}
 
 			SE_ASSERT(InVS->GetAs<VulkanShader>().GetModule());
-			SE_ASSERT(InPS->GetAs<VulkanShader>().GetModule());
+			
 
 			shaderStages.push_back({ 
 				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -1447,14 +1452,21 @@ namespace SPP
 				InVS->GetAs<VulkanShader>().GetModule(),
 				InVS->GetAs<VulkanShader>().GetEntryPoint().c_str()
 				});
-			shaderStages.push_back({
-				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-				nullptr,
-				VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				InPS->GetAs<VulkanShader>().GetModule(),
-				InPS->GetAs<VulkanShader>().GetEntryPoint().c_str()
+
+			if (InPS)
+			{
+				SE_ASSERT(InPS->GetAs<VulkanShader>().GetModule());
+
+				shaderStages.push_back({
+					VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+					nullptr,
+					VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
+					VK_SHADER_STAGE_FRAGMENT_BIT,
+					InPS->GetAs<VulkanShader>().GetModule(),
+					InPS->GetAs<VulkanShader>().GetEntryPoint().c_str()
 				});
+			}
+			
 			
 			// Create the pipeline layout that is used to generate the rendering pipelines that are based on this descriptor set layout
 			// In a more complex scenario you would have different pipeline layouts for different descriptor set layouts that could be reused

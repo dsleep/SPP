@@ -122,6 +122,19 @@ namespace SPP
 		return vertexStreams;
 	}
 
+	const std::vector<VertexStream>& Depth_GetVertexStreams_SM()
+	{
+		static std::vector<VertexStream> vertexStreams;
+		if (vertexStreams.empty())
+		{
+			MeshVertex dummy;
+			vertexStreams.push_back(
+				CreateVertexStream(dummy,
+					dummy.position));
+		}
+		return vertexStreams;
+	}
+
 	class GlobalOpaqueDrawerResources : public GlobalGraphicsResource
 	{
 	private:
@@ -182,10 +195,393 @@ namespace SPP
 		}
 	};
 
+	class GlobalDepthDrawerResources : public GlobalGraphicsResource
+	{
+	private:
+		GPUReferencer < VulkanShader > _depthVS;
+		GPUReferencer < VulkanShader > _depthPyramidCreationCS;
+
+		GPUReferencer< SafeVkDescriptorSetLayout > _depthVSLayout;
+		GPUReferencer< SafeVkSampler > _depthPyramidSampler;
+
+		GPUReferencer< GPUInputLayout > _SMDepthlayout;
+
+		GPUReferencer< PipelineState > _SMDepthPSO;
+
+	public:
+		// called on render thread
+		virtual void Initialize(class GraphicsDevice* InOwner)
+		{
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+
+			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
+
+			_depthVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.hlsl", "main_vs");
+
+			_SMDepthlayout = Make_GPU(VulkanInputLayout, InOwner);
+			_SMDepthlayout->InitializeLayout(Depth_GetVertexStreams_SM());
+
+			_SMDepthPSO = GetVulkanPipelineState(InOwner,
+				EBlendState::Disabled,
+				ERasterizerState::BackFaceCull,
+				EDepthState::Enabled,				
+				EDrawingTopology::TriangleList,
+				_SMDepthlayout,
+				_depthVS,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr);			
+
+			auto& vsSet = _depthVS->GetLayoutSets();
+			_depthVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+
+			/// special min mod depth sampler
+			VkSamplerCreateInfo createInfo = {};
+
+			//fill the normal stuff
+			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			createInfo.magFilter = VK_FILTER_LINEAR;
+			createInfo.minFilter = VK_FILTER_LINEAR;
+			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.minLod = 0;
+			createInfo.maxLod = 16.f;
+
+			//add a extension struct to enable Min mode
+			VkSamplerReductionModeCreateInfoEXT createInfoReduction = {};
+
+			createInfoReduction.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT;
+			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
+			createInfo.pNext = &createInfoReduction;
+
+			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
+		}
+
+		GPUReferencer< SafeVkDescriptorSetLayout > GetVSLayout()
+		{
+			return _depthVSLayout;
+		}
+
+		GPUReferencer< GPUInputLayout > GetSMLayout()
+		{
+			return _SMDepthlayout;
+		}
+
+		GPUReferencer < VulkanShader > GetDepthVS()
+		{
+			return _depthVS;
+		}
+
+		GPUReferencer< SafeVkSampler > GetDepthSampler()
+		{
+			return _depthPyramidSampler;
+		}
+
+		virtual void Shutdown(class GraphicsDevice* InOwner)
+		{
+			_depthVS.Reset();
+			_depthPyramidSampler.Reset();
+		}
+	};
+
+
 	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
 	GlobalOpaqueDrawerResources GVulkanOpaqueResrouces;
+	GlobalDepthDrawerResources GVulkanDepthResrouces;
+	//DEPTH PYRAMID
+	//Hierarchial depth buffer etc...
 
-	
+	//MAT PASS
+
+	//COLOR MATS
+
+	//TRANS
+
+	//POST
+
+	//
+
+	struct alignas(16) DepthReduceData
+	{
+		Vector2 imageSize;
+	};
+
+	class DepthDrawer
+	{
+	protected:
+		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
+		VulkanGraphicsDevice* _owningDevice = nullptr;
+		VulkanRenderScene* _owningScene = nullptr;
+
+		GPUReferencer< VulkanTexture > _depthPyramidTexture;
+		uint8_t _depthPyramidMips = 1;
+		Vector2i _depthPyramidExtents;
+		std::vector< GPUReferencer< SafeVkImageView > > _depthPyramidViews;
+
+	public:
+		DepthDrawer(VulkanRenderScene* InScene) : _owningScene(InScene)
+		{
+			_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+			auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
+
+			auto depthVSLayout = GVulkanDepthResrouces.GetVSLayout();
+			_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, depthVSLayout->Get(), globalSharedPool);
+
+			auto cameraBuffer = InScene->GetCameraBuffer();
+
+			VkDescriptorBufferInfo perFrameInfo;
+			perFrameInfo.buffer = cameraBuffer->GetBuffer();
+			perFrameInfo.offset = 0;
+			perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+			VkDescriptorBufferInfo drawConstsInfo;
+			auto staticDrawBuffer = GGlobalVulkanGI->GetStaticInstanceDrawBuffer();
+			drawConstsInfo.buffer = staticDrawBuffer->GetBuffer();
+			drawConstsInfo.offset = 0;
+			drawConstsInfo.range = staticDrawBuffer->GetPerElementSize();
+
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+			};
+
+			vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+
+			///////////////////////////////////
+			// SETUP Depth pyramid texture
+			///////////////////////////////////
+
+			auto DeviceExtents = _owningDevice->GetExtents();
+
+			_depthPyramidExtents = Vector2i( roundUpToPow2(DeviceExtents[0]) >> 1, roundUpToPow2(DeviceExtents[1]) >> 1 );
+			_depthPyramidMips = std::max(powerOf2(_depthPyramidExtents[0]), powerOf2(_depthPyramidExtents[1]));
+
+			_depthPyramidTexture = Make_GPU(VulkanTexture, _owningDevice, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, TextureFormat::R32F,
+				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+			_depthPyramidViews = _depthPyramidTexture->GetMipChainViews();
+		}
+
+		void ProcessDepthPyramid()
+		{
+			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+
+			auto currentFrame = _owningDevice->GetActiveFrame();
+			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+			auto ColorTarget = _owningDevice->GetColorTarget();
+			auto& colorAttachment = ColorTarget->GetFrontAttachment();
+			auto& depthAttachment = ColorTarget->GetBackAttachment();
+
+			for (int32_t Iter = 0; Iter < _depthPyramidViews.size(); Iter++)
+			{
+				VkDescriptorImageInfo destTarget;
+				destTarget.sampler = depthDownsizeSampler->Get();
+				destTarget.imageView = _depthPyramidViews[Iter]->Get();
+				destTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+				VkDescriptorImageInfo sourceTarget;
+				sourceTarget.sampler = depthDownsizeSampler->Get();
+
+				//for te first iteration, we grab it from the depth image
+				if (!Iter)
+				{
+					sourceTarget.imageView = depthAttachment.view->Get();
+					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				}
+				//afterwards, we copy from a depth mipmap into the next
+				else 
+				{
+					sourceTarget.imageView = _depthPyramidViews[Iter]->Get();
+					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				}
+
+				// check out VkDescriptorUpdateTemplate
+
+			//	VkDescriptorSet depthSet;
+			//	vkutil::DescriptorBuilder::begin(_descriptorLayoutCache, get_current_frame().dynamicDescriptorAllocator)
+			//		.bind_image(0, &destTarget, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
+			//		.bind_image(1, &sourceTarget, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
+			//		.build(depthSet);
+
+			//	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _depthReduceLayout, 0, 1, &depthSet, 0, nullptr);
+
+				uint32_t levelWidth = std::max(1, _depthPyramidExtents[0] >> Iter);
+				uint32_t levelHeight = std::max(1, _depthPyramidExtents[1] >> Iter);
+
+				DepthReduceData reduceData = { Vector2(levelWidth, levelHeight) };
+
+				//execute downsample compute shader
+				//vkCmdPushConstants(commandBuffer, _depthReduceLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(reduceData), &reduceData);
+				//// FIX LEVEL WIDTH
+				//vkCmdDispatch(commandBuffer, levelWidth / 32, levelHeight / 32, 1);
+
+
+				////pipeline barrier before doing the next mipmap
+				//VkImageMemoryBarrier reduceBarrier = vkinit::image_barrier(_depthPyramid._image,
+				//	VK_ACCESS_SHADER_WRITE_BIT,
+				//	VK_ACCESS_SHADER_READ_BIT,
+				//	VK_IMAGE_LAYOUT_GENERAL,
+				//	VK_IMAGE_LAYOUT_GENERAL,
+				//	VK_IMAGE_ASPECT_COLOR_BIT);
+
+				//vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &reduceBarrier);
+			}
+		}
+
+		struct OpaqueMeshCache : PassCache
+		{
+			VkBuffer indexBuffer = nullptr;
+			VkBuffer vertexBuffer = nullptr;
+
+			VkDescriptorBufferInfo transformBufferInfo;
+
+			uint32_t staticLeaseIdx = 0;
+			uint32_t indexedCount = 0;
+
+			virtual ~OpaqueMeshCache() {}
+		};
+
+		OpaqueMeshCache* GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
+		{
+			const uint8_t OPAQUE_PBR_PASS = 0;
+			auto& cached = InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS];
+
+			if (!cached)
+			{
+				cached = std::make_unique< OpaqueMeshCache >();
+			}
+
+			auto cacheRef = dynamic_cast<OpaqueMeshCache*>(cached.get());
+
+			if (!cacheRef->indexBuffer)
+			{
+				auto vulkSM = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(InVulkanRenderableMesh.GetStaticMesh());
+
+				auto gpuVertexBuffer = vulkSM->GetVertexBuffer()->GetGPUBuffer();
+				auto gpuIndexBuffer = vulkSM->GetIndexBuffer()->GetGPUBuffer();
+
+				auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
+				auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
+
+				cacheRef->indexBuffer = vulkIB.GetBuffer();
+				cacheRef->vertexBuffer = vulkVB.GetBuffer();
+				cacheRef->indexedCount = vulkIB.GetElementCount();
+
+				if (InVulkanRenderableMesh.IsStatic())
+				{
+					cacheRef->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
+				}
+				else
+				{
+					auto transformBuf = InVulkanRenderableMesh.GetDrawTransformBuffer();
+
+					cacheRef->transformBufferInfo.buffer = transformBuf->GetBuffer();
+					cacheRef->transformBufferInfo.offset = 0;
+					cacheRef->transformBufferInfo.range = transformBuf->GetPerElementSize();
+				}
+			}
+
+			return cacheRef;
+		}
+
+		// TODO cleanupppp
+		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
+		{
+			//auto currentFrame = _owningDevice->GetActiveFrame();
+			//auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+			//auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
+			//auto matCache = GetMaterialCache(VertexInputTypes::StaticMesh, vulkanMat);
+			//auto meshCache = GetMeshCache(InVulkanRenderableMesh);
+
+			//VkDeviceSize offsets[1] = { 0 };
+			//vkCmdBindVertexBuffers(commandBuffer, 0, 1, &meshCache->vertexBuffer, offsets);
+			//vkCmdBindIndexBuffer(commandBuffer, meshCache->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			//	matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipeline());
+
+			//// if static we have everything pre cached
+			//if (InVulkanRenderableMesh.IsStatic())
+			//{
+			//	uint32_t uniform_offsets[] = {
+			//		(sizeof(GPUViewConstants)) * currentFrame,
+			//		(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+			//	};
+
+			//	VkDescriptorSet locaDrawSets[] = {
+			//		_camStaticBufferDescriptorSet->Get(),
+			//		matCache->descriptorSet[0]->Get()
+			//	};
+
+			//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			//		matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
+			//		0,
+			//		ARRAY_SIZE(locaDrawSets), locaDrawSets,
+			//		ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			//}
+			//// if not static we need to write transforms
+			//else
+			//{
+			//	auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
+			//	auto vsLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+
+			//	VkDescriptorSet dynamicTransformSet;
+			//	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
+			//	VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
+
+			//	auto cameraBuffer = _owningScene->GetCameraBuffer();
+
+			//	VkDescriptorBufferInfo perFrameInfo;
+			//	perFrameInfo.buffer = cameraBuffer->GetBuffer();
+			//	perFrameInfo.offset = 0;
+			//	perFrameInfo.range = cameraBuffer->GetPerElementSize();
+
+			//	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			//	vks::initializers::writeDescriptorSet(dynamicTransformSet,
+			//		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+			//	vks::initializers::writeDescriptorSet(dynamicTransformSet,
+			//		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
+			//	};
+
+			//	vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+			//		static_cast<uint32_t>(writeDescriptorSets.size()),
+			//		writeDescriptorSets.data(), 0, nullptr);
+
+			//	uint32_t uniform_offsets[] = {
+			//		(sizeof(GPUViewConstants)) * currentFrame,
+			//		(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+			//	};
+
+			//	VkDescriptorSet locaDrawSets[] = {
+			//		_camStaticBufferDescriptorSet->Get(),
+			//		dynamicTransformSet
+			//	};
+
+			//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			//		matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
+			//		0,
+			//		ARRAY_SIZE(locaDrawSets), locaDrawSets,
+			//		ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			//}
+
+			//vkCmdDrawIndexed(commandBuffer, meshCache->indexedCount, 1, 0, 0, 0);
+		}
+
+
+	};
 		
 	class OpaqueDrawer
 	{
@@ -499,6 +895,7 @@ namespace SPP
 				
 		// drawers
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
+		_depthDrawer = std::make_unique< DepthDrawer >(this);		
 	}
 
 	void VulkanRenderScene::RemovedFromGraphicsDevice()
@@ -508,6 +905,7 @@ namespace SPP
 		_cameraBuffer.Reset();
 		_cameraData.reset();
 		_opaqueDrawer.reset();
+		_depthDrawer.reset();
 	}
 
 	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
@@ -674,7 +1072,7 @@ namespace SPP
 						_visible3d[curVisible++] = curRenderable;
 					}
 
-					auto& drawInfo = curRenderable->GetDrawingInfo();
+					//auto& drawInfo = curRenderable->GetDrawingInfo();
 
 					//drawInfo.drawingType == DrawingType::Opaque
 					//((Renderable*)InElement)->Draw();

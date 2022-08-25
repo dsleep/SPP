@@ -35,7 +35,7 @@ namespace SPP
 	void VgMeshElement::AddedToScene(class OScene* InScene)
 	{
 		OMeshElement::AddedToScene(InScene);
-
+#if 0
 		auto thisEnvironment = dynamic_cast<VgEnvironment*>(InScene);
 		SE_ASSERT(thisEnvironment);
 
@@ -59,9 +59,11 @@ namespace SPP
 
 				auto currentScene = thisEnvironment->GetPhysicsScene();
 
+
 				_physicsPrimitive = currentScene->CreateTriangleMeshPrimitive(this->_translation, this->_rotation, this->_scale, triMesh);
 			}
 		}
+#endif
 	}
 
 	void VgMeshElement::RemovedFromScene()

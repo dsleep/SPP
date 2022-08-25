@@ -5,7 +5,7 @@
 // Modified original code from Sascha Willems - www.saschawillems.de
 
 #include <VulkanTexture.h>
-
+#include "VulkanResources.h"
 
 namespace SPP
 {
@@ -523,6 +523,8 @@ namespace SPP
 			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetGraphicsQueue());
 	}
 
+	
+
 	VkFormat SPPToVulkan(TextureFormat InFormat)
 	{
 		switch (InFormat)
@@ -541,20 +543,20 @@ namespace SPP
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) : GPUTexture(InOwner, Width, Height, Format, nullptr, nullptr)
+	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, int32_t MipLevelCount, TextureFormat Format, VkImageUsageFlags UsageFlags)
+		: GPUTexture(InOwner, Width, Height, Format, nullptr, nullptr)
 	{
 		width = Width;
 		height = Height;
-		mipLevels = 1;
+		mipLevels = MipLevelCount;
 		layerCount = 1;
 
 		auto copyQueue = GGlobalVulkanGI->GetGraphicsQueue();
 		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
 		VkFormat format = SPPToVulkan(Format);
 		VkFilter filter = VK_FILTER_NEAREST;
-		VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | 
-			VK_IMAGE_USAGE_STORAGE_BIT | 
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		texformat = format;
 
 		// Create optimal tiled target image
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
@@ -567,7 +569,7 @@ namespace SPP
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageCreateInfo.extent = { width, height, 1 };
-		imageCreateInfo.usage = imageUsageFlags;
+		imageCreateInfo.usage = UsageFlags;
 		// Ensure that the TRANSFER_DST bit is set for staging
 		if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
 		{
@@ -595,7 +597,7 @@ namespace SPP
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
-				
+
 		device->flushCommandBuffer(copyCmd, copyQueue);
 
 		this->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -629,10 +631,39 @@ namespace SPP
 		viewCreateInfo.image = image;
 		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
 
-		
-
 		// Update descriptor image info member that can be used for setting up descriptor sets
 		updateDescriptor();
+	}
+
+	std::vector< GPUReferencer< SafeVkImageView > > VulkanTexture::GetMipChainViews() 
+	{
+		//VkImageAspectFlags aspectMask = (format == VK_FORMAT_D32_SFLOAT) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+		std::vector< GPUReferencer< SafeVkImageView > > oViews;
+		for (int32_t Iter = 0; Iter < mipLevels; Iter++)
+		{
+			VkImageViewCreateInfo viewCreateInfo = {};
+			viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewCreateInfo.pNext = NULL;
+			viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewCreateInfo.format = texformat;
+			viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+			viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			viewCreateInfo.subresourceRange.levelCount = 1;
+			viewCreateInfo.image = image;
+
+			auto newView = Make_GPU(SafeVkImageView, GGlobalVulkanGI, viewCreateInfo);
+			oViews.push_back(newView);
+		}
+
+		return oViews;
+	}
+
+	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) : 
+		VulkanTexture(InOwner, Width, Height, 1, Format, VK_IMAGE_USAGE_SAMPLED_BIT |
+			VK_IMAGE_USAGE_STORAGE_BIT |
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+	{
 	}
 
 	void VulkanTexture::UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize)
