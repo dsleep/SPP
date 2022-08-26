@@ -1,10 +1,10 @@
 
-[[vk::binding(0, 1)]]
+[[vk::binding(0, 0)]]
 Texture2D depthTexture : register(t0, space0);
-[[vk::binding(1, 1)]]
+[[vk::binding(1, 0)]]
 SamplerState depthSampler : register(s0);
 
-[[vk::binding(2, 1)]]
+[[vk::binding(2, 0)]]
 RWTexture2D<float> oDepthReduced : register(u1);
 
 struct DepthReduceData

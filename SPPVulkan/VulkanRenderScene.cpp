@@ -199,13 +199,16 @@ namespace SPP
 	{
 	private:
 		GPUReferencer < VulkanShader > _depthVS;
-		GPUReferencer < VulkanShader > _depthPyramidCreationCS;
-
 		GPUReferencer< SafeVkDescriptorSetLayout > _depthVSLayout;
+
+		GPUReferencer < VulkanShader > _depthPyramidCreationCS;
+		GPUReferencer< SafeVkDescriptorSetLayout > _depthPyramidCreationLayout;
+
+		GPUReferencer< VulkanPipelineState > _depthPyramidPSO;
+
 		GPUReferencer< SafeVkSampler > _depthPyramidSampler;
 
 		GPUReferencer< GPUInputLayout > _SMDepthlayout;
-
 		GPUReferencer< PipelineState > _SMDepthPSO;
 
 	public:
@@ -216,6 +219,20 @@ namespace SPP
 
 			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
+
+			_depthPyramidPSO = GetVulkanPipelineState(InOwner,
+				EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Enabled,
+				EDrawingTopology::TriangleList,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				_depthPyramidCreationCS);
 
 			_depthVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.hlsl", "main_vs");
@@ -240,6 +257,9 @@ namespace SPP
 			auto& vsSet = _depthVS->GetLayoutSets();
 			_depthVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
 
+			auto& depthPyrCreationCS = _depthPyramidCreationCS->GetLayoutSets();
+			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, depthPyrCreationCS.front().bindings);
+			
 			/// special min mod depth sampler
 			VkSamplerCreateInfo createInfo = {};
 
@@ -267,6 +287,16 @@ namespace SPP
 		GPUReferencer< SafeVkDescriptorSetLayout > GetVSLayout()
 		{
 			return _depthVSLayout;
+		}
+
+		auto GetDepthCSPyramidLayout()
+		{
+			return _depthPyramidCreationLayout;
+		}
+
+		auto GetDepthPyramidPSO()
+		{
+			return _depthPyramidPSO;
 		}
 
 		GPUReferencer< GPUInputLayout > GetSMLayout()
@@ -317,6 +347,8 @@ namespace SPP
 	{
 	protected:
 		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
+		GPUReferencer< SafeVkDescriptorSet > _depthPyramidDescriptorSet;
+
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 
@@ -325,12 +357,16 @@ namespace SPP
 		Vector2i _depthPyramidExtents;
 		std::vector< GPUReferencer< SafeVkImageView > > _depthPyramidViews;
 
+		std::vector< GPUReferencer< SafeVkDescriptorSet > > _depthPyramidDescriptors;
+
 	public:
 		DepthDrawer(VulkanRenderScene* InScene) : _owningScene(InScene)
 		{
 			_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 			auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
-
+				
+				
+			//
 			auto depthVSLayout = GVulkanDepthResrouces.GetVSLayout();
 			_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, depthVSLayout->Get(), globalSharedPool);
 
@@ -357,10 +393,13 @@ namespace SPP
 			vkUpdateDescriptorSets(_owningDevice->GetDevice(),
 				static_cast<uint32_t>(writeDescriptorSets.size()),
 				writeDescriptorSets.data(), 0, nullptr);
+			
 
 			///////////////////////////////////
 			// SETUP Depth pyramid texture
 			///////////////////////////////////
+
+			_depthPyramidDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), globalSharedPool);
 
 			auto DeviceExtents = _owningDevice->GetExtents();
 
@@ -371,11 +410,69 @@ namespace SPP
 				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
 			_depthPyramidViews = _depthPyramidTexture->GetMipChainViews();
+
+
+			auto ColorTarget = _owningDevice->GetColorTarget();
+			auto& colorAttachment = ColorTarget->GetFrontAttachment();
+			auto& depthAttachment = ColorTarget->GetBackAttachment();
+
+
+			_depthPyramidDescriptors.clear();
+
+			// create those descriptors of the mip chain
+			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+			for (int32_t Iter = 0; Iter < _depthPyramidViews.size(); Iter++)
+			{
+				VkDescriptorImageInfo sourceTarget;
+				sourceTarget.sampler = depthDownsizeSampler->Get();
+
+				VkDescriptorImageInfo destTarget;
+				destTarget.sampler = depthDownsizeSampler->Get();
+				destTarget.imageView = _depthPyramidViews[Iter]->Get();
+				destTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;				
+
+				//for te first iteration, we grab it from the depth image
+				if (Iter == 0)
+				{
+					sourceTarget.imageView = depthAttachment.view->Get();
+					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				}
+				//afterwards, we copy from a depth mipmap into the next
+				else
+				{
+					sourceTarget.imageView = _depthPyramidViews[Iter]->Get();
+					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				}
+
+				auto descChainSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), globalSharedPool);
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descChainSet->Get(),
+					VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, &sourceTarget),
+				vks::initializers::writeDescriptorSet(descChainSet->Get(),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, &sourceTarget),
+				vks::initializers::writeDescriptorSet(descChainSet->Get(),
+					VK_DESCRIPTOR_TYPE_SAMPLER, 2, &destTarget),
+				};
+
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+					static_cast<uint32_t>(writeDescriptorSets.size()),
+					writeDescriptorSets.data(), 0, nullptr);
+
+				_depthPyramidDescriptors.push_back(descChainSet);
+			}
+		}
+
+		inline uint32_t getGroupCount(uint32_t InValue, uint32_t threadCount)
+		{
+			return (InValue + threadCount - 1) / threadCount;
 		}
 
 		void ProcessDepthPyramid()
 		{
+			auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+
 			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+			auto depthPyrPSO = GVulkanDepthResrouces.GetDepthPyramidPSO();
 
 			auto currentFrame = _owningDevice->GetActiveFrame();
 			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
@@ -384,48 +481,22 @@ namespace SPP
 			auto& colorAttachment = ColorTarget->GetFrontAttachment();
 			auto& depthAttachment = ColorTarget->GetBackAttachment();
 
+			DepthReduceData reduceData = { Vector2(DeviceExtents[0], DeviceExtents[1]) };
+
 			for (int32_t Iter = 0; Iter < _depthPyramidViews.size(); Iter++)
 			{
-				VkDescriptorImageInfo destTarget;
-				destTarget.sampler = depthDownsizeSampler->Get();
-				destTarget.imageView = _depthPyramidViews[Iter]->Get();
-				destTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-				VkDescriptorImageInfo sourceTarget;
-				sourceTarget.sampler = depthDownsizeSampler->Get();
-
-				//for te first iteration, we grab it from the depth image
-				if (!Iter)
-				{
-					sourceTarget.imageView = depthAttachment.view->Get();
-					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				}
-				//afterwards, we copy from a depth mipmap into the next
-				else 
-				{
-					sourceTarget.imageView = _depthPyramidViews[Iter]->Get();
-					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				}
-
-				// check out VkDescriptorUpdateTemplate
-
-			//	VkDescriptorSet depthSet;
-			//	vkutil::DescriptorBuilder::begin(_descriptorLayoutCache, get_current_frame().dynamicDescriptorAllocator)
-			//		.bind_image(0, &destTarget, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
-			//		.bind_image(1, &sourceTarget, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT)
-			//		.build(depthSet);
-
-			//	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _depthReduceLayout, 0, 1, &depthSet, 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipelineLayout(), 0, 1, &_depthPyramidDescriptors[Iter]->Get(), 0, nullptr);
 
 				uint32_t levelWidth = std::max(1, _depthPyramidExtents[0] >> Iter);
 				uint32_t levelHeight = std::max(1, _depthPyramidExtents[1] >> Iter);
 
-				DepthReduceData reduceData = { Vector2(levelWidth, levelHeight) };
+				reduceData = { Vector2(levelWidth, levelHeight) };
 
 				//execute downsample compute shader
-				//vkCmdPushConstants(commandBuffer, _depthReduceLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(reduceData), &reduceData);
-				//// FIX LEVEL WIDTH
-				//vkCmdDispatch(commandBuffer, levelWidth / 32, levelHeight / 32, 1);
+				vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(reduceData), &reduceData);
+				auto xCount = getGroupCount(levelWidth, 32);
+				auto yCount = getGroupCount(levelHeight, 32);
+				vkCmdDispatch(commandBuffer, xCount, yCount, 1);
 
 
 				////pipeline barrier before doing the next mipmap
@@ -1096,6 +1167,8 @@ namespace SPP
 			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)curVis);
 		}
 #endif
+		_depthDrawer->ProcessDepthPyramid();
+
 		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);
