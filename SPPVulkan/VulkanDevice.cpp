@@ -1466,6 +1466,19 @@ namespace SPP
 					InPS->GetAs<VulkanShader>().GetEntryPoint().c_str()
 				});
 			}
+
+			//TODO setup ps/vs merge
+			// setup push constants
+			std::vector<VkPushConstantRange> push_constants;
+			////this push constant range starts at the beginning
+			//push_constant.offset = 0;
+			////this push constant range takes up the size of a MeshPushConstants struct
+			//push_constant.size = sizeof(MeshPushConstants);
+			////this push constant range is accessible only in the vertex shader
+			//push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+			//pipelineCreateInfo.pPushConstantRanges = &push_constant;
+			//pipelineCreateInfo.pushConstantRangeCount = 1;
 			
 			
 			// Create the pipeline layout that is used to generate the rendering pipelines that are based on this descriptor set layout
@@ -1475,6 +1488,9 @@ namespace SPP
 			pPipelineLayoutCreateInfo.pNext = nullptr;
 			pPipelineLayoutCreateInfo.setLayoutCount = _descriptorSetLayouts.size();
 			pPipelineLayoutCreateInfo.pSetLayouts = _descriptorSetLayouts.data();
+
+			pPipelineLayoutCreateInfo.pushConstantRangeCount = push_constants.size();
+			pPipelineLayoutCreateInfo.pPushConstantRanges = push_constants.data();
 
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 
@@ -1643,6 +1659,7 @@ namespace SPP
 			pipelineCreateInfo.renderPass = renderPass;
 			pipelineCreateInfo.pDynamicState = &dynamicState;
 
+
 			// Pipeline cache object
 			//VkPipelineCache pipelineCache;
 			//VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -1654,7 +1671,8 @@ namespace SPP
 		}
 		else if(InCS)
 		{
-			auto& csShaderSets = InCS->GetAs<VulkanShader>().GetLayoutSets();
+			auto& csVulkanShader = InCS->GetAs<VulkanShader>();
+			auto& csShaderSets = csVulkanShader.GetLayoutSets();
 
 			MergeBindingSet(csShaderSets, _setLayoutBindings);
 
@@ -1678,11 +1696,16 @@ namespace SPP
 				}
 			}
 
+			// setup push constants
+			std::vector<VkPushConstantRange> push_constants = csVulkanShader.GetPushConstants();
+
 			VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
 			pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pPipelineLayoutCreateInfo.pNext = nullptr;
 			pPipelineLayoutCreateInfo.setLayoutCount = _descriptorSetLayouts.size();
 			pPipelineLayoutCreateInfo.pSetLayouts = _descriptorSetLayouts.data();
+			pPipelineLayoutCreateInfo.pushConstantRangeCount = push_constants.size();
+			pPipelineLayoutCreateInfo.pPushConstantRanges = push_constants.data();
 
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 

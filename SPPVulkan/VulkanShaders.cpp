@@ -20,6 +20,28 @@ namespace SPP
 
 	LogEntry LOG_VULKANSHADER("VulkanShader");
 
+	VkShaderStageFlags ReturnVkShaderStage(EShaderType inType)
+	{
+		switch (inType)
+		{
+		case EShaderType::Pixel:
+			return VK_SHADER_STAGE_FRAGMENT_BIT;
+		case EShaderType::Vertex:
+			return VK_SHADER_STAGE_VERTEX_BIT;
+		case EShaderType::Compute:
+			return VK_SHADER_STAGE_COMPUTE_BIT;
+		//case EShaderType::Domain:
+		//	return "ds_6_5";
+		//case EShaderType::Hull:
+		//	return "hs_6_5";
+		//case EShaderType::Mesh:
+		//	return "ms_6_5";
+		//case EShaderType::Amplification:
+		//	return "as_6_5";
+		}
+		return VK_SHADER_STAGE_ALL;
+	}
+
 	const char* ReturnTargetString(EShaderType inType)
 	{
 		switch (inType)
@@ -207,6 +229,30 @@ namespace SPP
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
 			uint32_t count = 0;
+
+			// push constants
+			result = spvReflectEnumeratePushConstants(&module, &count, NULL);
+			assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+			std::vector<SpvReflectBlockVariable*> pushConstants(count);
+
+			result = spvReflectEnumeratePushConstants(&module, &count, pushConstants.data());
+			assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "PUSH CONSTANTS");
+			for (auto& pushvars : pushConstants)
+			{
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - %s %d %d", pushvars->name, pushvars->offset, pushvars->size);
+
+				_pushConstants.push_back(
+					VkPushConstantRange{
+						ReturnVkShaderStage(_type ),
+						pushvars->offset,
+						pushvars->size }
+				);
+			}
+
+			// descriptor/uniform reflection
 			result = spvReflectEnumerateDescriptorSets(&module, &count, NULL);
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 

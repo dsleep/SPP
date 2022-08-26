@@ -19,6 +19,7 @@ namespace SPP
 	private:
 		VkShaderModule _shader = nullptr;
 		std::vector<DescriptorSetLayoutData> _layoutSets;
+		std::vector<VkPushConstantRange> _pushConstants;
 
 		virtual void _MakeResident() override {}
 		virtual void _MakeUnresident() override {}
@@ -34,6 +35,10 @@ namespace SPP
 			return _layoutSets;
 		}
 		
+		const std::vector<VkPushConstantRange>& GetPushConstants() const {
+			return _pushConstants;
+		}
+
 		virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
 		virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) override;
 	};
