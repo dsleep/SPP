@@ -61,7 +61,7 @@ namespace SPP
 			return imageByteSize;
 		}
 
-		VkImage GetVkImage() const
+		const VkImage &GetVkImage() const
 		{
 			return image;
 		}

@@ -648,8 +648,7 @@ namespace SPP
 			viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			viewCreateInfo.format = texformat;
 			viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-			viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-			viewCreateInfo.subresourceRange.levelCount = 1;
+			viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)Iter, 1, 0, 1 };			
 			viewCreateInfo.image = image;
 
 			auto newView = Make_GPU(SafeVkImageView, GGlobalVulkanGI, viewCreateInfo);

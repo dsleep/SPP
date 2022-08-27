@@ -217,6 +217,7 @@ namespace SPP
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
+			// DEPTH PYRAMID
 			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
 
@@ -233,6 +234,35 @@ namespace SPP
 				nullptr,
 				nullptr,
 				_depthPyramidCreationCS);
+
+			auto& depthPyrCreationCS = _depthPyramidCreationCS->GetLayoutSets();
+			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, depthPyrCreationCS.front().bindings);
+
+			/// special min mod depth sampler
+			VkSamplerCreateInfo createInfo = {};
+
+			//fill the normal stuff
+			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			createInfo.magFilter = VK_FILTER_LINEAR;
+			createInfo.minFilter = VK_FILTER_LINEAR;
+			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			createInfo.minLod = 0;
+			createInfo.maxLod = 16.f;
+
+			//add a extension struct to enable Min mode
+			VkSamplerReductionModeCreateInfoEXT createInfoReduction = {};
+
+			createInfoReduction.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT;
+			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
+			createInfo.pNext = &createInfoReduction;
+
+			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
+
+
+			//DEPTH VS
 
 			_depthVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.hlsl", "main_vs");
@@ -256,32 +286,6 @@ namespace SPP
 
 			auto& vsSet = _depthVS->GetLayoutSets();
 			_depthVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
-
-			auto& depthPyrCreationCS = _depthPyramidCreationCS->GetLayoutSets();
-			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, depthPyrCreationCS.front().bindings);
-			
-			/// special min mod depth sampler
-			VkSamplerCreateInfo createInfo = {};
-
-			//fill the normal stuff
-			createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			createInfo.magFilter = VK_FILTER_LINEAR;
-			createInfo.minFilter = VK_FILTER_LINEAR;
-			createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-			createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			createInfo.minLod = 0;
-			createInfo.maxLod = 16.f;
-
-			//add a extension struct to enable Min mode
-			VkSamplerReductionModeCreateInfoEXT createInfoReduction = {};
-
-			createInfoReduction.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT;
-			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
-			createInfo.pNext = &createInfoReduction;
-
-			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
 		}
 
 		GPUReferencer< SafeVkDescriptorSetLayout > GetVSLayout()
@@ -338,7 +342,7 @@ namespace SPP
 
 	//
 
-	struct alignas(16) DepthReduceData
+	struct alignas(256u) DepthReduceData
 	{
 		Vector2 imageSize;
 	};
@@ -411,11 +415,9 @@ namespace SPP
 
 			_depthPyramidViews = _depthPyramidTexture->GetMipChainViews();
 
-
 			auto ColorTarget = _owningDevice->GetColorTarget();
 			auto& colorAttachment = ColorTarget->GetFrontAttachment();
 			auto& depthAttachment = ColorTarget->GetBackAttachment();
-
 
 			_depthPyramidDescriptors.clear();
 
@@ -440,18 +442,19 @@ namespace SPP
 				//afterwards, we copy from a depth mipmap into the next
 				else
 				{
-					sourceTarget.imageView = _depthPyramidViews[Iter]->Get();
+					sourceTarget.imageView = _depthPyramidViews[Iter - 1]->Get();
 					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				}
 
 				auto descChainSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), globalSharedPool);
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {				
 				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, &sourceTarget),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &sourceTarget),
 				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, &sourceTarget),
+					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &destTarget),
 				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_SAMPLER, 2, &destTarget),
+					VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2, &sourceTarget),
 				};
 
 				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
@@ -481,9 +484,16 @@ namespace SPP
 			auto& colorAttachment = ColorTarget->GetFrontAttachment();
 			auto& depthAttachment = ColorTarget->GetBackAttachment();
 
+			vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+
 			DepthReduceData reduceData = { Vector2(DeviceExtents[0], DeviceExtents[1]) };
 
-			for (int32_t Iter = 0; Iter < _depthPyramidViews.size(); Iter++)
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipeline());
+
+			for (int32_t Iter = 0; Iter < 3; Iter++)
 			{
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipelineLayout(), 0, 1, &_depthPyramidDescriptors[Iter]->Get(), 0, nullptr);
 
@@ -498,17 +508,25 @@ namespace SPP
 				auto yCount = getGroupCount(levelHeight, 32);
 				vkCmdDispatch(commandBuffer, xCount, yCount, 1);
 
+				vks::tools::insertImageMemoryBarrier(commandBuffer,
+					_depthPyramidTexture->GetVkImage(),
+					
+					VK_ACCESS_SHADER_WRITE_BIT,
+					VK_ACCESS_SHADER_READ_BIT,
 
-				////pipeline barrier before doing the next mipmap
-				//VkImageMemoryBarrier reduceBarrier = vkinit::image_barrier(_depthPyramid._image,
-				//	VK_ACCESS_SHADER_WRITE_BIT,
-				//	VK_ACCESS_SHADER_READ_BIT,
-				//	VK_IMAGE_LAYOUT_GENERAL,
-				//	VK_IMAGE_LAYOUT_GENERAL,
-				//	VK_IMAGE_ASPECT_COLOR_BIT);
+					VK_IMAGE_LAYOUT_GENERAL,
+					VK_IMAGE_LAYOUT_GENERAL,
 
-				//vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, 0, 0, 0, 1, &reduceBarrier);
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+
+					VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)Iter, 1, 0, 1 });
 			}
+
+			vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
 		}
 
 		struct OpaqueMeshCache : PassCache
