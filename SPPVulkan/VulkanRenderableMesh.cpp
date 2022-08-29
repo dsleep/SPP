@@ -86,7 +86,8 @@ namespace SPP
 	void RT_VulkanRenderableMesh::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
 		RT_RenderableMesh::_AddToRenderScene(InScene);
-
+				
+		_globalMeshID = Make_GPU(GlobalMeshID, _owner, InScene);
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
 
@@ -110,6 +111,11 @@ namespace SPP
 	void RT_VulkanRenderableMesh::_RemoveFromRenderScene()
 	{
 		RT_RenderableMesh::_RemoveFromRenderScene();
+
+		_staticDrawReservation.reset();
+		_drawConstants.reset();
+		_drawConstants.reset();
+		_globalMeshID.Reset();
 	}
 
 	// MOVE THIS, its a mesh it doesn't have specifics

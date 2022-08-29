@@ -1149,6 +1149,16 @@ namespace SPP
 		DrawDebug();
 #endif
 
+		// RENDER PROCESS
+
+		// DEPTH PREPASS
+
+		// LIGHT CALCS
+
+		// FORWARD+ 
+
+
+
 		//if (_skyBox)
 		{
 			//DrawSkyBox();

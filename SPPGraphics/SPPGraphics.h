@@ -144,8 +144,7 @@ namespace SPP
         {
             SE_ASSERT(IsOnGPUThread());
         }
-    };
-       
+    };      
   
 
     class SPP_GRAPHICS_API GraphicsDevice
@@ -162,7 +161,7 @@ namespace SPP
         std::future<bool> _currentFrame;
 
         std::atomic_bool bFrameActive{ false };
-      
+              
     public:
         virtual ~GraphicsDevice();
 

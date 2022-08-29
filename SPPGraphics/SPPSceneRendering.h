@@ -224,10 +224,28 @@ namespace SPP
 
 		GraphicsDevice* _owner = nullptr;
 
+		std::list< uint32_t > _globalMeshIDPool;
+		uint32_t _globalMeshIDCounter = 1;
+
 	public:
 
 		RT_RenderScene(GraphicsDevice* InOwner);
 		virtual ~RT_RenderScene();
+
+		uint32_t GetGlobalMeshID()
+		{
+			if (_globalMeshIDPool.size())
+			{
+				auto getBack = _globalMeshIDPool.back();
+				_globalMeshIDPool.pop_back();
+				return getBack;
+			}
+			return _globalMeshIDCounter++;
+		}
+		void ReturnToGlobalMeshID(uint32_t InID )
+		{
+			_globalMeshIDPool.push_back(InID);
+		}
 
 		virtual void AddedToGraphicsDevice();
 		virtual void RemovedFromGraphicsDevice();

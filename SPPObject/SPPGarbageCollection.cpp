@@ -77,8 +77,17 @@ namespace SPP
 				}
 				else if (propType.is_associative_container())
 				{
-					SPP_LOG(LOG_OBJ, LOG_INFO, " - associative container UNSUPPORTED!!!");
-					return;
+					auto sub_array_view = org_prop_value.create_associative_view();
+
+					for (auto& item : sub_array_view)
+					{
+						WalkObjects(item.first, InFunction);
+
+						if (sub_array_view.is_key_only_type() == false)
+						{
+							WalkObjects(item.second, InFunction);
+						}
+					}
 				}
 				else if (propType.is_class())
 				{
