@@ -256,7 +256,7 @@ namespace SPP
 			VkSamplerReductionModeCreateInfoEXT createInfoReduction = {};
 
 			createInfoReduction.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT;
-			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
+			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX;
 			createInfo.pNext = &createInfoReduction;
 
 			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
@@ -342,9 +342,10 @@ namespace SPP
 
 	//
 
-	struct alignas(256u) DepthReduceData
+	struct alignas(16u) DepthReduceData
 	{
-		Vector2 imageSize;
+		Vector2 srcSize;
+		Vector2 dstSize;
 	};
 
 	class DepthDrawer
@@ -452,9 +453,9 @@ namespace SPP
 				vks::initializers::writeDescriptorSet(descChainSet->Get(),
 					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &sourceTarget),
 				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &destTarget),
+					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &sourceTarget),
 				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2, &sourceTarget),
+					VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2, &destTarget),
 				};
 
 				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
@@ -489,18 +490,25 @@ namespace SPP
 				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
 
-			DepthReduceData reduceData = { Vector2(DeviceExtents[0], DeviceExtents[1]) };
+			DepthReduceData reduceData = 
+			{ 
+				Vector2(DeviceExtents[0], DeviceExtents[1]),
+				Vector2(DeviceExtents[0], DeviceExtents[1])
+			};
 
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipeline());
 
-			for (int32_t Iter = 0; Iter < 3; Iter++)
+			for (int32_t Iter = 0; Iter < _depthPyramidViews.size(); Iter++)
 			{
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipelineLayout(), 0, 1, &_depthPyramidDescriptors[Iter]->Get(), 0, nullptr);
 
 				uint32_t levelWidth = std::max(1, _depthPyramidExtents[0] >> Iter);
 				uint32_t levelHeight = std::max(1, _depthPyramidExtents[1] >> Iter);
 
-				reduceData = { Vector2(levelWidth, levelHeight) };
+				// put dst into src
+				std::swap(reduceData.dstSize, reduceData.srcSize);
+				// shift dst
+				reduceData.dstSize = { Vector2(levelWidth, levelHeight) };
 
 				//execute downsample compute shader
 				vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(reduceData), &reduceData);
@@ -524,7 +532,7 @@ namespace SPP
 			}
 
 			vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
 		}
@@ -1174,6 +1182,8 @@ namespace SPP
 		//	}
 		//#endif
 
+		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "OpaqueDrawing");
+
 #if 1
 		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
 		{
@@ -1185,12 +1195,20 @@ namespace SPP
 			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)curVis);
 		}
 #endif
-		_depthDrawer->ProcessDepthPyramid();
+
+		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DebugDrawing");
 
 		_debugDrawer->Draw(this);
 
+		//vkCmdSetCheckpointNV
+
 		vkCmdEndRenderPass(commandBuffer);
 
+		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPyramid");
+
+		_depthDrawer->ProcessDepthPyramid();
+
+		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPrepForPost");
 
 		auto &DepthColorTexture = GGlobalVulkanGI->GetDepthColor()->GetAs<VulkanTexture>();
 
@@ -1266,6 +1284,8 @@ namespace SPP
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
+
+		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "WriteToFrame");
 
 		WriteToFrame();
 	};

@@ -150,6 +150,8 @@ namespace SPP
 	{
 	private:
 
+		PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
+
 		uint32_t width = 1280;
 		uint32_t height = 720;
 
@@ -295,6 +297,10 @@ namespace SPP
 		VulkanGraphicsDevice()
 		{
 		}
+
+		bool HasCheckPoints() const;
+
+		void SetCheckpoint(VkCommandBuffer InCmdBuffer, const char *InName);
 
 		uint8_t GetCurrentFrame() 
 		{
@@ -554,11 +560,13 @@ namespace vks
 		/** @brief Queue family properties of the physical device */
 		std::vector<VkQueueFamilyProperties> queueFamilyProperties;
 		/** @brief List of extensions supported by the device */
-		std::vector<std::string> supportedExtensions;
+		std::set<std::string> supportedExtensions;
 		/** @brief Default command pool for the graphics queue family index */
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		/** @brief Set to true when the debug marker extension is detected */
 		bool enableDebugMarkers = false;
+		// enable those checkpoints
+		bool enableCheckpoints = false;
 		/** @brief Contains queue family indices */
 		struct
 		{

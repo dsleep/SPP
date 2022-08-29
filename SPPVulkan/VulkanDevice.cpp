@@ -261,7 +261,23 @@ namespace SPP
 				SPP_LOG(LOG_VULKAN, LOG_INFO, "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled");
 			}
 		}
+
 		return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+	}
+
+	bool VulkanGraphicsDevice::HasCheckPoints() const
+	{
+		return vulkanDevice && vulkanDevice->enableCheckpoints;
+	}
+
+	void VulkanGraphicsDevice::SetCheckpoint(VkCommandBuffer InCmdBuffer, const char* InName)
+	{
+		if (HasCheckPoints() && vkCmdSetCheckpointNV)
+		{
+			vkCmdSetCheckpointNV(InCmdBuffer, InName);
+			float color[] = { 1,1,1,1 };
+			vks::debugmarker::insert(InCmdBuffer, InName, color);
+		}
 	}
 
 	bool VulkanGraphicsDevice::DeviceInitialize()
@@ -442,6 +458,11 @@ namespace SPP
 			}
 			_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
 		}
+
+		//get those local dealios
+		vkCmdSetCheckpointNV = reinterpret_cast<PFN_vkCmdSetCheckpointNV>(vkGetDeviceProcAddr(device, "vkCmdSetCheckpointNV"));
+
+		vks::debugmarker::setup(device);
 
 		return true;
 	}
@@ -1929,7 +1950,7 @@ namespace vks
 			{
 				for (auto ext : extensions)
 				{
-					supportedExtensions.push_back(ext.extensionName);
+					supportedExtensions.insert(ext.extensionName);
 				}
 			}
 		}
@@ -2151,6 +2172,13 @@ namespace vks
 		{
 			deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
 			enableDebugMarkers = true;
+		}
+
+		// Enable the device checkpoints
+		if (extensionSupported(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME))
+		{
+			deviceExtensions.push_back(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
+			enableCheckpoints = true;
 		}
 
 		if (deviceExtensions.size() > 0)
@@ -2428,7 +2456,7 @@ namespace vks
 	*/
 	bool VulkanDevice::extensionSupported(std::string extension)
 	{
-		return (std::find(supportedExtensions.begin(), supportedExtensions.end(), extension) != supportedExtensions.end());
+		return supportedExtensions.contains(extension);
 	}
 
 	/**

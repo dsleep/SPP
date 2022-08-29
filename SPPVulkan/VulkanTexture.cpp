@@ -562,7 +562,7 @@ namespace SPP
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = format;
-		imageCreateInfo.mipLevels = 1;
+		imageCreateInfo.mipLevels = mipLevels;
 		imageCreateInfo.arrayLayers = 1;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -626,8 +626,7 @@ namespace SPP
 		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewCreateInfo.format = format;
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		viewCreateInfo.subresourceRange.levelCount = 1;
+		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1 };
 		viewCreateInfo.image = image;
 		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
 
