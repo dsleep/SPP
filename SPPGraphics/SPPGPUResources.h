@@ -210,6 +210,8 @@ namespace SPP
             _cppFile = file;
         }
 
+        virtual void SetName(const char *InName) {}
+
         virtual void NoMoreReferences()
         {
             _dying = true;

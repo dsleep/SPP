@@ -10,7 +10,17 @@
 #include "SPPGraphics.h"
 
 namespace SPP
-{
+{	
+	GlobalRenderableID::GlobalRenderableID(GraphicsDevice* InOwner, class RT_RenderScene* currentScene) : GPUResource(InOwner), _scene(currentScene)
+	{
+		_globalID = _scene->GetGlobalRenderableID();
+	}
+
+	GlobalRenderableID::~GlobalRenderableID()
+	{
+		_scene->ReturnToGlobalRenderableID(_globalID);
+	}
+
 	void Renderable::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
 		SE_ASSERT(InScene);
@@ -46,6 +56,8 @@ namespace SPP
 	{
 		_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0, 0, 0), 65.0f, 1.77f);
 		_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
+
+		_renderables.resize(1024);
 	}
 	RT_RenderScene::~RT_RenderScene() {}
 
@@ -120,41 +132,17 @@ namespace SPP
 	{
 		SE_ASSERT(IsOnGPUThread());
 
-		if (InRenderable->Is3dRenderable())
+		InRenderable->_globalID = Make_GPU(GlobalRenderableID, _owner, this);
+		auto thisID = InRenderable->_globalID->GetID();
+
+		while (thisID >= _renderables.size())
 		{
-			bool bAdded = false;
-			for (auto Iter = _renderables3d.begin(); Iter != _renderables3d.end(); Iter++)
-			{
-				if ((*InRenderable) < *(*Iter))
-				{
-					_renderables3d.insert(Iter, InRenderable);
-					bAdded = true;
-					break;
-				}
-			}
-			if (!bAdded)
-			{
-				_renderables3d.push_back(InRenderable);
-			}
+			_renderables.resize(_renderables.size() * 2);
 		}
 
-		if (InRenderable->IsPostRenderable())
-		{
-			bool bAdded = false;
-			for (auto Iter = _renderablesPost.begin(); Iter != _renderablesPost.end(); Iter++)
-			{
-				if ((*InRenderable) < *(*Iter))
-				{
-					_renderablesPost.insert(Iter, InRenderable);
-					bAdded = true;
-					break;
-				}
-			}
-			if (!bAdded)
-			{
-				_renderables3d.push_back(InRenderable);
-			}
-		}
+		_renderables[thisID] = InRenderable;
+
+		_maxRenderableIdx = std::max(_maxRenderableIdx, thisID);
 
 		_octree.AddElement(InRenderable);
 	}
@@ -163,16 +151,22 @@ namespace SPP
 	{
 		SE_ASSERT(IsOnGPUThread());
 
-		if (InRenderable->Is3dRenderable())
-		{
-			_renderables3d.remove(InRenderable);
-		}
+		auto thisID = InRenderable->_globalID->GetID();
+		SE_ASSERT(_renderables[thisID] == InRenderable);
+		_renderables[thisID] = nullptr;
 
-		if (InRenderable->IsPostRenderable())
-		{
-			_renderablesPost.remove(InRenderable);
+		if (_maxRenderableIdx == thisID)
+		{			
+			for (int32_t Iter = _maxRenderableIdx - 1; Iter >= 0; Iter--)
+			{
+				_maxRenderableIdx = Iter;
+				if (_renderables[Iter])
+				{
+					break;
+				}
+			}
 		}
-
+		
 		_octree.RemoveElement(InRenderable);
 	}
 

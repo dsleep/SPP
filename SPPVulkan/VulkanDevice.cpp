@@ -457,6 +457,7 @@ namespace SPP
 				textureAccess[Iter][3] = 255;
 			}
 			_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+			_defaultTexture->SetName("_DEFAULTTEXTURE");
 		}
 
 		//get those local dealios
@@ -562,6 +563,7 @@ namespace SPP
 		swapChain.create(&width, &height, settings.vsync);
 
 		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
+		_depthColor->SetName("_depthColor");
 
 		_colorTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
 		_colorTarget->addAttachment(

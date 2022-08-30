@@ -6,6 +6,7 @@
 
 #include <VulkanTexture.h>
 #include "VulkanResources.h"
+#include "VulkanDebug.h"
 
 namespace SPP
 {
@@ -77,6 +78,9 @@ namespace SPP
 		ktxTexture* ktxTexture;
 		ktxResult result = loadKTXFile(filename, &ktxTexture);
 		assert(result == KTX_SUCCESS);
+
+
+		auto sfileName = stdfs::path(filename).filename().generic_string();
 
 		//this->device = device;
 		width = ktxTexture->baseWidth;
@@ -174,6 +178,8 @@ namespace SPP
 			}
 			VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
 
+			vks::debugmarker::setImageName(device->logicalDevice, image, sfileName.c_str());
+
 			vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
 
 			memAllocInfo.allocationSize = memReqs.size;
@@ -249,6 +255,9 @@ namespace SPP
 
 			// Load mip map level 0 to linear tiling image
 			VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &mappableImage));
+
+
+			vks::debugmarker::setImageName(device->logicalDevice, image, sfileName.c_str());
 
 			// Get memory requirements for this image 
 			// like size and alignment
@@ -435,6 +444,8 @@ namespace SPP
 		}
 		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
 
+		vks::debugmarker::setImageName(device->logicalDevice, image, "VT_fromBuffer");
+
 		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
@@ -523,7 +534,10 @@ namespace SPP
 			Width, Height, GGlobalVulkanGI->GetVKSVulkanDevice(), GGlobalVulkanGI->GetGraphicsQueue());
 	}
 
-	
+	void VulkanTexture::SetName(const char* InName)
+	{
+		vks::debugmarker::setImageName(GGlobalVulkanDevice, image, InName);
+	}
 
 	VkFormat SPPToVulkan(TextureFormat InFormat)
 	{
@@ -577,6 +591,8 @@ namespace SPP
 		}
 		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
 
+		vks::debugmarker::setImageName(device->logicalDevice, image, "VT_Empty");
+
 		VkMemoryRequirements memReqs = { 0 };
 		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
 
@@ -589,7 +605,7 @@ namespace SPP
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1 };
 
 		vks::tools::setImageLayout(
 			copyCmd,

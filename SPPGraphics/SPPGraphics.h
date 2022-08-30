@@ -144,6 +144,11 @@ namespace SPP
         {
             SE_ASSERT(IsOnGPUThread());
         }
+
+        auto GetOwner() const
+        {
+            return _owner;
+        }
     };      
   
 

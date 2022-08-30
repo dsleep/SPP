@@ -87,7 +87,6 @@ namespace SPP
 	{
 		RT_RenderableMesh::_AddToRenderScene(InScene);
 				
-		_globalMeshID = Make_GPU(GlobalMeshID, _owner, InScene);
 		_cachedRotationScale = Matrix4x4::Identity();
 		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
 
@@ -115,31 +114,11 @@ namespace SPP
 		_staticDrawReservation.reset();
 		_drawConstants.reset();
 		_drawConstants.reset();
-		_globalMeshID.Reset();
 	}
 
 	// MOVE THIS, its a mesh it doesn't have specifics
 	void RT_VulkanRenderableMesh::PrepareToDraw()
-	{
-		//if (!_state)
-		//{
-		//	if (!_material)
-		//	{
-		//		SE_ASSERT(false);
-		//		//_material = _owner->GetDefaultMaterial();
-		//	}
-
-		//	//auto vulkanMesh = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(_mesh);
-		//	//auto vulkanMat = std::dynamic_pointer_cast<RT_Vulkan_Material>(_material);
-
-		//	//SE_ASSERT(vulkanMat);
-		//	//SE_ASSERT(_mesh);
-		//	//SE_ASSERT(_mesh->GetLayout());
-		//	//_state = vulkanMat->GetPipelineState(_mesh->GetTopology(), _mesh->GetLayout());
-
-		//	SE_ASSERT(_state);
-		//}
-
+	{		
 		if (!_bIsStatic && bPendingUpdate)
 		{
 			auto uniformData = _drawConstants->GetSpan< GPUDrawConstants>();

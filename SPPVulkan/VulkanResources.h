@@ -15,6 +15,7 @@
 
 #include "VulkanTools.h"
 #include "vulkan/vulkan.h"
+#include "VulkanDebug.h"
 
 #include <algorithm>
 #include <assert.h>
@@ -87,6 +88,7 @@ namespace SPP
 			SafeVkResource< VkImage >(InOwner)
 		{
 			VK_CHECK_RESULT(vkCreateImage(_owningDevice, &info, nullptr, &_resource));
+			vks::debugmarker::setImageName(_owningDevice, _resource, "SafeVkImage_UNSET");
 		}
 		virtual ~SafeVkImage()
 		{

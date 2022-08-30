@@ -209,7 +209,7 @@ namespace SPP
 		GPUReferencer< SafeVkSampler > _depthPyramidSampler;
 
 		GPUReferencer< GPUInputLayout > _SMDepthlayout;
-		GPUReferencer< PipelineState > _SMDepthPSO;
+		GPUReferencer< VulkanPipelineState > _SMDepthPSO;
 
 	public:
 		// called on render thread
@@ -293,6 +293,11 @@ namespace SPP
 			return _depthVSLayout;
 		}
 
+		auto GetDepthDrawingPSO()
+		{
+			return _SMDepthPSO;
+		}
+
 		auto GetDepthCSPyramidLayout()
 		{
 			return _depthPyramidCreationLayout;
@@ -329,6 +334,131 @@ namespace SPP
 	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
 	GlobalOpaqueDrawerResources GVulkanOpaqueResrouces;
 	GlobalDepthDrawerResources GVulkanDepthResrouces;
+
+
+	struct OpaqueMaterialCache : PassCache
+	{
+		GPUReferencer< VulkanPipelineState > state[(uint8_t)VertexInputTypes::MAX];
+		GPUReferencer< SafeVkDescriptorSet > descriptorSet[(uint8_t)VertexInputTypes::MAX];
+		virtual ~OpaqueMaterialCache() {}
+	};
+
+	OpaqueMaterialCache* GetMaterialCache(VertexInputTypes InVertexInputType, std::shared_ptr<RT_Vulkan_Material> InMat)
+	{
+		const uint8_t OPAQUE_PBR_PASS = 0;
+		auto& cached = InMat->GetPassCache()[OPAQUE_PBR_PASS];
+		OpaqueMaterialCache* cacheRef = nullptr;
+		if (!cached)
+		{
+			cached = std::make_unique< OpaqueMaterialCache >();
+		}
+
+		cacheRef = dynamic_cast<OpaqueMaterialCache*>(cached.get());
+
+		if (!cacheRef->state[(uint8_t)InVertexInputType])
+		{
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InMat->GetOwner());
+
+			cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
+				GVulkanOpaqueResrouces.GetOpaqueVS(),
+				GVulkanOpaqueResrouces.GetOpaquePS(),
+				GVulkanOpaqueResrouces.GetSMLayout());
+
+			auto& descSetLayouts = cacheRef->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
+
+			const uint8_t TEXTURE_SET_ID = 1;
+			VkDescriptorImageInfo textureInfo[4];
+
+			auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+			int32_t TextureCount = 1;
+			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, owningDevice, descSetLayouts[TEXTURE_SET_ID], globalSharedPool);
+
+			auto& textureMap = InMat->GetTextureMap();
+			for (int32_t Iter = 0; Iter < TextureCount; Iter++)
+			{
+				auto curTexturePurpose = (TexturePurpose)0;// textureBindings[Iter * 2].binding;
+				auto getTexture = textureMap.find(curTexturePurpose);
+
+				auto gpuTexture = getTexture != textureMap.end() ?
+					getTexture->second->GetGPUTexture() :
+					owningDevice->GetDefaultTexture();
+
+				auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
+				textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
+
+				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
+					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (Iter * 2) + 0, &textureInfo[Iter]));
+				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
+					VK_DESCRIPTOR_TYPE_SAMPLER, (Iter * 2) + 1, &textureInfo[Iter]));
+			}
+
+			vkUpdateDescriptorSets(owningDevice->GetDevice(),
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+
+			cacheRef->descriptorSet[(uint8_t)InVertexInputType] = newTextureDescSet;
+		}
+
+		return cacheRef;
+	}
+
+	struct OpaqueMeshCache : PassCache
+	{
+		VkBuffer indexBuffer = nullptr;
+		VkBuffer vertexBuffer = nullptr;
+
+		VkDescriptorBufferInfo transformBufferInfo;
+
+		uint32_t staticLeaseIdx = 0;
+		uint32_t indexedCount = 0;
+
+		virtual ~OpaqueMeshCache() {}
+	};
+
+	OpaqueMeshCache* GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
+	{
+		const uint8_t OPAQUE_PBR_PASS = 0;
+		auto& cached = InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS];
+
+		if (!cached)
+		{
+			cached = std::make_unique< OpaqueMeshCache >();
+		}
+
+		auto cacheRef = dynamic_cast<OpaqueMeshCache*>(cached.get());
+
+		if (!cacheRef->indexBuffer)
+		{
+			auto vulkSM = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(InVulkanRenderableMesh.GetStaticMesh());
+
+			auto gpuVertexBuffer = vulkSM->GetVertexBuffer()->GetGPUBuffer();
+			auto gpuIndexBuffer = vulkSM->GetIndexBuffer()->GetGPUBuffer();
+
+			auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
+			auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
+
+			cacheRef->indexBuffer = vulkIB.GetBuffer();
+			cacheRef->vertexBuffer = vulkVB.GetBuffer();
+			cacheRef->indexedCount = vulkIB.GetElementCount();
+
+			if (InVulkanRenderableMesh.IsStatic())
+			{
+				cacheRef->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
+			}
+			else
+			{
+				auto transformBuf = InVulkanRenderableMesh.GetDrawTransformBuffer();
+
+				cacheRef->transformBufferInfo.buffer = transformBuf->GetBuffer();
+				cacheRef->transformBufferInfo.offset = 0;
+				cacheRef->transformBufferInfo.range = transformBuf->GetPerElementSize();
+			}
+		}
+
+		return cacheRef;
+	}
+
 	//DEPTH PYRAMID
 	//Hierarchial depth buffer etc...
 
@@ -348,9 +478,10 @@ namespace SPP
 		Vector2 dstSize;
 	};
 
+
 	class DepthDrawer
 	{
-	protected:
+	protected:		
 		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
 		GPUReferencer< SafeVkDescriptorSet > _depthPyramidDescriptorSet;
 
@@ -369,7 +500,6 @@ namespace SPP
 		{
 			_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 			auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
-				
 				
 			//
 			auto depthVSLayout = GVulkanDepthResrouces.GetVSLayout();
@@ -413,6 +543,7 @@ namespace SPP
 
 			_depthPyramidTexture = Make_GPU(VulkanTexture, _owningDevice, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, TextureFormat::R32F,
 				VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+			_depthPyramidTexture->SetName("_depthPyramidTexture");
 
 			_depthPyramidViews = _depthPyramidTexture->GetMipChainViews();
 
@@ -537,144 +668,85 @@ namespace SPP
 				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
 		}
 
-		struct OpaqueMeshCache : PassCache
-		{
-			VkBuffer indexBuffer = nullptr;
-			VkBuffer vertexBuffer = nullptr;
-
-			VkDescriptorBufferInfo transformBufferInfo;
-
-			uint32_t staticLeaseIdx = 0;
-			uint32_t indexedCount = 0;
-
-			virtual ~OpaqueMeshCache() {}
-		};
-
-		OpaqueMeshCache* GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
-		{
-			const uint8_t OPAQUE_PBR_PASS = 0;
-			auto& cached = InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS];
-
-			if (!cached)
-			{
-				cached = std::make_unique< OpaqueMeshCache >();
-			}
-
-			auto cacheRef = dynamic_cast<OpaqueMeshCache*>(cached.get());
-
-			if (!cacheRef->indexBuffer)
-			{
-				auto vulkSM = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(InVulkanRenderableMesh.GetStaticMesh());
-
-				auto gpuVertexBuffer = vulkSM->GetVertexBuffer()->GetGPUBuffer();
-				auto gpuIndexBuffer = vulkSM->GetIndexBuffer()->GetGPUBuffer();
-
-				auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
-				auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
-
-				cacheRef->indexBuffer = vulkIB.GetBuffer();
-				cacheRef->vertexBuffer = vulkVB.GetBuffer();
-				cacheRef->indexedCount = vulkIB.GetElementCount();
-
-				if (InVulkanRenderableMesh.IsStatic())
-				{
-					cacheRef->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
-				}
-				else
-				{
-					auto transformBuf = InVulkanRenderableMesh.GetDrawTransformBuffer();
-
-					cacheRef->transformBufferInfo.buffer = transformBuf->GetBuffer();
-					cacheRef->transformBufferInfo.offset = 0;
-					cacheRef->transformBufferInfo.range = transformBuf->GetPerElementSize();
-				}
-			}
-
-			return cacheRef;
-		}
-
-		// TODO cleanupppp
+		
 		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
 		{
-			//auto currentFrame = _owningDevice->GetActiveFrame();
-			//auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+			auto currentFrame = _owningDevice->GetActiveFrame();
+			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
-			//auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
-			//auto matCache = GetMaterialCache(VertexInputTypes::StaticMesh, vulkanMat);
-			//auto meshCache = GetMeshCache(InVulkanRenderableMesh);
+			auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
+			auto meshPSO = GVulkanDepthResrouces.GetDepthDrawingPSO();
+			auto meshCache = GetMeshCache(InVulkanRenderableMesh);
 
-			//VkDeviceSize offsets[1] = { 0 };
-			//vkCmdBindVertexBuffers(commandBuffer, 0, 1, &meshCache->vertexBuffer, offsets);
-			//vkCmdBindIndexBuffer(commandBuffer, meshCache->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			VkDeviceSize offsets[1] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &meshCache->vertexBuffer, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, meshCache->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPSO->GetVkPipeline());
 
-			//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			//	matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipeline());
+			// if static we have everything pre cached
+			if (InVulkanRenderableMesh.IsStatic())
+			{
+				uint32_t uniform_offsets[] = {
+					(sizeof(GPUViewConstants)) * currentFrame,
+					(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+				};
 
-			//// if static we have everything pre cached
-			//if (InVulkanRenderableMesh.IsStatic())
-			//{
-			//	uint32_t uniform_offsets[] = {
-			//		(sizeof(GPUViewConstants)) * currentFrame,
-			//		(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
-			//	};
+				VkDescriptorSet locaDrawSets[] = {
+					_camStaticBufferDescriptorSet->Get()
+				};
 
-			//	VkDescriptorSet locaDrawSets[] = {
-			//		_camStaticBufferDescriptorSet->Get(),
-			//		matCache->descriptorSet[0]->Get()
-			//	};
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					meshPSO->GetVkPipelineLayout(),
+					0,
+					ARRAY_SIZE(locaDrawSets), locaDrawSets,
+					ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			}
+			// if not static we need to write transforms
+			else
+			{
+				auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
+				auto vsLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
 
-			//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			//		matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
-			//		0,
-			//		ARRAY_SIZE(locaDrawSets), locaDrawSets,
-			//		ARRAY_SIZE(uniform_offsets), uniform_offsets);
-			//}
-			//// if not static we need to write transforms
-			//else
-			//{
-			//	auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
-			//	auto vsLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+				VkDescriptorSet dynamicTransformSet;
+				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
 
-			//	VkDescriptorSet dynamicTransformSet;
-			//	VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
-			//	VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
+				auto cameraBuffer = _owningScene->GetCameraBuffer();
 
-			//	auto cameraBuffer = _owningScene->GetCameraBuffer();
+				VkDescriptorBufferInfo perFrameInfo;
+				perFrameInfo.buffer = cameraBuffer->GetBuffer();
+				perFrameInfo.offset = 0;
+				perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
-			//	VkDescriptorBufferInfo perFrameInfo;
-			//	perFrameInfo.buffer = cameraBuffer->GetBuffer();
-			//	perFrameInfo.offset = 0;
-			//	perFrameInfo.range = cameraBuffer->GetPerElementSize();
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(dynamicTransformSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+				vks::initializers::writeDescriptorSet(dynamicTransformSet,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
+				};
 
-			//	std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			//	vks::initializers::writeDescriptorSet(dynamicTransformSet,
-			//		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-			//	vks::initializers::writeDescriptorSet(dynamicTransformSet,
-			//		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
-			//	};
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+					static_cast<uint32_t>(writeDescriptorSets.size()),
+					writeDescriptorSets.data(), 0, nullptr);
 
-			//	vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-			//		static_cast<uint32_t>(writeDescriptorSets.size()),
-			//		writeDescriptorSets.data(), 0, nullptr);
+				uint32_t uniform_offsets[] = {
+					(sizeof(GPUViewConstants)) * currentFrame,
+					(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+				};
 
-			//	uint32_t uniform_offsets[] = {
-			//		(sizeof(GPUViewConstants)) * currentFrame,
-			//		(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
-			//	};
+				VkDescriptorSet locaDrawSets[] = {
+					_camStaticBufferDescriptorSet->Get(),
+					dynamicTransformSet
+				};
 
-			//	VkDescriptorSet locaDrawSets[] = {
-			//		_camStaticBufferDescriptorSet->Get(),
-			//		dynamicTransformSet
-			//	};
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					meshPSO->GetVkPipelineLayout(),
+					0,
+					ARRAY_SIZE(locaDrawSets), locaDrawSets,
+					ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			}
 
-			//	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			//		matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
-			//		0,
-			//		ARRAY_SIZE(locaDrawSets), locaDrawSets,
-			//		ARRAY_SIZE(uniform_offsets), uniform_offsets);
-			//}
-
-			//vkCmdDrawIndexed(commandBuffer, meshCache->indexedCount, 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, meshCache->indexedCount, 1, 0, 0, 0);
 		}
 
 
@@ -723,127 +795,7 @@ namespace SPP
 				writeDescriptorSets.data(), 0, nullptr);
 		}
 
-		struct OpaqueMaterialCache : PassCache
-		{
-			GPUReferencer< VulkanPipelineState > state[(uint8_t)VertexInputTypes::MAX];
-			GPUReferencer< SafeVkDescriptorSet > descriptorSet[(uint8_t)VertexInputTypes::MAX];
-			virtual ~OpaqueMaterialCache() {}
-		};
-
-		OpaqueMaterialCache*GetMaterialCache(VertexInputTypes InVertexInputType,
-			std::shared_ptr<RT_Vulkan_Material> InMat)
-		{
-			const uint8_t OPAQUE_PBR_PASS = 0;
-			auto& cached = InMat->GetPassCache()[OPAQUE_PBR_PASS];
-			OpaqueMaterialCache* cacheRef = nullptr;
-			if (!cached)
-			{
-				cached = std::make_unique< OpaqueMaterialCache >();
-			}
-
-			cacheRef = dynamic_cast<OpaqueMaterialCache*>(cached.get());
-
-			if(!cacheRef->state[(uint8_t)InVertexInputType])
-			{
-				cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
-					GVulkanOpaqueResrouces.GetOpaqueVS(),
-					GVulkanOpaqueResrouces.GetOpaquePS(),
-					GVulkanOpaqueResrouces.GetSMLayout());
-
-				auto &descSetLayouts = cacheRef->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
-
-				const uint8_t TEXTURE_SET_ID = 1;
-				VkDescriptorImageInfo textureInfo[4];
-
-				auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-				int32_t TextureCount = 1;
-				auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, descSetLayouts[TEXTURE_SET_ID], globalSharedPool);
-
-				auto& textureMap = InMat->GetTextureMap();
-				for (int32_t Iter = 0; Iter < TextureCount; Iter++)
-				{
-					auto curTexturePurpose = (TexturePurpose)0;// textureBindings[Iter * 2].binding;
-					auto getTexture = textureMap.find(curTexturePurpose);
-
-					auto gpuTexture = getTexture != textureMap.end() ?
-						getTexture->second->GetGPUTexture() :
-						GGlobalVulkanGI->GetDefaultTexture();
-
-					auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
-					textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
-
-					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
-						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, (Iter * 2) + 0, &textureInfo[Iter]));
-					writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
-						VK_DESCRIPTOR_TYPE_SAMPLER, (Iter * 2) + 1, &textureInfo[Iter]));
-				}
-
-				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-					static_cast<uint32_t>(writeDescriptorSets.size()),
-					writeDescriptorSets.data(), 0, nullptr);
-
-				cacheRef->descriptorSet[(uint8_t)InVertexInputType] = newTextureDescSet;
-			}
-
-			return cacheRef;
-		}
-
-		struct OpaqueMeshCache : PassCache
-		{
-			VkBuffer indexBuffer = nullptr;
-			VkBuffer vertexBuffer = nullptr;
-
-			VkDescriptorBufferInfo transformBufferInfo;
-
-			uint32_t staticLeaseIdx = 0;
-			uint32_t indexedCount = 0;
-
-			virtual ~OpaqueMeshCache() {}
-		};
-
-		OpaqueMeshCache* GetMeshCache(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
-		{
-			const uint8_t OPAQUE_PBR_PASS = 0;
-			auto &cached = InVulkanRenderableMesh.GetPassCache()[OPAQUE_PBR_PASS];
-
-			if (!cached)
-			{
-				cached = std::make_unique< OpaqueMeshCache >();
-			}
-
-			auto cacheRef = dynamic_cast<OpaqueMeshCache*>(cached.get());
-
-			if(!cacheRef->indexBuffer)
-			{
-				auto vulkSM = std::dynamic_pointer_cast<RT_VulkanStaticMesh>(InVulkanRenderableMesh.GetStaticMesh());
-
-				auto gpuVertexBuffer = vulkSM->GetVertexBuffer()->GetGPUBuffer();
-				auto gpuIndexBuffer = vulkSM->GetIndexBuffer()->GetGPUBuffer();
-
-				auto& vulkVB = gpuVertexBuffer->GetAs<VulkanBuffer>();
-				auto& vulkIB = gpuIndexBuffer->GetAs<VulkanBuffer>();
-
-				cacheRef->indexBuffer = vulkIB.GetBuffer();
-				cacheRef->vertexBuffer = vulkVB.GetBuffer();
-				cacheRef->indexedCount = vulkIB.GetElementCount();
-
-				if (InVulkanRenderableMesh.IsStatic())
-				{
-					cacheRef->staticLeaseIdx = InVulkanRenderableMesh.GetStaticDrawBufferIndex();
-				}
-				else
-				{
-					auto transformBuf = InVulkanRenderableMesh.GetDrawTransformBuffer();
-
-					cacheRef->transformBufferInfo.buffer = transformBuf->GetBuffer();
-					cacheRef->transformBufferInfo.offset = 0;
-					cacheRef->transformBufferInfo.range = transformBuf->GetPerElementSize();
-				}
-			}
-
-			return cacheRef;
-		}
+		
 
 		// TODO cleanupppp
 		void Render(RT_VulkanRenderableMesh &InVulkanRenderableMesh)
@@ -1038,13 +990,12 @@ namespace SPP
 	{
 		RT_RenderScene::BeginFrame();
 
-		for (auto renderItem : _renderables3d)
+		for (int32_t Iter = 0; Iter < _maxRenderableIdx; Iter++)
 		{
-			renderItem->PrepareToDraw();
-		}
-		for (auto renderItem : _renderablesPost)
-		{
-			renderItem->PrepareToDraw();
+			if (_renderables[Iter])
+			{
+				_renderables[Iter]->PrepareToDraw();
+			}
 		}
 
 		_debugDrawer->PrepareForDraw();
@@ -1149,6 +1100,7 @@ namespace SPP
 		DrawDebug();
 #endif
 
+		
 		// RENDER PROCESS
 
 		// DEPTH PREPASS
@@ -1158,33 +1110,35 @@ namespace SPP
 		// FORWARD+ 
 
 
-
 		//if (_skyBox)
 		{
 			//DrawSkyBox();
 		}
 
 		int32_t curVisible = 0;
-		_visible3d.resize(_renderables3d.size());
+		if (_renderables.size() > _visible.size())
+		{
+			_visible.resize(_renderables.size() + 1024);
+		}
 
-		_opaques.resize(_renderables3d.size());
-		_translucents.resize(_renderables3d.size());
+		//_opaques.resize(_renderables3d.size());
+		//_translucents.resize(_renderables3d.size());
 
 		//#if 1
-			_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
+		_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
+			{
+				auto curRenderable = ((Renderable*)InElement);
+				if (curRenderable->Is3dRenderable())
 				{
-					auto curRenderable = ((Renderable*)InElement);
-					if (curRenderable->Is3dRenderable())
-					{
-						_visible3d[curVisible++] = curRenderable;
-					}
+					_visible[curVisible++] = curRenderable;
+				}
 
-					//auto& drawInfo = curRenderable->GetDrawingInfo();
+				//auto& drawInfo = curRenderable->GetDrawingInfo();
 
-					//drawInfo.drawingType == DrawingType::Opaque
-					//((Renderable*)InElement)->Draw();
-					return true;
-				});
+				//drawInfo.drawingType == DrawingType::Opaque
+				//((Renderable*)InElement)->Draw();
+				return true;
+			});
 		//#else
 		//	for (auto renderItem : _renderables3d)
 		//	{
@@ -1192,12 +1146,19 @@ namespace SPP
 		//	}
 		//#endif
 
+		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthDrawing");
+
+		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
+		{
+			_depthDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
+		}
+
 		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "OpaqueDrawing");
 
 #if 1
 		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
 		{
-			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible3d[visIter]);
+			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
 		}
 #else
 		for (auto& curVis : _renderables3d)
@@ -1285,10 +1246,11 @@ namespace SPP
 			VK_IMAGE_LAYOUT_GENERAL,
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
-		for (auto renderItem : _renderablesPost)
-		{
-			renderItem->Draw();
-		}
+		//TODO FIXME
+		//for (auto renderItem : _renderablesPost)
+		//{
+		//	renderItem->Draw();
+		//}
 
 		vks::tools::setImageLayout(commandBuffer, colorAttachment.image->Get(),
 			VK_IMAGE_LAYOUT_GENERAL,

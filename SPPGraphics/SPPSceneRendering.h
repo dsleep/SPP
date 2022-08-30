@@ -67,9 +67,25 @@ namespace SPP
 		}
 	};
 
-	class SPP_GRAPHICS_API Renderable : public IOctreeElement
+	class SPP_GRAPHICS_API GlobalRenderableID : public GPUResource
 	{
 	protected:
+		uint32_t _globalID = 0;
+		class RT_RenderScene* _scene = nullptr;
+
+	public:
+		uint32_t GetID() const { return _globalID; }
+		GlobalRenderableID(GraphicsDevice* InOwner, class RT_RenderScene* currentScene);
+		virtual ~GlobalRenderableID();
+	};
+
+	class SPP_GRAPHICS_API Renderable : public IOctreeElement
+	{
+		friend class RT_RenderScene;
+
+	protected:		
+		GPUReferencer< GlobalRenderableID > _globalID;
+
 		class RT_RenderScene* _parentScene = nullptr;
 		OctreeLinkPtr _octreeLink = nullptr;
 		
@@ -203,14 +219,15 @@ namespace SPP
 		Camera _viewGPU;
 
 		LooseOctree _octree;
-		std::list<Renderable*> _renderables3d;
+		uint32_t _maxRenderableIdx = 0;
+		std::vector<Renderable*> _renderables;
 
-		std::vector<Renderable*> _visible3d;
+		std::vector<Renderable*> _visible;
 
 		std::vector<Renderable*> _opaques;
 		std::vector<Renderable*> _translucents;
 
-		std::list<Renderable*> _renderablesPost;
+		//std::list<Renderable*> _renderablesPost;
 
 		bool _bRenderToBackBuffer = true;
 		bool _bUseBBWithCustomColor = true;
@@ -224,27 +241,27 @@ namespace SPP
 
 		GraphicsDevice* _owner = nullptr;
 
-		std::list< uint32_t > _globalMeshIDPool;
-		uint32_t _globalMeshIDCounter = 1;
+		std::list< uint32_t > _globalRenderableIDPool;
+		uint32_t _globalRenderableIDCounter = 1;
 
 	public:
 
 		RT_RenderScene(GraphicsDevice* InOwner);
 		virtual ~RT_RenderScene();
 
-		uint32_t GetGlobalMeshID()
+		uint32_t GetGlobalRenderableID()
 		{
-			if (_globalMeshIDPool.size())
+			if (_globalRenderableIDPool.size())
 			{
-				auto getBack = _globalMeshIDPool.back();
-				_globalMeshIDPool.pop_back();
+				auto getBack = _globalRenderableIDPool.back();
+				_globalRenderableIDPool.pop_back();
 				return getBack;
 			}
-			return _globalMeshIDCounter++;
+			return _globalRenderableIDCounter++;
 		}
-		void ReturnToGlobalMeshID(uint32_t InID )
+		void ReturnToGlobalRenderableID(uint32_t InID )
 		{
-			_globalMeshIDPool.push_back(InID);
+			_globalRenderableIDPool.push_back(InID);
 		}
 
 		virtual void AddedToGraphicsDevice();

@@ -32,23 +32,6 @@ namespace SPP
 		}
 	};
 
-	class GlobalMeshID : public GPUResource
-	{
-	protected:
-		uint32_t _globalID = 0;
-		RT_RenderScene* _scene = nullptr;
-
-	public:
-		GlobalMeshID(GraphicsDevice* InOwner, RT_RenderScene* currentScene) : GPUResource(InOwner), _scene(currentScene) 
-		{
-			_globalID = _scene->GetGlobalMeshID();
-		}
-
-		virtual ~GlobalMeshID()
-		{
-			_scene->ReturnToGlobalMeshID(_globalID);
-		}
-	};
 
 	class RT_VulkanStaticMesh : public RT_StaticMesh
 	{
@@ -66,9 +49,7 @@ namespace SPP
 	{
 		CLASS_RT_RESOURCE();
 
-	protected:
-		GPUReferencer< GlobalMeshID > _globalMeshID;
-				
+	protected:				
 		std::shared_ptr< ArrayResource > _drawConstants;
 		GPUReferencer< class VulkanBuffer > _drawConstantsBuffer;
 

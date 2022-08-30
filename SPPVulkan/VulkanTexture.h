@@ -106,6 +106,9 @@ namespace SPP
 
 
 		void UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize);
+
+		virtual void SetName(const char* InName) override;
+
 		virtual ~VulkanTexture() 
 		{ 
 			destroy();

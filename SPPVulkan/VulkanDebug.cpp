@@ -11,7 +11,7 @@
 
 #include "SPPLogging.h"
 
-\
+
 namespace vks
 {
 	namespace debug
