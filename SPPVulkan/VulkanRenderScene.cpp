@@ -1171,8 +1171,6 @@ namespace SPP
 
 		_debugDrawer->Draw(this);
 
-		//vkCmdSetCheckpointNV
-
 		vkCmdEndRenderPass(commandBuffer);
 
 		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPyramid");

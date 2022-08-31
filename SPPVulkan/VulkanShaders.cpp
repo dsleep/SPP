@@ -64,6 +64,29 @@ namespace SPP
 		return "none";
 	}
 
+	const char* ReturnTargetStringGLSL(EShaderType inType)
+	{
+		switch (inType)
+		{
+		case EShaderType::Pixel:
+			return "frag";
+		case EShaderType::Vertex:
+			return "vert";
+		case EShaderType::Compute:
+			return "comp";
+			//TODO these correct?
+		case EShaderType::Domain:
+			return "tesc";
+		case EShaderType::Hull:
+			return "tese";
+		case EShaderType::Mesh:
+			return "geom";
+		//case EShaderType::Amplification:
+			//return "as_6_5";
+		}
+		return "none";
+	}
+
 	VulkanShader::VulkanShader(GraphicsDevice* InOwner, EShaderType InType) : GPUShader(InOwner,InType)
 	{
 		SE_ASSERT(InType == EShaderType::Pixel || InType == EShaderType::Vertex || InType == EShaderType::Compute);
@@ -177,18 +200,41 @@ namespace SPP
 		AssetPath shaderBinObject( (std::string("CACHE\\") + FileName.GetName() + ".SPIRV").c_str());
 		AssetPath shaderBuildOutput((std::string("CACHE\\") + FileName.GetName() + ".txt").c_str());
 
-		std::string FullDXCPath = SPP::GRootPath + "3rdParty/dxc/bin/x64/dxc.exe";
+		auto fileNameExt = stdfs::path(FileName.GetName()).extension().generic_string();
+		inlineToUpper(fileNameExt);
 
-		std::string CommandString = std::string_format("\"%s\" -spirv -fspv-debug=line -fspv-reflect -Zpr -Zi -T %s -E %s -I \"%s\" -Fo \"%s\"",
-			*FileName,
-			ReturnTargetString(_type),
-			EntryPoint,
-			*shaderRoot,
-			*shaderBinObject
-			);
+		bool IsGLSL = (fileNameExt == ".GLSL");
+		
+		std::string CommandString;
+		std::string FullBinPath;
 
+		if (IsGLSL)
 		{
-			auto ShaderProcess = CreatePlatformProcess(FullDXCPath.c_str(), CommandString.c_str(), false, true);
+			const char* env_p = std::getenv("VULKAN_SDK");
+			FullBinPath = std::string(env_p) + "/Bin/glslangValidator.exe";
+
+			CommandString = std::string_format("\"%s\" -V --target-env vulkan1.2 -g -S %s -e %s -I\"%s\" -o \"%s\"",
+				*FileName,
+				ReturnTargetStringGLSL(_type),
+				EntryPoint,
+				*shaderRoot,
+				*shaderBinObject
+			);
+		}
+		else
+		{
+			FullBinPath = SPP::GRootPath + "3rdParty/dxc/bin/x64/dxc.exe";
+
+			CommandString = std::string_format("\"%s\" -spirv -fspv-debug=line -fspv-reflect -Zpr -Zi -T %s -E %s -I \"%s\" -Fo \"%s\"",
+				*FileName,
+				ReturnTargetString(_type),
+				EntryPoint,
+				*shaderRoot,
+				*shaderBinObject
+			);
+		}
+		{
+			auto ShaderProcess = CreatePlatformProcess(FullBinPath.c_str(), CommandString.c_str(), false, true);
 
 			using namespace std::chrono_literals;
 			if (ShaderProcess->IsValid())
@@ -198,7 +244,11 @@ namespace SPP
 				if (!ProcessOutput.empty())
 				{
 					SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s", ProcessOutput.c_str());
-					return false;
+
+					if (ProcessOutput.find("ERROR") != std::string::npos) 
+					{
+						return false;
+					}					
 				}
 			}
 		}
