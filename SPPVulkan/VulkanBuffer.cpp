@@ -65,8 +65,72 @@ namespace SPP
 		_MakeResident();
 	}
 
+	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem) : GPUBuffer(InOwner, InType, nullptr)
+	{
+		_size = BufferSize;
+
+		switch (InType)
+		{
+		case GPUBufferType::Simple:
+			_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			break;
+		case GPUBufferType::Array:
+			_usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			break;
+		case GPUBufferType::Vertex:
+			_usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			break;
+		case GPUBufferType::Index:
+			_usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			break;
+		}
+
+		_usageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		_memoryPropertyFlags = IsCPUMem ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+		// Create the buffer handle
+		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(_usageFlags, _size);
+		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VK_CHECK_RESULT(vkCreateBuffer(GGlobalVulkanDevice, &bufferCreateInfo, nullptr, &_buffer));
+
+		// Create the memory backing up the buffer handle
+		VkMemoryRequirements memReqs;
+		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
+		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &memReqs);
+		memAlloc.allocationSize = memReqs.size;
+		_alignment = memReqs.alignment;
+		// Find a memory type index that fits the properties of the buffer
+		memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, _memoryPropertyFlags);
+		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+		VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+		VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &_memory));
+		// Attach the memory to the buffer object
+		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
+
+		if (IsCPUMem)
+		{
+			VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, _memory, 0, _size, 0, (void**)&_CPUAddr));
+		}
+	}
+
+	void VulkanBuffer::CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize)
+	{
+		size_t copySize = InCopySize ? InCopySize : std::min(_size, DstBuf._size);
+
+		VkBufferCopy copyRegion{};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = copySize;
+		vkCmdCopyBuffer(cmdBuf, _buffer, DstBuf._buffer, 1, &copyRegion);
+	}
+
 	VulkanBuffer::~VulkanBuffer()
 	{
+		if (_CPUAddr)
+		{
+			vkUnmapMemory(GGlobalVulkanDevice, _memory);
+		}
+
 		if (_buffer)
 		{
 			vkDestroyBuffer(GGlobalVulkanDevice, _buffer, nullptr);

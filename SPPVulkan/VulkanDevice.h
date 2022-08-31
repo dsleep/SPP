@@ -78,7 +78,8 @@ namespace SPP
 		virtual void InitializeLayout(const std::vector<VertexStream>& vertexStreams) override;
 	};
 
-	_declspec(align(256u)) struct StaticDrawParams
+
+	struct alignas(16u) StaticDrawParams
 	{
 		//altered viewposition translated
 		Matrix4x4 LocalToWorldScaleRotation;

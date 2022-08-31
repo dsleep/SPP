@@ -198,6 +198,15 @@ namespace SPP
 			return scaleMatrix * rotationMatrix;
 		}
 
+		auto& GetGlobalID() const
+		{
+			return _globalID;
+		}
+		auto &GetSphereBounds() const
+		{
+			return _bounds;
+		}
+
 		virtual Spherei GetBounds() const
 		{
 			return Convert(_bounds);

@@ -13,7 +13,7 @@
 
 namespace SPP
 {
-	_declspec(align(256u)) struct GPUViewConstants
+	struct alignas(16u) GPUViewConstants
 	{
 		//all origin centered
 		Matrix4x4 ViewMatrix;
@@ -27,7 +27,7 @@ namespace SPP
 		float RecipTanHalfFovy;
 	};
 
-	_declspec(align(256u)) struct GPUDrawConstants
+	struct alignas(16u) GPUDrawConstants
 	{
 		//altered viewposition translated
 		Matrix4x4 LocalToWorldScaleRotation;
@@ -35,14 +35,14 @@ namespace SPP
 		uint32_t MaterialID;
 	};
 
-	_declspec(align(256u)) struct GPUDrawParams
+	struct alignas(16u) GPUDrawParams
 	{
 		//all origin centered
 		Vector3 ShapeColor;
 		uint32_t ShapeCount;
 	};
 
-	_declspec(align(256u)) struct GPUSDFShape
+	struct alignas(16u) GPUSDFShape
 	{
 		Vector3  translation;
 		Vector3  eulerRotation;
@@ -50,6 +50,24 @@ namespace SPP
 		Vector4  params;
 		uint32_t shapeType;
 		uint32_t shapeOp;
+	};
+
+	struct alignas(16u) GPURenderableCullData
+	{
+		Vector3d center;
+		float radius;
+	};
+
+	struct alignas(16u) GPUDrawCullData
+	{
+		float P00, P11, znear, zfar; // symmetric projection parameters
+		float frustum[4]; // data for left/right/top/bottom frustum planes
+		float pyramidWidth, pyramidHeight; // depth pyramid size in texels
+
+		uint32_t drawCount;
+
+		int32_t cullingEnabled;
+		int32_t occlusionEnabled;
 	};
 
 	struct MaterialKey
@@ -133,6 +151,12 @@ namespace SPP
 		std::shared_ptr< ArrayResource > _cameraData;
 		GPUReferencer< class VulkanBuffer > _cameraBuffer;
 
+		std::shared_ptr< ArrayResource > _renderableCullData;
+		GPUReferencer< class VulkanBuffer > _renderableCullDataBuffer;
+
+		GPUReferencer< class VulkanBuffer > _renderableVisibleGPU;
+		GPUReferencer< class VulkanBuffer > _renderableVisibleCPU;
+				
 		std::shared_ptr<RT_Material> _defaultMaterial;
 
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;

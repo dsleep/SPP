@@ -195,11 +195,15 @@ namespace SPP
 		}
 	};
 
+	
+
 	class GlobalDepthDrawerResources : public GlobalGraphicsResource
 	{
 	private:
 		GPUReferencer < VulkanShader > _depthVS;
 		GPUReferencer< SafeVkDescriptorSetLayout > _depthVSLayout;
+
+		GPUReferencer < VulkanShader > _depthCullingCS;
 
 		GPUReferencer < VulkanShader > _depthPyramidCreationCS;
 		GPUReferencer< SafeVkDescriptorSetLayout > _depthPyramidCreationLayout;
@@ -216,6 +220,10 @@ namespace SPP
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+
+			// DEPTH CULLING
+			_depthCullingCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_depthCullingCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCull.glsl", "main");
 
 			// DEPTH PYRAMID
 			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
@@ -668,6 +676,50 @@ namespace SPP
 				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
 		}
 
+		void RunDepthCullingAgainstPyramid()
+		{
+			auto DeviceExtents = GGlobalVulkanGI->GetExtents();
+
+			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+			auto depthPyrPSO = GVulkanDepthResrouces.GetDepthPyramidPSO();
+
+			auto currentFrame = _owningDevice->GetActiveFrame();
+			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+			auto ColorTarget = _owningDevice->GetColorTarget();
+			auto& colorAttachment = ColorTarget->GetFrontAttachment();
+			auto& depthAttachment = ColorTarget->GetBackAttachment();
+
+			vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+
+			GPUDrawCullData cullData = {
+				.P00 = 1,
+				.P11 = 1,
+				.znear = 1,
+				.zfar = 1,
+
+				.frustum = { 1, 1, 1, 1},
+
+				.pyramidWidth = 10,
+				.pyramidHeight = 10,
+
+				.drawCount = 10,
+
+				.cullingEnabled = 1,
+				.occlusionEnabled = 1
+			};
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipeline());
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipelineLayout(), 0, 1, &_depthPyramidDescriptors[Iter]->Get(), 0, nullptr);
+						
+			//execute downsample compute shader
+			vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(cullData), &cullData);
+			auto xCount = getGroupCount(levelWidth, 64);
+			vkCmdDispatch(commandBuffer, xCount, 1, 1);
+		}
 		
 		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
 		{
@@ -941,7 +993,15 @@ namespace SPP
 		_cameraData = std::make_shared< ArrayResource >();
 		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
 		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
-				
+		
+		// 512k loaded prims?
+		_renderableCullData = std::make_shared< ArrayResource >();
+		_renderableCullData->InitializeFromType< GPURenderableCullData >(512*1024);
+		_renderableCullDataBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _renderableCullData);
+		
+		_renderableVisibleGPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount());
+		_renderableVisibleCPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount());
+		
 		// drawers
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
 		_depthDrawer = std::make_unique< DepthDrawer >(this);		
@@ -974,6 +1034,16 @@ namespace SPP
 	void VulkanRenderScene::AddRenderable(Renderable* InRenderable)
 	{
 		RT_RenderScene::AddRenderable(InRenderable);
+
+		auto& curID = InRenderable->GetGlobalID();
+		SE_ASSERT(curID);
+		auto thisID = curID.RawGet()->GetID();
+		auto& curSphere = InRenderable->GetSphereBounds();
+
+		auto cullDataSpan = _renderableCullData->GetSpan<GPURenderableCullData>();
+		cullDataSpan[thisID].center = curSphere.GetCenter();
+		cullDataSpan[thisID].radius = curSphere.GetRadius();
+		_renderableCullDataBuffer->UpdateDirtyRegion(thisID, 1);
 	}
 
 	void VulkanRenderScene::RemoveRenderable(Renderable* InRenderable)

@@ -184,7 +184,7 @@ namespace SPP
         {
             return obj;
         }
-        T* get()
+        T* get() 
         {
             return obj;
         }
@@ -257,7 +257,7 @@ namespace SPP
             _file.clear();
         }
 
-        operator bool()
+        operator bool() const
         {
             return (obj != NULL);
         }

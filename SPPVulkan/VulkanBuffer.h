@@ -21,6 +21,8 @@ namespace SPP
 		VkDeviceSize _size = 0;
 		VkDeviceSize _alignment = 0;
 
+		uint8_t* _CPUAddr = nullptr;
+
 		/** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
 		VkBufferUsageFlags _usageFlags;
 		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
@@ -31,6 +33,9 @@ namespace SPP
 
 	public:
 		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem);
+
+		void CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize = 0);
 
 		virtual ~VulkanBuffer();
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
