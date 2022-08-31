@@ -486,7 +486,6 @@ namespace SPP
 		Vector2 dstSize;
 	};
 
-
 	class DepthDrawer
 	{
 	protected:		
@@ -678,6 +677,14 @@ namespace SPP
 
 		void RunDepthCullingAgainstPyramid()
 		{
+			auto vksDevice = GGlobalVulkanGI->GetVKSVulkanDevice();
+			auto gQueue = GGlobalVulkanGI->GetGraphicsQueue(); //should be transfer
+			VkCommandBuffer copyCmd = vksDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+			_owningScene->GetVisibleGPUBuffer()->CopyTo(copyCmd, *_owningScene->GetVisibleCPUBuffer().get());
+
+			vksDevice->flushCommandBuffer(copyCmd, gQueue);
+#if 0
 			auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 
 			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
@@ -719,6 +726,7 @@ namespace SPP
 			vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(cullData), &cullData);
 			auto xCount = getGroupCount(levelWidth, 64);
 			vkCmdDispatch(commandBuffer, xCount, 1, 1);
+#endif
 		}
 		
 		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
@@ -811,8 +819,6 @@ namespace SPP
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 
-		//std::unordered_map< MaterialKey, GPUReferencer< SafeVkDescriptorSet > > _materialDescriptorCache;
-
 	public:
 		OpaqueDrawer(VulkanRenderScene *InScene) : _owningScene(InScene)
 		{
@@ -847,7 +853,6 @@ namespace SPP
 				writeDescriptorSets.data(), 0, nullptr);
 		}
 
-		
 
 		// TODO cleanupppp
 		void Render(RT_VulkanRenderableMesh &InVulkanRenderableMesh)
@@ -999,8 +1004,8 @@ namespace SPP
 		_renderableCullData->InitializeFromType< GPURenderableCullData >(512*1024);
 		_renderableCullDataBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _renderableCullData);
 		
-		_renderableVisibleGPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount());
-		_renderableVisibleCPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount());
+		_renderableVisibleGPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), false);
+		_renderableVisibleCPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), true);
 		
 		// drawers
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
@@ -1035,15 +1040,18 @@ namespace SPP
 	{
 		RT_RenderScene::AddRenderable(InRenderable);
 
-		auto& curID = InRenderable->GetGlobalID();
-		SE_ASSERT(curID);
-		auto thisID = curID.RawGet()->GetID();
-		auto& curSphere = InRenderable->GetSphereBounds();
+		if (_renderableCullData)
+		{
+			auto& curID = InRenderable->GetGlobalID();
+			SE_ASSERT(curID);
+			auto thisID = curID.RawGet()->GetID();
+			auto& curSphere = InRenderable->GetSphereBounds();
 
-		auto cullDataSpan = _renderableCullData->GetSpan<GPURenderableCullData>();
-		cullDataSpan[thisID].center = curSphere.GetCenter();
-		cullDataSpan[thisID].radius = curSphere.GetRadius();
-		_renderableCullDataBuffer->UpdateDirtyRegion(thisID, 1);
+			auto cullDataSpan = _renderableCullData->GetSpan<GPURenderableCullData>();
+			cullDataSpan[thisID].center = curSphere.GetCenter();
+			cullDataSpan[thisID].radius = curSphere.GetRadius();
+			_renderableCullDataBuffer->UpdateDirtyRegion(thisID, 1);
+		}
 	}
 
 	void VulkanRenderScene::RemoveRenderable(Renderable* InRenderable)
@@ -1246,6 +1254,7 @@ namespace SPP
 		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPyramid");
 
 		_depthDrawer->ProcessDepthPyramid();
+		_depthDrawer->RunDepthCullingAgainstPyramid();
 
 		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPrepForPost");
 

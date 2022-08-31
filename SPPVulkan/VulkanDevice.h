@@ -79,7 +79,7 @@ namespace SPP
 	};
 
 
-	struct alignas(16u) StaticDrawParams
+	struct alignas(64u) StaticDrawParams
 	{
 		//altered viewposition translated
 		Matrix4x4 LocalToWorldScaleRotation;
@@ -181,6 +181,7 @@ namespace SPP
 		// Handle to the device graphics queue that command buffers are submitted to
 		VkQueue graphicsQueue;
 		VkQueue computeQueue;
+		VkQueue transferQueue;
 
 		// Depth buffer format (selected during Vulkan initialization)
 		VkFormat depthFormat;
@@ -318,6 +319,10 @@ namespace SPP
 
 		VkQueue GetComputeQueue() {
 			return computeQueue;
+		}
+
+		VkQueue GetTransferQueue() {
+			return transferQueue;
 		}
 
 		auto GetStaticDrawPoolReservation()

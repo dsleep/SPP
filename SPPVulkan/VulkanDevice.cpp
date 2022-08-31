@@ -272,9 +272,9 @@ namespace SPP
 
 	void VulkanGraphicsDevice::SetCheckpoint(VkCommandBuffer InCmdBuffer, const char* InName)
 	{
-		if (HasCheckPoints() && vkCmdSetCheckpointNV)
+		//if (HasCheckPoints() && vkCmdSetCheckpointNV)
 		{
-			vkCmdSetCheckpointNV(InCmdBuffer, InName);
+			//vkCmdSetCheckpointNV(InCmdBuffer, InName);
 			float color[] = { 1,1,1,1 };
 			vks::debugmarker::insert(InCmdBuffer, InName, color);
 		}
@@ -408,7 +408,12 @@ namespace SPP
 		// This is handled by a separate class that gets a logical device representation
 		// and encapsulates functions related to a device
 		vulkanDevice = new vks::VulkanDevice(physicalDevice);
-		VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
+		VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, 
+			enabledDeviceExtensions, 
+			deviceCreatepNextChain, 
+			true,
+			VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT);
+
 		if (res != VK_SUCCESS) {
 			SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not create Vulkan device: %s %d", vks::tools::errorString(res), res);
 			return false;
@@ -422,6 +427,7 @@ namespace SPP
 
 		// Get a graphics queue from the device
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
+		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.transfer, 0, &transferQueue);
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &computeQueue);
 
 		// Find a suitable depth format

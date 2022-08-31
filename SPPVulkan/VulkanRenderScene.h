@@ -13,7 +13,7 @@
 
 namespace SPP
 {
-	struct alignas(16u) GPUViewConstants
+	struct alignas(64u) GPUViewConstants
 	{
 		//all origin centered
 		Matrix4x4 ViewMatrix;
@@ -27,7 +27,7 @@ namespace SPP
 		float RecipTanHalfFovy;
 	};
 
-	struct alignas(16u) GPUDrawConstants
+	struct alignas(64u) GPUDrawConstants
 	{
 		//altered viewposition translated
 		Matrix4x4 LocalToWorldScaleRotation;
@@ -35,14 +35,14 @@ namespace SPP
 		uint32_t MaterialID;
 	};
 
-	struct alignas(16u) GPUDrawParams
+	struct alignas(64u) GPUDrawParams
 	{
 		//all origin centered
 		Vector3 ShapeColor;
 		uint32_t ShapeCount;
 	};
 
-	struct alignas(16u) GPUSDFShape
+	struct alignas(64u) GPUSDFShape
 	{
 		Vector3  translation;
 		Vector3  eulerRotation;
@@ -52,13 +52,13 @@ namespace SPP
 		uint32_t shapeOp;
 	};
 
-	struct alignas(16u) GPURenderableCullData
+	struct alignas(64u) GPURenderableCullData
 	{
 		Vector3d center;
 		float radius;
 	};
 
-	struct alignas(16u) GPUDrawCullData
+	struct alignas(64u) GPUDrawCullData
 	{
 		float P00, P11, znear, zfar; // symmetric projection parameters
 		float frustum[4]; // data for left/right/top/bottom frustum planes
@@ -189,6 +189,19 @@ namespace SPP
 		GPUReferencer< class VulkanBuffer > GetCameraBuffer()
 		{
 			return _cameraBuffer;
+		}
+
+		auto &GetCullDataBuffer()
+		{
+			return _renderableCullDataBuffer;
+		}
+		auto& GetVisibleGPUBuffer()
+		{
+			return _renderableVisibleGPU;
+		}
+		auto& GetVisibleCPUBuffer()
+		{
+			return _renderableVisibleCPU;
 		}
 
 		virtual void AddedToGraphicsDevice() override;

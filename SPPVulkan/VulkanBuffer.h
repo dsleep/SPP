@@ -40,6 +40,15 @@ namespace SPP
 		virtual ~VulkanBuffer();
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
 
+		VkDescriptorBufferInfo GetDescriptorInfo()
+		{
+			return VkDescriptorBufferInfo{
+				.buffer = _buffer,
+				.offset = 0,
+				.range = GetPerElementSize()
+			};
+		}
+
 		VkBuffer &GetBuffer() 
 		{
 			SE_ASSERT(_buffer);

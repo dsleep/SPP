@@ -244,6 +244,51 @@ namespace SPP
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice, &allocInfo, &_resource));
 		}
 
+		struct UpdateDescriptor
+		{
+			VkDescriptorType type;
+			uint32_t binding;
+
+			VkDescriptorBufferInfo* bufferInfo = nullptr;
+			VkDescriptorImageInfo* imageInfo = nullptr;
+			
+			UpdateDescriptor(VkDescriptorType InType, uint32_t InBinding, VkDescriptorBufferInfo *InInfo)
+			{
+				type = InType;
+				binding = InBinding;
+				bufferInfo = InInfo;
+			}
+
+			UpdateDescriptor(VkDescriptorType InType, uint32_t InBinding, VkDescriptorImageInfo* InInfo)
+			{
+				type = InType;
+				binding = InBinding;
+				imageInfo = InInfo;
+			}
+		};
+
+		void Update(const std::vector< UpdateDescriptor > &InData)
+		{
+			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+			writeDescriptorSets.resize(InData.size());
+			for (size_t Iter = 0; Iter < InData.size(); Iter++)
+			{
+				VkWriteDescriptorSet writeDescriptorSet{};
+				writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writeDescriptorSet.dstSet = _resource;
+				writeDescriptorSet.descriptorType = InData[Iter].type;
+				writeDescriptorSet.dstBinding = InData[Iter].binding;
+				writeDescriptorSet.pImageInfo = InData[Iter].imageInfo;
+				writeDescriptorSet.pBufferInfo = InData[Iter].bufferInfo;
+				writeDescriptorSet.descriptorCount = 1;
+
+				writeDescriptorSets[Iter] = writeDescriptorSet;
+			}
+			vkUpdateDescriptorSets(_owningDevice,
+				static_cast<uint32_t>(writeDescriptorSets.size()),
+				writeDescriptorSets.data(), 0, nullptr);
+		}
+
 		virtual ~SafeVkDescriptorSet()
 		{
 			if (_resource)
