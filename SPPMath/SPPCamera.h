@@ -18,6 +18,33 @@ namespace SPP
 		Down
 	};
 
+	struct alignas(16) CameraCullInfo
+	{
+		float P00, P11, znear, zfar; // symmetric projection parameters
+		float frustum[4]; // data for left/right/top/bottom frustum planes
+	};
+
+	SPP_MATH_API void getBoundsForAxis(bool xAxis,
+		const Vector3& center,
+		float radius,
+		float nearZ,
+		const Matrix4x4& projMatrix,
+		Vector3& U,
+		Vector3& L);
+
+	/** Center is in camera space */
+	SPP_MATH_API Vector4 getBoundingBox(const Vector3& center, float radius, float nearZ, const Matrix4x4& projMatrix);
+
+	/** Center is in camera space */
+	SPP_MATH_API void tileClassification(int tileNumX,
+		int tileNumY,
+		int tileWidth,
+		int tileHeight,
+		const Vector3& center,
+		float radius,
+		float nearZ,
+		const Matrix4x4& projMatrix);
+
 	// default is a left handed coordinate system
 	// right X+
 	// up Y+
@@ -62,6 +89,8 @@ namespace SPP
 		void SetupStandardCorrection();
 
 		Vector3 CameraDirection();
+
+		CameraCullInfo GetCullingData();
 
 		void GetFrustumCorners(Vector3 OutFrustumCorners[8]);
 		void GetFrustumPlanes(Planed planes[6]);

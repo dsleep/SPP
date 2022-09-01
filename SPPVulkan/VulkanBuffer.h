@@ -45,7 +45,7 @@ namespace SPP
 			return VkDescriptorBufferInfo{
 				.buffer = _buffer,
 				.offset = 0,
-				.range = GetPerElementSize()
+				.range = _size
 			};
 		}
 

@@ -276,6 +276,11 @@ namespace SPP
 		virtual void AddedToGraphicsDevice();
 		virtual void RemovedFromGraphicsDevice();
 
+		auto GetMaxRenderableIdx() const
+		{
+			return _maxRenderableIdx;
+		}
+
 		void SetRenderToBackBuffer(bool bInRenderToBackBuffer);
 		void SetUseBackBufferDepthWithCustomColor(bool bInUseBackBufferDepths);
 		void SetSkyBox(GPUReferencer< GPUTexture > InSkyBox);

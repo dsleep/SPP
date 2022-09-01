@@ -10,6 +10,101 @@ namespace SPP
 	static const float NearClippingZ = 0.127f;
 	//3 miles
 	static const float FarClippingZ = 5000.0f;
+
+	SPP_MATH_API void getBoundsForAxis(bool xAxis,
+		const Vector3& center,
+		float radius,
+		float nearZ,
+		const Matrix4x4& projMatrix,
+		Vector4& U,
+		Vector4& L)
+	{
+		bool trivialAccept = (center[2] + radius) < nearZ; // Entirely in back of nearPlane (Trivial Accept)
+		const Vector3& a = xAxis ? Vector3(1, 0, 0) : Vector3(0, 1, 0);
+
+		// given in coordinates (a,z), where a is in the direction of the vector a, and z is in the standard z direction
+		Vector2 projectedCenter(a.dot(center), center[2]);
+		Vector2 bounds_az[2];
+		float tSquared = projectedCenter.dot(projectedCenter) - std::powf(radius,2);
+		float t = 0, cLength = 0, costheta = 0, sintheta = 0;
+
+		if (tSquared > 0) { // Camera is outside sphere
+			// Distance to the tangent points of the sphere (points where a vector from the camera are tangent to the sphere) (calculated a-z space)
+			t = std::sqrt(tSquared);
+			cLength = projectedCenter.norm();
+
+			// Theta is the angle between the vector from the camera to the center of the sphere and the vectors from the camera to the tangent points
+			costheta = t / cLength;
+			sintheta = radius / cLength;
+		}
+		float sqrtPart = 0.0f;
+		if (!trivialAccept) 
+			sqrtPart = std::sqrt(std::powf(radius,2) - std::powf(nearZ - projectedCenter[1], 2));
+
+		for (int i = 0; i < 2; ++i) {
+			if (tSquared > 0) {
+				Matrix2x2 rotateTheta{
+					{ costheta, -sintheta },
+					{ sintheta, costheta } };
+
+				bounds_az[i] = costheta * (projectedCenter * rotateTheta);
+			}
+
+			if (!trivialAccept && (tSquared <= 0 || bounds_az[i][1] > nearZ)) {
+				bounds_az[i][0] = projectedCenter[0] + sqrtPart;
+				bounds_az[i][1] = nearZ;
+			}
+			sintheta *= -1; // negate theta for B
+			sqrtPart *= -1; // negate sqrtPart for B
+		}
+		U.head<3>() = bounds_az[0][0] * a;
+		U[2] = bounds_az[0][1];
+		U[3] = 1.0f;
+		L.head<3>() = bounds_az[1][0] * a;
+		L[2] = bounds_az[1][1];
+		L[3] = 1.0f;
+	}
+
+	/** Center is in camera space */
+	Vector4 getBoundingBox(const Vector3& center, float radius, float nearZ, const Matrix4x4& projMatrix) 
+	{
+		Vector4 maxXHomogenous, minXHomogenous, maxYHomogenous, minYHomogenous;
+		getBoundsForAxis(true, center, radius, nearZ, projMatrix, maxXHomogenous, minXHomogenous);
+		getBoundsForAxis(false, center, radius, nearZ, projMatrix, maxYHomogenous, minYHomogenous);
+		// We only need one coordinate for each point, so we save computation by only calculating x(or y) and w
+		float maxX = maxXHomogenous.dot(projMatrix.row(0)) / maxXHomogenous.dot(projMatrix.row(3));
+		float minX = minXHomogenous.dot(projMatrix.row(0)) / minXHomogenous.dot(projMatrix.row(3));
+		float maxY = maxYHomogenous.dot(projMatrix.row(1)) / maxYHomogenous.dot(projMatrix.row(3));
+		float minY = minYHomogenous.dot(projMatrix.row(1)) / minYHomogenous.dot(projMatrix.row(3));
+		return Vector4(minX, minY, maxX, maxY);
+	}
+
+
+	/** Center is in camera space */
+	void tileClassification(int tileNumX,
+		int tileNumY,
+		int tileWidth,
+		int tileHeight,
+		const Vector3& center,
+		float radius,
+		float nearZ,
+		const Matrix4x4& projMatrix)
+	{
+		Vector4 projectedBounds = getBoundingBox(center, radius, nearZ, projMatrix);
+
+		int32_t minTileX = std::max< int32_t>(0, (int)(projectedBounds[0] / tileWidth));
+		int32_t maxTileX = std::min< int32_t>(tileNumX - 1, (int)(projectedBounds[2] / tileWidth));
+
+		int32_t minTileY = std::max< int32_t>(0, (int)(projectedBounds[1] / tileHeight));
+		int32_t maxTileY = std::min< int32_t>(tileNumY - 1, (int)(projectedBounds[3] / tileHeight));
+
+		for (int i = minTileX; i <= maxTileX; ++i) {
+			for (int j = minTileY; j <= maxTileY; ++j) {
+				// This tile is touched by the bounding box of the sphere
+				// Put application specific tile-classification code here.
+			}
+		}
+	}
 		
 	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InEuler, float FoV, float AspectRatio)
 	{
@@ -135,6 +230,32 @@ namespace SPP
 	{
 		auto moveDelta = GetCameraMoveDelta(DeltaTime, Direction);		
 		_cameraPosition += Vector3d(moveDelta[0], moveDelta[1], moveDelta[2]);
+	}
+
+	CameraCullInfo Camera::GetCullingData()
+	{
+		float znear = 0.5f;
+		Matrix4x4 tProj = _projectionMatrix.transpose();
+
+		Plane planeX;
+		Plane planeY;
+
+		planeX.coeffs() = tProj.block<1, 4>(3, 0) + tProj.block<1, 4>(0, 0); // x + w < 0
+		planeY.coeffs() = tProj.block<1, 4>(3, 0) + tProj.block<1, 4>(1, 0); // y + w < 0
+
+		planeX.normalize();
+		planeY.normalize();
+
+		CameraCullInfo cullData = {};
+		cullData.P00 = _projectionMatrix(0, 0);
+		cullData.P11 = _projectionMatrix(1, 1);
+		cullData.znear = NearClippingZ;
+		cullData.zfar = FarClippingZ;
+		cullData.frustum[0] = planeX.coeffs()[0];
+		cullData.frustum[1] = planeX.coeffs()[2];
+		cullData.frustum[2] = planeY.coeffs()[1];
+		cullData.frustum[3] = planeY.coeffs()[2];
+		return cullData;
 	}
 
 	void Camera::GetFrustumCorners(Vector3 OutFrustumCorners[8])

@@ -58,10 +58,8 @@ namespace SPP
 		float radius;
 	};
 
-	struct alignas(64u) GPUDrawCullData
+	struct alignas(16u) GPUDrawCullData : public CameraCullInfo
 	{
-		float P00, P11, znear, zfar; // symmetric projection parameters
-		float frustum[4]; // data for left/right/top/bottom frustum planes
 		float pyramidWidth, pyramidHeight; // depth pyramid size in texels
 
 		uint32_t drawCount;
@@ -163,6 +161,8 @@ namespace SPP
 
 		Planed _frustumPlanes[6];		
 
+		CameraCullInfo _cameraCullInfo;
+
 	public:
 		VulkanRenderScene(GraphicsDevice* InOwner);
 		virtual ~VulkanRenderScene();
@@ -203,6 +203,11 @@ namespace SPP
 		{
 			return _renderableVisibleCPU;
 		}
+		const auto& GetCameraCullData()
+		{
+			return _cameraCullInfo;
+		}
+
 
 		virtual void AddedToGraphicsDevice() override;
 		virtual void RemovedFromGraphicsDevice() override;		

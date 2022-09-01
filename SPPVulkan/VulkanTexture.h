@@ -65,6 +65,11 @@ namespace SPP
 		{
 			return image;
 		}
+
+		auto GetVkImageView() const
+		{
+			return view;
+		}
 	};
 
 	class VulkanTexture : public VulkanTextureBase, public GPUTexture

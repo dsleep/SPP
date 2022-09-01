@@ -80,18 +80,23 @@ namespace SPP
 
 		std::vector<OElement*> childCopy = _children;
 		
-		// reinit properly
+		// remove all children
 		for (auto& child : childCopy)
 		{
 			RemoveChild(child);
+		}
+
+		InGraphicsDevice->AddScene(_renderScene.get());
+
+		// add them back
+		for (auto& child : childCopy)
+		{
 			AddChild(child);
 		}
 
 		SE_ASSERT(childCopy.size() == _children.size());
 		// preserve order
 		_children = childCopy;
-
-		InGraphicsDevice->AddScene(_renderScene.get());
 	}
 
 	void ORenderableScene::RemoveFromGraphicsDevice()

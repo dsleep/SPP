@@ -5,6 +5,8 @@
 
 #extension GL_GOOGLE_include_directive: require
 
+#include "../Common.glsl"
+
 struct DrawCullData
 {
 	float P00, P11, znear, zfar; // symmetric projection parameters
@@ -28,12 +30,12 @@ layout(push_constant) uniform block
 	DrawCullData cullData;
 };
 
-layout(binding = 0) readonly buffer Draws
+layout(binding = 1) readonly buffer Draws
 {
 	Renderable draws[];
 };
 
-layout(binding = 1) buffer DrawVisibility
+layout(binding = 2) buffer DrawVisibility
 {
 	uint drawVisibility[];
 };
@@ -72,7 +74,7 @@ void main()
 
 	uint renderIdx = di;
 
-	vec3 center = draws[di].center;
+	vec3 center = vec3(draws[di].center.xyz);
 	float radius = draws[di].radius;
 
 	if(radius <= 0) return;

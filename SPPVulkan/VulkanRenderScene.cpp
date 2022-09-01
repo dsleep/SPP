@@ -203,12 +203,10 @@ namespace SPP
 		GPUReferencer < VulkanShader > _depthVS;
 		GPUReferencer< SafeVkDescriptorSetLayout > _depthVSLayout;
 
-		GPUReferencer < VulkanShader > _depthCullingCS;
+		GPUReferencer < VulkanShader > _depthPyramidCreationCS, _depthCullingCS;
+		GPUReferencer< SafeVkDescriptorSetLayout > _depthPyramidCreationLayout, _depthCullingCSLayout;
 
-		GPUReferencer < VulkanShader > _depthPyramidCreationCS;
-		GPUReferencer< SafeVkDescriptorSetLayout > _depthPyramidCreationLayout;
-
-		GPUReferencer< VulkanPipelineState > _depthPyramidPSO;
+		GPUReferencer< VulkanPipelineState > _depthPyramidPSO, _depthCullingPSO;
 
 		GPUReferencer< SafeVkSampler > _depthPyramidSampler;
 
@@ -224,6 +222,25 @@ namespace SPP
 			// DEPTH CULLING
 			_depthCullingCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_depthCullingCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCull.glsl", "main");
+
+			{
+				auto& layoutSet = _depthCullingCS->GetLayoutSets();
+				_depthCullingCSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, layoutSet.front().bindings);
+			}
+
+			_depthCullingPSO = GetVulkanPipelineState(InOwner,
+				EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Enabled,
+				EDrawingTopology::TriangleList,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				_depthCullingCS);
 
 			// DEPTH PYRAMID
 			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
@@ -315,6 +332,20 @@ namespace SPP
 		{
 			return _depthPyramidPSO;
 		}
+
+		auto GetDepthCullingCS()
+		{
+			return _depthCullingCS;
+		}
+		auto GetDepthCullingPSO()
+		{
+			return _depthCullingPSO;
+		}
+		auto GepthCullingCSLayout()
+		{
+			return _depthCullingCSLayout;
+		}
+
 
 		GPUReferencer< GPUInputLayout > GetSMLayout()
 		{
@@ -490,7 +521,7 @@ namespace SPP
 	{
 	protected:		
 		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
-		GPUReferencer< SafeVkDescriptorSet > _depthPyramidDescriptorSet;
+		GPUReferencer< SafeVkDescriptorSet > _depthPyramidDescriptorSet, _depthCullingDescriptorSet;
 
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
@@ -525,16 +556,18 @@ namespace SPP
 			drawConstsInfo.offset = 0;
 			drawConstsInfo.range = staticDrawBuffer->GetPerElementSize();
 
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
-			};
+			{
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
+						VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+					vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
+						VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
+				};
 
-			vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-				static_cast<uint32_t>(writeDescriptorSets.size()),
-				writeDescriptorSets.data(), 0, nullptr);
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+					static_cast<uint32_t>(writeDescriptorSets.size()),
+					writeDescriptorSets.data(), 0, nullptr);
+			}
 			
 
 			///////////////////////////////////
@@ -587,20 +620,50 @@ namespace SPP
 
 				auto descChainSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), globalSharedPool);
 
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {				
-				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &sourceTarget),
-				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_SAMPLER, 1, &sourceTarget),
-				vks::initializers::writeDescriptorSet(descChainSet->Get(),
-					VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2, &destTarget),
+				{
+					std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(descChainSet->Get(),
+						VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0, &sourceTarget),
+					vks::initializers::writeDescriptorSet(descChainSet->Get(),
+						VK_DESCRIPTOR_TYPE_SAMPLER, 1, &sourceTarget),
+					vks::initializers::writeDescriptorSet(descChainSet->Get(),
+						VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2, &destTarget),
+					};
+
+					vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+						static_cast<uint32_t>(writeDescriptorSets.size()),
+						writeDescriptorSets.data(), 0, nullptr);
+				}
+
+				_depthPyramidDescriptors.push_back(descChainSet);
+			}
+
+			//DEPTH CULLING AGAINST PYRAMID
+			_depthCullingDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GepthCullingCSLayout()->Get(), globalSharedPool);
+
+			VkDescriptorBufferInfo drawSphereInfo = _owningScene->GetCullDataBuffer()->GetDescriptorInfo();
+			VkDescriptorBufferInfo drawVisibilityInfo = _owningScene->GetVisibleGPUBuffer()->GetDescriptorInfo();
+
+			VkDescriptorImageInfo depthPyramidInfo;
+			depthPyramidInfo.sampler = depthDownsizeSampler->Get();
+			depthPyramidInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			depthPyramidInfo.imageView = _depthPyramidTexture->GetVkImageView();
+
+			{
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(_depthCullingDescriptorSet->Get(),
+						VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+					vks::initializers::writeDescriptorSet(_depthCullingDescriptorSet->Get(),
+						VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, &drawSphereInfo),
+					vks::initializers::writeDescriptorSet(_depthCullingDescriptorSet->Get(),
+						VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 2, &drawVisibilityInfo),
+					vks::initializers::writeDescriptorSet(_depthCullingDescriptorSet->Get(),
+						VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &depthPyramidInfo),
 				};
 
 				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
 					static_cast<uint32_t>(writeDescriptorSets.size()),
 					writeDescriptorSets.data(), 0, nullptr);
-
-				_depthPyramidDescriptors.push_back(descChainSet);
 			}
 		}
 
@@ -677,56 +740,56 @@ namespace SPP
 
 		void RunDepthCullingAgainstPyramid()
 		{
-			auto vksDevice = GGlobalVulkanGI->GetVKSVulkanDevice();
-			auto gQueue = GGlobalVulkanGI->GetGraphicsQueue(); //should be transfer
+			auto DeviceExtents = _owningDevice->GetExtents();
+			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+			
+			auto depthCullingPSO = GVulkanDepthResrouces.GetDepthCullingPSO();
+
+			auto currentFrame = _owningDevice->GetActiveFrame();
+			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+
+			GPUDrawCullData cullData;
+			reinterpret_cast<CameraCullInfo&>(cullData) = _owningScene->GetCameraCullData();
+
+			cullData.pyramidWidth = _depthPyramidExtents[0];
+			cullData.pyramidHeight = _depthPyramidExtents[1];
+
+			cullData.drawCount = _owningScene->GetMaxRenderableIdx();
+
+			cullData.cullingEnabled = 1;
+			cullData.occlusionEnabled = 1;
+
+			uint32_t uniform_offsets[] = {
+					(sizeof(GPUViewConstants)) * currentFrame,
+					0,
+					0
+			};
+			
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthCullingPSO->GetVkPipeline());
+			vkCmdBindDescriptorSets(commandBuffer, 
+				VK_PIPELINE_BIND_POINT_COMPUTE, 
+				depthCullingPSO->GetVkPipelineLayout(), 
+				0, 1,
+				&_depthCullingDescriptorSet->Get(), ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			//execute downsample compute shader
+			vkCmdPushConstants(commandBuffer, 
+				depthCullingPSO->GetVkPipelineLayout(), 
+				VK_SHADER_STAGE_COMPUTE_BIT, 
+				0, 
+				sizeof(cullData), &cullData);
+
+			auto xCount = getGroupCount(cullData.drawCount, 64);
+			vkCmdDispatch(commandBuffer, xCount, 1, 1);
+
+			// copy over
+			auto vksDevice = _owningDevice->GetVKSVulkanDevice();
+			auto gQueue = _owningDevice->GetGraphicsQueue(); //should be transfer
 			VkCommandBuffer copyCmd = vksDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
 			_owningScene->GetVisibleGPUBuffer()->CopyTo(copyCmd, *_owningScene->GetVisibleCPUBuffer().get());
 
 			vksDevice->flushCommandBuffer(copyCmd, gQueue);
-#if 0
-			auto DeviceExtents = GGlobalVulkanGI->GetExtents();
-
-			auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
-			auto depthPyrPSO = GVulkanDepthResrouces.GetDepthPyramidPSO();
-
-			auto currentFrame = _owningDevice->GetActiveFrame();
-			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
-
-			auto ColorTarget = _owningDevice->GetColorTarget();
-			auto& colorAttachment = ColorTarget->GetFrontAttachment();
-			auto& depthAttachment = ColorTarget->GetBackAttachment();
-
-			vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
-				VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
-
-			GPUDrawCullData cullData = {
-				.P00 = 1,
-				.P11 = 1,
-				.znear = 1,
-				.zfar = 1,
-
-				.frustum = { 1, 1, 1, 1},
-
-				.pyramidWidth = 10,
-				.pyramidHeight = 10,
-
-				.drawCount = 10,
-
-				.cullingEnabled = 1,
-				.occlusionEnabled = 1
-			};
-
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipeline());
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, depthPyrPSO->GetVkPipelineLayout(), 0, 1, &_depthPyramidDescriptors[Iter]->Get(), 0, nullptr);
-						
-			//execute downsample compute shader
-			vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(cullData), &cullData);
-			auto xCount = getGroupCount(levelWidth, 64);
-			vkCmdDispatch(commandBuffer, xCount, 1, 1);
-#endif
 		}
 		
 		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
@@ -1040,18 +1103,17 @@ namespace SPP
 	{
 		RT_RenderScene::AddRenderable(InRenderable);
 
-		if (_renderableCullData)
-		{
-			auto& curID = InRenderable->GetGlobalID();
-			SE_ASSERT(curID);
-			auto thisID = curID.RawGet()->GetID();
-			auto& curSphere = InRenderable->GetSphereBounds();
+		SE_ASSERT(_renderableCullData);
 
-			auto cullDataSpan = _renderableCullData->GetSpan<GPURenderableCullData>();
-			cullDataSpan[thisID].center = curSphere.GetCenter();
-			cullDataSpan[thisID].radius = curSphere.GetRadius();
-			_renderableCullDataBuffer->UpdateDirtyRegion(thisID, 1);
-		}
+		auto& curID = InRenderable->GetGlobalID();
+		SE_ASSERT(curID);
+		auto thisID = curID.RawGet()->GetID();
+		auto& curSphere = InRenderable->GetSphereBounds();
+
+		auto cullDataSpan = _renderableCullData->GetSpan<GPURenderableCullData>();
+		cullDataSpan[thisID].center = curSphere.GetCenter();
+		cullDataSpan[thisID].radius = curSphere.GetRadius();
+		_renderableCullDataBuffer->UpdateDirtyRegion(thisID, 1);
 	}
 
 	void VulkanRenderScene::RemoveRenderable(Renderable* InRenderable)
@@ -1092,6 +1154,7 @@ namespace SPP
 		_viewGPU.BuildCameraMatrices();
 
 		_viewGPU.GetFrustumPlanes(_frustumPlanes);
+		_cameraCullInfo = _viewGPU.GetCullingData();
 
 		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
 		GPUViewConstants& curCam = cameraSpan[currentFrame];
@@ -1121,18 +1184,20 @@ namespace SPP
 
 	void VulkanRenderScene::Draw()
 	{
-		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
-		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
-		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
-		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
-		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto vulkanGD = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+
+		auto currentFrame = vulkanGD->GetActiveFrame();
+		auto basicRenderPass = vulkanGD->GetBaseRenderPass();
+		auto DeviceExtents = vulkanGD->GetExtents();
+		auto commandBuffer = vulkanGD->GetActiveCommandBuffer();
+		auto vulkanDevice = vulkanGD->GetDevice();
+		auto& scratchBuffer = vulkanGD->GetPerFrameScratchBuffer();
 
 		auto &camPos = _viewGPU.GetCameraPosition();
 		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
-		GGlobalVulkanGI->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
+		vulkanGD->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
 		
-		auto ColorTargetFrameData = GGlobalVulkanGI->GetColorFrameData();
+		auto ColorTargetFrameData = vulkanGD->GetColorFrameData();
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1224,14 +1289,14 @@ namespace SPP
 		//	}
 		//#endif
 
-		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthDrawing");
+		vulkanGD->SetCheckpoint(commandBuffer, "DepthDrawing");
 
 		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
 		{
 			_depthDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
 		}
 
-		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "OpaqueDrawing");
+		vulkanGD->SetCheckpoint(commandBuffer, "OpaqueDrawing");
 
 #if 1
 		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
@@ -1245,22 +1310,25 @@ namespace SPP
 		}
 #endif
 
-		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DebugDrawing");
+		vulkanGD->SetCheckpoint(commandBuffer, "DebugDrawing");
 
 		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);
 
-		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPyramid");
+		vulkanGD->SetCheckpoint(commandBuffer, "DepthPyramid");
 
 		_depthDrawer->ProcessDepthPyramid();
+
+		vulkanGD->SetCheckpoint(commandBuffer, "DepthCulling");
+
 		_depthDrawer->RunDepthCullingAgainstPyramid();
 
-		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "DepthPrepForPost");
+		vulkanGD->SetCheckpoint(commandBuffer, "DepthPrepForPost");
 
-		auto &DepthColorTexture = GGlobalVulkanGI->GetDepthColor()->GetAs<VulkanTexture>();
+		auto &DepthColorTexture = vulkanGD->GetDepthColor()->GetAs<VulkanTexture>();
 
-		auto ColorTarget = GGlobalVulkanGI->GetColorTarget();
+		auto ColorTarget = vulkanGD->GetColorTarget();
 		auto& colorAttachment = ColorTarget->GetFrontAttachment();
 		auto& depthAttachment = ColorTarget->GetBackAttachment();
 
