@@ -74,7 +74,8 @@ void main()
 
 	uint renderIdx = di;
 
-	vec3 center = vec3(draws[di].center.xyz);
+	vec3 translatedCenter = vec3(draws[di].center - ViewConstants.ViewPosition);
+	vec3 center = (vec4(translatedCenter, 1.0) * ViewConstants.ViewMatrix).xyz;
 	float radius = draws[di].radius;
 
 	if(radius <= 0) return;
