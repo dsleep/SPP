@@ -72,6 +72,7 @@ void main()
 	if (di >= cullData.drawCount)
 		return;
 
+	vec2 ViewScalar = vec2(cullData.pyramidWidth,  cullData.pyramidHeight) / vec2( ViewConstants.FrameExtents.xy );
 	uint renderIdx = di;
 
 	vec3 translatedCenter = vec3(draws[di].center - ViewConstants.ViewPosition);
@@ -94,6 +95,8 @@ void main()
 		vec4 aabb;
 		if (projectSphere(center, radius, cullData.znear, cullData.P00, cullData.P11, aabb))
 		{
+			aabb = aabb * ViewScalar.xyxy;			
+			
 			float width = (aabb.z - aabb.x) * cullData.pyramidWidth;
 			float height = (aabb.w - aabb.y) * cullData.pyramidHeight;
 
@@ -107,8 +110,9 @@ void main()
 		}
 	}
 	
-	uint byteIndex = (di >> 8);
-	uint bitIndex = (di & 0xFF);
+	// 32 bits will fit in a uint
+	uint byteIndex = (di >> 5);
+	uint bitIndex = 1 << (di - (byteIndex << 5));
 	
 	if(visible)
 	{
