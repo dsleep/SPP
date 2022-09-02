@@ -1,0 +1,180 @@
+{
+    "empty": [],
+    "lights": [],
+    "materials": [
+        {
+            "name": "Natures.001",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Natures.png.002.PNG",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "Props_Props_01",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Props_Props_01.png.001.PNG",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "Natures",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Natures.png.001.PNG",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "materials": [
+                "Natures.001"
+            ],
+            "mesh": "Plane.001",
+            "name": "Natures_Grass Tile.001",
+            "transform": {
+                "location": [
+                    2.4342,
+                    3.1423,
+                    -10.469
+                ],
+                "rotation": [
+                    -0.0,
+                    90.0,
+                    0.0
+                ],
+                "scale": [
+                    0.632,
+                    0.632,
+                    0.632
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.331",
+            "name": "Natures_Grass Tile.007",
+            "transform": {
+                "location": [
+                    0.1776,
+                    0.2759,
+                    -0.0305
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    0.632,
+                    0.632,
+                    0.632
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Mesh.094",
+            "name": "Natures_Big Tree.049",
+            "transform": {
+                "location": [
+                    0.7762,
+                    2.3882,
+                    -4.3388
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    0.632,
+                    0.632,
+                    0.632
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Cylinder.316",
+            "name": "Natures_Bush_01.016",
+            "transform": {
+                "location": [
+                    0.1562,
+                    1.3584,
+                    -13.649
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    0.632,
+                    0.632,
+                    0.632
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Props_Props_01"
+            ],
+            "mesh": "Cube.3342",
+            "name": "Props_Bench_1.012",
+            "transform": {
+                "location": [
+                    2.5589,
+                    0.7863,
+                    -13.984
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    0.632,
+                    0.632,
+                    0.632
+                ]
+            }
+        }
+    ],
+    "sdfs": []
+}
