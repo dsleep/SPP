@@ -107,8 +107,15 @@ void main()
 		}
 	}
 	
-	uint byteIndex = (di / 4);
-	uint bitIndex = (di & 0x07);
+	uint byteIndex = (di >> 8);
+	uint bitIndex = (di & 0xFF);
 	
-	atomicOr( drawVisibility[byteIndex], bitIndex ); 
+	if(visible)
+	{
+		atomicOr( drawVisibility[byteIndex], bitIndex ); 
+	}
+	else
+	{
+		atomicAnd( drawVisibility[byteIndex], ~bitIndex ); 
+	}
 }

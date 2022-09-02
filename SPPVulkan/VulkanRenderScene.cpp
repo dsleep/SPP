@@ -1062,6 +1062,8 @@ namespace SPP
 		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
 		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
 		
+		//static_assert(sizeof(GPURenderableCullData) % 4 == 0);
+
 		// 512k loaded prims?
 		_renderableCullData = std::make_shared< ArrayResource >();
 		_renderableCullData->InitializeFromType< GPURenderableCullData >(512*1024);

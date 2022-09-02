@@ -52,10 +52,11 @@ namespace SPP
 		uint32_t shapeOp;
 	};
 
-	struct alignas(64u) GPURenderableCullData
+	struct alignas(8u) GPURenderableCullData
 	{
 		Vector3d center;
 		float radius;
+		double dummy;
 	};
 
 	struct alignas(16u) GPUDrawCullData : public CameraCullInfo
