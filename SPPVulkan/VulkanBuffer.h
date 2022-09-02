@@ -49,6 +49,11 @@ namespace SPP
 			};
 		}
 
+		auto GetMappedMemory()
+		{
+			return _CPUAddr;
+		}
+
 		VkBuffer &GetBuffer() 
 		{
 			SE_ASSERT(_buffer);

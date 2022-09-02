@@ -6,11 +6,52 @@
 
 namespace SPP
 {
-	BitSetArray::BitSetArray(size_t BitCount)
+	BitSetArray::BitSetArray(size_t DesiredSize)
 	{
-		_numBytes = (BitCount + 7) / 8;
-		bitData = new uint8_t[_numBytes];
+		_numBytes = (DesiredSize + 7) / 8;
+		bitData = (uint8_t*)malloc(_numBytes);
+		SE_ASSERT(bitData);
 		memset(bitData, 0, _numBytes);
+	}
+
+	void BitSetArray::Expand(size_t NewSize)
+	{
+		auto newByteSize = (NewSize + 7) / 8;
+		if (newByteSize > _numBytes)
+		{
+			free(bitData);
+			_numBytes = newByteSize;
+			bitData = (uint8_t*)malloc(_numBytes);
+			SE_ASSERT(bitData);
+			memset(bitData, 0, _numBytes);
+		}
+	}
+
+	void BitSetArray::Clear()
+	{
+		memset(bitData, 0, _numBytes);
+	}
+
+	void BitSetArray::Set(size_t Index, bool bValue)
+	{
+		size_t byteIndex = (Index >> 3);
+		uint8_t bitIndex = 1 << (Index - (byteIndex << 3));
+
+		if (bValue)
+		{
+			bitData[byteIndex] |= bitIndex;
+		}
+		else
+		{
+			bitData[byteIndex] &= ~bitIndex;
+		}
+	}
+
+	bool BitSetArray::Get(size_t Index)
+	{
+		size_t byteIndex = (Index >> 3);
+		uint8_t bitIndex = 1 << (Index - (byteIndex << 3));
+		return (bitData[byteIndex] & bitIndex) != 0;		
 	}
 
 	BitReference BitSetArray::GetFirstFree()
@@ -34,7 +75,7 @@ namespace SPP
 
 	BitSetArray::~BitSetArray()
 	{
-		delete[] bitData;
+		free(bitData);
 	}
 		
 	BitReference::BitReference(uint8_t* InByte, size_t InIdx) : thisByte(InByte), globalIdx(InIdx)

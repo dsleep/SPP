@@ -50,7 +50,14 @@ namespace SPP
 		uint8_t* bitData = nullptr;
 
 	public:
-		BitSetArray(size_t BitCount);	
+		BitSetArray() {}
+		BitSetArray(size_t DesiredSize);	
+
+		void Expand(size_t NewSize);
+		void Clear();
+
+		void Set(size_t Index, bool bValue);
+		bool Get(size_t Index);
 		
 		BitReference GetFirstFree();
 

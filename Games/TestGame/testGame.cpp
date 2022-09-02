@@ -128,7 +128,7 @@ public:
 
 		animatorTest->PlayAnimation("Action");
 
-		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
+		_gameworld = LoadJsonGameScene(*AssetPath("scenes/visibilityTest/visibilitytest.spj"));
 		AddToRoot(_gameworld);
 
 		Sphere totalBounds(Vector3d(0,0,0), 200);
@@ -140,6 +140,7 @@ public:
 		//	totalBounds += curShild->Bounds();
 		//}
 				
+#if 0
 		auto MeshType = rttr::type::get<VgMeshElement>();
 
 		for (int32_t IterY = -1; IterY <= 1; IterY++)
@@ -176,6 +177,7 @@ public:
 				}
 			}
 		}
+#endif
 
 #if 0
 		auto loadedElements = LoadMagicaCSGFile(*AssetPath("MagicaCSGFiles/testhumanoid.mcsg"));

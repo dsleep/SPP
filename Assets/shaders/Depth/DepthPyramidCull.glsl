@@ -5,6 +5,10 @@
 
 #extension GL_GOOGLE_include_directive: require
 
+layout(row_major) uniform;
+layout(row_major) buffer;
+layout(std430) buffer;
+
 #include "../Common.glsl"
 
 struct DrawCullData
@@ -111,15 +115,15 @@ void main()
 	}
 	
 	// 32 bits will fit in a uint
-	uint byteIndex = (di >> 5);
-	uint bitIndex = 1 << (di - (byteIndex << 5));
+	uint uintIndex = (di >> 5);
+	uint bitIndex = 1 << (di - (uintIndex << 5));
 	
 	if(visible)
 	{
-		atomicOr( drawVisibility[byteIndex], bitIndex ); 
+		atomicOr( drawVisibility[uintIndex], bitIndex ); 
 	}
 	else
 	{
-		atomicAnd( drawVisibility[byteIndex], ~bitIndex ); 
+		atomicAnd( drawVisibility[uintIndex], ~bitIndex ); 
 	}
 }

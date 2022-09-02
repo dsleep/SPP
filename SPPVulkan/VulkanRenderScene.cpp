@@ -790,6 +790,24 @@ namespace SPP
 			_owningScene->GetVisibleGPUBuffer()->CopyTo(copyCmd, *_owningScene->GetVisibleCPUBuffer().get());
 
 			vksDevice->flushCommandBuffer(copyCmd, gQueue);
+
+			auto& depthCull = _owningScene->GetDepthCullVisiblity();
+
+			uint32_t* MappedCPUMem = (uint32_t*)_owningScene->GetVisibleCPUBuffer()->GetMappedMemory();
+			for (uint32_t Iter = 0; Iter < cullData.drawCount; Iter++)
+			{
+				uint32_t byteIndex = (Iter >> 5);
+				uint32_t bitIndex = 1 << (Iter - (byteIndex << 5));
+
+				if (MappedCPUMem[byteIndex] & bitIndex)
+				{
+					depthCull.Set(Iter, true);
+				}
+				else
+				{
+					depthCull.Set(Iter, false);
+				}
+			}
 		}
 		
 		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
@@ -1266,6 +1284,12 @@ namespace SPP
 			_visible.resize(_renderables.size() + 1024);
 		}
 
+		_octreeVisiblity.Expand(_renderables.size());
+		_depthCullVisiblity.Expand(_renderables.size());
+		
+		_octreeVisiblity.Clear();
+		_depthCullVisiblity.Clear();
+
 		//_opaques.resize(_renderables3d.size());
 		//_translucents.resize(_renderables3d.size());
 
@@ -1277,6 +1301,8 @@ namespace SPP
 				{
 					_visible[curVisible++] = curRenderable;
 				}
+
+				_octreeVisiblity.Set(curRenderable->GetGlobalID().RawGet()->GetID(), true);
 
 				//auto& drawInfo = curRenderable->GetDrawingInfo();
 
@@ -1298,12 +1324,30 @@ namespace SPP
 			_depthDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
 		}
 
+		vkCmdEndRenderPass(commandBuffer);
+
+		vulkanGD->SetCheckpoint(commandBuffer, "DepthPyramid");
+
+		_depthDrawer->ProcessDepthPyramid();
+
+		vulkanGD->SetCheckpoint(commandBuffer, "DepthCulling");
+
+		_depthDrawer->RunDepthCullingAgainstPyramid();
+
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
 		vulkanGD->SetCheckpoint(commandBuffer, "OpaqueDrawing");
 
 #if 1
+
 		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
 		{
-			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
+			auto curID = _visible[visIter]->GetGlobalID().RawGet()->GetID();
+			if (_depthCullVisiblity.Get(curID))
+			{
+				_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
+			}
 		}
 #else
 		for (auto& curVis : _renderables3d)
@@ -1317,14 +1361,6 @@ namespace SPP
 		_debugDrawer->Draw(this);
 
 		vkCmdEndRenderPass(commandBuffer);
-
-		vulkanGD->SetCheckpoint(commandBuffer, "DepthPyramid");
-
-		_depthDrawer->ProcessDepthPyramid();
-
-		vulkanGD->SetCheckpoint(commandBuffer, "DepthCulling");
-
-		_depthDrawer->RunDepthCullingAgainstPyramid();
 
 		vulkanGD->SetCheckpoint(commandBuffer, "DepthPrepForPost");
 

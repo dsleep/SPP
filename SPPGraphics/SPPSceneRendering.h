@@ -9,6 +9,7 @@
 #include "SPPMath.h"
 #include "SPPCamera.h"
 #include "SPPOctree.h"
+#include "SPPBitSetArray.h"
 #include <set>
 
 namespace SPP
@@ -231,6 +232,9 @@ namespace SPP
 		uint32_t _maxRenderableIdx = 0;
 		std::vector<Renderable*> _renderables;
 
+		BitSetArray _octreeVisiblity;
+		BitSetArray _depthCullVisiblity;
+
 		std::vector<Renderable*> _visible;
 
 		std::vector<Renderable*> _opaques;
@@ -325,6 +329,16 @@ namespace SPP
 		T& GetAs()
 		{
 			return *(T*)this;
+		}
+
+		auto& GetOctreeVisiblity()
+		{
+			return _octreeVisiblity;
+		}
+
+		auto& GetDepthCullVisiblity()
+		{
+			return _depthCullVisiblity;
 		}
 
 		virtual void PrepareScenesToDraw();

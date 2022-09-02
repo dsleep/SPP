@@ -56,7 +56,6 @@ namespace SPP
 	{
 		Vector3d center;
 		float radius;
-		double dummy;
 	};
 
 	struct alignas(16u) GPUDrawCullData : public CameraCullInfo
