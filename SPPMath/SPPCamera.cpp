@@ -126,9 +126,10 @@ namespace SPP
 
 		_cameraMatrix = Matrix4x4::Identity();
 		_cameraMatrix.block<3, 3>(0, 0) = rotationMatrix;
+		_invCameraMatrix = _cameraMatrix.inverse();
 		//_cameraMatrix.block<1, 3>(3, 0) = Vector3(InPosition[0], InPosition[1], InPosition[2]);
 
-		_viewProjMatrix = _cameraMatrix.inverse() * _correctionMatrix * _projectionMatrix;
+		_viewProjMatrix = _invCameraMatrix * _correctionMatrix * _projectionMatrix;
 		_invViewProjMatrix = _viewProjMatrix.inverse();
 	}
 
@@ -256,6 +257,45 @@ namespace SPP
 		cullData.frustum[2] = planeY.coeffs()[1];
 		cullData.frustum[3] = planeY.coeffs()[2];
 		return cullData;
+	}
+
+	void Camera::SphereProjectionTest(const Sphere& InSphere)
+	{
+		auto cullingData = GetCullingData();
+
+		Vector4 sphereCamPosition = ToVector4((InSphere.GetCenter() - _cameraPosition).cast<float>());
+		sphereCamPosition = sphereCamPosition * _invCameraMatrix;
+
+#if 0
+		bool visible = true;
+		// the left/top/right/bottom plane culling utilizes frustum symmetry to cull against two planes at the same time
+		visible = visible && center.z * cullData.frustum[1] - abs(center.x) * cullData.frustum[0] > -radius;
+		visible = visible && center.z * cullData.frustum[3] - abs(center.y) * cullData.frustum[2] > -radius;
+		// the near/far plane culling uses camera space Z directly
+		visible = visible && center.z + radius > cullData.znear && center.z - radius < cullData.zfar;
+
+		visible = visible || cullData.cullingEnabled == 0;
+
+		if (visible && cullData.occlusionEnabled == 1)
+		{
+			vec4 aabb;
+			if (projectSphere(center, radius, cullData.znear, cullData.P00, cullData.P11, aabb))
+			{
+				aabb = aabb * ViewScalar.xyxy;
+
+				float width = (aabb.z - aabb.x) * cullData.pyramidWidth;
+				float height = (aabb.w - aabb.y) * cullData.pyramidHeight;
+
+				float level = floor(log2(max(width, height)));
+
+				// Sampler is set up to do min reduction, so this computes the minimum depth of a 2x2 texel quad
+				float depth = textureLod(depthPyramid, (aabb.xy + aabb.zw) * 0.5, level).x;
+				float depthSphere = cullData.znear / (center.z - radius);
+
+				visible = visible && depthSphere > depth;
+			}
+		}
+#endif
 	}
 
 	void Camera::GetFrustumCorners(Vector3 OutFrustumCorners[8])

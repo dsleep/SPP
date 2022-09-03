@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPMath.h"
+#include "SPPPrimitiveShapes.h"
 
 namespace SPP
 {
@@ -55,6 +56,7 @@ namespace SPP
 		Vector3d _cameraPosition;
 		//rotation and translation of local camera matrix
 		Matrix4x4 _cameraMatrix;
+		Matrix4x4 _invCameraMatrix;
 		//projection matrix into normalized view space
 		Matrix4x4 _projectionMatrix;
 		Matrix4x4 _invProjectionMatrix;
@@ -88,6 +90,9 @@ namespace SPP
 
 		void SetupStandardCorrection();
 
+
+		void SphereProjectionTest(const Sphere &InSphere);
+
 		Vector3 CameraDirection();
 
 		CameraCullInfo GetCullingData();
@@ -95,7 +100,7 @@ namespace SPP
 		void GetFrustumCorners(Vector3 OutFrustumCorners[8]);
 		void GetFrustumPlanes(Planed planes[6]);
 
-		const Matrix4x4 &GetCameraMatrix() const { return _cameraMatrix; }
+		const Matrix4x4 &GetWorldToCameraMatrix() const { return _invCameraMatrix; }
 		const Matrix4x4 &GetProjectionMatrix() const { return _projectionMatrix; }
 		const Matrix4x4 &GetInvProjectionMatrix() const { return _invProjectionMatrix; }
 		const Matrix4x4 &GetCorrectionMatrix() const { return _correctionMatrix; }

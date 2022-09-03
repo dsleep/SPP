@@ -1178,7 +1178,7 @@ namespace SPP
 
 		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
 		GPUViewConstants& curCam = cameraSpan[currentFrame];
-		curCam.ViewMatrix = _viewGPU.GetCameraMatrix();
+		curCam.ViewMatrix = _viewGPU.GetWorldToCameraMatrix();
 		curCam.ViewProjectionMatrix = _viewGPU.GetViewProjMatrix();
 		curCam.InvViewProjectionMatrix = _viewGPU.GetInvViewProjMatrix();
 		curCam.InvProjectionMatrix = _viewGPU.GetInvProjectionMatrix();
