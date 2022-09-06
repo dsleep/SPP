@@ -276,6 +276,7 @@ namespace SPP
 			createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 			createInfo.minLod = 0;
 			createInfo.maxLod = 16.f;
+			//createInfo.unnormalizedCoordinates = true;
 
 			//add a extension struct to enable Min mode
 			VkSamplerReductionModeCreateInfoEXT createInfoReduction = {};
@@ -515,6 +516,7 @@ namespace SPP
 	{
 		Vector2 srcSize;
 		Vector2 dstSize;
+		uint32_t mipLevel;
 	};
 
 	class DepthDrawer
@@ -618,7 +620,10 @@ namespace SPP
 					sourceTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				}
 
-				auto descChainSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), globalSharedPool);
+				auto descChainSet = Make_GPU(SafeVkDescriptorSet, 
+					_owningDevice, 
+					GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), 
+					globalSharedPool);
 
 				{
 					std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -710,6 +715,7 @@ namespace SPP
 				std::swap(reduceData.dstSize, reduceData.srcSize);
 				// shift dst
 				reduceData.dstSize = { Vector2(levelWidth, levelHeight) };
+				reduceData.mipLevel = Iter;
 
 				//execute downsample compute shader
 				vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(reduceData), &reduceData);

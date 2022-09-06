@@ -389,17 +389,13 @@ namespace SPP
 
 		enabledFeatures.shaderFloat64 = true;
 
+		// not full support
 		// [POI] Enable required extension features
-		VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
-
+		/*VkPhysicalDeviceDescriptorIndexingFeaturesEXT physicalDeviceDescriptorIndexingFeatures{};
 		physicalDeviceDescriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
 		physicalDeviceDescriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 		physicalDeviceDescriptorIndexingFeatures.runtimeDescriptorArray = VK_TRUE;
-		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-
-		//physicalDeviceDescriptorIndexingFeatures.pNext = &otherone
-
-		deviceCreatepNextChain = &physicalDeviceDescriptorIndexingFeatures;
+		physicalDeviceDescriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;*/
 
 		// Derived examples can override this to set actual features (based on above readings) to enable for logical device creation
 		//getEnabledFeatures();
@@ -408,9 +404,9 @@ namespace SPP
 		// This is handled by a separate class that gets a logical device representation
 		// and encapsulates functions related to a device
 		vulkanDevice = new vks::VulkanDevice(physicalDevice);
-		VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures, 
+		VkResult res = vulkanDevice->createLogicalDevice(VkPhysicalDeviceFeatures{},
 			enabledDeviceExtensions, 
-			deviceCreatepNextChain, 
+			nullptr, 
 			true,
 			VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT);
 
@@ -2163,17 +2159,35 @@ namespace vks
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());;
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-		deviceCreateInfo.pEnabledFeatures = &enabledFeatures;		
+		
+		//unneeded setup below
+		//deviceCreateInfo.pEnabledFeatures = &enabledFeatures;		
 
 		// If a pNext(Chain) has been passed, we need to add it to the device creation info
-		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
-		if (pNextChain) {
-			physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-			physicalDeviceFeatures2.features = enabledFeatures;
-			physicalDeviceFeatures2.pNext = pNextChain;
-			deviceCreateInfo.pEnabledFeatures = nullptr;
-			deviceCreateInfo.pNext = &physicalDeviceFeatures2;
-		}
+		
+		VkPhysicalDeviceFeatures2 features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		features.features.multiDrawIndirect = true;
+		features.features.pipelineStatisticsQuery = true;
+		features.features.shaderInt16 = true;
+		features.features.shaderInt64 = true;
+
+		VkPhysicalDeviceVulkan11Features features11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+		features11.storageBuffer16BitAccess = true;
+		features11.shaderDrawParameters = true;
+
+		VkPhysicalDeviceVulkan12Features features12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+		features12.drawIndirectCount = true;
+		features12.storageBuffer8BitAccess = true;
+		features12.uniformAndStorageBuffer8BitAccess = true;
+		features12.shaderFloat16 = true;
+		features12.shaderInt8 = true;
+		features12.samplerFilterMinmax = true;
+		features12.scalarBlockLayout = true;
+
+
+		deviceCreateInfo.pNext = &features;
+		features.pNext = &features11;
+		features11.pNext = &features12;
 
 		// Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 		if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
