@@ -26,7 +26,7 @@
 #include "imgui_impl_vulkan.h"
 
 #define ALLOW_DEVICE_FEATURES2 0
-#define ALLOW_IMGUI 0
+#define ALLOW_IMGUI 1
 
 namespace SPP
 {
@@ -842,8 +842,8 @@ namespace SPP
 		initInfo.Device = device;
 
 		initInfo.QueueFamily = swapChain.queueNodeIndex;
-		initInfo.Queue = queue;
-		initInfo.PipelineCache = pipelineCache;
+		initInfo.Queue = graphicsQueue;
+		initInfo.PipelineCache = nullptr;// pipelineCache;
 		initInfo.DescriptorPool = _globalPool;
 
 		initInfo.Subpass = 0;
