@@ -11,7 +11,6 @@ struct DepthReduceData
 {
 	float2 srcSize;
 	float2 dstSize;
-	uint depthLevel;
 };
 
 [[vk::push_constant]]
@@ -21,10 +20,7 @@ DepthReduceData pcs;
 void main_cs(uint3 GlobalInvocationID : SV_DispatchThreadID)
 {
 	uint2 SamplePoint = uint2(GlobalInvocationID.xy) * 2;
-	
-	if(SamplePoint.x > pcs.srcSize.x || SamplePoint.y > pcs.srcSize.y)
-		return;
-		
+			
 	// Sampler is set up to do min reduction, so this computes the minimum depth of a 2x2 texel quad
 	float depth = depthTexture.SampleLevel(depthSampler, (SamplePoint + float2(1,1)) / pcs.srcSize, 0 ).r;
 	oDepthReduced[int2(GlobalInvocationID.xy)].x = depth;

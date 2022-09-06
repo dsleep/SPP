@@ -113,7 +113,11 @@ namespace SPP
 		_FoV = FoV;
 
 		SetupStandardCorrection();
-		GenerateLeftHandFoVPerspectiveMatrix(FoV, AspectRatio);		
+#if 1
+		GenerateLHInverseZPerspectiveMatrix(FoV, AspectRatio);
+#else
+		GenerateLeftHandFoVPerspectiveMatrix(FoV, AspectRatio);	
+#endif
 		//GenerateOrthogonalMatrix({ 1920, 1080 });
 		BuildCameraMatrices();		
 	}
@@ -150,6 +154,22 @@ namespace SPP
 
 		_invProjectionMatrix = _projectionMatrix.inverse();
 	}
+
+	void Camera::GenerateLHInverseZPerspectiveMatrix(float FoV, float AspectRatio)
+	{
+		float xscale = 1.0f / (float)std::tan(DegToRad(FoV) * 0.5f);
+		float yscale = xscale * AspectRatio;
+
+		_projectionMatrix = Matrix4x4{
+			{ xscale, 0, 0, 0 },
+			{ 0, yscale, 0, 0 },
+			{ 0, 0, 0, 1.0f },
+			{ 0, 0, NearClippingZ, 0 }
+		};
+
+		_invProjectionMatrix = _projectionMatrix.inverse();
+	}
+
 
 	void Camera::GenerateOrthogonalMatrix(const Vector2i& InSize)
 	{

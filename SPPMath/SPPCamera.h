@@ -86,6 +86,10 @@ namespace SPP
 		float GetRecipTanHalfFovy() const;
 
 		void GenerateLeftHandFoVPerspectiveMatrix(float FoV, float AspectRatio);
+
+
+		void GenerateLHInverseZPerspectiveMatrix(float FoV, float AspectRatio);
+
 		void GenerateOrthogonalMatrix(const Vector2i &InSize);
 
 		void SetupStandardCorrection();

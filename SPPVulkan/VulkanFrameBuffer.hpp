@@ -68,6 +68,7 @@ namespace SPP
 		VkFormat format;
 		VkImageUsageFlags usage;
 		VkSampleCountFlagBits imageSampleCount = VK_SAMPLE_COUNT_1_BIT;
+		std::string name;
 	};
 
 	/**

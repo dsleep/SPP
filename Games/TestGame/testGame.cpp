@@ -378,7 +378,7 @@ public:
 
 		auto& cam = renderableSceneShared->GetCamera();
 
-		cam.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)WindowSizeX / (float)WindowSizeY);
+		cam.GenerateLHInverseZPerspectiveMatrix(75.0f, (float)WindowSizeX / (float)WindowSizeY);
 
 		auto CurrentTime = std::chrono::high_resolution_clock::now();
 		auto secondTime = std::chrono::duration_cast<std::chrono::microseconds>(CurrentTime - _lastTime).count();

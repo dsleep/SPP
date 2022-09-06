@@ -282,7 +282,7 @@ namespace SPP
 			VkSamplerReductionModeCreateInfoEXT createInfoReduction = {};
 
 			createInfoReduction.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT;
-			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX;
+			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
 			createInfo.pNext = &createInfoReduction;
 
 			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
@@ -516,7 +516,6 @@ namespace SPP
 	{
 		Vector2 srcSize;
 		Vector2 dstSize;
-		uint32_t mipLevel;
 	};
 
 	class DepthDrawer
@@ -580,7 +579,7 @@ namespace SPP
 
 			auto DeviceExtents = _owningDevice->GetExtents();
 
-			_depthPyramidExtents = Vector2i( roundUpToPow2(DeviceExtents[0]) >> 1, roundUpToPow2(DeviceExtents[1]) >> 1 );
+			_depthPyramidExtents = Vector2i(DeviceExtents[0] >> 1, DeviceExtents[1] >> 1);
 			_depthPyramidMips = std::max(powerOf2(_depthPyramidExtents[0]), powerOf2(_depthPyramidExtents[1]));
 
 			_depthPyramidTexture = Make_GPU(VulkanTexture, _owningDevice, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, TextureFormat::R32F,
@@ -715,7 +714,6 @@ namespace SPP
 				std::swap(reduceData.dstSize, reduceData.srcSize);
 				// shift dst
 				reduceData.dstSize = { Vector2(levelWidth, levelHeight) };
-				reduceData.mipLevel = Iter;
 
 				//execute downsample compute shader
 				vkCmdPushConstants(commandBuffer, depthPyrPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(reduceData), &reduceData);
@@ -1176,7 +1174,6 @@ namespace SPP
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 
 		//UPDATE UNIFORMS
-		//_viewGPU.GenerateLeftHandFoVPerspectiveMatrix(75.0f, (float)DeviceExtents[0] / (float)DeviceExtents[1]);
 		_viewGPU.BuildCameraMatrices();
 
 		_viewGPU.GetFrustumPlanes(_frustumPlanes);
@@ -1236,7 +1233,7 @@ namespace SPP
 		renderPassBeginInfo.clearValueCount = 2;
 		VkClearValue clearValues[2];
 		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 1.0f, 0 };
+		clearValues[1].depthStencil = { 0.0f, 0 };
 		renderPassBeginInfo.pClearValues = clearValues;
 		// Set target frame buffer
 		renderPassBeginInfo.framebuffer = ColorTargetFrameData.frameBuffer;

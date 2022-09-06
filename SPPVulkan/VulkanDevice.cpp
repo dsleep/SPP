@@ -574,16 +574,38 @@ namespace SPP
 				.height = height,
 				.layerCount = 1,
 				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.name = "Diffuse"
 			}
 		);
+		//_colorTarget->addAttachment(
+		//	{
+		//		.width = width,
+		//		.height = height,
+		//		.layerCount = 1,
+		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
+		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+		//		.name = "SpecularMetallicRoughnessEmissive"
+		//	}
+		//);
+		//_colorTarget->addAttachment(
+		//	{
+		//		.width = width,
+		//		.height = height,
+		//		.layerCount = 1,
+		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
+		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+		//		.name = "Normal"
+		//	}
+		//);
 		_colorTarget->addAttachment(
 			{
 				.width = width,
 				.height = height,
 				.layerCount = 1,
 				.format = VK_FORMAT_D32_SFLOAT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+				.name = "Depth"
 			}
 		);		
 		VK_CHECK_RESULT(_colorTarget->createRenderPass());
@@ -1649,7 +1671,9 @@ namespace SPP
 			depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 			depthStencilState.depthTestEnable = VK_TRUE;
 			depthStencilState.depthWriteEnable = VK_TRUE;
-			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+			//TODO check
+			//VK_COMPARE_OP_GREATER or VK_COMPARE_OP_GREATER_OR_EQUAL
+			depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
 			depthStencilState.depthBoundsTestEnable = VK_FALSE;
 			depthStencilState.back.failOp = VK_STENCIL_OP_KEEP;
 			depthStencilState.back.passOp = VK_STENCIL_OP_KEEP;

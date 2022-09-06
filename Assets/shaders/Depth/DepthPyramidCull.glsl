@@ -76,7 +76,7 @@ void main()
 	if (di >= cullData.drawCount)
 		return;
 
-	vec2 ViewScalar = vec2(cullData.pyramidWidth,  cullData.pyramidHeight) / vec2( ViewConstants.FrameExtents.xy );
+	//vec2 ViewScalar = vec2(cullData.pyramidWidth,  cullData.pyramidHeight) / vec2( ViewConstants.FrameExtents.xy );
 	uint renderIdx = di;
 
 	vec3 translatedCenter = vec3(draws[di].center - ViewConstants.ViewPosition);
@@ -94,12 +94,12 @@ void main()
 
 	visible = visible || cullData.cullingEnabled == 0;
 
-	if (false)//visible && cullData.occlusionEnabled == 1)
+	if (visible && cullData.occlusionEnabled == 1)
 	{
 		vec4 aabb;
 		if (projectSphere(center, radius, cullData.znear, cullData.P00, cullData.P11, aabb))
 		{
-			aabb = aabb * ViewScalar.xyxy;			
+			//aabb = aabb * ViewScalar.xyxy;			
 			
 			float width = (aabb.z - aabb.x) * cullData.pyramidWidth;
 			float height = (aabb.w - aabb.y) * cullData.pyramidHeight;
@@ -107,7 +107,7 @@ void main()
 			float level = floor(log2(max(width, height)));
 
 			// Sampler is set up to do min reduction, so this computes the minimum depth of a 2x2 texel quad
-			float depth = textureLod(depthPyramid, (aabb.xy + aabb.zw) * 0.5, level).x;
+			float depth = textureLod(depthPyramid, (aabb.xy + aabb.zw) * 0.5, level).x;			
 			float depthSphere = cullData.znear / (center.z - radius);
 
 			visible = visible && depthSphere > depth;
