@@ -288,12 +288,13 @@ void VulkanSwapChain::create(uint32_t *width, uint32_t *height, bool vsync)
 		}
 	}
 
+	// due to our locks, 2 is really our max/min
 	// Determine the number of images
-	uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
-	if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
-	{
-		desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
-	}
+	uint32_t desiredNumberOfSwapchainImages = 2;// surfCaps.minImageCount + 1;
+	//if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
+	//{
+	//	desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+	//}
 
 	// Find the transformation of the surface
 	VkSurfaceTransformFlagsKHR preTransform;
