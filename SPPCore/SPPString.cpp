@@ -23,6 +23,22 @@ namespace std
 		std::transform(InData.begin(), InData.end(), InData.begin(), [](unsigned char c) { return std::toupper(c); });
 	}
 
+	std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) 
+	{
+		ReplaceInline(str, from, to);
+		return str;
+	}
+
+	void ReplaceInline(std::string& str, const std::string& from, const std::string& to) 
+	{
+		size_t start_pos = 0;
+		while ((start_pos = str.find(from, start_pos)) != std::string::npos)
+		{
+			str.replace(start_pos, from.length(), to);
+			start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+		}
+	}
+
 	std::string str_to_upper(std::string& InData)
 	{
 		std::string oString = InData;

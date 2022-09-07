@@ -18,12 +18,6 @@ layout(set = 0, binding = 0) readonly uniform _ViewConstants
 	float RecipTanHalfFovy; 
 } ViewConstants;
 
-layout(set = 0, binding = 1) readonly uniform _DrawConstants
-{
-	//altered viewposition translated
-	mat4 LocalToWorldScaleRotation;
-	dvec3 Translation;
-} DrawConstants;
 
 mat4 GetLocalToWorldViewTranslated(in mat4 InLTWSR, in dvec3 InTrans, in dvec3 InViewPosition)
 {

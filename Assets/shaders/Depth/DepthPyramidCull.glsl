@@ -9,7 +9,7 @@ layout(row_major) uniform;
 layout(row_major) buffer;
 layout(std430) buffer;
 
-#include "../Common.glsl"
+#include "Common.glsl"
 
 struct DrawCullData
 {
@@ -94,7 +94,7 @@ void main()
 
 	visible = visible || cullData.cullingEnabled == 0;
 
-	if (visible && cullData.occlusionEnabled == 1)
+	if (false)//visible && cullData.occlusionEnabled == 1)
 	{
 		vec4 aabb;
 		if (projectSphere(center, radius, cullData.znear, cullData.P00, cullData.P11, aabb))

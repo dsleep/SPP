@@ -45,6 +45,9 @@ namespace std
 		return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 	}
 
+	SPP_CORE_API std::string ReplaceAll(std::string str, const std::string& from, const std::string& to);
+	SPP_CORE_API void ReplaceInline(std::string& str, const std::string& from, const std::string& to);
+
 	SPP_CORE_API std::string ltrim(const std::string& s);
 	SPP_CORE_API std::string rtrim(const std::string& s);
 	SPP_CORE_API std::string trim(const std::string& s);

@@ -9,7 +9,14 @@ layout(row_major) uniform;
 layout(row_major) buffer;
 layout(std430) buffer;
 
-#include "../Common.glsl"
+#include "Common.glsl"
+
+layout(set = 0, binding = 1) readonly uniform _DrawConstants
+{
+	//altered viewposition translated
+	mat4 LocalToWorldScaleRotation;
+	dvec3 Translation;
+} DrawConstants;
 
 // Vertex attributes
 layout (location = 0) in vec3 inPos;

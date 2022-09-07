@@ -166,7 +166,7 @@ namespace SPP
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = "SPP";
 		appInfo.pEngineName = "SPP";
-		appInfo.apiVersion = 0;
+		appInfo.apiVersion = VK_API_VERSION_1_3;
 		std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
 
 		// Enable surface extensions depending on os
@@ -385,7 +385,7 @@ namespace SPP
 		// [POI] Enable required extensions
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
-		enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+		//enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
 		enabledFeatures.shaderFloat64 = true;
 
@@ -578,26 +578,26 @@ namespace SPP
 				.name = "Diffuse"
 			}
 		);
-		_colorTarget->addAttachment(
-			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-				.name = "SpecularMetallicRoughnessEmissive"
-			}
-		);
-		_colorTarget->addAttachment(
-			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-				.name = "Normal"
-			}
-		);
+		//_colorTarget->addAttachment(
+		//	{
+		//		.width = width,
+		//		.height = height,
+		//		.layerCount = 1,
+		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
+		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+		//		.name = "SpecularMetallicRoughnessEmissive"
+		//	}
+		//);
+		//_colorTarget->addAttachment(
+		//	{
+		//		.width = width,
+		//		.height = height,
+		//		.layerCount = 1,
+		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
+		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+		//		.name = "Normal"
+		//	}
+		//);
 		_colorTarget->addAttachment(
 			{
 				.width = width,
@@ -2215,14 +2215,20 @@ namespace vks
 		features12.scalarBlockLayout = true;
 
 
+
+		//VkPhysicalDeviceRobustness2FeaturesEXT featuresRobust = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
+		//featuresRobust.nullDescriptor = true;
+
 		deviceCreateInfo.pNext = &features;
 		features.pNext = &features11;
 		features11.pNext = &features12;
+		//features12.pNext = &featuresRobust;
 
 		// Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 		if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
 		{
 			deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+			//deviceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 			enableDebugMarkers = true;
 		}
 

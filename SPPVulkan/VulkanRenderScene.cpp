@@ -386,12 +386,70 @@ namespace SPP
 		}
 	};
 
+	enum class ParamType
+	{
+		Texture,
+		Uniform,
+		Constant
+	};
+
+	enum class ParamReturn
+	{
+		float1,
+		float2,
+		float3,
+		float4,
+	};
+
+	enum class PBRParam
+	{
+		Diffuse,
+		Opacity,
+		Normal,
+		Specular,
+		Metallic,
+		Roughness,
+		Emissive,
+	};
+
+	struct PBRParamBlock
+	{
+		/*
+		<<UNIFORM_BLOCK>>
+		//
+		<<DIFFUSE_BLOCK>>
+		<<OPACITY_BLOCK>>
+		<<NORMAL_BLOCK>>
+		<<SPECULAR_BLOCK>>
+		<<METALLIC_BLOCK>>
+		<<ROUGHNESS_BLOCK>>
+		<<EMISSIVE_BLOCK>>
+		*/
+
+		PBRParam param;
+		std::string name;
+		ParamReturn type;
+	};
+
+	static const std::vector<PBRParamBlock> PRBDataSet =
+	{
+		{ PBRParam::Diffuse, "Diffuse", ParamReturn::float3 },
+		{ PBRParam::Opacity, "Opacity", ParamReturn::float1 },
+		{ PBRParam::Normal, "Normal", ParamReturn::float3 },
+		{ PBRParam::Specular, "Specular", ParamReturn::float1 },
+		{ PBRParam::Metallic, "Metallic", ParamReturn::float1 },
+		{ PBRParam::Roughness, "Roughness", ParamReturn::float1 },
+		{ PBRParam::Emissive, "Emissive", ParamReturn::float1 }
+	};
+
 	class GlobalDeferredPBRResources : public GlobalGraphicsResource
 	{
 	private:
 		GPUReferencer < VulkanShader > _defferedPBRVS;
-		//GPUReferencer< SafeVkDescriptorSetLayout > _opaqueVSLayout;
-		//GPUReferencer< GPUInputLayout > _SMlayout;
+		GPUReferencer< GPUInputLayout > _deferredSMlayout;
+
+		GPUReferencer< SafeVkDescriptorSetLayout > _deferredVSLayout;
+		
 
 	public:
 		// called on render thread
@@ -407,11 +465,13 @@ namespace SPP
 			//_opaqueVSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_vs");
 			//_opaquePSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_ps");
 			
-			//_SMlayout = Make_GPU(VulkanInputLayout, InOwner);
-			//_SMlayout->InitializeLayout(OP_GetVertexStreams_SM());
+			_deferredSMlayout = Make_GPU(VulkanInputLayout, InOwner);
+			_deferredSMlayout->InitializeLayout(OP_GetVertexStreams_Deferred());
 
-			//auto& vsSet = _opaqueVS->GetLayoutSets();
-			//_opaqueVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+			{
+				auto& vsSet = _defferedPBRVS->GetLayoutSets();
+				_deferredVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+			}
 		}
 
 		virtual void Shutdown(class GraphicsDevice* InOwner)
@@ -696,7 +756,7 @@ namespace SPP
 
 			VkDescriptorBufferInfo drawSphereInfo = _owningScene->GetCullDataBuffer()->GetDescriptorInfo();
 			VkDescriptorBufferInfo drawVisibilityInfo = _owningScene->GetVisibleGPUBuffer()->GetDescriptorInfo();
-
+			
 			VkDescriptorImageInfo depthPyramidInfo;
 			depthPyramidInfo.sampler = depthDownsizeSampler->Get();
 			depthPyramidInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;

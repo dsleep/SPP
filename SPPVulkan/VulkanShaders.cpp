@@ -188,22 +188,25 @@ namespace SPP
 			PrintDescriptorBinding(binding, false, ttttt.c_str());			
 		}
 	}
-
 	
 
-
-	bool VulkanShader::CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint, std::string* oErrorMsgs)
+	bool VulkanShader::CompileShaderFromString(const std::string& ShaderSource, const AssetPath& ReferencePath, const char* EntryPoint, std::string* oErrorMsgs) 
 	{
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromFile: %s(%s)", *FileName, EntryPoint);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: ref path %s(%s)", *ReferencePath, EntryPoint);
 
-		AssetPath shaderRoot("shaders");
-		AssetPath shaderBinObject( (std::string("CACHE\\") + FileName.GetName() + ".SPIRV").c_str());
-		AssetPath shaderBuildOutput((std::string("CACHE\\") + FileName.GetName() + ".txt").c_str());
-
-		auto fileNameExt = stdfs::path(FileName.GetName()).extension().generic_string();
+		auto fileNameExt = stdfs::path(ReferencePath.GetName()).extension().generic_string();
 		inlineToUpper(fileNameExt);
 
 		bool IsGLSL = (fileNameExt == ".GLSL");
+
+		AssetPath shaderRoot("shaders");
+		AssetPath shaderOutputObject( (std::string("CACHE\\") + ReferencePath.GetName() ).c_str());
+		AssetPath shaderBinObject( (std::string("CACHE\\") + ReferencePath.GetName() + ".SPIRV").c_str());
+		AssetPath shaderBuildOutput( (std::string("CACHE\\") + ReferencePath.GetName() + ".txt").c_str());
+
+		WriteStringToFile(*shaderOutputObject, ShaderSource);
+
+		
 		
 		std::string CommandString;
 		std::string FullBinPath;
@@ -214,7 +217,7 @@ namespace SPP
 			FullBinPath = std::string(env_p) + "/Bin/glslangValidator.exe";
 
 			CommandString = std::string_format("\"%s\" -V --target-env vulkan1.2 -g -S %s -e %s -I\"%s\" -o \"%s\"",
-				*FileName,
+				*shaderOutputObject,
 				ReturnTargetStringGLSL(_type),
 				EntryPoint,
 				*shaderRoot,
@@ -226,7 +229,7 @@ namespace SPP
 			FullBinPath = SPP::GRootPath + "3rdParty/dxc/bin/x64/dxc.exe";
 
 			CommandString = std::string_format("\"%s\" -spirv -fspv-debug=line -fspv-reflect -Zpr -Zi -T %s -E %s -I \"%s\" -Fo \"%s\"",
-				*FileName,
+				*shaderOutputObject,
 				ReturnTargetString(_type),
 				EntryPoint,
 				*shaderRoot,
@@ -269,7 +272,7 @@ namespace SPP
 			}
 		}
 
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - SUCCESS CompileShaderFromFile: %s(%s)", *FileName, EntryPoint);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - SUCCESS CompileShaderFromFile: %s(%s)", *ReferencePath, EntryPoint);
 		_entryPoint = EntryPoint;
 
 		// reflection parsing
@@ -411,10 +414,5 @@ namespace SPP
 		}
 
 		return true;
-	}
-	
-	bool VulkanShader::CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint, std::string* oErrorMsgs)
-	{
-		return false;
 	}
 }

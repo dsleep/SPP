@@ -9,7 +9,7 @@ layout(row_major) uniform;
 layout(row_major) buffer;
 layout(std430) buffer;
 
-#include "../Common.glsl"
+#include "Common.glsl"
 
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in vec3 inNormal;
@@ -17,11 +17,14 @@ layout (location = 2) in vec3 inTangent;
 
 <<UNIFORM_BLOCK>>
 
-layout (set = 3, binding = 0) uniform sampler2D samplerDiffuse;
-layout (set = 3, binding = 1) uniform sampler2D samplerNormal;
+//layout (set = 2, binding = 0) uniform sampler2D samplerDiffuse;
+//layout (set = 2, binding = 1) uniform sampler2D samplerNormal;
 
-layout (set = 3, binding = 0) uniform float4 uDiffuse; 
-layout (set = 3, binding = 1) uniform float3 uNormal;
+//layout(set = 2, binding = 0) readonly uniform _Params
+//{
+//	float4 Diffuse; 
+//	float3 Normal;
+//} Params;
 
 vec3 GetDiffuse()
 {

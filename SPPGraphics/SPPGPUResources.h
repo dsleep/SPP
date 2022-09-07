@@ -294,19 +294,31 @@ namespace SPP
             return 0;
         }
 
-        virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
+        virtual bool CompileShaderFromTemplate(const AssetPath& FileName, 
+            std::map<std::string, std::string> ReplaceDictionary, 
+            const char* EntryPoint = "main", 
+            std::string* oErrorMsgs = nullptr)
         {
             std::string loadSrc;
             if (LoadFileToString(*FileName, loadSrc))
             {
-                return CompileShaderFromString(loadSrc, FileName.GetName().c_str(), EntryPoint, oErrorMsgs);
+                for (auto& [key, value] : ReplaceDictionary)
+                {
+                    ReplaceInline(loadSrc, key, value);
+                }
+
+                return CompileShaderFromString(loadSrc, FileName, EntryPoint, oErrorMsgs);
             }
             else
             {
                 return false;
             }
         }
-        virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) = 0;
+        virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
+        {
+            return CompileShaderFromTemplate(FileName, {}, EntryPoint, oErrorMsgs);
+        }
+        virtual bool CompileShaderFromString(const std::string& ShaderSource, const AssetPath& ReferencePath, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr) = 0;
     };
 
    

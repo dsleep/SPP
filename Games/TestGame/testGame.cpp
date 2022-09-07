@@ -128,17 +128,18 @@ public:
 
 		animatorTest->PlayAnimation("Action");
 
-		_gameworld = LoadJsonGameScene(*AssetPath("scenes/visibilityTest/visibilitytest.spj"));
+		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/visibilityTest/visibilitytest.spj"));.
+		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		AddToRoot(_gameworld);
 
-		Sphere totalBounds(Vector3d(0,0,0), 200);
+		Sphere totalBounds;// (Vector3d(0, 0, 0), 200);
 
 		// get a COPY of htem
 		auto topChildren = _gameworld->GetChildren();
-		//for (auto& curShild : topChildren)
-		//{
-		//	totalBounds += curShild->Bounds();
-		//}
+		for (auto& curShild : topChildren)
+		{
+			totalBounds += curShild->Bounds();
+		}
 				
 #if 0
 		auto MeshType = rttr::type::get<VgMeshElement>();

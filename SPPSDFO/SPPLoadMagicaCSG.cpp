@@ -14,16 +14,6 @@ namespace SPP
 {
 	LogEntry LOG_CSGLOADER("CSGLOADER");
 
-	std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) 
-	{
-		size_t start_pos = 0;
-		while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-			str.replace(start_pos, from.length(), to);
-			start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-		}
-		return str;
-	}
-
 	SPP_SDF_API std::vector<MagicaCSG_Layer> LoadMagicaCSGFile(const char* FilePath)
 	{
 		std::vector<MagicaCSG_Layer> oLayers;
@@ -33,11 +23,12 @@ namespace SPP
 		if (LoadFileToString(FilePath, FileString))
 		{
 			FileString = std::string("{\n") + FileString + std::string("\n}");
-			FileString = ReplaceAll(FileString, "\"\n", "\",\n");
-			FileString = ReplaceAll(FileString, "}\n", "},\n");
-			FileString = ReplaceAll(FileString, "]\n", "],\n");
-			FileString = ReplaceAll(FileString, "%", "");
-			FileString = ReplaceAll(FileString, "\":", "\" :");
+
+			std::ReplaceInline(FileString, "\"\n", "\",\n");
+			std::ReplaceInline(FileString, "}\n", "},\n");
+			std::ReplaceInline(FileString, "]\n", "],\n");
+			std::ReplaceInline(FileString, "%", "");
+			std::ReplaceInline(FileString, "\":", "\" :");
 
 			if (StringToJson(FileString, JsonScene) == false)
 			{
