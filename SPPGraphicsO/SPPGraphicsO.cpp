@@ -184,7 +184,7 @@ namespace SPP
 					_bounds = curMesh->GetBounds();
 
 					Vector3d newBoundsCenter = (ToVector4(_bounds.GetCenter().cast<float>()) * localToWorld).cast<double>().head<3>() + TopPosition;					
-					float maxScale = std::fabs(std::max(std::max(localToWorld(0, 0), localToWorld(1, 1)), localToWorld(2, 2)));
+					float maxScale = std::fabs(std::max(std::max(localToWorld.block<1, 3>(0, 0).norm(), localToWorld.block<1, 3>(1, 0).norm()), localToWorld.block<1, 3>(2, 0).norm()));
 										
 					_bounds = Sphere(newBoundsCenter, _bounds.GetRadius() * maxScale);
 				}

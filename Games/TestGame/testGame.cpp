@@ -128,7 +128,7 @@ public:
 
 		animatorTest->PlayAnimation("Action");
 
-		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/visibilityTest/visibilitytest.spj"));.
+		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/visibilityTest/visibilitytest.spj"));
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		AddToRoot(_gameworld);
 

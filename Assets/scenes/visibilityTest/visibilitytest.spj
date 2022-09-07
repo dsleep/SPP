@@ -20,12 +20,12 @@
             }
         },
         {
-            "name": "Props_Props_01",
+            "name": "Natures",
             "textures": {
                 "alpha": [],
                 "diffuse": [
                     {
-                        "name": "Props_Props_01.png.001.PNG",
+                        "name": "Natures.png.001.PNG",
                         "uvmap": ""
                     }
                 ],
@@ -37,12 +37,29 @@
             }
         },
         {
-            "name": "Natures",
+            "name": "Building_Stadium.001",
             "textures": {
                 "alpha": [],
                 "diffuse": [
                     {
-                        "name": "Natures.png.001.PNG",
+                        "name": "Building_Stadium.png.002.PNG",
+                        "uvmap": ""
+                    }
+                ],
+                "emissive": [],
+                "metallic": [],
+                "normal": [],
+                "roughness": [],
+                "specular": []
+            }
+        },
+        {
+            "name": "Props_Props_01",
+            "textures": {
+                "alpha": [],
+                "diffuse": [
+                    {
+                        "name": "Props_Props_01.png.001.PNG",
                         "uvmap": ""
                     }
                 ],
@@ -71,6 +88,30 @@
                     -0.0,
                     90.0,
                     0.0
+                ],
+                "scale": [
+                    0.632,
+                    0.632,
+                    0.632
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Building_Stadium.001"
+            ],
+            "mesh": "Cylinder.011",
+            "name": "Building_Stadium.001",
+            "transform": {
+                "location": [
+                    1.2719,
+                    -0.3304,
+                    -36.3149
+                ],
+                "rotation": [
+                    -0.0,
+                    90.0,
+                    90.0
                 ],
                 "scale": [
                     0.632,
