@@ -83,6 +83,9 @@ namespace SPP
 
 		std::shared_ptr< class RT_Texture > _texture;
 
+
+		virtual bool Finalize() override { UinitializeGraphicsDeviceResources(); return true; }
+
 	public:
 		OTexture(const std::string& InName, SPPDirectory* InParent) : SPPObject(InName, InParent) { }
 
@@ -109,6 +112,9 @@ namespace SPP
 		
 		std::shared_ptr<Mesh> _mesh;
 		std::shared_ptr<RT_StaticMesh> _renderMesh;
+
+
+		virtual bool Finalize() override { UinitializeGraphicsDeviceResources(); return true; }
 
 	public:
 		void SetMesh(std::shared_ptr<Mesh> InMesh)
@@ -180,9 +186,13 @@ namespace SPP
 		std::shared_ptr<RT_Material> _material;
 		std::map<TexturePurpose, OTexture*> _textures;
 
+
+		virtual bool Finalize() override { UinitializeGraphicsDeviceResources(); return true; }
+
 	public:
 		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
 		virtual void UinitializeGraphicsDeviceResources();
+
 
 		void SetTexture(TexturePurpose InTP, OTexture* InTexture)
 		{

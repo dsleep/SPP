@@ -11,14 +11,18 @@
 
 namespace SPP
 {	
-	GlobalRenderableID::GlobalRenderableID(GraphicsDevice* InOwner, class RT_RenderScene* currentScene) : GPUResource(InOwner), _scene(currentScene)
+	GlobalRenderableID::GlobalRenderableID(GraphicsDevice* InOwner, std::shared_ptr<class RT_RenderScene> currentScene) : 
+		GPUResource(InOwner), _scene(currentScene)
 	{
-		_globalID = _scene->GetGlobalRenderableID();
-	}
+		_globalID = currentScene->GetGlobalRenderableID();
+	}	
 
 	GlobalRenderableID::~GlobalRenderableID()
 	{
-		_scene->ReturnToGlobalRenderableID(_globalID);
+		if (auto lckScene = _scene.lock())
+		{
+			lckScene->ReturnToGlobalRenderableID(_globalID);
+		}
 	}
 
 	void Renderable::_AddToRenderScene(class RT_RenderScene* InScene)
@@ -132,7 +136,7 @@ namespace SPP
 	{
 		SE_ASSERT(IsOnGPUThread());
 
-		InRenderable->_globalID = Make_GPU(GlobalRenderableID, _owner, this);
+		InRenderable->_globalID = Make_GPU(GlobalRenderableID, _owner, downcasted_shared_from_this< RT_RenderScene>());
 		auto thisID = InRenderable->_globalID->GetID();
 
 		while (thisID >= _renderables.size())

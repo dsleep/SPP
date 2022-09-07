@@ -3,7 +3,7 @@
 // recognized in your jurisdiction.
 
 #include "SPPGraphics.h"
-
+#include "SPPPlatformCore.h"
 #include "SPPLogging.h"
 #include "ThreadPool.h"
 
@@ -20,7 +20,7 @@ namespace SPP
 	void IntializeGraphicsThread()
 	{
 		SPP_LOG(LOG_GRAPHICS, LOG_INFO, "IntializeGraphics");
-		GPUThreaPool = std::make_unique< ThreadPool >(1);
+		GPUThreaPool = std::make_unique< ThreadPool >("GPUThread", 1);
 		auto isSet = GPUThreaPool->enqueue([]()
 			{
 				GPUThread = std::this_thread::get_id();

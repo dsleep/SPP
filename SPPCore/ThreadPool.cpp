@@ -29,6 +29,9 @@
 
 #include "ThreadPool.h"
 
+#include "SPPPlatformCore.h"
+#include "SPPString.h"
+
 // Windows Header Files
 #if _WIN32
 	#include <windows.h>
@@ -36,12 +39,13 @@
 
 namespace SPP
 {
-	ThreadPool::ThreadPool(uint8_t threads) : stop(false)
+	ThreadPool::ThreadPool(const std::string& InName, uint8_t threads) : stop(false)
 	{
 		for (size_t i = 0; i < threads; ++i)
 			workers.emplace_back(
-				[this]
+				[this, InName, i]
 				{
+					SetThreadName(std::string_format("%s_%d", InName.c_str(), i).c_str());
 					for (;;)
 					{
 						std::function<void()> task;

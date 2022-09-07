@@ -7,6 +7,8 @@
 #include "SPPEngine.h"
 #include "SPPArrayResource.h"
 #include "SPPMath.h"
+#include "SPPSTLUtils.h"
+
 #include <coroutine>
 #include <vector>
 #include <memory>
@@ -126,7 +128,7 @@ namespace SPP
             template<typename T, typename ... Args> \
             friend std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, class GraphicsDevice* InOwner, Args&& ... args);
 
-    class SPP_GRAPHICS_API RT_Resource
+    class SPP_GRAPHICS_API RT_Resource : public inheritable_enable_shared_from_this< RT_Resource >
     {
         CLASS_RT_RESOURCE();
 
@@ -161,7 +163,7 @@ namespace SPP
         virtual void INTERNAL_RemoveScene(class RT_RenderScene* InScene);
 
         std::list< class GPUResource* > _resources;
-        std::list< std::shared_ptr< RT_Resource > > _renderThreadResources;
+        std::list< std::weak_ptr< RT_Resource > > _renderThreadResources;
 
         std::future<bool> _currentFrame;
 

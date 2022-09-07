@@ -53,7 +53,12 @@ namespace SPP
 
 	void OMesh::UinitializeGraphicsDeviceResources()
 	{
-
+		SE_ASSERT(IsOnCPUThread());
+		GPUThreaPool->enqueue([_renderMesh=_renderMesh]()
+			{
+				//
+			});
+		_renderMesh.reset();
 	}
 
 	ORenderableScene::ORenderableScene(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
@@ -308,6 +313,11 @@ namespace SPP
 	}
 	void OMaterial::UinitializeGraphicsDeviceResources()
 	{
+		SE_ASSERT(IsOnCPUThread());
+		GPUThreaPool->enqueue([_material=_material]()
+			{
+				//dies automagically 
+			});
 		_material.reset();
 	}
 
@@ -340,6 +350,11 @@ namespace SPP
 
 	void OTexture::UinitializeGraphicsDeviceResources()
 	{
+		SE_ASSERT(IsOnCPUThread());
+		GPUThreaPool->enqueue([_texture = _texture]()
+			{
+				//dies automagically 
+			});
 		_texture.reset();
 	}
 

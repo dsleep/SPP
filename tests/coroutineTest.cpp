@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 {
     IntializeCore(nullptr);
 
-    GPUFakePool.reset(new ThreadPool(1));
+    GPUFakePool.reset(new ThreadPool("test",1));
     auto valueWait = GPUFakePool->enqueue([]()
         {
             GPUFakeID = std::this_thread::get_id();

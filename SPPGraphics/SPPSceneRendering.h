@@ -72,11 +72,11 @@ namespace SPP
 	{
 	protected:
 		uint32_t _globalID = 0;
-		class RT_RenderScene* _scene = nullptr;
+		std::weak_ptr<RT_RenderScene> _scene;
 
 	public:
 		uint32_t GetID() const { return _globalID; }
-		GlobalRenderableID(GraphicsDevice* InOwner, class RT_RenderScene* currentScene);
+		GlobalRenderableID(GraphicsDevice* InOwner, std::shared_ptr<RT_RenderScene> currentScene);
 		virtual ~GlobalRenderableID();
 	};
 

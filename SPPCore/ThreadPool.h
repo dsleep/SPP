@@ -48,7 +48,7 @@ namespace SPP
 	class SPP_CORE_API ThreadPool : public std::enable_shared_from_this<ThreadPool>
 	{
 	public:		
-		ThreadPool(uint8_t threads);		
+		ThreadPool(const std::string &dInName, uint8_t threads);		
 
 		template<class F, class... Args>
 		auto enqueue(F&& f, Args&&... args)->std::future< typename std::invoke_result_t<F,Args...> >

@@ -34,6 +34,11 @@ namespace SPP
 		return Filename;
 	}
 
+	void SetThreadName(const char* InName)
+	{
+		SetThreadDescription(GetCurrentThread(), std::utf8_to_wstring(InName).c_str());
+	}
+
 	PlatformInfo GetPlatformInfo()	
 	{
 		SYSTEM_INFO info = { 0 };

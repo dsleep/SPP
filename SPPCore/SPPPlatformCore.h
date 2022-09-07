@@ -30,6 +30,8 @@ namespace SPP
 
 	SPP_CORE_API std::string GetProcessName();
 
+	SPP_CORE_API void SetThreadName(const char *InName);
+
 	SPP_CORE_API PlatformInfo GetPlatformInfo();
 	SPP_CORE_API uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible = true);
 	SPP_CORE_API bool IsChildRunning(uint32_t processID);

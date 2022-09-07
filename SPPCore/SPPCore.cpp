@@ -169,7 +169,7 @@ namespace SPP
 				
 		unsigned int nthreads = std::max<uint32_t>( std::thread::hardware_concurrency(), 2);
 
-		CPUThreaPool = std::make_unique< ThreadPool >(nthreads - 1);
+		CPUThreaPool = std::make_unique< ThreadPool >("CPUWorkers", nthreads - 1);
 		CPUThread = std::this_thread::get_id();
 
 		auto Info = GetPlatformInfo();

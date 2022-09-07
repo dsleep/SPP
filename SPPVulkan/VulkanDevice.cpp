@@ -877,44 +877,44 @@ namespace SPP
 
 	void VulkanGraphicsDevice::Shutdown()
 	{		
-		GPUThreadIDOverride tempOverride;
-
-		for (bool bFoundSomething = true; bFoundSomething;)
-		{
-			bFoundSomething = false;
-
-			for (auto iter = _renderThreadResources.begin(); iter != _renderThreadResources.end(); )
+		auto isSet = GPUThreaPool->enqueue([&]()
 			{
-				if ( (*iter) && iter->use_count() == 1)
+
+				for (auto iter = _renderThreadResources.begin(); iter != _renderThreadResources.end(); )
 				{
-					iter = _renderThreadResources.erase(iter); // _advances_ iter, so this loop is not infinite
-					bFoundSomething = true;
+					if (auto rtResource = iter->lock())
+					{
+
+						++iter;
+					}
+					else
+					{
+						iter = _renderThreadResources.erase(iter);
+					}
 				}
-				else
+
+				auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
+				while (CurResource)
 				{
-					++iter;
+					CurResource->Shutdown(this);
+					CurResource = CurResource->GetNext();
+				};
+
+				for (auto& fence : _waitFences)
+				{
+					fence.Reset();
 				}
-			}
-		}
 
-		auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
-		while (CurResource)
-		{
-			CurResource->Shutdown(this);
-			CurResource = CurResource->GetNext();
-		};
+				destroyFrameBuffer();
+				destroyCommandBuffers();
 
-		for (auto& fence : _waitFences)
-		{
-			fence.Reset();
-		}
+				_defaultTexture.Reset();
+				_colorTarget.reset();
+				_piplineStateMap.clear();
 
-		destroyFrameBuffer();
-		destroyCommandBuffers();
+			});
 
-		_defaultTexture.Reset();
-		_colorTarget.reset();
-		_piplineStateMap.clear();
+		isSet.wait();
 
 		Flush();
 	}
@@ -1109,28 +1109,34 @@ namespace SPP
 
 	void VulkanGraphicsDevice::Flush()
 	{
-		GPUThreadIDOverride tempOverride;
+		//SE_ASSERT(InOnCPUThread());
 
-		vkDeviceWaitIdle(device);
-
-		static_assert(MAX_IN_FLIGHT == 3);
-		std::array< std::vector<GPUResource*>*, MAX_IN_FLIGHT + 2 > flushDying =
-		{
-			&_cpuPushedDyingResources,
-			&_gpuPushedDyingResources,
-			&_dyingResources[0],
-			&_dyingResources[1],
-			&_dyingResources[2]
-		};
-
-		for( int32_t Iter = 0; Iter < flushDying.size(); Iter++)
-		{
-			for (auto& curResource : *flushDying[Iter])
+		auto isSet = GPUThreaPool->enqueue([&]()
 			{
-				delete curResource;
-			}
-			flushDying[Iter]->clear();
-		}
+				vkDeviceWaitIdle(device);
+
+				static_assert(MAX_IN_FLIGHT == 3);
+				std::array< std::vector<GPUResource*>*, MAX_IN_FLIGHT + 2 > flushDying =
+				{
+					&_cpuPushedDyingResources,
+					&_gpuPushedDyingResources,
+					&_dyingResources[0],
+					&_dyingResources[1],
+					&_dyingResources[2]
+				};
+
+				for (int32_t Iter = 0; Iter < flushDying.size(); Iter++)
+				{
+					for (auto& curResource : *flushDying[Iter])
+					{
+						delete curResource;
+					}
+					flushDying[Iter]->clear();
+				}
+			});
+		isSet.wait();
+
+		
 	}
 
 	void VulkanGraphicsDevice::BeginFrame()
