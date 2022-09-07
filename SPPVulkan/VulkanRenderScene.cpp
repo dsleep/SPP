@@ -1042,7 +1042,6 @@ namespace SPP
 	{
 		_debugDrawer->Initialize();
 
-
 		_fullscreenRayVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
@@ -1344,14 +1343,22 @@ namespace SPP
 
 #if 1
 
+		uint32_t depthVisible = 0;
 		for (uint32_t visIter = 0; visIter < curVisible; visIter++)
 		{
 			auto curID = _visible[visIter]->GetGlobalID().RawGet()->GetID();
 			if (_depthCullVisiblity.Get(curID))
 			{
 				_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
+				depthVisible++;
 			}
 		}
+
+		{
+			std::string debugText = std::string_format("culling: %d %d", curVisible, depthVisible);
+			vulkanGD->DrawDebugText(Vector2i(10, 30), debugText.c_str());
+		}
+
 #else
 		for (auto& curVis : _renderables3d)
 		{

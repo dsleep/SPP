@@ -222,7 +222,7 @@ namespace SPP
 		}
 	};
 
-	class SPP_GRAPHICS_API RT_RenderScene
+	class SPP_GRAPHICS_API RT_RenderScene : public RT_Resource
 	{
 	protected:
 		Camera _viewCPU;
@@ -247,12 +247,8 @@ namespace SPP
 
 		GPUReferencer< GPURenderTarget > _activeRTs[5];
 		GPUReferencer< GPURenderTarget > _activeDepth;
-
 		GPUReferencer< GPUTexture > _skyBox;
-
 		GPUReferencer< GPUTexture > _offscreenUI;
-
-		GraphicsDevice* _owner = nullptr;
 
 		std::list< uint32_t > _globalRenderableIDPool;
 		uint32_t _globalRenderableIDCounter = 1;

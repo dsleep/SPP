@@ -52,7 +52,7 @@ namespace SPP
 	}
 
 
-	RT_RenderScene::RT_RenderScene(GraphicsDevice* InOwner) : _owner(InOwner)
+	RT_RenderScene::RT_RenderScene(GraphicsDevice* InOwner) : RT_Resource(InOwner)
 	{
 		_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0, 0, 0), 65.0f, 1.77f);
 		_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);

@@ -101,18 +101,28 @@ namespace SPP
 
 	void ORenderableScene::RemoveFromGraphicsDevice()
 	{		
-		auto sceneRef = _renderScene;
-
-		_owningDevice->RemoveScene(sceneRef.get());
-		_owningDevice = nullptr;
-		_renderScene.reset();
-		
 		std::vector<OElement*> childCopy = _children;
 
-		// reinit properly
+		// remove all children
 		for (auto& child : childCopy)
 		{
 			RemoveChild(child);
+		}
+
+		if (_renderScene)
+		{
+			GPUThreaPool->enqueue([_owningDevice = this->_owningDevice, _renderScene = this->_renderScene]()
+				{
+					_owningDevice->RemoveScene(_renderScene.get());
+				});
+			_renderScene.reset();
+			_owningDevice = nullptr;
+		}
+
+
+		// add them back
+		for (auto& child : childCopy)
+		{
 			AddChild(child);
 		}
 

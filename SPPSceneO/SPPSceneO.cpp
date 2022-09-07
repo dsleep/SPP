@@ -192,8 +192,6 @@ namespace SPP
 	void OScene::RemoveChild(OElement* InChild)
 	{
 		OElement::RemoveChild(InChild);
-		_octree->AddElement(InChild);
-
 		if (InChild->IsInOctree())
 		{
 			_octree->RemoveElement(InChild);
