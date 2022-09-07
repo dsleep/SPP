@@ -578,26 +578,26 @@ namespace SPP
 				.name = "Diffuse"
 			}
 		);
-		//_colorTarget->addAttachment(
-		//	{
-		//		.width = width,
-		//		.height = height,
-		//		.layerCount = 1,
-		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-		//		.name = "SpecularMetallicRoughnessEmissive"
-		//	}
-		//);
-		//_colorTarget->addAttachment(
-		//	{
-		//		.width = width,
-		//		.height = height,
-		//		.layerCount = 1,
-		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-		//		.name = "Normal"
-		//	}
-		//);
+		_colorTarget->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R8G8B8A8_UNORM,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.name = "SpecularMetallicRoughnessEmissive"
+			}
+		);
+		_colorTarget->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R8G8B8A8_UNORM,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.name = "Normal"
+			}
+		);
 		_colorTarget->addAttachment(
 			{
 				.width = width,

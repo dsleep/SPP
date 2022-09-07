@@ -3,7 +3,7 @@
 const float PI = 3.141592f;
 const float Epsilon = 0.00001f;
 
-struct _ViewConstants 
+layout(set = 0, binding = 0) readonly uniform _ViewConstants
 {
 	//all origin centered
 	mat4 ViewMatrix;
@@ -15,13 +15,15 @@ struct _ViewConstants
 	//origin centered 
 	dvec4 CameraFrustum[6];
 	ivec2 FrameExtents;
-	float RecipTanHalfFovy;
-};
+	float RecipTanHalfFovy; 
+} ViewConstants;
 
-layout(binding = 0) readonly uniform bViewConstants
+layout(set = 0, binding = 1) readonly uniform _DrawConstants
 {
-	_ViewConstants ViewConstants;
-};
+	//altered viewposition translated
+	mat4 LocalToWorldScaleRotation;
+	dvec3 Translation;
+} DrawConstants;
 
 mat4 GetLocalToWorldViewTranslated(in mat4 InLTWSR, in dvec3 InTrans, in dvec3 InViewPosition)
 {
