@@ -73,6 +73,11 @@ namespace SPP
         GPU_CALL get_return_object() noexcept;
     };
 
+    inline uint32_t getGroupCount(uint32_t InValue, uint32_t threadCount)
+    {
+        return (InValue + threadCount - 1) / threadCount;
+    }
+
     class GPU_CALL
     {
     public:
@@ -83,6 +88,10 @@ namespace SPP
         ~GPU_CALL() {}
     };
 
+    struct PassCache
+    {
+        virtual ~PassCache() {}
+    };
 
     enum class EShaderType
     {
@@ -121,7 +130,13 @@ namespace SPP
         R32G32B32A32
     };
 
-    
+    enum class VertexInputTypes
+    {
+        StaticMesh = 0,
+        SkeletalMesh,
+        Particle,
+        MAX
+    };    
 
     class GraphicsDevice;
 

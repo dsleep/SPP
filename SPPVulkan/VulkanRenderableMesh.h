@@ -14,12 +14,7 @@
 
 namespace SPP
 {
-	struct PassCache
-	{		
-		virtual ~PassCache() {}
-	};
-
-
+	
 	class IVulkanPassCacher
 	{
 	protected:

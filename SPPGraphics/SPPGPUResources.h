@@ -365,7 +365,12 @@ namespace SPP
         std::shared_ptr< ArrayResource > _cpuLink;
 
     public:
+        GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType) : GPUResource(InOwner), _type(InType) {}
         GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUResource(InOwner), _type(InType), _cpuLink(InCpuData) {}
+        GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t InPerElementSize, size_t InElementCount) : GPUResource(InOwner), _type(InType) 
+        {
+            _cpuLink = std::make_shared< ArrayResource >(InPerElementSize, InElementCount);
+        }       
 
         size_t GetDataSize() const
         {

@@ -68,6 +68,31 @@ namespace SPP
 		int32_t occlusionEnabled;
 	};
 
+	struct OpaqueMaterialCache : PassCache
+	{
+		GPUReferencer< class VulkanPipelineState > state[(uint8_t)VertexInputTypes::MAX];
+		GPUReferencer< class SafeVkDescriptorSet > descriptorSet[(uint8_t)VertexInputTypes::MAX];
+		virtual ~OpaqueMaterialCache() {}
+	};
+
+	struct OpaqueMeshCache : PassCache
+	{
+		VkBuffer indexBuffer = nullptr;
+		VkBuffer vertexBuffer = nullptr;
+
+		VkDescriptorBufferInfo transformBufferInfo;
+
+		uint32_t staticLeaseIdx = 0;
+		uint32_t indexedCount = 0;
+
+		virtual ~OpaqueMeshCache() {}
+	};
+
+	OpaqueMaterialCache* GetMaterialCache(VertexInputTypes InVertexInputType, std::shared_ptr<class RT_Vulkan_Material> InMat);
+	OpaqueMeshCache* GetMeshCache(class RT_VulkanRenderableMesh& InVulkanRenderableMesh);
+
+	GPUReferencer< class SafeVkDescriptorSetLayout > GetOpaqueVSLayout();
+
 	struct MaterialKey
 	{
 	private:
@@ -126,7 +151,6 @@ namespace SPP
 		//bool _bMeshInstancesDirty = false;
 
 		std::unique_ptr< class DepthDrawer > _depthDrawer;
-
 		std::unique_ptr< class OpaqueDrawer > _opaqueDrawer;
 
 		GPUReferencer< GPUShader > _debugVS;
