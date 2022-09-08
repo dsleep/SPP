@@ -13,7 +13,7 @@ namespace SPP
 {
 	LogEntry LOG_GRAPHICS("GRAPHICS");
 
-	SPP_GRAPHICS_API std::unique_ptr<ThreadPool> GPUThreaPool;
+	std::unique_ptr<ThreadPool> GPUThreaPool;
 
 	static std::thread::id GPUThread;
 
@@ -21,11 +21,10 @@ namespace SPP
 	{
 		SPP_LOG(LOG_GRAPHICS, LOG_INFO, "IntializeGraphics");
 		GPUThreaPool = std::make_unique< ThreadPool >("GPUThread", 1);
-		auto isSet = GPUThreaPool->enqueue([]()
+		RunOnRTAndWait([]()
 			{
 				GPUThread = std::this_thread::get_id();
 			});
-		isSet.wait();
 	}
 
 	void ShutdownGraphicsThread()
@@ -64,7 +63,7 @@ namespace SPP
 		}
 		else
 		{
-			GPUThreaPool->enqueue([InHandle]()
+			RunOnRT([InHandle]()
 				{
 					InHandle.resume();
 					SE_ASSERT(InHandle.done());

@@ -8,6 +8,7 @@
 #include "SPPArrayResource.h"
 #include "SPPMath.h"
 #include "SPPSTLUtils.h"
+#include "ThreadPool.h"
 
 #include <coroutine>
 #include <vector>
@@ -34,6 +35,20 @@ namespace SPP
     SPP_GRAPHICS_API void ShutdownGraphicsThread();
 
     SPP_GRAPHICS_API bool IsOnGPUThread();
+
+    template<class F, class... Args>
+    auto RunOnRT(F&& f, Args&&... args)->std::future< typename std::invoke_result_t<F, Args...> >
+    {
+        SE_ASSERT(GPUThreaPool);
+        return GPUThreaPool->enqueue(std::forward<F>(f), std::forward<Args>(args)...);
+    }
+
+    template<class F, class... Args>
+    auto RunOnRTAndWait(F&& f, Args&&... args)->std::invoke_result_t<F, Args...> 
+    {
+        SE_ASSERT(GPUThreaPool);
+        return GPUThreaPool->enqueue(std::forward<F>(f), std::forward<Args>(args)...).get();
+    }
 
     class SPP_GRAPHICS_API GPUThreadIDOverride
     {

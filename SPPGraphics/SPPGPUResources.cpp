@@ -208,7 +208,7 @@ namespace SPP
 		// temporarily in sync
 		SyncGPUData();
 
-		_currentFrame = GPUThreaPool->enqueue([this]()
+		_currentFrame = RunOnRT([this]()
 			{
 				BeginFrame();
 				Draw();

@@ -44,7 +44,7 @@ namespace SPP
 				.indexResource = firstMesh->IndexResource
 				});
 
-			GPUThreaPool->enqueue([this]()
+			RunOnRT([this]()
 				{
 					_renderMesh->Initialize();
 				});
@@ -54,7 +54,7 @@ namespace SPP
 	void OMesh::UinitializeGraphicsDeviceResources()
 	{
 		SE_ASSERT(IsOnCPUThread());
-		GPUThreaPool->enqueue([_renderMesh=_renderMesh]()
+		RunOnRT([_renderMesh=_renderMesh]()
 			{
 				//
 			});
@@ -116,7 +116,7 @@ namespace SPP
 
 		if (_renderScene)
 		{
-			GPUThreaPool->enqueue([_owningDevice = this->_owningDevice, _renderScene = this->_renderScene]()
+			RunOnRT([_owningDevice = this->_owningDevice, _renderScene = this->_renderScene]()
 				{
 					_owningDevice->RemoveScene(_renderScene.get());
 				});
@@ -224,7 +224,7 @@ namespace SPP
 
 		if (_renderableMesh)
 		{
-			GPUThreaPool->enqueue([_renderableMesh = this->_renderableMesh]()
+			RunOnRT([_renderableMesh = this->_renderableMesh]()
 			{
 				_renderableMesh->RemoveFromRenderScene();
 			});
@@ -314,7 +314,7 @@ namespace SPP
 	void OMaterial::UinitializeGraphicsDeviceResources()
 	{
 		SE_ASSERT(IsOnCPUThread());
-		GPUThreaPool->enqueue([_material=_material]()
+		RunOnRT([_material=_material]()
 			{
 				//dies automagically 
 			});
@@ -341,7 +341,7 @@ namespace SPP
 		{
 			_texture = InOwner->CreateTexture();
 
-			GPUThreaPool->enqueue([this]()
+			RunOnRT([this]()
 				{
 					_texture->Initialize(_width, _height, _format, _rawImgData);
 				});
@@ -351,7 +351,7 @@ namespace SPP
 	void OTexture::UinitializeGraphicsDeviceResources()
 	{
 		SE_ASSERT(IsOnCPUThread());
-		GPUThreaPool->enqueue([_texture = _texture]()
+		RunOnRT([_texture = _texture]()
 			{
 				//dies automagically 
 			});
@@ -364,7 +364,7 @@ namespace SPP
 		{
 			_shader = InOwner->CreateShader();
 
-			GPUThreaPool->enqueue([shader =_shader, 
+			RunOnRT([shader =_shader,
 				shaderType = _shaderType, 
 				filePath = _filePath,
 				entryPoint = _entryPoint]()

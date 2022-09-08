@@ -108,7 +108,7 @@ namespace SPP
 			memcpy((ColoBGRA*)CurrentChunk->data + DstIdx, (ColoBGRA*)Memory + SrcIdx, copySize);
 		}
 
-		auto gpuCommand = GPUThreaPool->enqueue([CurrentChunk = CurrentChunk, Start, Extents, UpdateSize, this]()
+		auto gpuCommand = RunOnRT([CurrentChunk = CurrentChunk, Start, Extents, UpdateSize, this]()
 			{
 				if (_offscreenUI)
 				{

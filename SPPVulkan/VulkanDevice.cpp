@@ -877,7 +877,7 @@ namespace SPP
 
 	void VulkanGraphicsDevice::Shutdown()
 	{		
-		auto isSet = GPUThreaPool->enqueue([&]()
+		RunOnRTAndWait([&]()
 			{
 
 				for (auto iter = _renderThreadResources.begin(); iter != _renderThreadResources.end(); )
@@ -914,8 +914,6 @@ namespace SPP
 
 			});
 
-		isSet.wait();
-
 		Flush();
 	}
 
@@ -925,7 +923,7 @@ namespace SPP
 
 		if (width != NewWidth || height != NewHeight)
 		{
-			auto isSet = GPUThreaPool->enqueue([]()
+			auto isSet = RunOnRT([]()
 				{
 					//do stuff
 				});
@@ -1111,7 +1109,7 @@ namespace SPP
 	{
 		//SE_ASSERT(InOnCPUThread());
 
-		auto isSet = GPUThreaPool->enqueue([&]()
+		RunOnRTAndWait([&]()
 			{
 				vkDeviceWaitIdle(device);
 
@@ -1134,9 +1132,6 @@ namespace SPP
 					flushDying[Iter]->clear();
 				}
 			});
-		isSet.wait();
-
-		
 	}
 
 	void VulkanGraphicsDevice::BeginFrame()

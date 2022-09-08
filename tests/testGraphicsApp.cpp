@@ -107,7 +107,7 @@ public:
 
 		meshMaterial->SetMaterialArgs({ .vertexShader = meshvertexShader, .pixelShader = meshpixelShader });
 
-		auto gpuCommand = GPUThreaPool->enqueue([meshvertexShader, meshpixelShader]()
+		auto gpuCommand = RunOnRT([meshvertexShader, meshpixelShader]()
 			{
 				meshvertexShader->Initialize(EShaderType::Vertex);
 				meshvertexShader->CompileShaderFromFile("shaders/debugSolidColor.hlsl", "main_vs");

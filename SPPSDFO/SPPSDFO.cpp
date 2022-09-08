@@ -105,7 +105,7 @@ namespace SPP
 
 		if (_renderableSDF)
 		{
-			GPUThreaPool->enqueue([_renderableSDF = this->_renderableSDF]()
+			RunOnRT([_renderableSDF = this->_renderableSDF]()
 			{
 				_renderableSDF->RemoveFromRenderScene();
 			});

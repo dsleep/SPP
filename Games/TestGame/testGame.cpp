@@ -105,7 +105,7 @@ public:
 
 		//auto SDFShader = _graphicsDevice->CreateShader();
 
-		//auto gpuCommand = GPUThreaPool->enqueue([SDFShader]()
+		//auto gpuCommand = RunOnRT([SDFShader]()
 		//	{
 		//		SDFShader->Initialize(EShaderType::Compute);
 		//		SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
