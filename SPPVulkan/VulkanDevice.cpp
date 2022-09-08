@@ -794,8 +794,6 @@ namespace SPP
 
 	void VulkanGraphicsDevice::Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
 	{
-		GPUThreadIDOverride tempOverride;
-
 #if PLATFORM_WINDOWS
 		window = (HWND)OSWindow;
 		windowInstance = GetModuleHandle(NULL);
@@ -804,75 +802,80 @@ namespace SPP
 		width = InitialWidth;
 		height = InitialHeight;
 
-		DeviceInitialize();
-		initSwapchain();
+		RunOnRTAndWait([&]()
+			{
+				DeviceInitialize();
+				initSwapchain();
 
-		cmdPool = vulkanDevice->createCommandPool(swapChain.queueNodeIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-		setupSwapChain();
-		createCommandBuffers();
-		createSynchronizationPrimitives();
+				cmdPool = vulkanDevice->createCommandPool(swapChain.queueNodeIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+				setupSwapChain();
+				createCommandBuffers();
+				createSynchronizationPrimitives();
 
-		createStaticDrawInfo();
+				createStaticDrawInfo();
 
-		setupRenderPass();
-		setupFrameBuffer();
-		CreateDescriptorPool();
+				setupRenderPass();
+				setupFrameBuffer();
+				CreateDescriptorPool();
+
+
+#if ALLOW_IMGUI
+				//IMGUI
+				// Setup Dear ImGui context
+				IMGUI_CHECKVERSION();
+				ImGui::CreateContext();
+
+				ImGuiIO& io = ImGui::GetIO();
+				io.DisplaySize = ImVec2(width, height);
+				io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
+				//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+				//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+				// Setup Dear ImGui style
+				ImGui::StyleColorsDark();
+
+				ImGui_ImplVulkan_InitInfo initInfo = { 0 };
+
+				initInfo.Instance = instance;
+				initInfo.PhysicalDevice = physicalDevice;
+				initInfo.Device = device;
+
+				initInfo.QueueFamily = swapChain.queueNodeIndex;
+				initInfo.Queue = graphicsQueue;
+				initInfo.PipelineCache = nullptr;// pipelineCache;
+				initInfo.DescriptorPool = _globalPool;
+
+				initInfo.Subpass = 0;
+				initInfo.MinImageCount = 2;          // >= 2
+				initInfo.ImageCount = swapChain.imageCount;             // >= MinImageCount
+				initInfo.MSAASamples = (VkSampleCountFlagBits)0;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
+				//initInfo.Allocator;// const VkAllocationCallbacks* Allocator;
+				//initInfo.CheckVkResultFn;// void                            (*CheckVkResultFn)(VkResult err);
+#endif
+		//IMGUI
+				{
+
+#if ALLOW_IMGUI
+					ImGui_ImplVulkan_Init(&initInfo, renderPass);
+
+					auto& cmdBuffer = GetCopyCommandBuffer();
+					ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
+
+					//ImGui_ImplVulkan_DestroyFontUploadObjects
+					//ImGui_ImplVulkan_Shutdown()
+#endif
+				}
+
+				auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
+				while (CurResource)
+				{
+					CurResource->Initialize(this);
+					CurResource = CurResource->GetNext();
+				};
+			});
 
 		
-#if ALLOW_IMGUI
-		//IMGUI
-		// Setup Dear ImGui context
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(width, height);
-		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-		// Setup Dear ImGui style
-		ImGui::StyleColorsDark();
-
-		ImGui_ImplVulkan_InitInfo initInfo = { 0 };
-
-		initInfo.Instance = instance;
-		initInfo.PhysicalDevice = physicalDevice;
-		initInfo.Device = device;
-
-		initInfo.QueueFamily = swapChain.queueNodeIndex;
-		initInfo.Queue = graphicsQueue;
-		initInfo.PipelineCache = nullptr;// pipelineCache;
-		initInfo.DescriptorPool = _globalPool;
-
-		initInfo.Subpass = 0;
-		initInfo.MinImageCount = 2;          // >= 2
-		initInfo.ImageCount = swapChain.imageCount;             // >= MinImageCount
-		initInfo.MSAASamples = (VkSampleCountFlagBits)0;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
-		//initInfo.Allocator;// const VkAllocationCallbacks* Allocator;
-		//initInfo.CheckVkResultFn;// void                            (*CheckVkResultFn)(VkResult err);
-#endif
-		//IMGUI
-		{
-
-#if ALLOW_IMGUI
-			ImGui_ImplVulkan_Init(&initInfo, renderPass);
-
-			auto& cmdBuffer = GetCopyCommandBuffer();
-			ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
-
-			//ImGui_ImplVulkan_DestroyFontUploadObjects
-			//ImGui_ImplVulkan_Shutdown()
-#endif
-
-			auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
-			while (CurResource)
-			{
-				CurResource->Initialize(this);
-				CurResource = CurResource->GetNext();
-			};
-		}
 	}
 
 	void VulkanGraphicsDevice::Shutdown()
@@ -923,29 +926,24 @@ namespace SPP
 
 		if (width != NewWidth || height != NewHeight)
 		{
-			auto isSet = RunOnRT([]()
-				{
-					//do stuff
-				});
-			isSet.wait();
+			RunOnRTAndWait([&]()
+			{
+				// Ensure all operations on the device have been finished before destroying resources
+				vkDeviceWaitIdle(device);
 
-			// Ensure all operations on the device have been finished before destroying resources
-			vkDeviceWaitIdle(device);
+				// Recreate swap chain
+				width = NewWidth;
+				height = NewHeight;
+				setupSwapChain();
 
-			GPUThreadIDOverride tempOverride;
+				destroyFrameBuffer();
+				setupFrameBuffer();
 
-			// Recreate swap chain
-			width = NewWidth;
-			height = NewHeight;
-			setupSwapChain();
+				destroyCommandBuffers();
+				createCommandBuffers();
 
-			destroyFrameBuffer();
-			setupFrameBuffer();
-
-			destroyCommandBuffers();
-			createCommandBuffers();
-
-			vkDeviceWaitIdle(device);
+				vkDeviceWaitIdle(device);
+			});
 		}
 	}
 

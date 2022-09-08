@@ -7,6 +7,8 @@
 #include "VulkanDevice.h"
 #include "VulkanRenderScene.h"
 #include "VulkanTexture.h"
+#include "VulkanShaders.h"
+
 #include "SPPSDFO.h"
 
 #include "SPPFileSystem.h"
@@ -55,15 +57,14 @@ namespace SPP
 	{
 	private:
 		GPUReferencer < VulkanPipelineState > _PSO;
-		std::shared_ptr< class RT_Shader > _CS;
+		GPUReferencer< VulkanShader > _CS;
 
 	public:
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
 			//std::dynamic_pointer_cast<RT_Vulkan_Material>
-			_CS = InOwner->CreateShader();
-			_CS->Initialize(EShaderType::Compute);
+			_CS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 
 			_PSO = GetVulkanPipelineState(InOwner,
@@ -78,7 +79,7 @@ namespace SPP
 				nullptr,
 				nullptr,
 				nullptr,
-				_CS->GetGPURef() );
+				_CS );
 		}
 
 		auto GetPSO()
@@ -89,7 +90,7 @@ namespace SPP
 		virtual void Shutdown(class GraphicsDevice* InOwner)
 		{
 			_PSO.Reset();
-			_CS.reset();
+			_CS.Reset();
 		}
 	};
 

@@ -49,17 +49,7 @@ namespace SPP
         SE_ASSERT(GPUThreaPool);
         return GPUThreaPool->enqueue(std::forward<F>(f), std::forward<Args>(args)...).get();
     }
-
-    class SPP_GRAPHICS_API GPUThreadIDOverride
-    {
-    private:
-        std::thread::id prevID;
-
-    public:
-        GPUThreadIDOverride();
-        ~GPUThreadIDOverride();
-    };
-
+    
     class GPU_CALL;
     class gpu_coroutine_promise
     {
