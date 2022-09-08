@@ -1384,6 +1384,13 @@ namespace SPP
 		return std::make_shared<VulkanRenderScene>(this);
 	}
 
+	// only called from graphics device, hence no need to heck
+	void VulkanRenderScene::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
+	{
+		// resize it
+		_depthDrawer = std::make_unique< DepthDrawer >(this);
+	}
+
 	void VulkanRenderScene::BeginFrame()
 	{
 		RT_RenderScene::BeginFrame();

@@ -343,6 +343,8 @@ namespace SPP
 		virtual void Draw();
 		virtual void EndFrame();
 
+		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight) {} 
+
 		virtual void AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color = Vector3(1, 1, 1)) {}
 		virtual void AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color = Vector3(1, 1, 1)) {}
 		virtual void AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color = Vector3(1, 1, 1)) {}

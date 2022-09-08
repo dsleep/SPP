@@ -942,8 +942,15 @@ namespace SPP
 				destroyCommandBuffers();
 				createCommandBuffers();
 
+				for (auto& curScene : _renderScenes)
+				{
+					curScene->ResizeBuffers(width, height);
+				}
+
 				vkDeviceWaitIdle(device);
 			});
+
+			Flush();
 		}
 	}
 
