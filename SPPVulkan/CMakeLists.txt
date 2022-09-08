@@ -62,6 +62,9 @@ target_sources(SPPVulkan
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDepthDrawer.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDepthDrawer.h"
+				
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanDeferredDrawer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanDeferredDrawer.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableSDF.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanRenderableSDF.h"
