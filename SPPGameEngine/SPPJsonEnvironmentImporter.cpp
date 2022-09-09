@@ -83,17 +83,13 @@ namespace SPP
 								if (foundTexture == TextureMap.end())
 								{
 									auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
-
 									curTexture->LoadFromDisk(((ParentPath + "/") + CurTextureName).c_str());
-
 									TextureMap[CurTextureName] = curTexture;
-
-									meshMat->SetTexture(bFoundLightMap ? TexturePurpose::Lightmap : (TexturePurpose)TexIter, curTexture);
+									meshMat->SetParameter(TextureUse, curTexture);
 								}
 								else
 								{
-
-									meshMat->SetTexture(bFoundLightMap ? TexturePurpose::Lightmap : (TexturePurpose)TexIter, foundTexture->second);
+									meshMat->SetParameter(TextureUse, foundTexture->second);
 								}
 							}
 						}

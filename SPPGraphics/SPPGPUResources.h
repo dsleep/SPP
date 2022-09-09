@@ -555,7 +555,45 @@ namespace SPP
         }
     };
 
-    class SPP_GRAPHICS_API RT_Texture : public RT_Resource
+    namespace EMaterialParameterType
+    {
+        enum ENUM
+        {
+            Float = 0,
+            Float2 = 1,
+            Float3 = 2,
+            Float4 = 3,
+            Texture = 4
+        };
+    };
+
+    struct IMaterialParameter
+    {
+        virtual EMaterialParameterType::ENUM GetType() const = 0;
+        virtual ~IMaterialParameter() {}
+    };
+
+    template<typename T, EMaterialParameterType::ENUM TT>
+    struct TMaterialParamter : public IMaterialParameter
+    {
+        T Value;
+        TMaterialParamter() {}
+        TMaterialParamter(T InValue) : Value(InValue) { }
+        virtual EMaterialParameterType::ENUM GetType() const override { return TT; }
+        virtual ~TMaterialParamter() {}
+    };
+
+    template struct SPP_GRAPHICS_API TMaterialParamter<float, EMaterialParameterType::Float>;
+    template struct SPP_GRAPHICS_API TMaterialParamter<Vector2, EMaterialParameterType::Float2>;
+    template struct SPP_GRAPHICS_API TMaterialParamter<Vector3, EMaterialParameterType::Float3>;
+    template struct SPP_GRAPHICS_API TMaterialParamter<Vector4, EMaterialParameterType::Float4>;
+
+    using FloatParamter = TMaterialParamter<float, EMaterialParameterType::Float>;
+    using Float2Paramter = TMaterialParamter<Vector2, EMaterialParameterType::Float2>;
+    using Float3Paramter = TMaterialParamter<Vector3, EMaterialParameterType::Float3>;
+    using Float4Paramter = TMaterialParamter<Vector4, EMaterialParameterType::Float4>;
+
+    class SPP_GRAPHICS_API RT_Texture : public RT_Resource, public IMaterialParameter
     {
         CLASS_RT_RESOURCE();
 
@@ -566,6 +604,7 @@ namespace SPP
 
     public:
         virtual ~RT_Texture() {}
+        virtual EMaterialParameterType::ENUM GetType() const override { return EMaterialParameterType::Texture; }
         virtual void Initialize(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr)
         {
             _texture = _owner->_gxCreateTexture(Width, Height, Format, RawData, InMetaInfo);
@@ -595,11 +634,7 @@ namespace SPP
         CLASS_RT_RESOURCE();
 
     protected:
-        //std::shared_ptr< RT_Shader > _vertexShader;
-        //std::shared_ptr< RT_Shader > _pixelShader;
-
-        //std::vector< std::shared_ptr<RT_Texture> > _textureArray;
-        std::map< TexturePurpose, std::shared_ptr<RT_Texture> > _textureMap;
+        std::map< std::string, std::shared_ptr<IMaterialParameter> > _parameterMap;
 
         EBlendState _blendState = EBlendState::Disabled;
         ERasterizerState _rasterizerState = ERasterizerState::BackFaceCull;
@@ -614,9 +649,7 @@ namespace SPP
 
         struct Args
         {
-           // std::shared_ptr< RT_Shader > vertexShader;
-            //std::shared_ptr< RT_Shader > pixelShader;
-            std::map< TexturePurpose, std::shared_ptr<RT_Texture> > textureMap;
+            std::map< std::string, std::shared_ptr<IMaterialParameter> > parameterMap;
         };
 
         uint32_t GetUpdateID()
@@ -626,14 +659,12 @@ namespace SPP
 
         void SetMaterialArgs(const Args &InArgs)
         {
-            //_vertexShader = InArgs.vertexShader;
-            //_pixelShader = InArgs.pixelShader;
-            _textureMap = InArgs.textureMap;
+            _parameterMap = InArgs.parameterMap;
         }
 
-        std::map< TexturePurpose, std::shared_ptr<RT_Texture> > &GetTextureMap()
+        auto &GetParameterMap()
         {
-            return _textureMap;
+            return _parameterMap;
         }
     };
 

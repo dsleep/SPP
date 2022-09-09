@@ -20,6 +20,63 @@ namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
 
+
+	enum class ParamType
+	{
+		Texture,
+		Uniform,
+		Constant
+	};
+
+	enum class ParamReturn
+	{
+		float1,
+		float2,
+		float3,
+		float4,
+	};
+
+	enum class PBRParam
+	{
+		Diffuse,
+		Opacity,
+		Normal,
+		Specular,
+		Metallic,
+		Roughness,
+		Emissive,
+	};
+
+	struct PBRParamBlock
+	{
+		/*
+		<<UNIFORM_BLOCK>>
+		//
+		<<DIFFUSE_BLOCK>>
+		<<OPACITY_BLOCK>>
+		<<NORMAL_BLOCK>>
+		<<SPECULAR_BLOCK>>
+		<<METALLIC_BLOCK>>
+		<<ROUGHNESS_BLOCK>>
+		<<EMISSIVE_BLOCK>>
+		*/
+
+		PBRParam param;
+		std::string name;
+		ParamReturn type;
+	};
+
+	static const std::vector<PBRParamBlock> PRBDataSet =
+	{
+		{ PBRParam::Diffuse, "Diffuse", ParamReturn::float3 },
+		{ PBRParam::Opacity, "Opacity", ParamReturn::float1 },
+		{ PBRParam::Normal, "Normal", ParamReturn::float3 },
+		{ PBRParam::Specular, "Specular", ParamReturn::float1 },
+		{ PBRParam::Metallic, "Metallic", ParamReturn::float1 },
+		{ PBRParam::Roughness, "Roughness", ParamReturn::float1 },
+		{ PBRParam::Emissive, "Emissive", ParamReturn::float1 }
+	};
+
 	const std::vector<VertexStream>& OP_GetVertexStreams_Deferred()
 	{
 		static std::vector<VertexStream> vertexStreams;

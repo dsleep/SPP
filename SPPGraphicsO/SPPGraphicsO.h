@@ -173,6 +173,215 @@ namespace SPP
 		virtual void UinitializeGraphicsDeviceResources();
 	};
 
+	class SPP_GRAPHICSO_API BaseMaterialParameter
+	{
+		RTTR_ENABLE();
+		RTTR_REGISTRATION_FRIEND
+
+	public:
+
+		virtual BaseMaterialParameter* Clone() const = 0;
+		virtual ~BaseMaterialParameter() {}
+	};
+
+	class ConstantParamter_Float : public BaseMaterialParameter
+	{
+		RTTR_ENABLE(BaseMaterialParameter);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		float _value = 0.0f;
+
+	public:
+		ConstantParamter_Float() {}
+		ConstantParamter_Float(float InValue) : _value(InValue) {}
+
+		auto GetValue() { return _value; }
+
+		virtual BaseMaterialParameter* Clone() const override
+		{
+			return new ConstantParamter_Float(_value);
+		}
+
+		virtual ~ConstantParamter_Float() {}
+	};
+	class ConstantParamter_Float2 : public BaseMaterialParameter
+	{
+		RTTR_ENABLE(BaseMaterialParameter);
+		RTTR_REGISTRATION_FRIEND
+	protected:
+		Vector2 _value = { 0,0 };
+
+	public:
+		ConstantParamter_Float2() {}
+		ConstantParamter_Float2(const Vector2 &InValue) : _value(InValue) {}
+
+		auto GetValue() { return _value; }
+
+		virtual BaseMaterialParameter* Clone() const override
+		{
+			return new ConstantParamter_Float2(_value);
+		}
+
+		virtual ~ConstantParamter_Float2() {}
+	};
+	class ConstantParamter_Float3 : public BaseMaterialParameter
+	{
+		RTTR_ENABLE(BaseMaterialParameter);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		Vector3 _value = { 0,0,0 };
+
+	public:
+		ConstantParamter_Float3() {}
+		ConstantParamter_Float3(const Vector3& InValue) : _value(InValue) {}
+
+		auto GetValue() { return _value; }
+
+		virtual BaseMaterialParameter* Clone() const override
+		{
+			return new ConstantParamter_Float3(_value);
+		}
+
+		virtual ~ConstantParamter_Float3() {}
+	};
+	class ConstantParamter_Float4 : public BaseMaterialParameter
+	{
+		RTTR_ENABLE(BaseMaterialParameter);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		Vector4 _value = { 0,0,0,0 };
+
+	public:
+		ConstantParamter_Float4() {}
+		ConstantParamter_Float4(const Vector4& InValue) : _value(InValue) {}
+
+		auto GetValue() { return _value; }
+
+		virtual BaseMaterialParameter* Clone() const override
+		{
+			return new ConstantParamter_Float4(_value);
+		}
+
+		virtual ~ConstantParamter_Float4() {}
+	};
+
+	class TextureParamater : public BaseMaterialParameter
+	{
+		RTTR_ENABLE(BaseMaterialParameter);
+		RTTR_REGISTRATION_FRIEND
+	
+	protected:
+		OTexture* _value = nullptr;
+
+	public:
+		TextureParamater() {}
+		TextureParamater(OTexture* InValue) : _value(InValue) {}
+
+		auto GetValue() { return _value; }
+
+		virtual BaseMaterialParameter* Clone() const override
+		{
+			return new TextureParamater(_value);
+		}
+
+		virtual ~TextureParamater() {}
+	};
+
+	class MaterialParameterContainer
+	{
+		RTTR_ENABLE();
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		BaseMaterialParameter* _param = nullptr;
+
+	public:
+		MaterialParameterContainer() {}
+
+		template<typename T>
+		MaterialParameterContainer(T InValue) 
+		{
+			Set(InValue);
+		}
+
+		virtual ~MaterialParameterContainer()
+		{
+			FreeParam();
+		}
+
+		void FreeParam()
+		{
+			if (_param)
+			{
+				delete _param;
+				_param = nullptr;
+			}
+		}
+
+		void SetParamPtr(BaseMaterialParameter* InValue)
+		{
+			FreeParam();
+			_param = InValue;
+		}
+
+		auto GetParam()
+		{
+			return _param;
+		}
+
+		MaterialParameterContainer(MaterialParameterContainer const& InParam) noexcept
+		{
+			if (InParam._param)
+			{
+				_param = InParam._param->Clone();
+			}
+		}
+		MaterialParameterContainer& operator=(MaterialParameterContainer const& InParam) noexcept
+		{
+			if (InParam._param)
+			{
+				_param = InParam._param->Clone();
+			}
+			return *this;
+		}
+
+		MaterialParameterContainer(MaterialParameterContainer&& InParam) noexcept
+		{
+			std::swap(_param, InParam._param);			
+		}
+
+		MaterialParameterContainer& operator=(MaterialParameterContainer&& InParam) noexcept
+		{
+			std::swap(_param, InParam._param);			
+			return *this;
+		}
+
+		void Set(const float &InValue)
+		{
+			SetParamPtr(new ConstantParamter_Float(InValue));
+		}
+		void Set(const Vector2 &InValue)
+		{
+			SetParamPtr(new ConstantParamter_Float2(InValue));
+		}
+		void Set(const Vector3& InValue)
+		{
+			SetParamPtr(new ConstantParamter_Float3(InValue));
+		}
+		void Set(const Vector4& InValue)
+		{
+			SetParamPtr(new ConstantParamter_Float4(InValue));
+		}
+		void Set(OTexture* InValue)
+		{
+			SetParamPtr(new TextureParamater(InValue));
+		}
+	};
+
+
 	class SPP_GRAPHICSO_API OMaterial : public SPPObject
 	{
 		RTTR_ENABLE(SPPObject);
@@ -184,8 +393,9 @@ namespace SPP
 		//std::vector<OShader*> _shaders;
 
 		std::shared_ptr<RT_Material> _material;
-		std::map<TexturePurpose, OTexture*> _textures;
+		//std::map<TexturePurpose, OTexture*> _textures;
 
+		std::map< std::string, MaterialParameterContainer > _parameters;
 
 		virtual bool Finalize() override { UinitializeGraphicsDeviceResources(); return true; }
 
@@ -193,11 +403,16 @@ namespace SPP
 		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
 		virtual void UinitializeGraphicsDeviceResources();
 
-
-		void SetTexture(TexturePurpose InTP, OTexture* InTexture)
+		template<typename T>
+		void SetParameter(const std::string& ParamName, const T &InValue)
 		{
-			_textures[InTP] = InTexture;
+			_parameters[ParamName] = MaterialParameterContainer(InValue);			
 		}
+
+		//void SetTexture(TexturePurpose InTP, OTexture* InTexture)
+		//{
+		//	_textures[InTP] = InTexture;
+		//}
 		//void SetMaterial(std::shared_ptr<RT_Material> InMat)
 		//{
 		//	_material = InMat;

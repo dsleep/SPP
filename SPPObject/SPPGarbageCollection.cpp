@@ -89,7 +89,7 @@ namespace SPP
 						}
 					}
 				}
-				else if (propType.is_class())
+				else if (propType.is_class() || propType.is_pointer())
 				{
 					WalkObjects(org_prop_value, InFunction);
 				}

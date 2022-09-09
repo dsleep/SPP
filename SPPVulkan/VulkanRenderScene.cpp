@@ -183,61 +183,6 @@ namespace SPP
 
 	
 
-	enum class ParamType
-	{
-		Texture,
-		Uniform,
-		Constant
-	};
-
-	enum class ParamReturn
-	{
-		float1,
-		float2,
-		float3,
-		float4,
-	};
-
-	enum class PBRParam
-	{
-		Diffuse,
-		Opacity,
-		Normal,
-		Specular,
-		Metallic,
-		Roughness,
-		Emissive,
-	};
-
-	struct PBRParamBlock
-	{
-		/*
-		<<UNIFORM_BLOCK>>
-		//
-		<<DIFFUSE_BLOCK>>
-		<<OPACITY_BLOCK>>
-		<<NORMAL_BLOCK>>
-		<<SPECULAR_BLOCK>>
-		<<METALLIC_BLOCK>>
-		<<ROUGHNESS_BLOCK>>
-		<<EMISSIVE_BLOCK>>
-		*/
-
-		PBRParam param;
-		std::string name;
-		ParamReturn type;
-	};
-
-	static const std::vector<PBRParamBlock> PRBDataSet =
-	{
-		{ PBRParam::Diffuse, "Diffuse", ParamReturn::float3 },
-		{ PBRParam::Opacity, "Opacity", ParamReturn::float1 },
-		{ PBRParam::Normal, "Normal", ParamReturn::float3 },
-		{ PBRParam::Specular, "Specular", ParamReturn::float1 },
-		{ PBRParam::Metallic, "Metallic", ParamReturn::float1 },
-		{ PBRParam::Roughness, "Roughness", ParamReturn::float1 },
-		{ PBRParam::Emissive, "Emissive", ParamReturn::float1 }
-	};
 
 	
 
@@ -280,16 +225,22 @@ namespace SPP
 			int32_t TextureCount = 1;
 			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, owningDevice, descSetLayouts[TEXTURE_SET_ID], globalSharedPool);
 
-			auto& textureMap = InMat->GetTextureMap();
+			auto& parameterMap = InMat->GetParameterMap();
 			for (int32_t Iter = 0; Iter < TextureCount; Iter++)
 			{
 				auto curTexturePurpose = (TexturePurpose)0;// textureBindings[Iter * 2].binding;
-				auto getTexture = textureMap.find(curTexturePurpose);
+				auto getTexture = parameterMap.find("diffuse");
+				GPUReferencer< GPUTexture > foundTexture;
+				if (getTexture != parameterMap.end())
+				{
+					if (getTexture->second->GetType() == EMaterialParameterType::Texture)
+					{
+						auto thisRTTexture = std::dynamic_pointer_cast<RT_Texture>(getTexture->second);
+						foundTexture = thisRTTexture->GetGPUTexture();
+					}
+				}
 
-				auto gpuTexture = getTexture != textureMap.end() ?
-					getTexture->second->GetGPUTexture() :
-					owningDevice->GetDefaultTexture();
-
+				auto gpuTexture = foundTexture ? foundTexture : owningDevice->GetDefaultTexture();
 				auto& currentVulkanTexture = gpuTexture->GetAs<VulkanTexture>();
 				textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
 

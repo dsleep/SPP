@@ -268,45 +268,70 @@ namespace SPP
 		return false;
 	}
 
+	std::shared_ptr<IMaterialParameter> MatParameterToIMat(BaseMaterialParameter* InParam, GraphicsDevice* InGD)
+	{
+		static auto paramFloat = rttr::type::get<ConstantParamter_Float>();
+		static auto paramFloat2 = rttr::type::get<ConstantParamter_Float2>();
+		static auto paramFloat3 = rttr::type::get<ConstantParamter_Float3>();
+		static auto paramFloat4 = rttr::type::get<ConstantParamter_Float4>();
+		static auto paramTexture = rttr::type::get<TextureParamater>();
+
+		auto curType = InParam->get_type();
+
+		if (curType == paramFloat)
+		{
+			auto castedValue = rttr::rttr_cast<ConstantParamter_Float*>(InParam);
+			return std::make_shared< FloatParamter >( castedValue->GetValue() );
+		}
+		else if (curType == paramFloat2)
+		{
+			auto castedValue = rttr::rttr_cast<ConstantParamter_Float2*>(InParam);
+			return std::make_shared< Float2Paramter >(castedValue->GetValue());
+		}
+		else if (curType == paramFloat3)
+		{
+			auto castedValue = rttr::rttr_cast<ConstantParamter_Float3*>(InParam);
+			return std::make_shared< Float3Paramter >(castedValue->GetValue());
+		}
+		else if (curType == paramFloat4)
+		{
+			auto castedValue = rttr::rttr_cast<ConstantParamter_Float4*>(InParam);
+			return std::make_shared< Float4Paramter >(castedValue->GetValue());
+		}
+		else if (curType == paramTexture)
+		{
+			auto castedValue = rttr::rttr_cast<TextureParamater*>(InParam);
+			auto thisTexture = castedValue->GetValue();
+			if (thisTexture)
+			{
+				thisTexture->InitializeGraphicsDeviceResources(InGD);
+			}
+			return thisTexture->GetDeviceTexture();
+		}
+
+		return nullptr;
+	}
+
 	void OMaterial::InitializeGraphicsDeviceResources(GraphicsDevice* InGD)
 	{
 		if (!_material)
 		{
-			//std::shared_ptr< RT_Shader > vertexShader;
-			//std::shared_ptr< RT_Shader > pixelShader;
-			//std::vector< std::shared_ptr<RT_Texture> > textureArray;
+			std::map< std::string, std::shared_ptr<IMaterialParameter> > parameterMap;
 
-			std::map<TexturePurpose, std::shared_ptr<RT_Texture> > textureMap;
-/*
-			for (auto& shader : _shaders)
+			for (auto& [key, value] : _parameters)
 			{
-				shader->InitializeGraphicsDeviceResources(InGD);
-
-				if (shader->GetShaderType() == EShaderType::Vertex)
-				{
-					vertexShader = shader->GetShader();
-				}
-				else if (shader->GetShaderType() == EShaderType::Pixel)
-				{
-					pixelShader = shader->GetShader();
-				}
-			}*/
-
-			for (auto& [key, value] : _textures)
-			{
-				if (value)
-				{
-					value->InitializeGraphicsDeviceResources(InGD);
-					textureMap[key] = value->GetDeviceTexture();
+				auto imapParam = MatParameterToIMat(value.GetParam(), InGD);
+				
+				if (imapParam)
+				{					
+					parameterMap[key] = imapParam;
 				}
 			}
 
 			_material = InGD->CreateMaterial();
 			_material->SetMaterialArgs(
 				{
-					//.vertexShader = vertexShader,
-					//.pixelShader = pixelShader,
-					.textureMap = textureMap
+					.parameterMap = parameterMap
 				}
 			);
 		}
@@ -426,9 +451,8 @@ RTTR_REGISTRATION
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
-		)
-		//.property("_shaders", &OMaterial::_shaders)(rttr::policy::prop::as_reference_wrapper)
-		.property("_textures", &OMaterial::_textures)(rttr::policy::prop::as_reference_wrapper)
+		)		
+		.property("_parameters", &OMaterial::_parameters)(rttr::policy::prop::as_reference_wrapper)
 		;
 
 	rttr::registration::class_<OShader>("OShader")
@@ -443,5 +467,52 @@ RTTR_REGISTRATION
 		(
 			rttr::policy::ctor::as_raw_ptr
 		)
+		;
+
+	// paramters
+	rttr::registration::class_<BaseMaterialParameter>("BaseMaterialParameter");
+
+	rttr::registration::class_<ConstantParamter_Float>("ConstantParamter_Float")
+		.constructor<>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_value", &ConstantParamter_Float::_value)(rttr::policy::prop::as_reference_wrapper)
+		;
+	rttr::registration::class_<ConstantParamter_Float2>("ConstantParamter_Float2")
+		.constructor<>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		.property("_value", &ConstantParamter_Float2::_value)(rttr::policy::prop::as_reference_wrapper)
+		;
+	rttr::registration::class_<ConstantParamter_Float3>("ConstantParamter_Float3")
+		.constructor<>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_value", &ConstantParamter_Float3::_value)(rttr::policy::prop::as_reference_wrapper)
+		;
+	rttr::registration::class_<ConstantParamter_Float4>("ConstantParamter_Float4")
+		.constructor<>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_value", &ConstantParamter_Float4::_value)(rttr::policy::prop::as_reference_wrapper)
+		;
+	rttr::registration::class_<TextureParamater>("TextureParamater")
+		.constructor<>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+		)
+		.property("_value", &TextureParamater::_value)(rttr::policy::prop::as_reference_wrapper)
+		;
+
+	rttr::registration::class_<MaterialParameterContainer>("MaterialParameterContainer")
+		.constructor<>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		.property("_param", &MaterialParameterContainer::_param)(rttr::policy::prop::as_reference_wrapper)
 		;
 }
