@@ -10,6 +10,16 @@
 
 namespace SPP
 {
+	const static std::vector< std::string > ParamsToLookFor =
+	{
+		"alpha",
+		"diffuse",
+		"metallic",
+		"normal",
+		"roughness",
+		"specular"
+	};
+
 	VgEnvironment* LoadJsonGameScene(const char* FilePath)
 	{
 		Json::Value JsonScene;
@@ -47,50 +57,76 @@ namespace SPP
 				auto currentMaterial = materials[Iter];
 
 				Json::Value jName = currentMaterial.get("name", Json::Value::nullSingleton());
-				Json::Value textures = currentMaterial.get("textures", Json::Value::nullSingleton());
+				Json::Value parametersV = currentMaterial.get("parameters", Json::Value::nullSingleton());
 
 				std::string MatName = jName.asCString();
 				auto meshMat = AllocateObject<OMaterial>(MatName + ".mat", FileScene);
 
 				bool bFoundLightMap = false;
-				if (!textures.isNull())
+				if (!parametersV.isNull())
 				{
-					for (int32_t TexIter = 0; TexIter < (int32_t)TexturePurpose::MAX; TexIter++)
+					for (auto& curParam : ParamsToLookFor)
 					{
-						std::string TextureUse = ToString((TexturePurpose)TexIter);
-						inlineToLower(TextureUse);
+						Json::Value curParamV = parametersV.get(curParam.c_str(), Json::Value::nullSingleton());
+						if (curParamV.isNull()) continue;
 
-						Json::Value textureValue = textures.get(TextureUse.c_str(), Json::Value::nullSingleton());
+						Json::Value jName = curParamV.get("name", Json::Value::nullSingleton());
+						Json::Value jUVMap = curParamV.get("uvmap", Json::Value::nullSingleton());
+						Json::Value jValue = curParamV.get("value", Json::Value::nullSingleton());
 
-						if (!textureValue.isNull() && textureValue.isArray())
+						if (!jValue.isNull())
 						{
-							for (int32_t Iter = 0; Iter < textureValue.size(); Iter++)
+							std::vector<std::string> valueA = std::str_split(std::string(jValue.asCString()), ' ');
+
+							if (valueA.size() == 1)
 							{
-								auto currentTexture = textureValue[Iter];
+								meshMat->SetParameter(curParam, (float)std::atof(valueA[0].c_str()));
+							}
+							else if (valueA.size() == 2)
+							{
+								meshMat->SetParameter(curParam,
+									Vector2(
+										(float)std::atof(valueA[0].c_str()),
+										(float)std::atof(valueA[1].c_str())));
+							}
+							else if (valueA.size() == 3)
+							{
+								meshMat->SetParameter(curParam, 
+									Vector3(
+										(float)std::atof(valueA[0].c_str()),
+										(float)std::atof(valueA[1].c_str()),
+										(float)std::atof(valueA[2].c_str())));
+							}
+							else if (valueA.size() == 4)
+							{
+								meshMat->SetParameter(curParam, 
+									Vector4(
+										(float)std::atof(valueA[0].c_str()),
+										(float)std::atof(valueA[1].c_str()),
+										(float)std::atof(valueA[2].c_str()),
+										(float)std::atof(valueA[3].c_str())));
+							}
+						}
+						else if (!jName.isNull())
+						{
+							std::string CurTextureName = jName.asCString();
+							std::string CurUVMap = jUVMap.asCString();
+							auto foundTexture = TextureMap.find(CurTextureName);
 
-								Json::Value jName = currentTexture.get("name", Json::Value::nullSingleton());
-								Json::Value jUVMap = currentTexture.get("uvmap", Json::Value::nullSingleton());
+							// diffuse and named uv
+							bool IsLightMap = (Iter == 0) && (CurUVMap == "UVMap_Lightmap");
+							bFoundLightMap |= IsLightMap;
 
-								std::string CurTextureName = jName.asCString();
-								std::string CurUVMap = jUVMap.asCString();
-								auto foundTexture = TextureMap.find(CurTextureName);
-
-								// diffuse and named uv
-								bool IsLightMap = (Iter == 0) &&(CurUVMap == "UVMap_Lightmap");
-								bFoundLightMap |= IsLightMap;
-								int32_t TextureIndex = IsLightMap ? 1 : 0;
-
-								if (foundTexture == TextureMap.end())
-								{
-									auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
-									curTexture->LoadFromDisk(((ParentPath + "/") + CurTextureName).c_str());
-									TextureMap[CurTextureName] = curTexture;
-									meshMat->SetParameter(TextureUse, curTexture);
-								}
-								else
-								{
-									meshMat->SetParameter(TextureUse, foundTexture->second);
-								}
+							if (foundTexture == TextureMap.end())
+							{
+								auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
+								curTexture->LoadFromDisk(((ParentPath + "/") + CurTextureName).c_str());
+								TextureMap[CurTextureName] = curTexture;
+								meshMat->SetParameter(curParam, curTexture);
+							}
+							else
+							{
+								meshMat->SetParameter(curParam, foundTexture->second);
 							}
 						}
 					}
