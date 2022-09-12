@@ -16,7 +16,7 @@ namespace std
 	SPP_CORE_API void inlineToLower(std::string& InData);
 	SPP_CORE_API void inlineToUpper(std::string& InData);
 
-	SPP_CORE_API std::string str_to_upper(std::string& InData);
+	SPP_CORE_API std::string str_to_upper(const std::string& InData);
 
 	SPP_CORE_API unsigned int random_char();
 

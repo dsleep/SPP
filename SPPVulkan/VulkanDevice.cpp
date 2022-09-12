@@ -564,6 +564,10 @@ namespace SPP
 	{
 		swapChain.create(&width, &height, settings.vsync);
 
+		_depthOnlyFrame = {};
+		_defferedFrame = {};
+		_colorAndDepthFrame = {};
+
 		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
 		_depthColor->SetName("_depthColor");
 
@@ -578,85 +582,42 @@ namespace SPP
 				.name = "Diffuse"
 			}
 		);
-		//_colorTarget->addAttachment(
-		//	{
-		//		.width = width,
-		//		.height = height,
-		//		.layerCount = 1,
-		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-		//		.name = "SpecularMetallicRoughnessEmissive"
-		//	}
-		//);
-		//_colorTarget->addAttachment(
-		//	{
-		//		.width = width,
-		//		.height = height,
-		//		.layerCount = 1,
-		//		.format = VK_FORMAT_R8G8B8A8_UNORM,
-		//		.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-		//		.name = "Normal"
-		//	}
-		//);
+		_colorTarget->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R8G8B8A8_UNORM,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.name = "SpecularMetallicRoughnessEmissive"
+			}
+		);
+		_colorTarget->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R8G8B8A8_UNORM,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.name = "Normal"
+			}
+		);
 		_colorTarget->addAttachment(
 			{
 				.width = width,
 				.height = height,
 				.layerCount = 1,
 				.format = VK_FORMAT_D32_SFLOAT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
 				.name = "Depth"
 			}
 		);		
-		VK_CHECK_RESULT(_colorTarget->createRenderPass());
+		
 		_colorTarget->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
-		/*
-		_deferredMaterialMRTs = std::make_unique< VulkanFramebuffer >(vulkanDevice);
-
-		_deferredMaterialMRTs->addAttachment(
-			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-			}
-		);
-
-		_deferredMaterialMRTs->addAttachment(
-			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-			}
-		);
-
-		_deferredMaterialMRTs->addAttachment(
-			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-			}
-		);
-		
-		_deferredMaterialMRTs->addAttachment(
-			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R8G8B8A8_UINT,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-			}
-		);
-
-		VK_CHECK_RESULT(_deferredMaterialMRTs->createRenderPass());
-		_deferredMaterialMRTs->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-		*/
+		_depthOnlyFrame = _colorTarget->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_defferedFrame = _colorTarget->createCustomRenderPass({ "Diffuse", "SpecularMetallicRoughnessEmissive", "Normal", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_colorAndDepthFrame = _colorTarget->createCustomRenderPass({ "Diffuse", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()
@@ -1432,7 +1393,9 @@ namespace SPP
 		}
 	}
 
-	void VulkanPipelineState::Initialize(EBlendState InBlendState,
+	void VulkanPipelineState::Initialize(VkFrameDataContainer & renderPassData,
+
+		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
@@ -1448,10 +1411,7 @@ namespace SPP
 		GPUReferencer< GPUShader> InCS)
 	{
 		auto device = GGlobalVulkanDevice;
-
-		auto renderPass = _renderPass ? _renderPass : GGlobalVulkanGI->GetColorFrameData().renderPass;
-
-		//auto renderPass = GGlobalVulkanGI->GetBaseRenderPass();
+		auto renderPass = renderPassData.renderPass->Get();		
 
 		if (InVS)
 		{
@@ -1556,7 +1516,7 @@ namespace SPP
 			// The layout used for this pipeline (can be shared among multiple pipelines using the same layout)
 			pipelineCreateInfo.layout = _pipelineLayout;
 			// Renderpass this pipeline is attached to
-			pipelineCreateInfo.renderPass = renderPass;
+			pipelineCreateInfo.renderPass = renderPass; 
 
 			// Construct the different states making up the pipeline
 
@@ -1612,38 +1572,50 @@ namespace SPP
 
 			// Color blend state describes how blend factors are calculated (if used)
 			// We need one blend attachment state per color attachment (even if blending is not used)
-			VkPipelineColorBlendAttachmentState blendAttachmentState[1] = {};
-			blendAttachmentState[0].colorWriteMask = 0xf;
-			blendAttachmentState[0].blendEnable = VK_FALSE;
+			std::vector< VkPipelineColorBlendAttachmentState > blendAttachmentStates;
 			
-			switch (InBlendState)
+			for (int32_t Iter = 0; Iter < renderPassData.ColorTargets; Iter++)
 			{
-			case EBlendState::Additive:
-				blendAttachmentState[0].blendEnable = VK_TRUE;
-				blendAttachmentState[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendAttachmentState[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendAttachmentState[0].colorBlendOp = VK_BLEND_OP_ADD;
-				blendAttachmentState[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendAttachmentState[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendAttachmentState[0].alphaBlendOp = VK_BLEND_OP_ADD;
-				blendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				break;
-			case EBlendState::AlphaBlend:
-				blendAttachmentState[0].blendEnable = VK_TRUE;
-				blendAttachmentState[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-				blendAttachmentState[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-				blendAttachmentState[0].colorBlendOp = VK_BLEND_OP_ADD;
-				blendAttachmentState[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-				blendAttachmentState[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-				blendAttachmentState[0].alphaBlendOp = VK_BLEND_OP_ADD;
-				blendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-				break;
+				VkPipelineColorBlendAttachmentState blendAttachmentState = {};
+				blendAttachmentState.colorWriteMask = 0xf;
+				blendAttachmentState.blendEnable = VK_FALSE;
+
+				//ugly hack for deferred
+				if (Iter == 0)
+				{
+					switch (InBlendState)
+					{
+					case EBlendState::Additive:
+						blendAttachmentState.blendEnable = VK_TRUE;
+						blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+						blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+						blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+						blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+						blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+						blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+						blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+						break;
+					case EBlendState::AlphaBlend:
+						blendAttachmentState.blendEnable = VK_TRUE;
+						blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+						blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+						blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+						blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+						blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+						blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+						blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+						break;
+					}
+				}
+
+				blendAttachmentStates.push_back(blendAttachmentState);
 			}
+			
 
 			VkPipelineColorBlendStateCreateInfo colorBlendState = {};
 			colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-			colorBlendState.attachmentCount = 1;
-			colorBlendState.pAttachments = blendAttachmentState;
+			colorBlendState.attachmentCount = blendAttachmentStates.size();
+			colorBlendState.pAttachments = blendAttachmentStates.data();
 
 			// Viewport state sets the number of viewports and scissor used in this pipeline
 			// Note: This is actually overridden by the dynamic states (see below)
@@ -1841,6 +1813,9 @@ namespace SPP
 	}
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+
+		VkFrameDataContainer& renderPassData,
+
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
@@ -1872,7 +1847,7 @@ namespace SPP
 		if (findKey == PipelineStateMap.end())
 		{
 			auto newPipelineState = Make_GPU(VulkanPipelineState, InOwner);
-			newPipelineState->Initialize(InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
+			newPipelineState->Initialize(renderPassData, InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PipelineStateMap[key] = newPipelineState;
 			return newPipelineState;
 		}

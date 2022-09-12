@@ -9,29 +9,18 @@ layout(row_major) uniform;
 layout(row_major) buffer;
 layout(std430) buffer;
 
-#include "Common.glsl"
-
 layout (location = 0) in vec2 inUV;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec3 inTangent;
 
 <<UNIFORM_BLOCK>>
 
-//layout (set = 2, binding = 0) uniform sampler2D samplerDiffuse;
-//layout (set = 2, binding = 1) uniform sampler2D samplerNormal;
-
-//layout(set = 2, binding = 0) readonly uniform _Params
-//{
-//	float4 Diffuse; 
-//	float3 Normal;
-//} Params;
-
 vec3 GetDiffuse()
 {
 <<DIFFUSE_BLOCK>>
 }
 
-vec GetOpacity()
+float GetOpacity()
 {
 <<OPACITY_BLOCK>>
 }
@@ -64,9 +53,9 @@ float GetEmissive()
 //
 layout (location = 0) out vec4 outDiffuse;
 // specular, metallic, roughness, emissive
-layout (location = 0) out vec4 outSMRE;
+layout (location = 1) out vec4 outSMRE;
 // 
-layout (location = 1) out vec4 outNormal;
+layout (location = 2) out vec4 outNormal;
 
 void main()
 {	

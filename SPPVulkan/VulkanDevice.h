@@ -202,6 +202,10 @@ namespace SPP
 		std::vector<GPUResource*> _gpuPushedDyingResources;
 		std::array< std::vector<GPUResource*>, MAX_IN_FLIGHT > _dyingResources;
 
+		VkFrameDataContainer _depthOnlyFrame;
+		VkFrameDataContainer _colorAndDepthFrame;
+		VkFrameDataContainer _defferedFrame;
+
 		// List of available frame buffers (same as number of swap chain images)
 		std::array< GPUReferencer<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
 		// Command buffers used for rendering
@@ -391,9 +395,19 @@ namespace SPP
 			return renderPass;
 		}
 
-		VkFrameData GetColorFrameData()
+		auto &GetColorFrameData()
 		{
-			return _colorTarget->GetFrameData();
+			return _colorAndDepthFrame;
+		}
+
+		auto &GetDeferredFrameData()
+		{
+			return _defferedFrame;
+		}
+
+		auto &GetDepthOnlyFrameData()
+		{
+			return _depthOnlyFrame;
 		}
 
 		VkDescriptorImageInfo GetColorImageDescImgInfo()
@@ -476,8 +490,6 @@ namespace SPP
 		// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
 		VkPipeline _pipeline = nullptr;
 
-		VkRenderPass _renderPass = nullptr;
-
 		// for debugging or just leave in?!
 		std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > _setLayoutBindings;
 
@@ -487,11 +499,6 @@ namespace SPP
 	public:
 		VulkanPipelineState(GraphicsDevice* InOwner);
 		virtual ~VulkanPipelineState();
-
-		void ManualSetRenderPass(VkRenderPass InRenderPass)
-		{
-			_renderPass = InRenderPass;
-		}
 
 		const VkPipeline &GetVkPipeline()
 		{
@@ -516,7 +523,8 @@ namespace SPP
 
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
 
-		void Initialize(EBlendState InBlendState,
+		void Initialize(VkFrameDataContainer& renderPassData,
+			EBlendState InBlendState,
 			ERasterizerState InRasterizerState,
 			EDepthState InDepthState,
 			EDrawingTopology InTopology,
@@ -533,6 +541,7 @@ namespace SPP
 	};
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
+		VkFrameDataContainer& renderPassData,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,

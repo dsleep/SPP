@@ -25,6 +25,7 @@ namespace SPP
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
+		VkFrameDataContainer& renderPassData,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
@@ -46,6 +47,7 @@ namespace SPP
 		SE_ASSERT(vsShader && psShader);
 
 		return GetVulkanPipelineState(_owner,
+			//hmm
 			_blendState,
 			_rasterizerState,
 			_depthState,

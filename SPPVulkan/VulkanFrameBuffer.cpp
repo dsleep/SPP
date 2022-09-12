@@ -17,6 +17,7 @@ namespace SPP
 		image = std::move(moveBuffer.image);
 		memory = std::move(moveBuffer.memory);
 		view = std::move(moveBuffer.view);
+		name = std::move(moveBuffer.name);
 
 		format = moveBuffer.format;
 		subresourceRange = moveBuffer.subresourceRange;
@@ -77,8 +78,6 @@ namespace SPP
 			attachment.memory.Reset();
 		}
 		sampler.Reset();
-		renderPass.Reset();
-		framebuffer.Reset();
 	}
 
 	uint32_t VulkanFramebuffer::addAttachment(AttachmentCreateInfo createinfo)
@@ -86,6 +85,7 @@ namespace SPP
 		FramebufferAttachment attachment;
 
 		attachment.format = createinfo.format;
+		attachment.name = createinfo.name;
 
 		VkImageAspectFlags aspectMask = VK_FLAGS_NONE;
 
@@ -195,11 +195,6 @@ namespace SPP
 		sampler = Make_GPU(SafeVkSampler, _owner, samplerInfo);
 	}
 
-	VkFrameData VulkanFramebuffer::GetFrameData()
-	{
-		return VkFrameData{ .renderPass = renderPass->Get(), .frameBuffer = framebuffer->Get() };
-	}
-
 	VkDescriptorImageInfo VulkanFramebuffer::GetImageInfo()
 	{
 		return VkDescriptorImageInfo{ 
@@ -216,12 +211,18 @@ namespace SPP
 			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	}
 
-	VkResult VulkanFramebuffer::createRenderPass()
+	VkFrameDataContainer VulkanFramebuffer::createCustomRenderPass(const std::set<std::string>& WhichTargets, VkAttachmentLoadOp SetLoadOp)
 	{
+		VkFrameDataContainer oData;
+		
 		std::vector<VkAttachmentDescription> attachmentDescriptions;
 		for (auto& attachment : attachments)
 		{
-			attachmentDescriptions.push_back(attachment.description);
+			if (WhichTargets.contains(attachment.name))
+			{
+				attachmentDescriptions.push_back(attachment.description);
+				attachmentDescriptions.back().loadOp = SetLoadOp;
+			}			
 		};
 
 		// Collect attachment references
@@ -234,20 +235,27 @@ namespace SPP
 
 		for (auto& attachment : attachments)
 		{
-			if (attachment.isDepthStencil())
+			if (WhichTargets.contains(attachment.name))
 			{
-				// Only one depth attachment allowed
-				assert(!hasDepth);
-				depthReference.attachment = attachmentIndex;
-				depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				hasDepth = true;
+				if (attachment.isDepthStencil())
+				{
+					// Only one depth attachment allowed
+					assert(!hasDepth);
+					depthReference.attachment = attachmentIndex;
+					depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+					hasDepth = true;
+
+					oData.DepthTargets++;
+				}
+				else
+				{
+					colorReferences.push_back({ attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+					hasColor = true;
+
+					oData.ColorTargets++;
+				}
+				attachmentIndex++;
 			}
-			else
-			{
-				colorReferences.push_back({ attachmentIndex, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-				hasColor = true;
-			}
-			attachmentIndex++;
 		};
 
 		// Default render pass setup uses only one subpass
@@ -291,34 +299,36 @@ namespace SPP
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
-		renderPass = Make_GPU(SafeVkRenderPass, _owner, renderPassInfo);
+		oData.renderPass = Make_GPU(SafeVkRenderPass, _owner, renderPassInfo);
 
-		std::vector<VkImageView> attachmentViews;
-		for (auto& attachment : attachments)
-		{
-			attachmentViews.push_back(attachment.view->Get());
-		}
 
 		// Find. max number of layers across attachments
 		uint32_t maxLayers = 0;
+		std::vector<VkImageView> attachmentViews;
 		for (auto& attachment : attachments)
 		{
-			if (attachment.subresourceRange.layerCount > maxLayers)
+			if (WhichTargets.contains(attachment.name))
 			{
-				maxLayers = attachment.subresourceRange.layerCount;
+				attachmentViews.push_back(attachment.view->Get());
+
+				if (attachment.subresourceRange.layerCount > maxLayers)
+				{
+					maxLayers = attachment.subresourceRange.layerCount;
+				}
 			}
 		}
 
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass->Get();
+		framebufferInfo.renderPass = oData.renderPass->Get();
 		framebufferInfo.pAttachments = attachmentViews.data();
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachmentViews.size());
 		framebufferInfo.width = width;
 		framebufferInfo.height = height;
 		framebufferInfo.layers = maxLayers;
-		framebuffer = Make_GPU(SafeVkFrameBuffer, _owner, framebufferInfo);
+		oData.frameBuffer = Make_GPU(SafeVkFrameBuffer, _owner, framebufferInfo);
 
-		return VK_SUCCESS;
+		return oData;
 	}
+
 }

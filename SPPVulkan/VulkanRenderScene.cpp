@@ -9,7 +9,7 @@
 #include "VulkanTexture.h"
 #include "VulkanRenderableMesh.h"
 
-
+#include "VulkanDeferredDrawer.h"
 #include "VulkanDepthDrawer.h"
 
 #include "SPPFileSystem.h"
@@ -228,7 +228,6 @@ namespace SPP
 			auto& parameterMap = InMat->GetParameterMap();
 			for (int32_t Iter = 0; Iter < TextureCount; Iter++)
 			{
-				auto curTexturePurpose = (TexturePurpose)0;// textureBindings[Iter * 2].binding;
 				auto getTexture = parameterMap.find("diffuse");
 				GPUReferencer< GPUTexture > foundTexture;
 				if (getTexture != parameterMap.end())
@@ -517,7 +516,8 @@ namespace SPP
 		
 		// drawers
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
-		_depthDrawer = std::make_unique< DepthDrawer >(this);		
+		_depthDrawer = std::make_unique< DepthDrawer >(this);	
+		_deferredDrawer = std::make_unique< PBRDeferredDrawer >(this);
 	}
 
 	void VulkanRenderScene::RemovedFromGraphicsDevice()
@@ -528,6 +528,7 @@ namespace SPP
 		_cameraData.reset();
 		_opaqueDrawer.reset();
 		_depthDrawer.reset();
+		_deferredDrawer.reset();
 	}
 
 	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
@@ -648,43 +649,45 @@ namespace SPP
 		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
 		vulkanGD->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
 		
-		auto ColorTargetFrameData = vulkanGD->GetColorFrameData();
+		auto &depthOnlyFrame = vulkanGD->GetDepthOnlyFrameData();
+		auto &defferedFrame = vulkanGD->GetDeferredFrameData();
 
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = ColorTargetFrameData.renderPass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-		renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-		renderPassBeginInfo.clearValueCount = 2;
-		VkClearValue clearValues[2];
-		clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-		clearValues[1].depthStencil = { 0.0f, 0 };
-		renderPassBeginInfo.pClearValues = clearValues;
-		// Set target frame buffer
-		renderPassBeginInfo.framebuffer = ColorTargetFrameData.frameBuffer;
+		{
+			VkRenderPassBeginInfo renderPassBeginInfo = {};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = depthOnlyFrame.renderPass->Get();
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+			renderPassBeginInfo.clearValueCount = 2;
+			VkClearValue clearValues[1];
+			clearValues[0].depthStencil = { 0.0f, 0 };
+			renderPassBeginInfo.pClearValues = clearValues;
+			// Set target frame buffer
+			renderPassBeginInfo.framebuffer = depthOnlyFrame.frameBuffer->Get();
 
-		// Start the first sub pass specified in our default render pass setup by the base class
-		// This will clear the color and depth attachment
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			// Start the first sub pass specified in our default render pass setup by the base class
+			// This will clear the color and depth attachment
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		// Update dynamic viewport state
-		VkViewport viewport = {};
-		viewport.width = (float)DeviceExtents[0];
-		viewport.height = (float)DeviceExtents[1];
-		viewport.minDepth = (float)0.0f;
-		viewport.maxDepth = (float)1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+			// Update dynamic viewport state
+			VkViewport viewport = {};
+			viewport.width = (float)DeviceExtents[0];
+			viewport.height = (float)DeviceExtents[1];
+			viewport.minDepth = (float)0.0f;
+			viewport.maxDepth = (float)1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-		// Update dynamic scissor state
-		VkRect2D scissor = {};
-		scissor.extent.width = DeviceExtents[0];
-		scissor.extent.height = DeviceExtents[1];
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+			// Update dynamic scissor state
+			VkRect2D scissor = {};
+			scissor.extent.width = DeviceExtents[0];
+			scissor.extent.height = DeviceExtents[1];
+			scissor.offset.x = 0;
+			scissor.offset.y = 0;
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
 
 #if 0
 		for (auto renderItem : _renderables)
@@ -765,8 +768,45 @@ namespace SPP
 
 		_depthDrawer->RunDepthCullingAgainstPyramid();
 
-		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		{
+			VkRenderPassBeginInfo renderPassBeginInfo = {};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = defferedFrame.renderPass->Get();
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+			renderPassBeginInfo.clearValueCount = 2;
+			VkClearValue clearValues[4];
+			clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
+			clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+			clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+			clearValues[3].depthStencil = { 0.0f, 0 };
+			renderPassBeginInfo.pClearValues = clearValues;
+			// Set target frame buffer
+			renderPassBeginInfo.framebuffer = defferedFrame.frameBuffer->Get();
+
+			// Start the first sub pass specified in our default render pass setup by the base class
+			// This will clear the color and depth attachment
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			// Update dynamic viewport state
+			VkViewport viewport = {};
+			viewport.width = (float)DeviceExtents[0];
+			viewport.height = (float)DeviceExtents[1];
+			viewport.minDepth = (float)0.0f;
+			viewport.maxDepth = (float)1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+			// Update dynamic scissor state
+			VkRect2D scissor = {};
+			scissor.extent.width = DeviceExtents[0];
+			scissor.extent.height = DeviceExtents[1];
+			scissor.offset.x = 0;
+			scissor.offset.y = 0;
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
 
 		vulkanGD->SetCheckpoint(commandBuffer, "OpaqueDrawing");
 
@@ -778,7 +818,7 @@ namespace SPP
 			auto curID = _visible[visIter]->GetGlobalID().RawGet()->GetID();
 			if (_depthCullVisiblity.Get(curID))
 			{
-				_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
+				_deferredDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
 				depthVisible++;
 			}
 		}

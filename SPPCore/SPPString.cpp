@@ -39,7 +39,7 @@ namespace std
 		}
 	}
 
-	std::string str_to_upper(std::string& InData)
+	std::string str_to_upper(const std::string& InData)
 	{
 		std::string oString = InData;
 		inlineToUpper(oString);

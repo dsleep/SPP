@@ -152,6 +152,8 @@ namespace SPP
 
 		std::unique_ptr< class DepthDrawer > _depthDrawer;
 		std::unique_ptr< class OpaqueDrawer > _opaqueDrawer;
+		std::unique_ptr< class PBRDeferredDrawer > _deferredDrawer;
+		
 
 		GPUReferencer< GPUShader > _debugVS;
 		GPUReferencer< GPUShader > _debugPS;

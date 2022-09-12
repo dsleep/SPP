@@ -9,5 +9,17 @@
 
 namespace SPP
 {
-	
+	class PBRDeferredDrawer
+	{
+	protected:
+		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
+		VulkanGraphicsDevice* _owningDevice = nullptr;
+		VulkanRenderScene* _owningScene = nullptr;
+
+	public:
+		PBRDeferredDrawer(VulkanRenderScene* InScene);
+
+		// TODO cleanupppp
+		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh);
+	};
 }

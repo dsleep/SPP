@@ -25,12 +25,22 @@ namespace SPP
 		VkRenderPass renderPass;
 		VkFramebuffer frameBuffer;
 	};
+
+	struct VkFrameDataContainer
+	{
+		uint8_t ColorTargets = 0;
+		uint8_t DepthTargets = 0;
+		GPUReferencer<SafeVkRenderPass> renderPass;
+		GPUReferencer<SafeVkFrameBuffer> frameBuffer;
+	};
 	/**
 	* @brief Encapsulates a single frame buffer attachment 
 	*/
 	struct FramebufferAttachment
 	{
 		NO_COPY_ALLOWED(FramebufferAttachment)
+
+		std::string name;
 
 		GPUReferencer<SafeVkImage> image;
 		GPUReferencer<SafeVkDeviceMemory> memory;
@@ -83,10 +93,7 @@ namespace SPP
 	public:
 		uint32_t width, height;
 
-		GPUReferencer<SafeVkFrameBuffer> framebuffer;
 		std::list<FramebufferAttachment> attachments;
-
-		GPUReferencer<SafeVkRenderPass>  renderPass;
 		GPUReferencer<SafeVkSampler> sampler;
 
 		/**
@@ -131,14 +138,7 @@ namespace SPP
 			return attachments.back();
 		}
 
-		/**
-		* Creates a default render pass setup with one sub pass
-		*
-		* @return VK_SUCCESS if all resources have been created successfully
-		*/
-		VkResult createRenderPass();
-
-		VkFrameData GetFrameData();
+		VkFrameDataContainer createCustomRenderPass(const std::set<std::string> &WhichTargets, VkAttachmentLoadOp SetLoadOp);
 
 		VkDescriptorImageInfo GetImageInfo();
 		VkDescriptorImageInfo GetBackImageInfo();
