@@ -6,6 +6,7 @@
 #include "VulkanDevice.h"
 #include "VulkanRenderScene.h"
 #include "VulkanBuffer.h"
+#include "VulkanShaders.h"
 #include <chrono>
 
 #define MAX_LINES 1500
@@ -17,19 +18,18 @@ namespace SPP
 
 	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		VkFrameDataContainer& renderPassData,
-
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
-		GPUReferencer< GPUInputLayout > InLayout,
-		GPUReferencer< GPUShader> InVS,
-		GPUReferencer< GPUShader> InPS,
-		GPUReferencer< GPUShader> InMS,
-		GPUReferencer< GPUShader> InAS,
-		GPUReferencer< GPUShader> InHS,
-		GPUReferencer< GPUShader> InDS,
-		GPUReferencer< GPUShader> InCS);
+		GPUReferencer< VulkanInputLayout > InLayout,
+		GPUReferencer< VulkanShader > InVS,
+		GPUReferencer< VulkanShader > InPS,
+		GPUReferencer< VulkanShader > InMS,
+		GPUReferencer< VulkanShader > InAS,
+		GPUReferencer< VulkanShader > InHS,
+		GPUReferencer< VulkanShader > InDS,
+		GPUReferencer< VulkanShader > InCS );
 
 	struct ColoredVertex
 	{
@@ -95,7 +95,11 @@ namespace SPP
 
 			SE_ASSERT(vsRef && psRef);
 
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+
+
 			_state = GetVulkanPipelineState(_owner,
+				owningDevice->GetColorFrameData(),
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
@@ -211,7 +215,6 @@ namespace SPP
 			return;
 		}
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();

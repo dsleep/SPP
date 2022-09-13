@@ -68,11 +68,10 @@ namespace SPP
 
 
 			auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
-
 			auto vulkPSO = Make_GPU(VulkanPipelineState,InOwner);
-			vulkPSO->ManualSetRenderPass(backbufferFrameData.renderPass);
 			_fullscreenColorPSO = vulkPSO;
-			vulkPSO->Initialize(EBlendState::AlphaBlend,
+			vulkPSO->Initialize(backbufferFrameData,
+				EBlendState::AlphaBlend,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
 				EDrawingTopology::TriangleStrip,
@@ -476,7 +475,9 @@ namespace SPP
 			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
+		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
 		_fullscreenRaySDFPSO = GetVulkanPipelineState(_owner,
+			owningDevice->GetColorFrameData(),
 			EBlendState::Disabled,
 			ERasterizerState::NoCull,
 			EDepthState::Enabled,
@@ -494,7 +495,6 @@ namespace SPP
 		//
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
@@ -597,7 +597,6 @@ namespace SPP
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
@@ -639,7 +638,6 @@ namespace SPP
 		auto vulkanGD = dynamic_cast<VulkanGraphicsDevice*>(_owner);
 
 		auto currentFrame = vulkanGD->GetActiveFrame();
-		auto basicRenderPass = vulkanGD->GetBaseRenderPass();
 		auto DeviceExtents = vulkanGD->GetExtents();
 		auto commandBuffer = vulkanGD->GetActiveCommandBuffer();
 		auto vulkanDevice = vulkanGD->GetDevice();
@@ -661,9 +659,9 @@ namespace SPP
 			renderPassBeginInfo.renderArea.offset.y = 0;
 			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
 			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-			renderPassBeginInfo.clearValueCount = 2;
 			VkClearValue clearValues[1];
 			clearValues[0].depthStencil = { 0.0f, 0 };
+			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
 			renderPassBeginInfo.pClearValues = clearValues;
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = depthOnlyFrame.frameBuffer->Get();
@@ -777,12 +775,12 @@ namespace SPP
 			renderPassBeginInfo.renderArea.offset.y = 0;
 			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
 			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-			renderPassBeginInfo.clearValueCount = 2;
 			VkClearValue clearValues[4];
 			clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
 			clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 			clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 			clearValues[3].depthStencil = { 0.0f, 0 };
+			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
 			renderPassBeginInfo.pClearValues = clearValues;
 			// Set target frame buffer
 			renderPassBeginInfo.framebuffer = defferedFrame.frameBuffer->Get();
@@ -930,7 +928,6 @@ namespace SPP
 		extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
@@ -941,7 +938,7 @@ namespace SPP
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = backbufferFrameData.renderPass;
+		renderPassBeginInfo.renderPass = backbufferFrameData.renderPass->Get();
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
@@ -949,7 +946,7 @@ namespace SPP
 		renderPassBeginInfo.clearValueCount = 0;		
 		renderPassBeginInfo.pClearValues = nullptr;
 		// Set target frame buffer
-		renderPassBeginInfo.framebuffer = backbufferFrameData.frameBuffer;
+		renderPassBeginInfo.framebuffer = backbufferFrameData.frameBuffer->Get();
 
 		// Start the first sub pass specified in our default render pass setup by the base class
 		// This will clear the color and depth attachment
@@ -1040,7 +1037,6 @@ namespace SPP
 		//extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 		//auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		//auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		//auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		//auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		//auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();

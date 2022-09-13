@@ -24,30 +24,32 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
+	extern GPUReferencer < VulkanPipelineState > GetVulkanPipelineState(GraphicsDevice* InOwner, 
 		VkFrameDataContainer& renderPassData,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
-		GPUReferencer< GPUInputLayout > InLayout,
-		GPUReferencer< GPUShader> InVS,
-		GPUReferencer< GPUShader> InPS,
-		GPUReferencer< GPUShader> InMS,
-		GPUReferencer< GPUShader> InAS,
-		GPUReferencer< GPUShader> InHS,
-		GPUReferencer< GPUShader> InDS,
-		GPUReferencer< GPUShader> InCS);
+		GPUReferencer< VulkanInputLayout > InLayout,
+		GPUReferencer< VulkanShader > InVS,
+		GPUReferencer< VulkanShader > InPS,
+		GPUReferencer< VulkanShader > InMS,
+		GPUReferencer< VulkanShader > InAS,
+		GPUReferencer< VulkanShader > InHS,
+		GPUReferencer< VulkanShader > InDS,
+		GPUReferencer< VulkanShader > InCS);
 
 	GPUReferencer < VulkanPipelineState > RT_Vulkan_Material::GetPipelineState(EDrawingTopology topology,
-		GPUReferencer<GPUShader> vsShader,
-		GPUReferencer<GPUShader> psShader,
-		GPUReferencer<GPUInputLayout> layout)
+		GPUReferencer<VulkanShader> vsShader,
+		GPUReferencer<VulkanShader> psShader,
+		GPUReferencer<VulkanInputLayout> layout)
 	{
 		SE_ASSERT(vsShader && psShader);
 
+
+		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
 		return GetVulkanPipelineState(_owner,
-			//hmm
+			owningDevice->GetDeferredFrameData(),
 			_blendState,
 			_rasterizerState,
 			_depthState,
@@ -207,7 +209,6 @@ namespace SPP
 	{		
 		/*
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();

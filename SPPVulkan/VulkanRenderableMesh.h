@@ -87,8 +87,8 @@ namespace SPP
 		virtual ~RT_Vulkan_Material() {}
 
 		GPUReferencer < VulkanPipelineState > GetPipelineState(EDrawingTopology topology,
-			GPUReferencer<GPUShader> vsShader,
-			GPUReferencer<GPUShader> psShader,
-			GPUReferencer<GPUInputLayout> layout);
+			GPUReferencer<class VulkanShader> vsShader,
+			GPUReferencer<class VulkanShader> psShader,
+			GPUReferencer<class VulkanInputLayout> layout);
 	};
 }

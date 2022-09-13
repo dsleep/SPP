@@ -191,7 +191,7 @@ namespace SPP
 		// Contains command buffers and semaphores to be presented to the queue
 		VkSubmitInfo submitInfo;
 		// Global render pass for frame buffer writes
-		VkRenderPass renderPass = VK_NULL_HANDLE;
+		GPUReferencer<SafeVkRenderPass> _backBufferRenderPass;
 
 		// Command buffer pool
 		VkCommandPool cmdPool;
@@ -292,7 +292,7 @@ namespace SPP
 		void destroyCommandBuffers();
 		
 		void createStaticDrawInfo();
-		void setupRenderPass();
+		void setupBackBufferRenderPass();
 
 		void setupFrameBuffer();
 		void destroyFrameBuffer();
@@ -390,9 +390,9 @@ namespace SPP
 			return _depthColor;
 		}
 
-		VkRenderPass GetBackBufferRenderPass()
+		auto& GetMainOpaquePassFrame()
 		{
-			return renderPass;
+			return _defferedFrame;
 		}
 
 		auto &GetColorFrameData()
@@ -420,13 +420,12 @@ namespace SPP
 			return _colorTarget.get();
 		}
 
-		VkFrameData GetBackBufferFrameData()
+		VkFrameDataContainer GetBackBufferFrameData()
 		{
-			return VkFrameData{ renderPass, GetActiveFrameBuffer() };
+			return VkFrameDataContainer{ 1, 0, _backBufferRenderPass, _frameBuffers[currentBuffer] };
 		}
 
 		VkDevice GetDevice();
-		VkRenderPass GetBaseRenderPass();
 		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) override;
 		virtual void Shutdown() override;
 		virtual void ResizeBuffers(int32_t NewWidth, int32_t NewHeight);
@@ -546,14 +545,14 @@ namespace SPP
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
-		GPUReferencer< GPUInputLayout > InLayout,
-		GPUReferencer< GPUShader> InVS,
-		GPUReferencer< GPUShader> InPS,
-		GPUReferencer< GPUShader> InMS,
-		GPUReferencer< GPUShader> InAS,
-		GPUReferencer< GPUShader> InHS,
-		GPUReferencer< GPUShader> InDS,
-		GPUReferencer< GPUShader> InCS);
+		GPUReferencer< class VulkanInputLayout > InLayout,
+		GPUReferencer< class VulkanShader > InVS,
+		GPUReferencer< class VulkanShader > InPS,
+		GPUReferencer< class VulkanShader > InMS,
+		GPUReferencer< class VulkanShader > InAS,
+		GPUReferencer< class VulkanShader > InHS,
+		GPUReferencer< class VulkanShader > InDS,
+		GPUReferencer< class VulkanShader > InCS);
 }
 
 namespace vks

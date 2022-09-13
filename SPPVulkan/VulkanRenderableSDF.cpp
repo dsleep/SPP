@@ -63,11 +63,14 @@ namespace SPP
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
 		{
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+
 			//std::dynamic_pointer_cast<RT_Vulkan_Material>
 			_CS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 
 			_PSO = GetVulkanPipelineState(InOwner,
+				owningDevice->GetColorFrameData(),
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
@@ -169,7 +172,6 @@ namespace SPP
 	void VulkanSDF::Draw()
 	{
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
-		auto basicRenderPass = GGlobalVulkanGI->GetBaseRenderPass();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();

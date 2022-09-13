@@ -608,7 +608,7 @@ namespace SPP
 				.height = height,
 				.layerCount = 1,
 				.format = VK_FORMAT_D32_SFLOAT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
 				.name = "Depth"
 			}
 		);		
@@ -653,7 +653,7 @@ namespace SPP
 		}
 	}
 
-	void VulkanGraphicsDevice::setupRenderPass()
+	void VulkanGraphicsDevice::setupBackBufferRenderPass()
 	{
 		std::array<VkAttachmentDescription, 1> attachments = {};
 		// Color attachment
@@ -709,7 +709,7 @@ namespace SPP
 		renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		renderPassInfo.pDependencies = dependencies.data();
 
-		VK_CHECK_RESULT(vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
+		_backBufferRenderPass = Make_GPU(SafeVkRenderPass, this, renderPassInfo);
 	}
 
 
@@ -720,7 +720,7 @@ namespace SPP
 		VkFramebufferCreateInfo frameBufferCreateInfo = {};
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frameBufferCreateInfo.pNext = NULL;
-		frameBufferCreateInfo.renderPass = renderPass;
+		frameBufferCreateInfo.renderPass = _backBufferRenderPass->Get();
 		frameBufferCreateInfo.attachmentCount = 1;
 		frameBufferCreateInfo.pAttachments = &attachments;
 		frameBufferCreateInfo.width = width;
@@ -748,11 +748,6 @@ namespace SPP
 		return device;
 	}
 
-	VkRenderPass VulkanGraphicsDevice::GetBaseRenderPass()
-	{
-		return renderPass;
-	}
-
 	void VulkanGraphicsDevice::Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow)
 	{
 #if PLATFORM_WINDOWS
@@ -775,7 +770,7 @@ namespace SPP
 
 				createStaticDrawInfo();
 
-				setupRenderPass();
+				setupBackBufferRenderPass();
 				setupFrameBuffer();
 				CreateDescriptorPool();
 
@@ -818,7 +813,7 @@ namespace SPP
 				{
 
 #if ALLOW_IMGUI
-					ImGui_ImplVulkan_Init(&initInfo, renderPass);
+					ImGui_ImplVulkan_Init(&initInfo, _backBufferRenderPass->Get());
 
 					auto& cmdBuffer = GetCopyCommandBuffer();
 					ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
@@ -1229,7 +1224,7 @@ namespace SPP
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = GetBackBufferRenderPass();
+		renderPassBeginInfo.renderPass = _backBufferRenderPass->Get();
 		renderPassBeginInfo.renderArea.offset.x = 0;
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = width;
@@ -1411,10 +1406,11 @@ namespace SPP
 		GPUReferencer< GPUShader> InCS)
 	{
 		auto device = GGlobalVulkanDevice;
-		auto renderPass = renderPassData.renderPass->Get();		
-
+		
 		if (InVS)
 		{
+			auto renderPass = renderPassData.renderPass->Get();
+
 			auto& inputLayout = InLayout->GetAs<VulkanInputLayout>();
 
 			// Shaders
@@ -1813,21 +1809,19 @@ namespace SPP
 	}
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
-
 		VkFrameDataContainer& renderPassData,
-
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
-		GPUReferencer< GPUInputLayout > InLayout,
-		GPUReferencer< GPUShader> InVS,
-		GPUReferencer< GPUShader> InPS,
-		GPUReferencer< GPUShader> InMS,
-		GPUReferencer< GPUShader> InAS,
-		GPUReferencer< GPUShader> InHS,
-		GPUReferencer< GPUShader> InDS,
-		GPUReferencer< GPUShader> InCS)
+		GPUReferencer< VulkanInputLayout > InLayout,
+		GPUReferencer< VulkanShader > InVS,
+		GPUReferencer< VulkanShader > InPS,
+		GPUReferencer< VulkanShader > InMS,
+		GPUReferencer< VulkanShader > InAS,
+		GPUReferencer< VulkanShader > InHS,
+		GPUReferencer< VulkanShader > InDS,
+		GPUReferencer< VulkanShader > InCS)
 	{
 		VulkanPipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology,
 			(uintptr_t)InLayout.get(),

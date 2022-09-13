@@ -20,7 +20,6 @@ namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
 
-
 	enum class ParamType
 	{
 		Texture,

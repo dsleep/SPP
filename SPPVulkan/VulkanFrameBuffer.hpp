@@ -20,12 +20,6 @@ namespace vks
 
 namespace SPP
 {
-	struct VkFrameData
-	{
-		VkRenderPass renderPass;
-		VkFramebuffer frameBuffer;
-	};
-
 	struct VkFrameDataContainer
 	{
 		uint8_t ColorTargets = 0;

@@ -157,9 +157,9 @@ namespace SPP
         template<typename K = T>
         Referencer(const Referencer<K>& orig)
         {
-            static_assert(std::is_base_of_v<T, K>, "must be base of");
+            static_assert(std::is_base_of_v<T, K> || std::is_base_of_v<K, T>, "must be base of");
 
-            obj = orig.RawGet();
+            obj = dynamic_cast<T*>( orig.RawGet() );
             _line = orig.GetLine();
             _file = orig.GetFile();
             if (obj)

@@ -63,7 +63,11 @@ namespace SPP
 				_depthCullingCSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, layoutSet.front().bindings);
 			}
 
+
+			VkFrameDataContainer dummy = {};
+
 			_depthCullingPSO = GetVulkanPipelineState(InOwner,
+				dummy,
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
@@ -82,6 +86,7 @@ namespace SPP
 			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
 
 			_depthPyramidPSO = GetVulkanPipelineState(InOwner,
+				dummy,
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
@@ -132,6 +137,7 @@ namespace SPP
 			_SMDepthlayout->InitializeLayout(Depth_GetVertexStreams_SM());
 
 			_SMDepthPSO = GetVulkanPipelineState(InOwner,
+				owningDevice->GetDepthOnlyFrameData(),
 				EBlendState::Disabled,
 				ERasterizerState::BackFaceCull,
 				EDepthState::Enabled,
@@ -267,7 +273,6 @@ namespace SPP
 		_depthPyramidViews = _depthPyramidTexture->GetMipChainViews();
 
 		auto ColorTarget = _owningDevice->GetColorTarget();
-		auto& colorAttachment = ColorTarget->GetFrontAttachment();
 		auto& depthAttachment = ColorTarget->GetBackAttachment();
 
 		_depthPyramidDescriptors.clear();
@@ -360,7 +365,6 @@ namespace SPP
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
 		auto ColorTarget = _owningDevice->GetColorTarget();
-		auto& colorAttachment = ColorTarget->GetFrontAttachment();
 		auto& depthAttachment = ColorTarget->GetBackAttachment();
 
 		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
