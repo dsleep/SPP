@@ -629,6 +629,61 @@ namespace SPP
 
     SPP_GRAPHICS_API const char* ToString(TexturePurpose InValue);
 
+    //TODO THIS IS WRONG IF CONSTANTS ARE DIFFERENT
+    struct ParameterMapKey
+    {
+        std::vector< std::string > ParamNames;
+        std::vector< std::string > Values;
+
+        ParameterMapKey() {}
+        ParameterMapKey(const std::map< std::string, std::shared_ptr<IMaterialParameter> >& InMap)
+        {
+            for (auto& [key, value] : InMap)
+            {
+                ParamNames.push_back(key);
+                auto curType = value->GetType();
+
+                if (curType == EMaterialParameterType::Float)
+                {
+                    auto paramValue = std::dynamic_pointer_cast<FloatParamter> (value)->Value;
+                    Values.push_back(std::string_format("%f", paramValue));
+                }
+                else if (curType == EMaterialParameterType::Float2)
+                {
+                    auto paramValue = std::dynamic_pointer_cast<Float2Paramter> (value)->Value;
+                    Values.push_back(std::string_format("(%f,%f)", paramValue[0], paramValue[1]));
+                }
+                else if (curType  == EMaterialParameterType::Float3)
+                {
+                    auto paramValue = std::dynamic_pointer_cast<Float3Paramter> (value)->Value;
+                    Values.push_back(std::string_format("(%f,%f,%f)", paramValue[0], paramValue[1], paramValue[2]));
+                }
+                else if (curType == EMaterialParameterType::Float4)
+                {
+                    auto paramValue = std::dynamic_pointer_cast<Float4Paramter> (value)->Value;
+                    Values.push_back(std::string_format("(%f,%f,%f,%f)", paramValue[0], paramValue[1], paramValue[2], paramValue[3]));
+                }
+                else if (curType == EMaterialParameterType::Texture)
+                {
+                    Values.push_back("TEXT");
+                }
+            }
+            SE_ASSERT(Values.size() == ParamNames.size());
+        }
+
+        bool operator<(const ParameterMapKey& compareKey)const
+        {
+            if (ParamNames < compareKey.ParamNames)
+            {
+                return Values < compareKey.Values;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    };
+
     class SPP_GRAPHICS_API RT_Material : public RT_Resource
     {
         CLASS_RT_RESOURCE();

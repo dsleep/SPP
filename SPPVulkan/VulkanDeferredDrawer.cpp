@@ -120,6 +120,8 @@ namespace SPP
 		GPUReferencer< GPUInputLayout > _deferredSMlayout;
 		GPUReferencer< SafeVkDescriptorSetLayout > _deferredVSLayout;
 
+		std::map< ParameterMapKey, GPUReferencer < VulkanShader > > _psShaderMap;
+
 	public:
 		// called on render thread
 		virtual void Initialize(class GraphicsDevice* InOwner)
@@ -156,6 +158,21 @@ namespace SPP
 		virtual void Shutdown(class GraphicsDevice* InOwner)
 		{
 			_defferedPBRVS.Reset();
+		}
+
+		GPUReferencer < VulkanShader > GetPSFromParamMap( const ParameterMapKey &ParamKey )
+		{
+			auto getRef = _psShaderMap.find(ParamKey);
+			if (getRef != _psShaderMap.end())
+			{
+				return getRef->second;
+			}
+			return nullptr;
+		}
+
+		void SetPSForParamMap(const ParameterMapKey& ParamKey, GPUReferencer < VulkanShader > &InShader)
+		{
+			_psShaderMap[ParamKey] = InShader;
 		}
 	};
 
@@ -202,6 +219,8 @@ namespace SPP
 		virtual ~DeferredMaterialCache() {}
 	};
 
+	//TODO HASH PARAM MAP
+	//std::map<std::string, GPUReferencer < VulkanShader > > GDeferredPSMap;
 	DeferredMaterialCache* GetDeferredMaterialCache(VertexInputTypes InVertexInputType, std::shared_ptr<RT_Vulkan_Material> InMat)
 	{
 		const uint8_t OPAQUE_PBR_PASS = 0;
@@ -219,90 +238,111 @@ namespace SPP
 		if (!cacheRef->state[(uint8_t)InVertexInputType])
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InMat->GetOwner());
-
-			cacheRef->_defferedPBRPS = Make_GPU(VulkanShader, owningDevice, EShaderType::Pixel);
-			//_opaquePS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
-
-
 			auto& paraMap = InMat->GetParameterMap();
+			auto thisParamKey = ParameterMapKey(paraMap);
+			auto foundPS = GVulkanDeferredPBRResrouces.GetPSFromParamMap(thisParamKey);
 
-			
 			std::vector<  GPUReferencer< GPUTexture > > texturesUsed;
-			std::string UniformBlock;
-
-			//layout(binding = 1) uniform sampler2D inImage;
-			std::map<std::string, std::string> ReplacementMap;
-			for (const auto& pbrParams : PRBDataSet)
+			if (foundPS)
 			{
-				std::string UpperParamName = std::str_to_upper(pbrParams.name);
-				std::string BlockName = std::string_format("<<%s_BLOCK>>", UpperParamName.c_str());
+				cacheRef->_defferedPBRPS = foundPS;
 
-				auto foundParam = paraMap.find(pbrParams.name);
-				if (foundParam != paraMap.end())
+				// we still need to grab those textures
+				for (const auto& pbrParams : PRBDataSet)
 				{
-					auto& mappedParam = foundParam->second;
-
-					if (mappedParam->GetType() == EMaterialParameterType::Float)
+					auto foundParam = paraMap.find(pbrParams.name);
+					if (foundParam != paraMap.end())
 					{
-						auto paramValue = std::dynamic_pointer_cast<FloatParamter> (mappedParam)->Value;
-						ReplacementMap[BlockName] = std::string_format("return %f;", paramValue);
-					}
-					else if (mappedParam->GetType() == EMaterialParameterType::Float2)
-					{
-						auto paramValue = std::dynamic_pointer_cast<Float2Paramter> (mappedParam)->Value;
-						ReplacementMap[BlockName] = std::string_format("return vec2(%f,%f);", paramValue[0], paramValue[1]);
-					}
-					else if (mappedParam->GetType() == EMaterialParameterType::Float3)
-					{
-						auto paramValue = std::dynamic_pointer_cast<Float3Paramter> (mappedParam)->Value;
-						ReplacementMap[BlockName] = std::string_format("return vec3(%f,%f,%f);", paramValue[0], paramValue[1], paramValue[2]);
-					}
-					else if (mappedParam->GetType() == EMaterialParameterType::Float4)
-					{
-						auto paramValue = std::dynamic_pointer_cast<Float4Paramter> (mappedParam)->Value;
-						ReplacementMap[BlockName] = std::string_format("return vec4(%f,%f,%f,%f);", paramValue[0], paramValue[1], paramValue[2], paramValue[3]);
-					}
-					else if (mappedParam->GetType() == EMaterialParameterType::Texture)
-					{
-						//texture(inImage, (vec2(pos) + vec2(0.5)) / imageSize).x;
-						auto paramValue = std::dynamic_pointer_cast<RT_Texture> (mappedParam)->GetGPUTexture();
-						
-						std::string SamplerName = std::string_format("sampler_%s", UpperParamName.c_str());
-						std::string TextureSampleString = std::string_format("return texture(%s, inUV)", SamplerName.c_str());
-
-						UniformBlock += std::string_format("layout(set = 1, binding = %d) uniform sampler2D %s;\r\n", texturesUsed.size(), SamplerName.c_str());
-						texturesUsed.push_back(paramValue);
-
-						switch (pbrParams.type)
+						auto& mappedParam = foundParam->second;
+						if (mappedParam->GetType() == EMaterialParameterType::Texture)
 						{
-						case ParamReturn::float1:
-							TextureSampleString += ".x;";
-							break;
-						case ParamReturn::float2:
-							TextureSampleString += ".xy;";
-							break;
-						case ParamReturn::float3:
-							TextureSampleString += ".xyz;";
-							break;
-						case ParamReturn::float4:
-							TextureSampleString += ".xyzw;";
-							break;
+							auto paramValue = std::dynamic_pointer_cast<RT_Texture> (mappedParam)->GetGPUTexture();
+							texturesUsed.push_back(paramValue);
 						}
-
-						ReplacementMap[BlockName] = TextureSampleString;
-
 					}
-				}
-				else
-				{
-					ReplacementMap[BlockName] = std::string_format("return %s;", pbrParams.defaultValue.c_str());
 				}
 			}
+			else
+			{
+				std::string UniformBlock;
 
-			ReplacementMap["<<UNIFORM_BLOCK>>"] = UniformBlock;
+				//layout(binding = 1) uniform sampler2D inImage;
+				std::map<std::string, std::string> ReplacementMap;
+				for (const auto& pbrParams : PRBDataSet)
+				{
+					std::string UpperParamName = std::str_to_upper(pbrParams.name);
+					std::string BlockName = std::string_format("<<%s_BLOCK>>", UpperParamName.c_str());
 
-			cacheRef->_defferedPBRPS->CompileShaderFromTemplate("shaders/Deferred/PBRMaterialTemplatePS.glsl", ReplacementMap);
+					auto foundParam = paraMap.find(pbrParams.name);
+					if (foundParam != paraMap.end())
+					{
+						auto& mappedParam = foundParam->second;
 
+						if (mappedParam->GetType() == EMaterialParameterType::Float)
+						{
+							auto paramValue = std::dynamic_pointer_cast<FloatParamter> (mappedParam)->Value;
+							ReplacementMap[BlockName] = std::string_format("return %f;", paramValue);
+						}
+						else if (mappedParam->GetType() == EMaterialParameterType::Float2)
+						{
+							auto paramValue = std::dynamic_pointer_cast<Float2Paramter> (mappedParam)->Value;
+							ReplacementMap[BlockName] = std::string_format("return vec2(%f,%f);", paramValue[0], paramValue[1]);
+						}
+						else if (mappedParam->GetType() == EMaterialParameterType::Float3)
+						{
+							auto paramValue = std::dynamic_pointer_cast<Float3Paramter> (mappedParam)->Value;
+							ReplacementMap[BlockName] = std::string_format("return vec3(%f,%f,%f);", paramValue[0], paramValue[1], paramValue[2]);
+						}
+						else if (mappedParam->GetType() == EMaterialParameterType::Float4)
+						{
+							auto paramValue = std::dynamic_pointer_cast<Float4Paramter> (mappedParam)->Value;
+							ReplacementMap[BlockName] = std::string_format("return vec4(%f,%f,%f,%f);", paramValue[0], paramValue[1], paramValue[2], paramValue[3]);
+						}
+						else if (mappedParam->GetType() == EMaterialParameterType::Texture)
+						{
+							//texture(inImage, (vec2(pos) + vec2(0.5)) / imageSize).x;
+							auto paramValue = std::dynamic_pointer_cast<RT_Texture> (mappedParam)->GetGPUTexture();
+
+							std::string SamplerName = std::string_format("sampler_%s", UpperParamName.c_str());
+							std::string TextureSampleString = std::string_format("return texture(%s, inUV)", SamplerName.c_str());
+
+							UniformBlock += std::string_format("layout(set = 1, binding = %d) uniform sampler2D %s;\r\n", texturesUsed.size(), SamplerName.c_str());
+							texturesUsed.push_back(paramValue);
+
+							switch (pbrParams.type)
+							{
+							case ParamReturn::float1:
+								TextureSampleString += ".x;";
+								break;
+							case ParamReturn::float2:
+								TextureSampleString += ".xy;";
+								break;
+							case ParamReturn::float3:
+								TextureSampleString += ".xyz;";
+								break;
+							case ParamReturn::float4:
+								TextureSampleString += ".xyzw;";
+								break;
+							}
+
+							ReplacementMap[BlockName] = TextureSampleString;
+
+						}
+					}
+					else
+					{
+						ReplacementMap[BlockName] = std::string_format("return %s;", pbrParams.defaultValue.c_str());
+					}
+				}
+
+				ReplacementMap["<<UNIFORM_BLOCK>>"] = UniformBlock;
+
+				cacheRef->_defferedPBRPS = Make_GPU(VulkanShader, owningDevice, EShaderType::Pixel);
+				cacheRef->_defferedPBRPS->CompileShaderFromTemplate("shaders/Deferred/PBRMaterialTemplatePS.glsl", ReplacementMap);
+
+				GVulkanDeferredPBRResrouces.SetPSForParamMap(thisParamKey, cacheRef->_defferedPBRPS);
+			}
+						
 			cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
 				GVulkanDeferredPBRResrouces.GetVS(),
 				cacheRef->_defferedPBRPS,
