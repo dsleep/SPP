@@ -132,21 +132,21 @@ public:
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		AddToRoot(_gameworld);
 
-		Sphere totalBounds;// (Vector3d(0, 0, 0), 200);
-
-		// get a COPY of htem
 		auto topChildren = _gameworld->GetChildren();
-		for (auto& curShild : topChildren)
-		{
-			totalBounds += curShild->Bounds();
-		}
+		Sphere totalBounds(Vector3d(0, 0, 0), 300);
+
+		// get a COPY of htem;
+		//for (auto& curShild : topChildren)
+		//{
+		//	totalBounds += curShild->Bounds();
+		//}
 				
 #if 0
 		auto MeshType = rttr::type::get<VgMeshElement>();
 
-		for (int32_t IterY = -1; IterY <= 1; IterY++)
+		for (int32_t IterY = -3; IterY <= 3; IterY++)
 		{			
-			for (int32_t IterX = -1; IterX <= 1; IterX++)
+			for (int32_t IterX = -3; IterX <= 3; IterX++)
 			{
 				if (!IterX && !IterY)continue;
 

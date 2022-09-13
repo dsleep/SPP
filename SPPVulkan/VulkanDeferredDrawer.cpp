@@ -361,8 +361,16 @@ namespace SPP
 			for (int32_t Iter = 0; Iter < texturesUsed.size(); Iter++)
 			{												
 				auto& currentVulkanTexture = texturesUsed[Iter]->GetAs<VulkanTexture>();
-				textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
 
+				if (currentVulkanTexture.GetVkImage() != nullptr)
+				{
+					textureInfo[Iter] = currentVulkanTexture.GetDescriptor();
+				}
+				else
+				{
+					textureInfo[Iter] = owningDevice->GetDefaultTexture()->GetAs<VulkanTexture>().GetDescriptor();
+				}
+				
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(newTextureDescSet->Get(),
 					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Iter, &textureInfo[Iter]));
 			}

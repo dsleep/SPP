@@ -36,14 +36,14 @@ namespace SPP
 	protected:
 		//vks::VulkanDevice *   device;
 		VkFormat			  texformat = VK_FORMAT_UNDEFINED;
-		VkImage               image;
+		VkImage               image = nullptr;
 		VkImageLayout         imageLayout;
-		VkDeviceMemory        deviceMemory;
-		VkImageView           view;
-		uint32_t              width, height;
-		uint32_t              mipLevels;
-		uint32_t              layerCount;
-		VkDescriptorImageInfo descriptor;
+		VkDeviceMemory        deviceMemory = nullptr;
+		VkImageView           view = nullptr;
+		uint32_t              width = 0, height = 0;
+		uint32_t              mipLevels = 0;
+		uint32_t              layerCount = 0;
+		VkDescriptorImageInfo descriptor; 
 		VkSampler             sampler;
 		uint32_t		      imageByteSize;
 

@@ -75,7 +75,7 @@ namespace SPP
 		std::weak_ptr<RT_RenderScene> _scene;
 
 	public:
-		uint32_t GetID() const { return _globalID; }
+		auto GetID() const { return _globalID; }
 		GlobalRenderableID(GraphicsDevice* InOwner, std::shared_ptr<RT_RenderScene> currentScene);
 		virtual ~GlobalRenderableID();
 	};
