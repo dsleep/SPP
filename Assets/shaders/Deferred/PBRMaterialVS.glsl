@@ -5,8 +5,9 @@
 
 #extension GL_GOOGLE_include_directive: require
 
-layout(row_major) uniform;
-layout(row_major) buffer;
+//we are in fact using column
+//layout(row_major) uniform;
+//layout(row_major) buffer;
 layout(std430) buffer;
 
 #include "Common.glsl"
@@ -38,12 +39,12 @@ out gl_PerVertex
 void main()
 {
 	mat4 LocalToWorldTranslated = GetLocalToWorldViewTranslated(DrawConstants.LocalToWorldScaleRotation, DrawConstants.Translation, ViewConstants.ViewPosition);
-	mat4 localToScreen = LocalToWorldTranslated * ViewConstants.ViewProjectionMatrix;
+	mat4 localToScreen =  Multiply( LocalToWorldTranslated, ViewConstants.ViewProjectionMatrix );
 		
 	outUV = inUV;
-	outNormal = normalize( inNormal * mat3(localToScreen) );
-	outTangent = normalize( inTangent * mat3(localToScreen) );
+	outNormal = normalize( Multiply( inNormal, mat3(localToScreen) ) );
+	outTangent = normalize( Multiply( inTangent, mat3(localToScreen) ) );
 
-	gl_Position = vec4(inPos, 1.0) * localToScreen;
+	gl_Position = Multiply( vec4(inPos, 1.0), localToScreen );
 }
 

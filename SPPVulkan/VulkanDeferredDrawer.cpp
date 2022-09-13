@@ -148,6 +148,11 @@ namespace SPP
 			return _deferredSMlayout;
 		}
 
+		auto GetVSLayout()
+		{
+			return _deferredVSLayout;
+		}
+
 		virtual void Shutdown(class GraphicsDevice* InOwner)
 		{
 			_defferedPBRVS.Reset();
@@ -161,7 +166,7 @@ namespace SPP
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
-		auto meshVSLayout = GetOpaqueVSLayout();
+		auto meshVSLayout = GVulkanDeferredPBRResrouces.GetVSLayout();
 		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
 
 		auto cameraBuffer = InScene->GetCameraBuffer();

@@ -46,3 +46,23 @@ mat4 GetTranslationMatrix(in vec3 InValue)
 		0, 0, 1, 0,
 		InValue, 1);
 }
+
+vec4 Multiply(in vec4 InVec, in mat4 InMat)
+{
+	return InMat * InVec;
+}
+
+vec3 Multiply(in vec3 InVec, in mat3 InMat)
+{
+	return InMat * InVec;
+}
+
+mat4 Multiply(in mat4 InMatA, in mat4 InMatB)
+{
+	return InMatB * InMatA;
+}
+
+mat3 Multiply(in mat3 InMatA, in mat3 InMatB)
+{
+	return InMatB * InMatA;
+}
