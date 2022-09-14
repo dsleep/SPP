@@ -30,6 +30,7 @@ namespace SPP
     {
         int32_t width;
         int32_t height;
+        int32_t mipLevels;
         TextureFormat format;
                 
         std::shared_ptr< ArrayResource > rawImgData;

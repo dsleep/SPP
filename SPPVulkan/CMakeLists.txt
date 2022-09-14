@@ -5,10 +5,6 @@ add_definitions(-DUSE_VULKAN=1)
 
 add_library(SPPVulkan SHARED "")
 
-target_compile_definitions(SPPVulkan
-	PRIVATE
-		KHRONOS_STATIC=1)
-
 set_target_properties(SPPVulkan PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 add_dependencies(SPPVulkan 
@@ -109,13 +105,11 @@ target_include_directories(SPPVulkan
 target_include_directories(SPPVulkan 
 	PRIVATE  			
 		"${VK_SDK_PATH}/include"
-		"${CMAKE_CURRENT_LIST_DIR}/imgui"
-		"${THIRD_PARTY}/ktx/include" )
+		"${CMAKE_CURRENT_LIST_DIR}/imgui" )
 		
 target_link_directories(SPPVulkan 
 	PRIVATE
-		"${VK_SDK_PATH}/lib"
-		"${THIRD_PARTY}/ktx/lib" )		
+		"${VK_SDK_PATH}/lib" )		
 		
 		
 target_link_libraries(SPPVulkan 
@@ -125,7 +119,7 @@ target_link_libraries(SPPVulkan
 		SPPGraphicsO
 		SPPSceneO
 		SPPSDFO
-		debug ktxd optimized ktx )
+		)
 		
 target_link_libraries( SPPVulkan 
 	PRIVATE

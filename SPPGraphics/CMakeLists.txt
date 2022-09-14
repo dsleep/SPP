@@ -10,8 +10,9 @@ add_dependencies( SPPGraphics SPPEngine SPPMesh )
 # will need define to not create empty dll export
 target_compile_definitions( SPPGraphics
 	PRIVATE
-		SPP_GRAPHICSE_EXPORT=1)
-				
+		SPP_GRAPHICSE_EXPORT=1
+		KHRONOS_STATIC=1)
+		
 target_sources( SPPGraphics
 	PRIVATE
 			
@@ -41,11 +42,19 @@ target_include_directories( SPPGraphics
 target_link_libraries( SPPGraphics 
 	PUBLIC
 		SPPEngine
-		SPPMesh	)
+		SPPMesh	
+	PRIVATE
+		debug ktxd optimized ktx )
 		
+target_link_directories( SPPGraphics 
+	PRIVATE
+		"${THIRD_PARTY}/ktx/lib" )		
+		
+
 target_include_directories( SPPGraphics 
 	PRIVATE  			
-		"${THIRD_PARTY}/stb" )
+		"${THIRD_PARTY}/stb"
+		"${THIRD_PARTY}/ktx/include" )
 
 install(TARGETS SPPGraphics DESTINATION "${SPP_ROOT}/INSTALL")
 

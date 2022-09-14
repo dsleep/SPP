@@ -157,10 +157,18 @@ namespace SPP
 
 	//////////////////////////
 
+	extern bool LoadKTX2FromMemory(const void* InData, size_t InDataSize);
 
 	VkResult VulkanGraphicsDevice::createInstance(bool enableValidation)
 	{
 		settings.validation = enableValidation;
+
+		//
+		std::vector<uint8_t> fileData;
+		if (LoadFileToArray("C:\\ProgrammingProjects\\SPP\\Assets\\textures\\testbuilding.ktx2", fileData))
+		{
+			LoadKTX2FromMemory(fileData.data(), fileData.size());
+		}
 
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;

@@ -11,6 +11,8 @@
 #include "SPPString.h"
 #include "SPPSTLUtils.h"
 
+#include <ktx.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -145,8 +147,49 @@ namespace SPP
 		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", FileName);
 
 		auto extension = stdfs::path(FileName).extension().generic_string();
+		inlineToUpper(extension);
 
-		if (str_equals(extension, ".dds"))
+		bool IsKTX = str_equals(extension, ".KTX");
+		bool IsKTX2 = str_equals(extension, ".KTX2");
+		bool IsDDS = str_equals(extension, ".DDS");
+
+		if (IsKTX || IsKTX2)
+		{
+			KTX_error_code result;
+			
+			std::vector<uint8_t> fileData;
+			if (LoadFileToArray(FileName, fileData))
+			{
+				ktxTexture2* texture2 = nullptr;
+
+				KTX_error_code result = ktxTexture2_CreateFromMemory((const ktx_uint8_t*)fileData.data(), fileData.size(),
+					KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+					&texture2);
+
+				if (result != KTX_SUCCESS) return false;
+				if (texture2->classId != ktxTexture2_c) return false;
+
+				auto vkFormat = texture2->vkFormat;
+				ktx_uint32_t components = ktxTexture2_GetNumComponents(texture2);
+
+				auto width = texture2->baseWidth;
+				auto height = texture2->baseHeight;
+				auto mipLevels = texture2->numLevels;
+
+				for (ktx_uint32_t level = 0; level < texture2->numLevels; level++)
+				{
+					ktx_size_t levelOffset;
+					result = ktxTexture_GetImageOffset(ktxTexture(texture2), level, 0, 0, &levelOffset);
+
+					SE_ASSERT(result == KTX_SUCCESS);
+				}
+
+				ktxTexture_Destroy(ktxTexture(texture2));
+
+				return true;
+			}
+		}
+		else if (IsDDS)
 		{
 			const DirectX::DDS_HEADER* header = nullptr;
 			const uint8_t* bitData = nullptr;
@@ -167,6 +210,8 @@ namespace SPP
 				//TODO FIXME
 				//_texture = GGI()->CreateTexture(_width, _height, TextureFormat::DDS_UNKNOWN, _rawImgData, ddsmeta);
 				SPP_LOG(LOG_TEXTURES, LOG_INFO, " - loaded dds");
+
+				return true;
 			}
 			else
 			{

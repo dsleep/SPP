@@ -8,8 +8,8 @@
 #include "VulkanResources.h"
 #include "VulkanDebug.h"
 
-#include <ktx.h>
-#include <ktxvulkan.h>
+//#include <ktx.h>
+//#include <ktxvulkan.h>
 
 namespace SPP
 {
@@ -32,6 +32,38 @@ namespace SPP
 			vkDestroySampler(GGlobalVulkanDevice, sampler, nullptr);
 		}
 		vkFreeMemory(GGlobalVulkanDevice, deviceMemory, nullptr);
+	}
+
+	bool LoadKTX2FromMemory(const void *InData, size_t InDataSize)
+	{
+		ktxTexture2* texture2 = 0;
+		KTX_error_code result;
+
+		result = ktxTexture2_CreateFromMemory((const ktx_uint8_t*)InData, InDataSize,
+			KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+			&texture2);
+
+		if (result != KTX_SUCCESS)return false;
+		if (texture2->classId != ktxTexture2_c)return false;
+
+		auto vkFormat = texture2->vkFormat;
+		ktx_uint32_t components = ktxTexture2_GetNumComponents(texture2);
+
+		auto width = texture2->baseWidth;
+		auto height = texture2->baseHeight;
+		auto mipLevels = texture2->numLevels;
+
+		for (ktx_uint32_t level = 0; level < texture2->numLevels; level++) 
+		{
+			ktx_size_t levelOffset;
+			result = ktxTexture_GetImageOffset(ktxTexture(texture2), level, 0, 0, &levelOffset);
+
+			SE_ASSERT(result == KTX_SUCCESS);
+		}
+
+		ktxTexture_Destroy(ktxTexture(texture2));
+
+		return true;
 	}
 
 	ktxResult loadKTXFile(std::string filename, ktxTexture **target)
