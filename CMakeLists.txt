@@ -75,7 +75,7 @@ else()
 	set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
 endif()
 
-set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
+set(USE_GRAPHICS ON CACHE BOOL "Use SPP Graphics projects")
 set(USE_DX12 OFF CACHE BOOL "Use DX12")
 set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
 set(USE_VULKAN OFF CACHE BOOL "Use Vulkan")
