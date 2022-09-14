@@ -345,7 +345,7 @@ namespace SPP
 		}
 	}
 
-	void Camera::GetFrustumPlanes(Planed planes[6])
+	void Camera::GetFrustumPlanes(Planed planes[5])
 	{				
 		// left
 		auto& coeff0 = planes[0].coeffs();
@@ -353,7 +353,7 @@ namespace SPP
 		auto& coeff2 = planes[2].coeffs();
 		auto& coeff3 = planes[3].coeffs();
 		auto& coeff4 = planes[4].coeffs();
-		auto& coeff5 = planes[5].coeffs();
+		//auto& coeff5 = planes[5].coeffs();
 
 		Matrix4x4d cameraMatrixWithTranslation = _cameraMatrix.cast<double>();
 		cameraMatrixWithTranslation.block<1, 3>(3, 0) = Vector3d(_cameraPosition[0], _cameraPosition[1], _cameraPosition[2]);
@@ -373,10 +373,10 @@ namespace SPP
 		// near
 		coeff4 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(2, 0);
 		// far
-		coeff5 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(2, 0);
+		//coeff5 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(2, 0);
 
 		// normalize all planes
-		for (int32_t Iter = 0; Iter < 6; ++Iter)
+		for (int32_t Iter = 0; Iter < 5; ++Iter)
 		{
 			planes[Iter].normalize();
 		}		

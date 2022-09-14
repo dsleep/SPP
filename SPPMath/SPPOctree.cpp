@@ -82,13 +82,15 @@ namespace SPP
         }
     }
 
-    void LooseOctree::LooseOctreeNode::WalkElements(const Planed frustumPlanes[6],
+    void LooseOctree::LooseOctreeNode::WalkElements(const Planed frustumPlanes[5],
         Vector3i InCurrentCenter,
         const std::function<bool(const IOctreeElement*)>& InFunction,
+        const std::function<bool(const Vector3i&, int32_t)>& InContinuation,
         int32_t InCurrentBoundExtents,
         uint8_t CurrentDepth)
     {
-        if (CurrentDepth == 0)
+        if (CurrentDepth == 0 || 
+            InContinuation(InCurrentCenter, InCurrentBoundExtents) == false)
         {
             return;
         }
@@ -118,10 +120,10 @@ namespace SPP
                     childCenter - Vector3i(looseChildExt,looseChildExt,looseChildExt),
                     childCenter + Vector3i(looseChildExt,looseChildExt,looseChildExt)
                      };
-                
-                if (BoxInFrustum(frustumPlanes, childAABB))
+
+                if (BoxInFrustum<double, Vector3i, 5>(frustumPlanes, childAABB))
                 {
-                    _children[ChildIter]->WalkElements(frustumPlanes, childCenter, InFunction, childExt, CurrentDepth - 1);
+                    _children[ChildIter]->WalkElements(frustumPlanes, childCenter, InFunction, InContinuation, childExt, CurrentDepth - 1);
                 }                
             }
         }
@@ -381,11 +383,14 @@ namespace SPP
         }
     }
         
-    void LooseOctree::WalkElements(const Planed frustumPlanes[6], const std::function<bool(const IOctreeElement*)>& InFunction, uint8_t MaxDepthToWalk)
+    void LooseOctree::WalkElements(const Planed frustumPlanes[5], 
+        const std::function<bool(const IOctreeElement*)>& InFunction,
+        const std::function<bool(const Vector3i&, int32_t)>& InContinuation,
+        uint8_t MaxDepthToWalk)
     {
         if (_rootNode)
         {
-            _rootNode->WalkElements(frustumPlanes, _center.cast<int32_t>(), InFunction, _extents, MaxDepthToWalk);
+            _rootNode->WalkElements(frustumPlanes, _center.cast<int32_t>(), InFunction, InContinuation, _extents, MaxDepthToWalk);
         }
     }
 

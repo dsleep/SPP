@@ -736,12 +736,22 @@ namespace SPP
 
 				_octreeVisiblity.Set(curRenderable->GetGlobalID().RawGet()->GetID(), true);
 
+				//
+				
+
 				//auto& drawInfo = curRenderable->GetDrawingInfo();
 
 				//drawInfo.drawingType == DrawingType::Opaque
 				//((Renderable*)InElement)->Draw();
 				return true;
-			});
+			},
+		
+			[&](const Vector3i& InCenter, int32_t InExtents) -> bool
+			{
+				double DistanceCalc = (double)InExtents / _frustumPlanes[4].absDistance(InCenter.cast<double>());
+				return DistanceCalc > 0.02;
+			}
+		);
 		//#else
 		//	for (auto renderItem : _renderables3d)
 		//	{

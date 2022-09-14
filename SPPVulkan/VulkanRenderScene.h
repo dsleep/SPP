@@ -185,7 +185,7 @@ namespace SPP
 
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
 
-		Planed _frustumPlanes[6];		
+		Planed _frustumPlanes[5];		
 
 		CameraCullInfo _cameraCullInfo;
 

@@ -68,7 +68,7 @@ namespace SPP
 
 		float _FoV = 0.0f;
 
-		float _speed = 5.0f;
+		float _speed = 25.0f;
 		float _turnSpeedModifier = 0.1f;
 		Vector3 _eulerAngles;
 				
@@ -102,7 +102,7 @@ namespace SPP
 		CameraCullInfo GetCullingData();
 
 		void GetFrustumCorners(Vector3 OutFrustumCorners[8]);
-		void GetFrustumPlanes(Planed planes[6]);
+		void GetFrustumPlanes(Planed planes[5]);
 
 		const Matrix4x4 &GetWorldToCameraMatrix() const { return _invCameraMatrix; }
 		const Matrix4x4 &GetProjectionMatrix() const { return _projectionMatrix; }
