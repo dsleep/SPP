@@ -142,7 +142,7 @@ namespace SPP
 
 		width = 0;
 		height = 0;
-		rawImgData = std::make_shared< ArrayResource >();
+		mipData.clear();
 
 		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", FileName);
 
@@ -169,19 +169,32 @@ namespace SPP
 				if (result != KTX_SUCCESS) return false;
 				if (texture2->classId != ktxTexture2_c) return false;
 
-				auto vkFormat = texture2->vkFormat;
-				ktx_uint32_t components = ktxTexture2_GetNumComponents(texture2);
+				auto ktxTextureData = ktxTexture_GetData(ktxTexture(texture2));
+				auto ktxTextureSize = ktxTexture_GetDataSize(ktxTexture(texture2));
 
+				auto vkFormat = texture2->vkFormat;
 				auto width = texture2->baseWidth;
 				auto height = texture2->baseHeight;
 				auto mipLevels = texture2->numLevels;
 
+				SE_ASSERT(texture2->numDimensions == 2);
+				SE_ASSERT(texture2->numLayers == 1);
+				SE_ASSERT(texture2->numFaces == 1);
+
 				for (ktx_uint32_t level = 0; level < texture2->numLevels; level++)
 				{
 					ktx_size_t levelOffset;
-					result = ktxTexture_GetImageOffset(ktxTexture(texture2), level, 0, 0, &levelOffset);
-
+					result = ktxTexture_GetImageOffset(ktxTexture(texture2), level, 0, 0, &levelOffset);					
 					SE_ASSERT(result == KTX_SUCCESS);
+					auto levelSize = ktxTexture_GetImageSize(ktxTexture(texture2), level);
+					SE_ASSERT(result == KTX_SUCCESS);
+
+					auto rawImgData = std::make_shared< ArrayResource >();
+					mipData.push_back(rawImgData);
+
+					auto& rawData = rawImgData->GetRawByteArray();
+					rawData.resize(levelSize);
+					memcpy(rawData.data(), ktxTextureData + levelOffset, levelSize);
 				}
 
 				ktxTexture_Destroy(ktxTexture(texture2));
@@ -191,6 +204,9 @@ namespace SPP
 		}
 		else if (IsDDS)
 		{
+			auto rawImgData = std::make_shared< ArrayResource >();
+			mipData.push_back(rawImgData);
+
 			const DirectX::DDS_HEADER* header = nullptr;
 			const uint8_t* bitData = nullptr;
 			size_t bitSize = 0;
@@ -220,6 +236,9 @@ namespace SPP
 		}
 		else
 		{
+			auto rawImgData = std::make_shared< ArrayResource >();
+			mipData.push_back(rawImgData);
+
 			int x, y, n;
 			unsigned char* pixels = stbi_load(FileName, &x, &y, &n, 0);
 

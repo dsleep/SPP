@@ -634,6 +634,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SPP::GBinaryPath = SPP::GRootPath + "Binaries\\";
 	SPP::GAssetPath = SPP::GRootPath + "Assets\\";
 
+
+
+	//
+	{
+		TextureAsset test;
+		test.LoadFromDisk(*AssetPath("/textures/rocktexture.ktx2"));
+	}
+
 	//SPP::CallPython();
 	int ErrorCode = 0;		
 

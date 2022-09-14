@@ -16,20 +16,12 @@
 
 #include "vulkan/vulkan.h"
 
-#include <ktx.h>
-
 #include "VulkanBuffer.h"
 #include "VulkanDevice.h"
 #include "VulkanTools.h"
 
-#if defined(__ANDROID__)
-#	include <android/asset_manager.h>
-#endif
-
 namespace SPP
 {
-	ktxResult loadKTXFile(std::string filename, ktxTexture** target);
-
 	class VulkanTextureBase
 	{
 	protected:

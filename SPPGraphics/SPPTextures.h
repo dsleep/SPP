@@ -33,7 +33,7 @@ namespace SPP
         int32_t mipLevels;
         TextureFormat format;
                 
-        std::shared_ptr< ArrayResource > rawImgData;
+        std::vector< std::shared_ptr< ArrayResource > > mipData;
         std::shared_ptr< ImageMeta > metaInfo;
 
         bool LoadFromDisk(const char* FileName);

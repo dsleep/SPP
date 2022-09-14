@@ -354,7 +354,7 @@ namespace SPP
 		{
 			_width = testTexture.width;
 			_height = testTexture.height;
-			_rawImgData = testTexture.rawImgData;
+			_rawImgData = testTexture.mipData.front();
 		}			
 
 		return false;
