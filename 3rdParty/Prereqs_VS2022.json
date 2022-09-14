@@ -69,7 +69,7 @@
 		},
 		{
 			"Path": "ktx",
-			"Version": 1
+			"Version": 3
 		},
 		{
 			"Path": "civetweb",

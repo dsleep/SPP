@@ -8,6 +8,9 @@
 #include "VulkanResources.h"
 #include "VulkanDebug.h"
 
+#include <ktx.h>
+#include <ktxvulkan.h>
+
 namespace SPP
 {
 	extern VkDevice GGlobalVulkanDevice;
@@ -88,7 +91,7 @@ namespace SPP
 		mipLevels = ktxTexture->numLevels;
 
 		ktx_uint8_t *ktxTextureData = ktxTexture_GetData(ktxTexture);
-		ktx_size_t ktxTextureSize = ktxTexture_GetSize(ktxTexture);
+		ktx_size_t ktxTextureSize = ktxTexture_GetDataSize(ktxTexture);
 
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;

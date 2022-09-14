@@ -5,6 +5,10 @@ add_definitions(-DUSE_VULKAN=1)
 
 add_library(SPPVulkan SHARED "")
 
+target_compile_definitions(SPPVulkan
+	PRIVATE
+		KHRONOS_STATIC=1)
+
 set_target_properties(SPPVulkan PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 add_dependencies(SPPVulkan 
@@ -77,16 +81,6 @@ target_sources(SPPVulkan
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_reflect.h"
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_output_stream.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_output_stream.h"
-
-		"${THIRD_PARTY}/ktx/lib/texture.c"
-		"${THIRD_PARTY}/ktx/lib/hashlist.c"
-		"${THIRD_PARTY}/ktx/lib/hashtable.c"
-
-		"${THIRD_PARTY}/ktx/lib/memstream.c"
-		"${THIRD_PARTY}/ktx/lib/filestream.c"
-
-		"${THIRD_PARTY}/ktx/lib/swap.c"
-		"${THIRD_PARTY}/ktx/lib/checkheader.c"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_draw.cpp"
@@ -112,18 +106,16 @@ target_include_directories(SPPVulkan
 	PUBLIC  	
 		"${CMAKE_CURRENT_LIST_DIR}" )
 		
-		
-		
 target_include_directories(SPPVulkan 
 	PRIVATE  			
 		"${VK_SDK_PATH}/include"
 		"${CMAKE_CURRENT_LIST_DIR}/imgui"
-		"${THIRD_PARTY}/ktx/include"
-		"${THIRD_PARTY}/ktx/other_include")
+		"${THIRD_PARTY}/ktx/include" )
 		
 target_link_directories(SPPVulkan 
 	PRIVATE
-		"${VK_SDK_PATH}/lib" )		
+		"${VK_SDK_PATH}/lib"
+		"${THIRD_PARTY}/ktx/lib" )		
 		
 		
 target_link_libraries(SPPVulkan 
@@ -132,13 +124,15 @@ target_link_libraries(SPPVulkan
 		SPPGraphics	
 		SPPGraphicsO
 		SPPSceneO
-		SPPSDFO )
+		SPPSDFO
+		debug ktxd optimized ktx )
 		
 target_link_libraries( SPPVulkan 
 	PRIVATE
 		vulkan-1 )
 
 install(TARGETS SPPVulkan DESTINATION "${SPP_ROOT}/INSTALL")
+
 
 
 
