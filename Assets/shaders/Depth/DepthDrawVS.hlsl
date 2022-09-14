@@ -1,4 +1,4 @@
-#include "../Common.hlsl"
+#include "Common.hlsl"
 
 struct VertexShaderInput
 {
