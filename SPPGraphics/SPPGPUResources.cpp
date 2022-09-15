@@ -10,6 +10,7 @@
 #include "SPPSceneRendering.h"
 #include "ThreadPool.h"
 #include "SPPHandledTimers.h"
+#include "SPPTextures.h"
 
 #include <list>
 #include <mutex>		
@@ -33,6 +34,15 @@ namespace SPP
 		};
 		
 		return stringValues[(uint8_t)InValue];
+	}
+
+	void RT_Texture::Initialize(const struct TextureAsset& TextureAsset)
+	{
+		_texture = _owner->_gxCreateTexture(TextureAsset);
+	}
+	GPUReferencer< GPUTexture > RT_Texture::GetGPUTexture()
+	{
+		return _texture;
 	}
 
 	//template<typename T>
@@ -106,8 +116,30 @@ namespace SPP
 	GPUTexture::GPUTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format,
 		std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) :
 		GPUResource(InOwner),
-		_width(Width), _height(Height), _format(Format), _rawImgData(RawData), _metaInfo(InMetaInfo)
+		_width(Width), _height(Height), _format(Format), _metaInfo(InMetaInfo)
+	{		
+		_rawMipData.push_back(RawData);
+
+		if (!GTextureAvailIDs.empty())
+		{
+			_uniqueID = GTextureAvailIDs.front();
+			GTextureAvailIDs.pop_front();
+		}
+		else
+		{
+			_uniqueID = GHighestTextureID++;
+		}
+	}
+
+	GPUTexture::GPUTexture(GraphicsDevice* InOwner, const struct TextureAsset& InTextureAsset) :
+		GPUResource(InOwner)
 	{
+		_width = InTextureAsset.width;
+		_height = InTextureAsset.height;
+		_format = InTextureAsset.format;
+		_rawMipData = InTextureAsset.mipData;
+
+		//int32_t Width, int32_t Height, TextureFormat Format
 		if (!GTextureAvailIDs.empty())
 		{
 			_uniqueID = GTextureAvailIDs.front();

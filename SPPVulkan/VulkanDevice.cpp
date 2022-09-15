@@ -1861,6 +1861,11 @@ namespace SPP
 		return Vulkan_CreateStaticBuffer(this, InType, InCpuData);
 	}
 
+	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(const struct TextureAsset& TextureAsset)
+	{
+		return Make_GPU(VulkanTexture, this, TextureAsset);
+	}
+
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) 
 	{
 		if (RawData) 

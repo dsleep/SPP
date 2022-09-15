@@ -11,6 +11,8 @@
 #include "SPPString.h"
 #include "SPPSTLUtils.h"
 
+#include "SPPPlatformCore.h"
+
 #include <ktx.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -135,16 +137,77 @@ namespace SPP
 		return true;
 	}
 
-	bool TextureAsset::LoadFromDisk(const char* FileName)
+	void GenerateMipMapCompressedTexture(const char *InPath, const char *OutPath, bool bHasAlpha)
+	{
+		auto FullBinPath = SPP::GRootPath + "/3rdParty/compressonator/bin/compressonatorcli.exe";
+
+		auto CommandString = std::string_format("-miplevels 20 -fd %s \"%s\" \"%s\"",
+			bHasAlpha ? "BC7" : "BC1 -AlphaThreshold 255",
+			InPath,
+			OutPath
+		);
+
+		{
+			auto BinProcess = CreatePlatformProcess(FullBinPath.c_str(), CommandString.c_str(), false, true);
+
+			if (BinProcess->IsValid())
+			{
+				auto ProcessOutput = BinProcess->GetOutput();
+
+				if (!ProcessOutput.empty())
+				{
+					SPP_LOG(LOG_TEXTURES, LOG_INFO, "%s", ProcessOutput.c_str());
+				}
+			}
+		}
+	}
+
+	TextureFormat VKFormatToTextureFormat(uint32_t InVKFormat, bool &IsSRGB)
+	{
+		//VK_FORMAT_BC1_RGB_UNORM_BLOCK = 131,
+		//VK_FORMAT_BC1_RGB_SRGB_BLOCK = 132,
+		//VK_FORMAT_BC7_UNORM_BLOCK = 145,
+		//VK_FORMAT_BC7_SRGB_BLOCK = 146,
+
+		switch (InVKFormat)
+		{
+		case 131:
+			return TextureFormat::RGB_BC1;
+			IsSRGB = false;
+			break;
+		case 132:
+			return TextureFormat::RGB_BC1;
+			IsSRGB = true;
+			break;
+		case 145:
+			return TextureFormat::RGBA_BC7;
+			IsSRGB = false;
+			break;
+		case 146:
+			return TextureFormat::RGBA_BC7;
+			IsSRGB = true;
+			break;
+		}
+
+		SE_ASSERT(false);
+
+		return TextureFormat::UNKNOWN;
+	}
+
+	bool TextureAsset::LoadFromDisk(const char* inFileName)
 	{
 		static_assert(sizeof(SimpleRGB) == 3);
 		static_assert(sizeof(SimpleRGBA) == 4);
+
+		std::string FileName = inFileName;
+
+		orgFileName = FileName;
 
 		width = 0;
 		height = 0;
 		mipData.clear();
 
-		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", FileName);
+		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", inFileName);
 
 		auto extension = stdfs::path(FileName).extension().generic_string();
 		inlineToUpper(extension);
@@ -153,12 +216,25 @@ namespace SPP
 		bool IsKTX2 = str_equals(extension, ".KTX2");
 		bool IsDDS = str_equals(extension, ".DDS");
 
+		
+		if (!IsKTX2)
+		{
+			auto ktxExt2 = stdfs::path(".KTX2");
+
+			FileName = stdfs::path(FileName).replace_extension(ktxExt2).generic_string();
+
+			GenerateMipMapCompressedTexture(inFileName, FileName.c_str(), false);
+
+			IsKTX2 = true;
+		}
+
+
 		if (IsKTX || IsKTX2)
 		{
 			KTX_error_code result;
 			
 			std::vector<uint8_t> fileData;
-			if (LoadFileToArray(FileName, fileData))
+			if (LoadFileToArray(FileName.c_str(), fileData))
 			{
 				ktxTexture2* texture2 = nullptr;
 
@@ -173,8 +249,11 @@ namespace SPP
 				auto ktxTextureSize = ktxTexture_GetDataSize(ktxTexture(texture2));
 
 				auto vkFormat = texture2->vkFormat;
-				auto width = texture2->baseWidth;
-				auto height = texture2->baseHeight;
+				
+				width = texture2->baseWidth;
+				height = texture2->baseHeight;
+				format = VKFormatToTextureFormat(vkFormat, bSRGB);
+
 				auto mipLevels = texture2->numLevels;
 
 				SE_ASSERT(texture2->numDimensions == 2);
@@ -212,7 +291,7 @@ namespace SPP
 			size_t bitSize = 0;
 			auto& ddsData = rawImgData->GetRawByteArray();
 
-			if (LoadDDSTextureDataFromFile(FileName, ddsData, &header, &bitData, &bitSize))
+			if (LoadDDSTextureDataFromFile(FileName.c_str(), ddsData, &header, &bitData, &bitSize))
 			{
 				width = header->width;
 				height = header->height;
@@ -240,7 +319,7 @@ namespace SPP
 			mipData.push_back(rawImgData);
 
 			int x, y, n;
-			unsigned char* pixels = stbi_load(FileName, &x, &y, &n, 0);
+			unsigned char* pixels = stbi_load(FileName.c_str(), &x, &y, &n, 0);
 
 			SE_ASSERT(pixels);
 

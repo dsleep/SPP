@@ -327,10 +327,16 @@ namespace SPP
     protected:
         int32_t _width = -1;
         int32_t _height = -1;
+
+        int32_t _dimensions = 2;
+        int32_t _mipLevels = 1;
+        int32_t _faces = 1;
+
         TextureFormat _format = TextureFormat::UNKNOWN;
-        bool _bCubemap = false;
-        std::shared_ptr< ArrayResource > _rawImgData;
+                
         std::shared_ptr< ImageMeta > _metaInfo;
+        std::vector< std::shared_ptr< ArrayResource > > _rawMipData;
+
         uint32_t _uniqueID = 0;
 
     public:
@@ -338,6 +344,7 @@ namespace SPP
             int32_t Width, int32_t Height, TextureFormat Format,
             std::shared_ptr< ArrayResource > RawData = nullptr, 
             std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
+        GPUTexture(GraphicsDevice* InOwner, const struct TextureAsset &InTextureAsset);
         virtual ~GPUTexture();
         virtual void PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Memory, uint32_t MemorySize) {};
 
@@ -605,14 +612,8 @@ namespace SPP
     public:
         virtual ~RT_Texture() {}
         virtual EMaterialParameterType::ENUM GetType() const override { return EMaterialParameterType::Texture; }
-        virtual void Initialize(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr)
-        {
-            _texture = _owner->_gxCreateTexture(Width, Height, Format, RawData, InMetaInfo);
-        }
-        GPUReferencer< GPUTexture > GetGPUTexture()
-        {
-            return _texture;
-        }
+        virtual void Initialize(const struct TextureAsset& TextureAsset);
+        GPUReferencer< GPUTexture > GetGPUTexture();
     };
 
     enum class TexturePurpose : uint8_t

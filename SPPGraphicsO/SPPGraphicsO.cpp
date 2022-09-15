@@ -354,7 +354,8 @@ namespace SPP
 		{
 			_width = testTexture.width;
 			_height = testTexture.height;
-			_rawImgData = testTexture.mipData.front();
+			_rawMipData = testTexture.mipData;
+			_format = testTexture.format;
 		}			
 
 		return false;
@@ -368,7 +369,13 @@ namespace SPP
 
 			RunOnRT([this]()
 				{
-					_texture->Initialize(_width, _height, _format, _rawImgData);
+					_texture->Initialize(
+						TextureAsset{
+							.width = _width,
+							.height = _height,
+							.format = _format,							
+							.mipData = _rawMipData,
+						});
 				});
 		}
 	}

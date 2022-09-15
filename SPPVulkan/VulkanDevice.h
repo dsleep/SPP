@@ -449,7 +449,10 @@ namespace SPP
 		virtual void MoveToNextFrame();
 
 		virtual GPUReferencer< class GPUShader > _gxCreateShader(EShaderType InType) override;
+		
 		virtual GPUReferencer< class GPUTexture > _gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) override;
+		virtual GPUReferencer< class GPUTexture > _gxCreateTexture(const struct TextureAsset& TextureAsset) override;
+
 		virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override;
 
 		//

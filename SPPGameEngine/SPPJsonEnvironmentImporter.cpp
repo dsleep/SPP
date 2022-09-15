@@ -120,7 +120,9 @@ namespace SPP
 							if (foundTexture == TextureMap.end())
 							{
 								auto curTexture = AllocateObject<OTexture>(CurTextureName, FileScene);
-								curTexture->LoadFromDisk(((ParentPath + "/") + CurTextureName).c_str());
+
+								std::string TexturePath = (ParentPath + "/") + CurTextureName;
+								curTexture->LoadFromDisk(TexturePath.c_str());
 								TextureMap[CurTextureName] = curTexture;
 								meshMat->SetParameter(curParam, curTexture);
 							}
