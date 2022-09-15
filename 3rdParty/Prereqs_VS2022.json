@@ -97,6 +97,10 @@
 		{
 			"Path": "ozz-animation",
 			"Version": 1
+		},
+		{
+			"Path": "compressonator",
+			"Version": 1
 		}
 	]
 }
