@@ -522,7 +522,7 @@ namespace SPP
 
 	class SPP_GRAPHICSO_API OSpotLight : public OLight
 	{
-		RTTR_ENABLE(OSpotLight);
+		RTTR_ENABLE(OLight);
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
