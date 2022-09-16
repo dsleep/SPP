@@ -522,4 +522,31 @@ RTTR_REGISTRATION
 			)
 		.property("_param", &MaterialParameterContainer::_param)(rttr::policy::prop::as_reference_wrapper)
 		;
+
+
+	//lights
+	rttr::registration::class_<OLight>("OLight")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
+	rttr::registration::class_<OSun>("OSun")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
+	rttr::registration::class_<OPointLight>("OPointLight")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
+	rttr::registration::class_<OSpotLight>("OSpotLight")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;
 }

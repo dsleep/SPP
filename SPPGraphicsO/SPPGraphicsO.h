@@ -484,6 +484,54 @@ namespace SPP
 		virtual ~OMeshElement() { }
 	};
 
+	class SPP_GRAPHICSO_API OLight : public ORenderableElement
+	{
+		RTTR_ENABLE(ORenderableElement);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OLight(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) {}
+
+	public:
+		virtual ~OLight() { }
+	};
+
+	class SPP_GRAPHICSO_API OSun : public OLight
+	{
+		RTTR_ENABLE(OLight);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OSun(const std::string& InName, SPPDirectory* InParent) : OLight(InName, InParent) {}
+
+	public:
+		virtual ~OSun() { }
+	};
+
+	class SPP_GRAPHICSO_API OPointLight : public OLight
+	{
+		RTTR_ENABLE(OLight);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OPointLight(const std::string& InName, SPPDirectory* InParent) : OLight(InName, InParent) {}
+
+	public:
+		virtual ~OPointLight() { }
+	};
+
+	class SPP_GRAPHICSO_API OSpotLight : public OLight
+	{
+		RTTR_ENABLE(OSpotLight);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		OSpotLight(const std::string& InName, SPPDirectory* InParent) : OLight(InName, InParent) {}
+
+	public:
+		virtual ~OSpotLight() { }
+	};
+
 	SPP_GRAPHICSO_API uint32_t GetGraphicsSceneVersion();
 }
 
