@@ -31,11 +31,11 @@ namespace SPP
     struct SPP_GRAPHICS_API TextureAsset
     {
         std::string orgFileName;
-        int32_t width;
-        int32_t height;
+        int32_t width = 0;
+        int32_t height = 0;
 
         bool bSRGB = false;
-        TextureFormat format;
+        TextureFormat format = TextureFormat::UNKNOWN;
                 
         std::vector< std::shared_ptr< ArrayResource > > mipData;
         std::shared_ptr< ImageMeta > metaInfo;

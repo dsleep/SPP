@@ -217,16 +217,13 @@ namespace SPP
 		bool IsDDS = str_equals(extension, ".DDS");
 
 		
-		if (!IsKTX2)
-		{
-			auto ktxExt2 = stdfs::path(".KTX2");
-
-			FileName = stdfs::path(FileName).replace_extension(ktxExt2).generic_string();
-
-			GenerateMipMapCompressedTexture(inFileName, FileName.c_str(), false);
-
-			IsKTX2 = true;
-		}
+		//if (!IsKTX2)
+		//{
+		//	auto ktxExt2 = stdfs::path(".KTX2");
+		//	FileName = stdfs::path(FileName).replace_extension(ktxExt2).generic_string();
+		//	GenerateMipMapCompressedTexture(inFileName, FileName.c_str(), false);
+		//	IsKTX2 = true;
+		//}
 
 
 		if (IsKTX || IsKTX2)
@@ -327,6 +324,7 @@ namespace SPP
 			{
 				width = x;
 				height = y;
+				format = TextureFormat::RGBA_8888;
 
 				auto data = rawImgData->InitializeFromType<SimpleRGBA>(x * y);
 
