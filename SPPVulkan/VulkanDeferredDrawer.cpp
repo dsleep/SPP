@@ -90,7 +90,7 @@ namespace SPP
 	{
 		{ PBRParam::Diffuse, "diffuse", ParamReturn::float3, "vec3( 0, 1, 0 )"},
 		{ PBRParam::Opacity, "opacity", ParamReturn::float1, "1.0f" },
-		{ PBRParam::Normal, "normal", ParamReturn::float3, "vec3(0, 0, 0)" },
+		{ PBRParam::Normal, "normal", ParamReturn::float3, "vec3(0.5f, 0.5f, 1)" },
 		{ PBRParam::Specular, "specular", ParamReturn::float1, "0.2f" },
 		{ PBRParam::Metallic, "metallic", ParamReturn::float1, "0" },
 		{ PBRParam::Roughness, "roughness", ParamReturn::float1, "0" },

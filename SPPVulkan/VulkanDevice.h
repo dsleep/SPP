@@ -202,9 +202,6 @@ namespace SPP
 		std::vector<GPUResource*> _gpuPushedDyingResources;
 		std::array< std::vector<GPUResource*>, MAX_IN_FLIGHT > _dyingResources;
 
-		VkFrameDataContainer _depthOnlyFrame;
-		VkFrameDataContainer _colorAndDepthFrame;
-		VkFrameDataContainer _defferedFrame;
 
 		// List of available frame buffers (same as number of swap chain images)
 		std::array< GPUReferencer<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
@@ -222,8 +219,15 @@ namespace SPP
 		VulkanSwapChain swapChain;
 
 		GPUReferencer< GPUTexture > _depthColor;
-		std::unique_ptr<VulkanFramebuffer> _colorTarget;
-		std::unique_ptr<VulkanFramebuffer> _deferredMaterialMRTs;
+		std::unique_ptr<VulkanFramebuffer> _deferredTarget;
+		std::unique_ptr<VulkanFramebuffer> _lightingComposite;
+
+
+		VkFrameDataContainer _depthOnlyFrame;
+		VkFrameDataContainer _colorAndDepthFrame;
+		VkFrameDataContainer _defferedFrame;
+		VkFrameDataContainer _lightingCompositeRenderPass;
+
  		// Synchronization semaphores
 		struct {
 			// Swap chain image presentation
@@ -405,6 +409,11 @@ namespace SPP
 			return _defferedFrame;
 		}
 
+		auto& GetLightingCompositeRenderPass()
+		{
+			return _lightingCompositeRenderPass;
+		}
+
 		auto &GetDepthOnlyFrameData()
 		{
 			return _depthOnlyFrame;
@@ -412,12 +421,12 @@ namespace SPP
 
 		VkDescriptorImageInfo GetColorImageDescImgInfo()
 		{
-			return _colorTarget->GetImageInfo();
+			return _deferredTarget->GetImageInfo();
 		}
 
 		VulkanFramebuffer *GetColorTarget()
 		{
-			return _colorTarget.get();
+			return _deferredTarget.get();
 		}
 
 		VkFrameDataContainer GetBackBufferFrameData()

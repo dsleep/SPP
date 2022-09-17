@@ -61,5 +61,12 @@ void main()
 {	
 	outDiffuse = vec4( GetDiffuse(), GetOpacity() );
 	outSMRE = vec4( GetSpecular(), GetMetallic(), GetRoughness(), GetEmissive() );
-	outNormal = vec4(GetNormal(), 0);
+	
+	// Calculate normal in tangent space
+	vec3 N = normalize(inNormal);
+	vec3 T = normalize(inTangent);
+	vec3 B = cross(N, T);
+	mat3 TBN = mat3(T, B, N);
+	vec3 tnorm = TBN * normalize(GetNormal() * 2.0 - vec3(1.0));
+	outNormal = vec4(tnorm * 0.5f + vec3(0.5f), 1.0);
 }

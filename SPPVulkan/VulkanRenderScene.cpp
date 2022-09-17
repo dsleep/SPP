@@ -66,14 +66,13 @@ namespace SPP
 				vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 			}
 
-
 			auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
 			auto vulkPSO = Make_GPU(VulkanPipelineState,InOwner);
 			_fullscreenColorPSO = vulkPSO;
 			vulkPSO->Initialize(backbufferFrameData,
-				EBlendState::AlphaBlend,
+				EBlendState::Disabled,
 				ERasterizerState::NoCull,
-				EDepthState::Enabled,
+				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
 				_fullscreenColorLayout,
 				_fullscreenColorVS,
@@ -647,29 +646,15 @@ namespace SPP
 		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
 		vulkanGD->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
 		
-		auto &depthOnlyFrame = vulkanGD->GetDepthOnlyFrameData();
-		auto &defferedFrame = vulkanGD->GetDeferredFrameData();
+		auto& depthOnlyFrame = vulkanGD->GetDepthOnlyFrameData();
+		auto& defferedFrame = vulkanGD->GetDeferredFrameData();
+		auto& lightingComposite = vulkanGD->GetLightingCompositeRenderPass();
 
 		{
-			VkRenderPassBeginInfo renderPassBeginInfo = {};
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = depthOnlyFrame.renderPass->Get();
-			renderPassBeginInfo.renderArea.offset.x = 0;
-			renderPassBeginInfo.renderArea.offset.y = 0;
-			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-			VkClearValue clearValues[1];
-			clearValues[0].depthStencil = { 0.0f, 0 };
-			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
-			renderPassBeginInfo.pClearValues = clearValues;
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = depthOnlyFrame.frameBuffer->Get();
-
+			VkRenderPassBeginInfo renderPassBeginInfo = depthOnlyFrame.SetupDrawPass(DeviceExtents);
 			// Start the first sub pass specified in our default render pass setup by the base class
 			// This will clear the color and depth attachment
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 			// Update dynamic viewport state
 			VkViewport viewport = {};
 			viewport.width = (float)DeviceExtents[0];
@@ -777,23 +762,7 @@ namespace SPP
 		_depthDrawer->RunDepthCullingAgainstPyramid();
 
 		{
-			VkRenderPassBeginInfo renderPassBeginInfo = {};
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = defferedFrame.renderPass->Get();
-			renderPassBeginInfo.renderArea.offset.x = 0;
-			renderPassBeginInfo.renderArea.offset.y = 0;
-			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-			VkClearValue clearValues[4];
-			clearValues[0].color = { { 0.0f, 0.0f, 1.0f, 1.0f } };
-			clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues[3].depthStencil = { 0.0f, 0 };
-			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
-			renderPassBeginInfo.pClearValues = clearValues;
-			// Set target frame buffer
-			renderPassBeginInfo.framebuffer = defferedFrame.frameBuffer->Get();
+			VkRenderPassBeginInfo renderPassBeginInfo = defferedFrame.SetupDrawPass(DeviceExtents);
 
 			// Start the first sub pass specified in our default render pass setup by the base class
 			// This will clear the color and depth attachment
@@ -849,6 +818,51 @@ namespace SPP
 
 		vkCmdEndRenderPass(commandBuffer);
 
+		//Lighting
+#if 0
+		{
+			VkRenderPassBeginInfo renderPassBeginInfo = {};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = lightingComposite.renderPass->Get();
+			renderPassBeginInfo.framebuffer = lightingComposite.frameBuffer->Get();
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+			VkClearValue clearValues[1];
+			clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
+			renderPassBeginInfo.pClearValues = clearValues;
+
+			// Start the first sub pass specified in our default render pass setup by the base class
+			// This will clear the color and depth attachment
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			// Update dynamic viewport state
+			VkViewport viewport = {};
+			viewport.width = (float)DeviceExtents[0];
+			viewport.height = (float)DeviceExtents[1];
+			viewport.minDepth = (float)0.0f;
+			viewport.maxDepth = (float)1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+			// Update dynamic scissor state
+			VkRect2D scissor = {};
+			scissor.extent.width = DeviceExtents[0];
+			scissor.extent.height = DeviceExtents[1];
+			scissor.offset.x = 0;
+			scissor.offset.y = 0;
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
+
+		vulkanGD->SetCheckpoint(commandBuffer, "Lighting");
+
+		vkCmdEndRenderPass(commandBuffer);
+
+#endif
+
+#if 0
 		vulkanGD->SetCheckpoint(commandBuffer, "DepthPrepForPost");
 
 		auto &DepthColorTexture = vulkanGD->GetDepthColor()->GetAs<VulkanTexture>();
@@ -928,6 +942,7 @@ namespace SPP
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 });
 
 		GGlobalVulkanGI->SetCheckpoint(commandBuffer, "WriteToFrame");
+#endif
 
 		WriteToFrame();
 	};
@@ -1011,6 +1026,7 @@ namespace SPP
 		}
 
 		// ui to back buffer
+#if 0
 		if(_offscreenUI)
 		{
 			std::vector<VkDescriptorSet> locaDrawSets;
@@ -1037,6 +1053,7 @@ namespace SPP
 				curPSO.GetVkPipelineLayout(), 0, locaDrawSets.size(), locaDrawSets.data(), 0, nullptr);
 			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 		}
+#endif
 
 		vkCmdEndRenderPass(commandBuffer);
 	}

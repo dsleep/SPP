@@ -14,10 +14,10 @@ namespace SPP
 	{
 		"alpha",
 		"diffuse",
-		"metallic",
-		"normal",
-		"roughness",
-		"specular"
+		//"metallic",
+		//"normal",
+		//"roughness",
+		//"specular"
 	};
 
 	VgEnvironment* LoadJsonGameScene(const char* FilePath)

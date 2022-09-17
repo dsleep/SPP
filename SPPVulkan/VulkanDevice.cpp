@@ -572,8 +572,8 @@ namespace SPP
 		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
 		_depthColor->SetName("_depthColor");
 
-		_colorTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
-		_colorTarget->addAttachment(
+		_deferredTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
+		_deferredTarget->addAttachment(
 			{
 				.width = width,
 				.height = height,
@@ -583,7 +583,7 @@ namespace SPP
 				.name = "Diffuse"
 			}
 		);
-		_colorTarget->addAttachment(
+		_deferredTarget->addAttachment(
 			{
 				.width = width,
 				.height = height,
@@ -593,7 +593,7 @@ namespace SPP
 				.name = "SpecularMetallicRoughnessEmissive"
 			}
 		);
-		_colorTarget->addAttachment(
+		_deferredTarget->addAttachment(
 			{
 				.width = width,
 				.height = height,
@@ -603,7 +603,7 @@ namespace SPP
 				.name = "Normal"
 			}
 		);
-		_colorTarget->addAttachment(
+		_deferredTarget->addAttachment(
 			{
 				.width = width,
 				.height = height,
@@ -614,11 +614,25 @@ namespace SPP
 			}
 		);		
 		
-		_colorTarget->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+		_deferredTarget->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
-		_depthOnlyFrame = _colorTarget->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
-		_defferedFrame = _colorTarget->createCustomRenderPass({ "Diffuse", "SpecularMetallicRoughnessEmissive", "Normal", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
-		_colorAndDepthFrame = _colorTarget->createCustomRenderPass({ "Diffuse", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_depthOnlyFrame = _deferredTarget->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_defferedFrame = _deferredTarget->createCustomRenderPass({ "Diffuse", "SpecularMetallicRoughnessEmissive", "Normal", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_colorAndDepthFrame = _deferredTarget->createCustomRenderPass({ "Diffuse", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+
+		_lightingComposite = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
+		_lightingComposite->addAttachment(
+			{
+				.width = width,
+				.height = height,
+				.layerCount = 1,
+				.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.name = "Color"
+			}
+		);
+
+		_lightingCompositeRenderPass = _lightingComposite->createCustomRenderPass({ "Color" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()
@@ -869,7 +883,7 @@ namespace SPP
 				destroyCommandBuffers();
 
 				_defaultTexture.Reset();
-				_colorTarget.reset();
+				_deferredTarget.reset();
 				_piplineStateMap.clear();
 
 			});
@@ -1574,8 +1588,8 @@ namespace SPP
 			for (int32_t Iter = 0; Iter < renderPassData.ColorTargets; Iter++)
 			{
 				VkPipelineColorBlendAttachmentState blendAttachmentState = {};
-				blendAttachmentState.colorWriteMask = 0xf;
 				blendAttachmentState.blendEnable = VK_FALSE;
+				blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 				//ugly hack for deferred
 				if (Iter == 0)

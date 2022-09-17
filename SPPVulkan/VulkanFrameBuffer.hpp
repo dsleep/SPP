@@ -24,8 +24,36 @@ namespace SPP
 	{
 		uint8_t ColorTargets = 0;
 		uint8_t DepthTargets = 0;
+
 		GPUReferencer<SafeVkRenderPass> renderPass;
 		GPUReferencer<SafeVkFrameBuffer> frameBuffer;
+
+		VkClearValue clearValueArray[5] = { };
+
+		VkRenderPassBeginInfo SetupDrawPass(const Vector2i &InRenderArea)
+		{
+			VkRenderPassBeginInfo renderPassBeginInfo = {};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = renderPass->Get();
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = InRenderArea[0];
+			renderPassBeginInfo.renderArea.extent.height = InRenderArea[1];			
+			renderPassBeginInfo.framebuffer = frameBuffer->Get();
+			auto totalClears = ColorTargets + DepthTargets;
+			clearValueArray[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+			if (totalClears)
+			{
+				renderPassBeginInfo.pClearValues = clearValueArray;
+			}
+			else
+			{
+				renderPassBeginInfo.pClearValues = nullptr;
+			}
+			renderPassBeginInfo.clearValueCount = totalClears;
+			return renderPassBeginInfo;
+		}
 	};
 	/**
 	* @brief Encapsulates a single frame buffer attachment 
