@@ -481,6 +481,16 @@ namespace SPP
 		virtual void Initialize();
 	};
 
+	class SPP_GRAPHICS_API RT_RenderableLight : public Renderable, public RT_Resource
+	{
+		CLASS_RT_RESOURCE();
+
+	protected:
+		RT_RenderableLight(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
+
+		virtual ~RT_RenderableLight() {}
+	};
+
 	class SPP_GRAPHICS_API RT_RenderableMesh : public Renderable, public RT_Resource
 	{
 		CLASS_RT_RESOURCE();

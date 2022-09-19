@@ -147,6 +147,7 @@ namespace SPP
 			_owningDevice,
 			createInfo);
 
+		// Update Gbuffers
 		std::vector< VkDescriptorImageInfo > gbuffer;
 		for (auto& curAttach : gbufferAttachments)
 		{
@@ -157,8 +158,13 @@ namespace SPP
 			gbuffer.push_back(imageInfo);
 		}
 		
+		_gbufferTextureSet = Make_GPU(SafeVkDescriptorSet,
+			_owningDevice,
+			sunPSO->GetDescriptorSetLayouts()[2],
+			globalSharedPool);
+
 		SE_ASSERT(gbuffer.size() == 4);
-		_viewOnlyVSSet->Update(
+		_gbufferTextureSet->Update(
 			{
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &gbuffer[0]},
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &gbuffer[1] },
@@ -169,86 +175,32 @@ namespace SPP
 	}
 
 	// TODO cleanupppp
-	//void PBRDeferredLighting::Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
-	//{
-	//	auto currentFrame = _owningDevice->GetActiveFrame();
-	//	auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+	void PBRDeferredLighting::Render(RT_RenderableLight& InLight)
+	{
+		auto currentFrame = _owningDevice->GetActiveFrame();
+		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
-	//	auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
-	//	auto matCache = GetDeferredMaterialCache(VertexInputTypes::StaticMesh, vulkanMat);
-	//	auto meshCache = GetMeshCache(InVulkanRenderableMesh);
+		auto sunPSO = GVulkanDeferredLightingResrouces.GetSunPSO();
 
-	//	VkDeviceSize offsets[1] = { 0 };
-	//	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &meshCache->vertexBuffer, offsets);
-	//	vkCmdBindIndexBuffer(commandBuffer, meshCache->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		//setup push constant
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
 
-	//	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-	//		matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipeline());
+		//// if static we have everything pre cached
+		//
+		//uint32_t uniform_offsets[] = {
+		//	(sizeof(GPUViewConstants)) * currentFrame
+		//};
 
-	//	// if static we have everything pre cached
-	//	if (InVulkanRenderableMesh.IsStatic())
-	//	{
-	//		uint32_t uniform_offsets[] = {
-	//			(sizeof(GPUViewConstants)) * currentFrame,
-	//			(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
-	//		};
+		//VkDescriptorSet locaDrawSets[] = {
+		//	_camStaticBufferDescriptorSet->Get()		
+		//};
 
-	//		VkDescriptorSet locaDrawSets[] = {
-	//			_camStaticBufferDescriptorSet->Get(),
-	//			matCache->descriptorSet[0]->Get()
-	//		};
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+		//	sunPSO->GetVkPipelineLayout(),
+		//	0,
+		//	ARRAY_SIZE(locaDrawSets), locaDrawSets,
+		//	ARRAY_SIZE(uniform_offsets), uniform_offsets);		
 
-	//		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-	//			matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
-	//			0,
-	//			ARRAY_SIZE(locaDrawSets), locaDrawSets,
-	//			ARRAY_SIZE(uniform_offsets), uniform_offsets);
-	//	}
-	//	// if not static we need to write transforms
-	//	else
-	//	{
-	//		auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
-	//		auto vsLayout = GetOpaqueVSLayout();
-
-	//		VkDescriptorSet dynamicTransformSet;
-	//		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
-	//		VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
-
-	//		auto cameraBuffer = _owningScene->GetCameraBuffer();
-
-	//		VkDescriptorBufferInfo perFrameInfo;
-	//		perFrameInfo.buffer = cameraBuffer->GetBuffer();
-	//		perFrameInfo.offset = 0;
-	//		perFrameInfo.range = cameraBuffer->GetPerElementSize();
-
-	//		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-	//		vks::initializers::writeDescriptorSet(dynamicTransformSet,
-	//			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-	//		vks::initializers::writeDescriptorSet(dynamicTransformSet,
-	//			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
-	//		};
-
-	//		vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-	//			static_cast<uint32_t>(writeDescriptorSets.size()),
-	//			writeDescriptorSets.data(), 0, nullptr);
-
-	//		uint32_t uniform_offsets[] = {
-	//			(sizeof(GPUViewConstants)) * currentFrame,
-	//			(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
-	//		};
-
-	//		VkDescriptorSet locaDrawSets[] = {
-	//			_camStaticBufferDescriptorSet->Get(),
-	//			dynamicTransformSet
-	//		};
-
-	//		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-	//			matCache->state[(uint8_t)VertexInputTypes::StaticMesh]->GetVkPipelineLayout(),
-	//			0,
-	//			ARRAY_SIZE(locaDrawSets), locaDrawSets,
-	//			ARRAY_SIZE(uniform_offsets), uniform_offsets);
-	//	}
-
-	//	vkCmdDrawIndexed(commandBuffer, meshCache->indexedCount, 1, 0, 0, 0);
-	//}
+		//vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+	}
 }
