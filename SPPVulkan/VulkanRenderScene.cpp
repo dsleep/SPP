@@ -148,6 +148,7 @@ namespace SPP
 
 			auto& vsSet = _opaqueVS->GetLayoutSets();
 			_opaqueVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+			
 		}
 
 		GPUReferencer< SafeVkDescriptorSetLayout > GetOpaqueVSLayout()
@@ -459,6 +460,9 @@ namespace SPP
 
 	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
+		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
+
 		_debugDrawer->Initialize();
 
 		_fullscreenRayVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
@@ -474,7 +478,11 @@ namespace SPP
 			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
-		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet, 
+			_owner,
+			GVulkanOpaqueResrouces.GetOpaqueVSLayout()->Get(), 
+			globalSharedPool);
+
 		_fullscreenRaySDFPSO = GetVulkanPipelineState(_owner,
 			owningDevice->GetColorFrameData(),
 			EBlendState::Disabled,

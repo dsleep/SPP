@@ -155,6 +155,9 @@ namespace SPP
 		std::unique_ptr< class PBRDeferredDrawer > _deferredDrawer;
 		
 
+		GPUReferencer< SafeVkDescriptorSet > _commonDescriptorSet;
+
+
 		GPUReferencer< GPUShader > _debugVS;
 		GPUReferencer< GPUShader > _debugPS;
 
@@ -216,7 +219,10 @@ namespace SPP
 		{
 			return _cameraBuffer;
 		}
-
+		auto GetCommondDescriptorSet()
+		{
+			return _commonDescriptorSet;
+		}
 		auto &GetCullDataBuffer()
 		{
 			return _renderableCullDataBuffer;

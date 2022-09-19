@@ -174,6 +174,12 @@ namespace SPP
 		);
 	}
 
+	struct alignas(16u) SunLightParams
+	{
+		Vector3 LightDirection;
+		Vector3 Radiance;
+	};
+
 	// TODO cleanupppp
 	void PBRDeferredLighting::Render(RT_RenderableLight& InLight)
 	{
@@ -182,25 +188,32 @@ namespace SPP
 
 		auto sunPSO = GVulkanDeferredLightingResrouces.GetSunPSO();
 
-		//setup push constant
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
+		SunLightParams lightParams =
+		{
+			Vector3(0,1,0),
+			Vector3(1,1,1)
+		};
 
-		//// if static we have everything pre cached
-		//
-		//uint32_t uniform_offsets[] = {
-		//	(sizeof(GPUViewConstants)) * currentFrame
-		//};
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
+		vkCmdPushConstants(commandBuffer, sunPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SunLightParams), &lightParams);
+		
+		// if static we have everything pre cached		
+		uint32_t uniform_offsets[] = {
+			(sizeof(GPUViewConstants)) * currentFrame
+		};
 
-		//VkDescriptorSet locaDrawSets[] = {
-		//	_camStaticBufferDescriptorSet->Get()		
-		//};
+		VkDescriptorSet locaDrawSets[] = {
+			_owningScene->GetCommondDescriptorSet()->Get(),
+			nullptr,
+			_gbufferTextureSet->Get()
+		};
 
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-		//	sunPSO->GetVkPipelineLayout(),
-		//	0,
-		//	ARRAY_SIZE(locaDrawSets), locaDrawSets,
-		//	ARRAY_SIZE(uniform_offsets), uniform_offsets);		
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			sunPSO->GetVkPipelineLayout(),
+			0,
+			ARRAY_SIZE(locaDrawSets), locaDrawSets,
+			ARRAY_SIZE(uniform_offsets), uniform_offsets);		
 
-		//vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 	}
 }
