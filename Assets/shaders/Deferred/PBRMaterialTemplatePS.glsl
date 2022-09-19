@@ -5,8 +5,6 @@
 
 #extension GL_GOOGLE_include_directive: require
 
-layout(row_major) uniform;
-layout(row_major) buffer;
 layout(std430) buffer;
 
 layout (location = 0) in vec2 inUV;

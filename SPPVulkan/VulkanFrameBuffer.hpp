@@ -160,6 +160,11 @@ namespace SPP
 			return attachments.back();
 		}
 
+		auto& GetAttachments()
+		{
+			return attachments;
+		}
+
 		VkFrameDataContainer createCustomRenderPass(const std::set<std::string> &WhichTargets, VkAttachmentLoadOp SetLoadOp);
 
 		VkDescriptorImageInfo GetImageInfo();

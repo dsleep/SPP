@@ -1254,11 +1254,7 @@ namespace SPP
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// Update dynamic viewport state
-		VkViewport viewport = {};
-		viewport.width = (float)width;
-		viewport.height = (float)height;
-		viewport.minDepth = (float)0.0f;
-		viewport.maxDepth = (float)1.0f;
+		VkViewport viewport = { 0, float(height), float(width), -float(height), 0, 1 };
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		// Update dynamic scissor state

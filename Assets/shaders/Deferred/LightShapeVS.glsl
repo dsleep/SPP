@@ -24,6 +24,7 @@ layout (location = 0) in vec3 inPos;
 
 // out params
 layout (location = 0) out vec4 outPixelPosition;
+layout (location = 1) out vec2 outUV;
 
 out gl_PerVertex
 {
@@ -37,6 +38,8 @@ void main()
 	mat4 localToScreen =  Multiply( LocalToWorldTranslated, ViewConstants.ViewProjectionMatrix );
 		
 	outPixelPosition = Multiply( vec4(inPos, 1.0), localToScreen );
+	outUV = (outPixelPosition.xy / outPixelPosition.w) * 0.5f + vec2(0.5f);
+	
 	gl_Position = outPixelPosition;
 }
 

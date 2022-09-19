@@ -14,6 +14,7 @@ layout(std430) buffer;
 
 // out params
 layout (location = 0) out vec4 outPixelPosition;
+layout (location = 1) out vec2 outUV;
 
 out gl_PerVertex
 {
@@ -23,7 +24,7 @@ out gl_PerVertex
 // Vertex shader
 void main()
 {	
-	vec2 texcoord = vec2(gl_VertexIndex & 1,gl_VertexIndex >> 1); //you can use these for texture coordinates later		
-	outPixelPosition = vec4((texcoord.x-0.5f)*2, -(texcoord.y-0.5f)*2, 0, 1);
+	outUV = vec2(gl_VertexIndex & 1,gl_VertexIndex >> 1); //you can use these for texture coordinates later		
+	outPixelPosition = vec4((outUV.x-0.5f)*2, (outUV.y-0.5f)*2, 0, 1);
 	gl_Position = outPixelPosition;
 }

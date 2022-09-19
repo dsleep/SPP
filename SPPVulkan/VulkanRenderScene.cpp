@@ -656,11 +656,7 @@ namespace SPP
 			// This will clear the color and depth attachment
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 			// Update dynamic viewport state
-			VkViewport viewport = {};
-			viewport.width = (float)DeviceExtents[0];
-			viewport.height = (float)DeviceExtents[1];
-			viewport.minDepth = (float)0.0f;
-			viewport.maxDepth = (float)1.0f;
+			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
 			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 			// Update dynamic scissor state
@@ -769,11 +765,7 @@ namespace SPP
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			// Update dynamic viewport state
-			VkViewport viewport = {};
-			viewport.width = (float)DeviceExtents[0];
-			viewport.height = (float)DeviceExtents[1];
-			viewport.minDepth = (float)0.0f;
-			viewport.maxDepth = (float)1.0f;
+			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
 			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 			// Update dynamic scissor state
@@ -840,11 +832,7 @@ namespace SPP
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			// Update dynamic viewport state
-			VkViewport viewport = {};
-			viewport.width = (float)DeviceExtents[0];
-			viewport.height = (float)DeviceExtents[1];
-			viewport.minDepth = (float)0.0f;
-			viewport.maxDepth = (float)1.0f;
+			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
 			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 			// Update dynamic scissor state
@@ -978,11 +966,7 @@ namespace SPP
 		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// Update dynamic viewport state
-		VkViewport viewport = {};
-		viewport.width = (float)DeviceExtents[0];
-		viewport.height = (float)DeviceExtents[1];
-		viewport.minDepth = (float)0.0f;
-		viewport.maxDepth = (float)1.0f;
+		VkViewport viewport = { 0, 0, float(DeviceExtents[0]), float(DeviceExtents[1]), 0, 1 };
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		// Update dynamic scissor state

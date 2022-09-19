@@ -37,10 +37,10 @@ namespace SPP
 	class GlobalDeferredLightingResources : public GlobalGraphicsResource
 	{
 	private:
-		GPUReferencer < VulkanShader > _lightShapeVS;
-		GPUReferencer < VulkanShader > _lightFullscreenVS;
+		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS;
 		GPUReferencer< GPUInputLayout > _lightShapeLayout;
 
+		GPUReferencer< VulkanPipelineState > _psoSunLight;
 		GPUReferencer< SafeVkDescriptorSetLayout > _lightShapeVSLayout;
 
 		std::map< ParameterMapKey, GPUReferencer < VulkanShader > > _psShaderMap;
@@ -57,8 +57,26 @@ namespace SPP
 			_lightFullscreenVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_lightFullscreenVS->CompileShaderFromFile("shaders/Deferred/FullScreenLightVS.glsl");
 
+			_lightSunPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_lightSunPS->CompileShaderFromFile("shaders/Deferred/SunLightPS.glsl");
+
 			_lightShapeLayout = Make_GPU(VulkanInputLayout, InOwner);
 			_lightShapeLayout->InitializeLayout(OP_GetVertexStreams_DeferredLightingShapes());
+
+			_psoSunLight = GetVulkanPipelineState(owningDevice,
+				owningDevice->GetLightingCompositeRenderPass(),
+				EBlendState::Additive,
+				ERasterizerState::NoCull,
+				EDepthState::Disabled,
+				EDrawingTopology::TriangleStrip,
+				nullptr,
+				_lightShapeVS,
+				_lightSunPS,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr);
 
 			{
 				auto& vsSet = _lightShapeVS->GetLayoutSets();
@@ -71,47 +89,83 @@ namespace SPP
 			return _lightShapeVS;
 		}
 
+		auto GetSunPSO()
+		{
+			return _psoSunLight;
+		}
 
 		virtual void Shutdown(class GraphicsDevice* InOwner)
 		{
 			_lightShapeVS.Reset();
 		}
-
 	};
 
 	GlobalDeferredLightingResources GVulkanDeferredLightingResrouces;
 
 	PBRDeferredLighting::PBRDeferredLighting(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
-		/*_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
+		auto sunPSO = GVulkanDeferredLightingResrouces.GetSunPSO();
+		
+		_viewOnlyVSSet = Make_GPU(SafeVkDescriptorSet, 
+			_owningDevice, 
+			sunPSO->GetDescriptorSetLayouts().front(), 
+			globalSharedPool);
 
-		auto meshVSLayout = GVulkanDeferredPBRResrouces.GetVSLayout();
-		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
+		auto cameraBuffer = InScene->GetCameraBuffer();		
+		VkDescriptorBufferInfo perFrameInfo = cameraBuffer->GetDescriptorInfo();
+		_viewOnlyVSSet->Update(
+			{
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo }
+			}
+			);
 
-		auto cameraBuffer = InScene->GetCameraBuffer();
+		//
+		auto deferredGbuffer = _owningDevice->GetColorTarget();
+		auto& gbufferAttachments = deferredGbuffer->GetAttachments();
 
-		VkDescriptorBufferInfo perFrameInfo;
-		perFrameInfo.buffer = cameraBuffer->GetBuffer();
-		perFrameInfo.offset = 0;
-		perFrameInfo.range = cameraBuffer->GetPerElementSize();
+		_commonLightDescSet = Make_GPU(SafeVkDescriptorSet,
+			_owningDevice,
+			sunPSO->GetDescriptorSetLayouts().back(),
+			globalSharedPool);
 
-		VkDescriptorBufferInfo drawConstsInfo;
-		auto staticDrawBuffer = _owningDevice->GetStaticInstanceDrawBuffer();
-		drawConstsInfo.buffer = staticDrawBuffer->GetBuffer();
-		drawConstsInfo.offset = 0;
-		drawConstsInfo.range = staticDrawBuffer->GetPerElementSize();
+		VkSamplerCreateInfo createInfo = {};
 
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-			vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
-		};
+		//fill the normal stuff
+		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		createInfo.magFilter = VK_FILTER_NEAREST;
+		createInfo.minFilter = VK_FILTER_NEAREST;
+		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		createInfo.minLod = 0;
+		createInfo.maxLod = 16.f;
 
-		vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-			static_cast<uint32_t>(writeDescriptorSets.size()),
-			writeDescriptorSets.data(), 0, nullptr);*/
+		_nearestSampler = Make_GPU(SafeVkSampler,
+			_owningDevice,
+			createInfo);
+
+		std::vector< VkDescriptorImageInfo > gbuffer;
+		for (auto& curAttach : gbufferAttachments)
+		{
+			VkDescriptorImageInfo imageInfo;
+			imageInfo.sampler = _nearestSampler->Get();
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			imageInfo.imageView = curAttach.view->Get();
+			gbuffer.push_back(imageInfo);
+		}
+		
+		SE_ASSERT(gbuffer.size() == 4);
+		_viewOnlyVSSet->Update(
+			{
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &gbuffer[0]},
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &gbuffer[1] },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &gbuffer[2] },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &gbuffer[3] }
+			}
+		);
 	}
 
 	// TODO cleanupppp
