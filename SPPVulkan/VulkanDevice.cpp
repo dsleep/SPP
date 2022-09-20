@@ -631,6 +631,7 @@ namespace SPP
 				.name = "Color"
 			}
 		);
+		_lightingComposite->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
 		_lightingCompositeRenderPass = _lightingComposite->createCustomRenderPass({ "Color" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 	}
@@ -1467,7 +1468,7 @@ namespace SPP
 			shaderStages.push_back({ 
 				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 				nullptr,
-				VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
+				0,//TODO this worth it?VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
 				VK_SHADER_STAGE_VERTEX_BIT,
 				InVS->GetAs<VulkanShader>().GetModule(),
 				InVS->GetAs<VulkanShader>().GetEntryPoint().c_str()
@@ -1480,7 +1481,7 @@ namespace SPP
 				shaderStages.push_back({
 					VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 					nullptr,
-					VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
+					0,//TODO this worth it?VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
 					VK_SHADER_STAGE_FRAGMENT_BIT,
 					InPS->GetAs<VulkanShader>().GetModule(),
 					InPS->GetAs<VulkanShader>().GetEntryPoint().c_str()
@@ -1689,8 +1690,10 @@ namespace SPP
 			pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCreateInfo.pStages = shaderStages.data();
 
+			VkPipelineVertexInputStateCreateInfo dummy = vks::initializers::pipelineVertexInputStateCreateInfo();
+
 			// Assign the pipeline states to the pipeline creation info structure
-			pipelineCreateInfo.pVertexInputState = inputLayout ? &inputLayout->GetVertexInputState() : nullptr;
+			pipelineCreateInfo.pVertexInputState = inputLayout ? &inputLayout->GetVertexInputState() : &dummy;
 			pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 			pipelineCreateInfo.pRasterizationState = &rasterizationState;
 			pipelineCreateInfo.pColorBlendState = &colorBlendState;
@@ -1755,7 +1758,7 @@ namespace SPP
 				{
 				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 				nullptr,
-				VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
+				0,//TODO this worth it? VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT,
 				VK_SHADER_STAGE_COMPUTE_BIT,
 				InCS->GetAs<VulkanShader>().GetModule(),
 				InCS->GetAs<VulkanShader>().GetEntryPoint().c_str()

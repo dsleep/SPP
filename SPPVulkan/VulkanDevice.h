@@ -414,6 +414,11 @@ namespace SPP
 			return _lightingCompositeRenderPass;
 		}
 
+		VulkanFramebuffer* GetLightCompositeFrameBuffer()
+		{
+			return _lightingComposite.get();
+		}
+
 		auto &GetDepthOnlyFrameData()
 		{
 			return _depthOnlyFrame;

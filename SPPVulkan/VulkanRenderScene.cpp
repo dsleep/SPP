@@ -601,7 +601,11 @@ namespace SPP
 	void VulkanRenderScene::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
 	{
 		// resize it
+		_depthDrawer.reset();
+		_deferredLightingDrawer.reset();
+
 		_depthDrawer = std::make_unique< DepthDrawer >(this);
+		_deferredLightingDrawer = std::make_unique< PBRDeferredLighting >(this);
 	}
 
 	void VulkanRenderScene::BeginFrame()
@@ -1017,7 +1021,7 @@ namespace SPP
 			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
 
-			VkDescriptorImageInfo textureInfo = GGlobalVulkanGI->GetColorImageDescImgInfo();
+			VkDescriptorImageInfo textureInfo = GGlobalVulkanGI->GetLightCompositeFrameBuffer()->GetImageInfo();
 
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					vks::initializers::writeDescriptorSet(locaDrawSets[0],
