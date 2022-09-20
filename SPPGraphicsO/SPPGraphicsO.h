@@ -490,7 +490,7 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
-		Vector3 _irradiance;
+		Vector3 _irradiance = Vector3(0.5f, 0.5f, 0.5f);
 
 		OLight(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) {}
 

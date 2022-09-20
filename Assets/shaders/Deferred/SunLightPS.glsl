@@ -16,8 +16,8 @@ layout(std430) buffer;
 
 layout(push_constant) readonly uniform _LightParams
 {
-	vec3 LightDirection;
-	vec3 Radiance;
+	vec4 LightDirection;
+	vec4 Radiance;
 } LightParams;
 
 layout (location = 0) in vec4 inPixelPosition;
@@ -54,8 +54,8 @@ void main()
 	// Fresnel reflectance at normal incidence (for metals use albedo color).
 	vec3 F0 = mix(Fdielectric, albedo, metalness);
 	
-	vec3 Li = -LightParams.LightDirection;
-	vec3 Lradiance = LightParams.Radiance;
+	vec3 Li = -LightParams.LightDirection.xyz;
+	vec3 Lradiance = LightParams.Radiance.rgb;
 
 	// Half-vector between Li and Lo.
 	vec3 Lh = normalize(Li + Lo);

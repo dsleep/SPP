@@ -23,6 +23,6 @@ out gl_PerVertex
 void main()
 {	
 	outUV = vec2(gl_VertexIndex & 1,gl_VertexIndex >> 1); //you can use these for texture coordinates later		
-	outPixelPosition = vec4((outUV.x-0.5f)*2, (outUV.y-0.5f)*2, 0, 1);
+	outPixelPosition = vec4((outUV.x-0.5f)*2, -(outUV.y-0.5f)*2, 0, 1);
 	gl_Position = outPixelPosition;
 }

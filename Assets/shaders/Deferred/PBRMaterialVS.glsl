@@ -42,8 +42,8 @@ void main()
 	mat4 localToScreen =  Multiply( LocalToWorldTranslated, ViewConstants.ViewProjectionMatrix );
 		
 	outUV = inUV;
-	outNormal = normalize( Multiply( inNormal, mat3(localToScreen) ) );
-	outTangent = normalize( Multiply( inTangent, mat3(localToScreen) ) );
+	outNormal = normalize( Multiply( inNormal, mat3(DrawConstants.LocalToWorldScaleRotation) ) );
+	outTangent = normalize( Multiply( inTangent, mat3(DrawConstants.LocalToWorldScaleRotation) ) );
 
 	gl_Position = Multiply( vec4(inPos, 1.0), localToScreen );
 }

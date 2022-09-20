@@ -164,8 +164,8 @@ namespace SPP
 
 	struct alignas(16u) SunLightParams
 	{
-		Vector3 LightDirection;
-		Vector3 Radiance;
+		Vector4 LightDirection;
+		Vector4 Radiance;
 	};
 
 	// TODO cleanupppp
@@ -178,8 +178,8 @@ namespace SPP
 
 		SunLightParams lightParams =
 		{
-			Vector3(0,1,0),
-			Vector3(1,1,1)
+			Vector4(0,-1,0,0),
+			Vector4(1,1,1,0)
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
