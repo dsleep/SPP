@@ -639,6 +639,7 @@ namespace SPP
 		width = InTextureAsset.width;
 		height = InTextureAsset.height;
 		mipLevels = InTextureAsset.mipData.size();
+		this->imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		layerCount = 1;
 
 		// Get device properties for the requested texture format

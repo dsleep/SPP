@@ -532,7 +532,7 @@ namespace SPP
 			_commonVSLayout->Get(),
 			globalSharedPool);
 
-		VkDescriptorBufferInfo camBufferInfo = _cameraBuffer->GetDescriptorInfo();
+		VkDescriptorBufferInfo camBufferInfo = { _cameraBuffer->GetBuffer(), 0, _cameraBuffer->GetPerElementSize() };
 		_commonDescriptorSet->Update({
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &camBufferInfo},
 		});

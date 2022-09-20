@@ -34,7 +34,7 @@ namespace SPP
 		uint32_t              width = 0, height = 0;
 		uint32_t              mipLevels = 0;
 		uint32_t              layerCount = 0;
-		VkDescriptorImageInfo descriptor; 
+		VkDescriptorImageInfo descriptor = {};
 		VkSampler             sampler;
 		uint32_t		      imageByteSize;
 
