@@ -140,6 +140,9 @@ public:
 		//{
 		//	totalBounds += curShild->Bounds();
 		//}
+
+		auto newSun = AllocateObject<OSun>("SUNNN", _gameworld);
+		_gameworld->AddChild(newSun);
 				
 #if 0
 		auto MeshType = rttr::type::get<VgMeshElement>();

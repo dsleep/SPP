@@ -241,6 +241,10 @@ namespace SPP
         
         virtual std::shared_ptr< class RT_RenderableMesh > CreateRenderableMesh() = 0;
         virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() = 0;
+
+        virtual std::shared_ptr< class RT_SunLight > CreateSunLight() = 0;
+        virtual std::shared_ptr< class RT_PointLight > CreatePointLight() = 0;
+
         //virtual std::shared_ptr< class RT_RenderableMesh > CreateSkinnedMesh() = 0;
 
         //virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() = 0;

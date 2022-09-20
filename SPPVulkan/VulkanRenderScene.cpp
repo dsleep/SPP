@@ -479,11 +479,6 @@ namespace SPP
 			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
-		_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet, 
-			_owner,
-			GVulkanOpaqueResrouces.GetOpaqueVSLayout()->Get(), 
-			globalSharedPool);
-
 		_fullscreenRaySDFPSO = GetVulkanPipelineState(_owner,
 			owningDevice->GetColorFrameData(),
 			EBlendState::Disabled,
@@ -522,9 +517,29 @@ namespace SPP
 		_renderableVisibleGPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), false);
 		_renderableVisibleCPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), true);
 		
+		// common set
+		_commonVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
+		_commonVS->CompileShaderFromFile("shaders/CommonVS.glsl");
+		auto bindingsCopy = _commonVS->GetLayoutSets().front().bindings;
+		for (auto& curbinding : bindingsCopy)
+		{
+			curbinding.stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		}
+		_commonVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, bindingsCopy);
+
+		_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet,
+			_owner,
+			_commonVSLayout->Get(),
+			globalSharedPool);
+
+		VkDescriptorBufferInfo camBufferInfo = _cameraBuffer->GetDescriptorInfo();
+		_commonDescriptorSet->Update({
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &camBufferInfo},
+		});
+
 		// drawers
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
-		_depthDrawer = std::make_unique< DepthDrawer >(this);	
+		_depthDrawer = std::make_unique< DepthDrawer >(this);
 		_deferredDrawer = std::make_unique< PBRDeferredDrawer >(this);
 		_deferredLightingDrawer = std::make_unique< PBRDeferredLighting >(this);
 	}
@@ -724,6 +739,7 @@ namespace SPP
 		_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
 			{
 				auto curRenderable = ((Renderable*)InElement);
+
 				if (curRenderable->GetType() == RenderableType::Mesh)
 				{
 					_visible[curVisible++] = curRenderable;

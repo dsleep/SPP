@@ -411,6 +411,59 @@ namespace SPP
 	{
 		_shader.reset();
 	}
+
+	//LIGHTS
+	void OSun::AddedToScene(class OScene* InScene)
+	{
+		OLight::AddedToScene(InScene);
+
+		if (!InScene) return;
+
+		auto thisRenderableScene = dynamic_cast<ORenderableScene*>(InScene);
+		SE_ASSERT(thisRenderableScene);
+
+		_bounds = Sphere(Vector3d(0,0,0), 20000000);
+
+		auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+		auto renderScene = thisRenderableScene->GetRenderScene();
+		if (sceneGD && renderScene)
+		{
+			_light = sceneGD->CreateSunLight();
+
+			auto localToWorld = GenerateLocalToWorld(true);
+			Vector3d TopPosition = GetTopBeforeScene()->GetPosition();
+			Vector3d FinalPosition = localToWorld.block<1, 3>(3, 0).cast<double>() + TopPosition;
+
+			_light->SetArgs({
+				.position = FinalPosition,
+				.eulerRotationYPR = _rotation,
+				.scale = _scale,
+				.bIsStatic = _bIsStatic,
+				.bounds = _bounds
+				});
+
+			_light->SetLightArgs(
+				{
+					.irradiance = _irradiance
+				}
+			);
+
+			_light->AddToRenderScene(renderScene);
+		}
+	}
+	void OSun::RemovedFromScene()
+	{
+		OLight::RemovedFromScene();
+
+		if (_light)
+		{
+			RunOnRT([_light = this->_light]()
+			{
+				_light->RemoveFromRenderScene();
+			});
+			_light.reset();
+		}
+	}
 }
 
 using namespace SPP;
@@ -529,13 +582,14 @@ RTTR_REGISTRATION
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
-			)
+		)
+		.property("_irradiance", &OLight::_irradiance)(rttr::policy::prop::as_reference_wrapper)
 		;
 	rttr::registration::class_<OSun>("OSun")
 		.constructor<const std::string&, SPPDirectory*>()
 		(
 			rttr::policy::ctor::as_raw_ptr
-			)
+		)
 		;
 	rttr::registration::class_<OPointLight>("OPointLight")
 		.constructor<const std::string&, SPPDirectory*>()

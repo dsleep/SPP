@@ -1440,24 +1440,24 @@ namespace SPP
 				auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
 				MergeBindingSet(psSet, _setLayoutBindings);
 			}
-
-			_descriptorSetLayouts.resize(_setLayoutBindings.size());
 			
+			SE_ASSERT(_descriptorSetLayouts.empty());
+			_descriptorSetLayouts.resize(4);
+
 			// step through sets numerically
-			for (int32_t Iter = 0, foundIdx = 0; Iter < 4; Iter++)
+			for (int32_t Iter = 0; Iter < 4; Iter++)
 			{
 				auto foundSet = _setLayoutBindings.find(Iter);
 				if(foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
-					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[foundIdx]));
-					
-					if (!foundIdx)
-					{
-						_startSetIdx = Iter;
-					}
-
-					foundIdx++;
+					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+				}
+				// else create dummy
+				else
+				{
+					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
+					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
 			}
 
@@ -1490,6 +1490,13 @@ namespace SPP
 			//TODO setup ps/vs merge
 			// setup push constants
 			std::vector<VkPushConstantRange> push_constants;
+
+			//TODO add VS MERGE!!
+			if (InPS)
+			{
+				push_constants = InPS->GetAs<VulkanShader>().GetPushConstants();
+			}
+
 			////this push constant range starts at the beginning
 			//push_constant.offset = 0;
 			////this push constant range takes up the size of a MeshPushConstants struct
@@ -1710,23 +1717,23 @@ namespace SPP
 
 			MergeBindingSet(csShaderSets, _setLayoutBindings);
 
-			_descriptorSetLayouts.resize(_setLayoutBindings.size());
+			SE_ASSERT(_descriptorSetLayouts.empty());
+			_descriptorSetLayouts.resize(4);
 
 			// step through sets numerically
-			for (int32_t Iter = 0, foundIdx = 0; Iter < 4; Iter++)
+			for (int32_t Iter = 0; Iter < 4; Iter++)
 			{
 				auto foundSet = _setLayoutBindings.find(Iter);
 				if (foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
-					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[foundIdx]));
-
-					if (!foundIdx)
-					{
-						_startSetIdx = Iter;
-					}
-
-					foundIdx++;
+					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+				}
+				// else create dummy
+				else
+				{
+					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
+					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
 			}
 

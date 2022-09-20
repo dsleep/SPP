@@ -230,8 +230,7 @@ namespace SPP
 		auto CurPool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 
 		auto& descriptorSetLayouts = _impl->_state->GetDescriptorSetLayouts();
-		auto setStartIdx = _impl->_state->GetStartIdx();
-
+		
 		std::vector<VkDescriptorSet> locaDrawSets;
 		locaDrawSets.resize(descriptorSetLayouts.size());
 
@@ -262,8 +261,10 @@ namespace SPP
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _impl->_state->GetVkPipeline());
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			_impl->_state->GetVkPipelineLayout(),
-			setStartIdx,
-			locaDrawSets.size(), locaDrawSets.data(), ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			0,
+			locaDrawSets.size(), 
+			locaDrawSets.data(),
+			ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		vkCmdDraw(commandBuffer, _impl->_gpuLineCount * 2, _impl->_gpuLineCount, 0, 0);
 	}
 	

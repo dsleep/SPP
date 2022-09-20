@@ -14,16 +14,14 @@ layout(std430) buffer;
 // include paths based on root of shader directory
 #include "./Deferred/PBRCommon.glsl"
 
-layout (location = 0) in vec4 inPixelPosition;
-layout (location = 1) in vec2 inUV;
-
-
 layout(push_constant) readonly uniform _LightParams
 {
 	vec3 LightDirection;
 	vec3 Radiance;
 } LightParams;
 
+layout (location = 0) in vec4 inPixelPosition;
+layout (location = 1) in vec2 inUV;
 
 layout (location = 0) out vec4 outputColor;
 

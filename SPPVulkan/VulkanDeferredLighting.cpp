@@ -70,7 +70,7 @@ namespace SPP
 				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
 				nullptr,
-				_lightShapeVS,
+				_lightFullscreenVS,
 				_lightSunPS,
 				nullptr,
 				nullptr,
@@ -135,15 +135,21 @@ namespace SPP
 		{
 			VkDescriptorImageInfo imageInfo;
 			imageInfo.sampler = _nearestSampler->Get();
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+			imageInfo.imageLayout = curAttach.isDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL  : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = curAttach.view->Get();
 			gbuffer.push_back(imageInfo);
 		}
 		
 		_gbufferTextureSet = Make_GPU(SafeVkDescriptorSet,
 			_owningDevice,
-			sunPSO->GetDescriptorSetLayouts().back(),
+			sunPSO->GetDescriptorSetLayouts()[2],
 			globalSharedPool);
+
+		_dummySet = Make_GPU(SafeVkDescriptorSet,
+			_owningDevice,
+			sunPSO->GetDescriptorSetLayouts()[3],
+			globalSharedPool);
+		_dummySet->Update({});
 
 		SE_ASSERT(gbuffer.size() == 4);
 		_gbufferTextureSet->Update(
@@ -186,7 +192,7 @@ namespace SPP
 
 		VkDescriptorSet locaDrawSets[] = {
 			_owningScene->GetCommondDescriptorSet()->Get(),
-			nullptr,
+			_dummySet->Get(),
 			_gbufferTextureSet->Get()
 		};
 

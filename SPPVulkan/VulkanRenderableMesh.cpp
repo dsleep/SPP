@@ -74,6 +74,16 @@ namespace SPP
 		return Make_RT_Resource( RT_VulkanStaticMesh, this);
 	}
 
+	std::shared_ptr< class RT_SunLight > VulkanGraphicsDevice::CreateSunLight()
+	{
+		return Make_RT_Resource(RT_SunLight, this);
+	}
+
+	std::shared_ptr< class RT_PointLight > VulkanGraphicsDevice::CreatePointLight()
+	{
+		return Make_RT_Resource(RT_PointLight, this);
+	}
+
 	std::shared_ptr< class RT_RenderableMesh > VulkanGraphicsDevice::CreateRenderableMesh()
 	{
 		return Make_RT_Resource( RT_VulkanRenderableMesh, this);

@@ -479,6 +479,9 @@ namespace SPP
 		virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() override;
 		virtual std::shared_ptr< class RT_RenderableSignedDistanceField > CreateSignedDistanceField() override;
 
+		virtual std::shared_ptr< class RT_SunLight > CreateSunLight() override;
+		virtual std::shared_ptr< class RT_PointLight > CreatePointLight() override;
+
 		virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255, 255, 255)) override;
 	};
 
@@ -493,7 +496,6 @@ namespace SPP
 		// The descriptor set layout describes the shader binding layout (without actually referencing descriptor)
 		// Like the pipeline layout it's pretty much a blueprint and can be used with different descriptor sets as long as their layout matches
 		std::vector<VkDescriptorSetLayout> _descriptorSetLayouts;
-		uint8_t _startSetIdx = 0;
 
 		// Pipelines (often called "pipeline state objects") are used to bake all states that affect a pipeline
 		// While in OpenGL every state can be changed at (almost) any time, Vulkan requires to layout the graphics (and compute) pipeline states upfront
@@ -514,10 +516,6 @@ namespace SPP
 		const VkPipeline &GetVkPipeline()
 		{
 			return _pipeline;
-		}
-		auto GetStartIdx() const
-		{
-			return _startSetIdx;
 		}
 		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts()
 		{

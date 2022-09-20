@@ -6,8 +6,6 @@
 #extension GL_GOOGLE_include_directive: require
 
 //we are in fact using column
-//layout(row_major) uniform;
-//layout(row_major) buffer;
 layout(std430) buffer;
 
 #include "Common.glsl"

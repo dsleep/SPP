@@ -155,7 +155,10 @@ namespace SPP
 		std::unique_ptr< class PBRDeferredDrawer > _deferredDrawer;	
 		std::unique_ptr< class PBRDeferredLighting > _deferredLightingDrawer;
 
+		GPUReferencer< class VulkanShader > _commonVS;
 		GPUReferencer< SafeVkDescriptorSet > _commonDescriptorSet;
+		GPUReferencer< SafeVkDescriptorSetLayout > _commonVSLayout;
+		
 
 		GPUReferencer< GPUShader > _debugVS;
 		GPUReferencer< GPUShader > _debugPS;

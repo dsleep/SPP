@@ -490,6 +490,8 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
+		Vector3 _irradiance;
+
 		OLight(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) {}
 
 	public:
@@ -502,9 +504,14 @@ namespace SPP
 		RTTR_REGISTRATION_FRIEND
 
 	protected:
+		std::shared_ptr<RT_SunLight> _light;
+
 		OSun(const std::string& InName, SPPDirectory* InParent) : OLight(InName, InParent) {}
 
 	public:
+		virtual void AddedToScene(class OScene* InScene) override;
+		virtual void RemovedFromScene() override;
+
 		virtual ~OSun() { }
 	};
 

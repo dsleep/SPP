@@ -497,9 +497,45 @@ namespace SPP
 		CLASS_RT_RESOURCE();
 
 	protected:
+		Vector3 _irradiance;
 		RT_RenderableLight(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
 
+	public:
+		struct Args
+		{
+			Vector3 irradiance;
+		};
+
+		virtual RenderableType GetType() const { return RenderableType::Light; }
+
+		void SetLightArgs(const Args& InArgs)
+		{
+			_irradiance = InArgs.irradiance;
+		}
+
 		virtual ~RT_RenderableLight() {}
+	};
+
+	class SPP_GRAPHICS_API RT_SunLight : public RT_RenderableLight
+	{
+		CLASS_RT_RESOURCE();
+
+	protected:
+		RT_SunLight(GraphicsDevice* InOwner) : RT_RenderableLight(InOwner) {}
+
+	public:
+		virtual ~RT_SunLight() {}
+	};
+
+	class SPP_GRAPHICS_API RT_PointLight : public RT_RenderableLight
+	{
+		CLASS_RT_RESOURCE();
+
+	protected:
+		RT_PointLight(GraphicsDevice* InOwner) : RT_RenderableLight(InOwner) {}
+
+	public:
+		virtual ~RT_PointLight() {}
 	};
 
 	class SPP_GRAPHICS_API RT_RenderableMesh : public Renderable, public RT_Resource
