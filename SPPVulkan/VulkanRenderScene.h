@@ -152,11 +152,10 @@ namespace SPP
 
 		std::unique_ptr< class DepthDrawer > _depthDrawer;
 		std::unique_ptr< class OpaqueDrawer > _opaqueDrawer;
-		std::unique_ptr< class PBRDeferredDrawer > _deferredDrawer;
-		
+		std::unique_ptr< class PBRDeferredDrawer > _deferredDrawer;	
+		std::unique_ptr< class PBRDeferredLighting > _deferredLightingDrawer;
 
 		GPUReferencer< SafeVkDescriptorSet > _commonDescriptorSet;
-
 
 		GPUReferencer< GPUShader > _debugVS;
 		GPUReferencer< GPUShader > _debugPS;
@@ -173,8 +172,7 @@ namespace SPP
 
 		GPUReferencer< PipelineState > _fullscreenRaySDFPSO, _fullscreenSkyBoxPSO;
 		GPUReferencer< GPUInputLayout > _fullscreenRayVSLayout;
-
-		
+				
 		std::shared_ptr< ArrayResource > _cameraData;
 		GPUReferencer< class VulkanBuffer > _cameraBuffer;
 

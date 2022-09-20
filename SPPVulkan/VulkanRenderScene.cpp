@@ -11,6 +11,7 @@
 
 #include "VulkanDeferredDrawer.h"
 #include "VulkanDepthDrawer.h"
+#include "VulkanDeferredLighting.h"
 
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
@@ -525,6 +526,7 @@ namespace SPP
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
 		_depthDrawer = std::make_unique< DepthDrawer >(this);	
 		_deferredDrawer = std::make_unique< PBRDeferredDrawer >(this);
+		_deferredLightingDrawer = std::make_unique< PBRDeferredLighting >(this);
 	}
 
 	void VulkanRenderScene::RemovedFromGraphicsDevice()
@@ -536,6 +538,7 @@ namespace SPP
 		_opaqueDrawer.reset();
 		_depthDrawer.reset();
 		_deferredDrawer.reset();
+		_deferredLightingDrawer.reset();
 	}
 
 	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
@@ -700,9 +703,12 @@ namespace SPP
 		}
 
 		int32_t curVisible = 0;
+		int32_t curVisibleLights = 0;
+
 		if (_renderables.size() > _visible.size())
 		{
 			_visible.resize(_renderables.size() + 1024);
+			_visiblelights.resize(_renderables.size() + 1024);
 		}
 
 		_octreeVisiblity.Expand(_renderables.size());
@@ -718,20 +724,16 @@ namespace SPP
 		_octree.WalkElements(_frustumPlanes, [&](const IOctreeElement* InElement) -> bool
 			{
 				auto curRenderable = ((Renderable*)InElement);
-				if (curRenderable->Is3dRenderable())
+				if (curRenderable->GetType() == RenderableType::Mesh)
 				{
 					_visible[curVisible++] = curRenderable;
 				}
-
+				else if (curRenderable->GetType() == RenderableType::Light)
+				{
+					_visiblelights[curVisibleLights++] = curRenderable;
+				}
+								
 				_octreeVisiblity.Set(curRenderable->GetGlobalID().RawGet()->GetID(), true);
-
-				//
-				
-
-				//auto& drawInfo = curRenderable->GetDrawingInfo();
-
-				//drawInfo.drawingType == DrawingType::Opaque
-				//((Renderable*)InElement)->Draw();
 				return true;
 			},
 		
@@ -819,7 +821,7 @@ namespace SPP
 		vkCmdEndRenderPass(commandBuffer);
 
 		//Lighting
-#if 0
+#if 1
 		{
 			VkRenderPassBeginInfo renderPassBeginInfo = {};
 			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -853,6 +855,11 @@ namespace SPP
 		}
 
 		vulkanGD->SetCheckpoint(commandBuffer, "Lighting");
+
+		for (uint32_t visIter = 0; visIter < curVisibleLights; visIter++)
+		{
+			_deferredLightingDrawer->Render(*(RT_RenderableLight*)_visiblelights[visIter]);
+		}
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -978,11 +985,7 @@ namespace SPP
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		// Update dynamic scissor state
-		VkRect2D scissor = {};
-		scissor.extent.width = DeviceExtents[0];
-		scissor.extent.height = DeviceExtents[1];
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
+		VkRect2D scissor = vks::initializers::rect2D(DeviceExtents[0], DeviceExtents[1], 0, 0);
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		//

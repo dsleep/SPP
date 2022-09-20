@@ -1422,7 +1422,7 @@ namespace SPP
 		{
 			auto renderPass = renderPassData.renderPass->Get();
 
-			auto& inputLayout = InLayout->GetAs<VulkanInputLayout>();
+			VulkanInputLayout* inputLayout = InLayout ? &InLayout->GetAs<VulkanInputLayout>() : nullptr;
 
 			// Shaders
 			std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
@@ -1683,7 +1683,7 @@ namespace SPP
 			pipelineCreateInfo.pStages = shaderStages.data();
 
 			// Assign the pipeline states to the pipeline creation info structure
-			pipelineCreateInfo.pVertexInputState = &inputLayout.GetVertexInputState();
+			pipelineCreateInfo.pVertexInputState = inputLayout ? &inputLayout->GetVertexInputState() : nullptr;
 			pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 			pipelineCreateInfo.pRasterizationState = &rasterizationState;
 			pipelineCreateInfo.pColorBlendState = &colorBlendState;

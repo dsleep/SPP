@@ -15,7 +15,7 @@ namespace SPP
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 		GPUReferencer<SafeVkSampler> _nearestSampler;
-		GPUReferencer<SafeVkDescriptorSet> _viewOnlyVSSet, _commonLightDescSet, _gbufferTextureSet;
+		GPUReferencer<SafeVkDescriptorSet> _gbufferTextureSet;
 		
 	public:
 		PBRDeferredLighting(VulkanRenderScene* InScene);

@@ -80,6 +80,14 @@ namespace SPP
 		virtual ~GlobalRenderableID();
 	};
 
+	enum class RenderableType
+	{
+		Unknown = 0,
+		Mesh = 1,
+		Particle = 2,
+		Light = 3
+	};	
+
 	class SPP_GRAPHICS_API Renderable : public IOctreeElement
 	{
 		friend class RT_RenderScene;
@@ -133,6 +141,8 @@ namespace SPP
 		}
 
 		virtual ~Renderable() {}
+
+		virtual RenderableType GetType() const { return RenderableType::Unknown; }
 
 		virtual bool Is3dRenderable() const { return true; }
 		virtual bool IsPostRenderable() const { return false; }
@@ -236,6 +246,7 @@ namespace SPP
 		BitSetArray _depthCullVisiblity;
 
 		std::vector<Renderable*> _visible;
+		std::vector<Renderable*> _visiblelights;
 
 		std::vector<Renderable*> _opaques;
 		std::vector<Renderable*> _translucents;
@@ -517,6 +528,8 @@ namespace SPP
 		{
 			return _mesh;
 		}
+
+		virtual RenderableType GetType() const override { return RenderableType::Mesh; }
 
 		virtual ~RT_RenderableMesh() {}
 		void SetRenderableMeshArgs(const Args& InArgs)

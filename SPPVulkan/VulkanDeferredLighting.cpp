@@ -108,27 +108,9 @@ namespace SPP
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto sunPSO = GVulkanDeferredLightingResrouces.GetSunPSO();
 		
-		_viewOnlyVSSet = Make_GPU(SafeVkDescriptorSet, 
-			_owningDevice, 
-			sunPSO->GetDescriptorSetLayouts().front(), 
-			globalSharedPool);
-
-		auto cameraBuffer = InScene->GetCameraBuffer();		
-		VkDescriptorBufferInfo perFrameInfo = cameraBuffer->GetDescriptorInfo();
-		_viewOnlyVSSet->Update(
-			{
-				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo }
-			}
-			);
-
 		//
 		auto deferredGbuffer = _owningDevice->GetColorTarget();
 		auto& gbufferAttachments = deferredGbuffer->GetAttachments();
-
-		_commonLightDescSet = Make_GPU(SafeVkDescriptorSet,
-			_owningDevice,
-			sunPSO->GetDescriptorSetLayouts().back(),
-			globalSharedPool);
 
 		VkSamplerCreateInfo createInfo = {};
 
@@ -160,7 +142,7 @@ namespace SPP
 		
 		_gbufferTextureSet = Make_GPU(SafeVkDescriptorSet,
 			_owningDevice,
-			sunPSO->GetDescriptorSetLayouts()[2],
+			sunPSO->GetDescriptorSetLayouts().back(),
 			globalSharedPool);
 
 		SE_ASSERT(gbuffer.size() == 4);
