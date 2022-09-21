@@ -173,6 +173,15 @@ namespace SPP
         }
     };      
   
+    class SPP_GRAPHICS_API GlobalGraphicsResource
+    {
+    protected:
+        class GraphicsDevice* _owner = nullptr;
+
+    public:
+        GlobalGraphicsResource(class GraphicsDevice* InOwner);
+        virtual ~GlobalGraphicsResource();
+    };
 
     class SPP_GRAPHICS_API GraphicsDevice
     {
@@ -181,6 +190,8 @@ namespace SPP
 
         virtual void INTERNAL_AddScene(class RT_RenderScene* InScene);
         virtual void INTERNAL_RemoveScene(class RT_RenderScene* InScene);
+
+        std::array< std::unique_ptr< class GlobalGraphicsResource >, 30 > _globalResources;
 
         std::list< class GPUResource* > _resources;
         std::list< std::weak_ptr< RT_Resource > > _renderThreadResources;
@@ -191,6 +202,12 @@ namespace SPP
               
     public:
         virtual ~GraphicsDevice();
+
+        template<typename T>
+        T* GetGlobalResource()
+        {
+            return (T*)(_globalResources[T::GetID()].get());
+        }
 
         virtual void PushResource(class GPUResource* InResource);
         virtual void PopResource(class GPUResource* InResource);

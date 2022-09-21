@@ -45,6 +45,8 @@ namespace SPP
 
 	class GlobalVulkanRenderSceneResources : public GlobalGraphicsResource
 	{
+		GLOBAL_RESOURCE(GlobalVulkanRenderSceneResources)
+
 	private:
 		GPUReferencer < GPUShader > _fullscreenColorVS, _fullscreenColorPS;
 		GPUReferencer< PipelineState > _fullscreenColorPSO;
@@ -52,7 +54,7 @@ namespace SPP
 
 	public:
 		// called on render thread
-		virtual void Initialize(class GraphicsDevice* InOwner)
+		GlobalVulkanRenderSceneResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			_fullscreenColorVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);  
 			_fullscreenColorVS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_vs");
@@ -89,17 +91,7 @@ namespace SPP
 		{
 			return _fullscreenColorPSO;
 		}
-
-		virtual void Shutdown(class GraphicsDevice* InOwner)
-		{
-			_fullscreenColorVS.Reset();
-			_fullscreenColorPS.Reset();
-			_fullscreenColorPSO.Reset();
-			_fullscreenColorLayout.Reset();
-		}
 	};
-
-	
 
 	const std::vector<VertexStream>& OP_GetVertexStreams_SM()
 	{
@@ -118,10 +110,11 @@ namespace SPP
 		return vertexStreams;
 	}
 
-	
 
 	class GlobalOpaqueDrawerResources : public GlobalGraphicsResource
 	{
+		GLOBAL_RESOURCE(GlobalOpaqueDrawerResources)
+
 	private:
 		GPUReferencer < VulkanShader > _opaqueVS, _opaquePS, _opaquePSWithLightMap, _opaqueVSWithLightMap;
 		GPUReferencer< SafeVkDescriptorSetLayout > _opaqueVSLayout;
@@ -130,7 +123,7 @@ namespace SPP
 
 	public:
 		// called on render thread
-		virtual void Initialize(class GraphicsDevice* InOwner)
+		GlobalOpaqueDrawerResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
@@ -171,27 +164,14 @@ namespace SPP
 		{
 			return _opaquePS;
 		}
-
-		virtual void Shutdown(class GraphicsDevice* InOwner)
-		{
-			_opaqueVS.Reset();
-			_opaquePS.Reset();
-			_opaqueVSWithLightMap.Reset();
-			_opaquePSWithLightMap.Reset();
-		}
 	};
-
 	
-
-
-	
-
-	GlobalVulkanRenderSceneResources GVulkanSceneResrouces;
-	GlobalOpaqueDrawerResources GVulkanOpaqueResrouces;
+	REGISTER_GLOBAL_RESOURCE(GlobalVulkanRenderSceneResources);
+	REGISTER_GLOBAL_RESOURCE(GlobalOpaqueDrawerResources);
 
 	GPUReferencer< class SafeVkDescriptorSetLayout > GetOpaqueVSLayout()
 	{
-		return GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+		return GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaqueVSLayout();
 	}
 	
 	OpaqueMaterialCache* GetMaterialCache(VertexInputTypes InVertexInputType, std::shared_ptr<RT_Vulkan_Material> InMat)
@@ -211,9 +191,9 @@ namespace SPP
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InMat->GetOwner());
 
 			cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
-				GVulkanOpaqueResrouces.GetOpaqueVS(),
-				GVulkanOpaqueResrouces.GetOpaquePS(),
-				GVulkanOpaqueResrouces.GetSMLayout());
+				GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaqueVS(),
+				GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaquePS(),
+				GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetSMLayout());
 
 			auto& descSetLayouts = cacheRef->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
 
@@ -330,7 +310,7 @@ namespace SPP
 			_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 			auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
-			auto meshVSLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+			auto meshVSLayout = GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaqueVSLayout();
 			_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
 
 			auto cameraBuffer = InScene->GetCameraBuffer();
@@ -399,7 +379,7 @@ namespace SPP
 			else
 			{
 				auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
-				auto vsLayout = GVulkanOpaqueResrouces.GetOpaqueVSLayout();
+				auto vsLayout = GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaqueVSLayout();
 
 				VkDescriptorSet dynamicTransformSet;
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
@@ -980,7 +960,7 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
-		auto FullScreenWritePSO = GVulkanSceneResrouces.GetFullScreenWritePSO();
+		auto FullScreenWritePSO = GGlobalVulkanGI->GetGlobalResource< GlobalVulkanRenderSceneResources >()->GetFullScreenWritePSO();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};

@@ -36,6 +36,8 @@ namespace SPP
 
 	class GlobalDeferredLightingResources : public GlobalGraphicsResource
 	{
+		GLOBAL_RESOURCE(GlobalDeferredLightingResources)
+
 	private:
 		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS;
 		GPUReferencer< GPUInputLayout > _lightShapeLayout;
@@ -47,7 +49,7 @@ namespace SPP
 
 	public:
 		// called on render thread
-		virtual void Initialize(class GraphicsDevice* InOwner)
+		GlobalDeferredLightingResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
@@ -93,20 +95,15 @@ namespace SPP
 		{
 			return _psoSunLight;
 		}
-
-		virtual void Shutdown(class GraphicsDevice* InOwner)
-		{
-			_lightShapeVS.Reset();
-		}
 	};
 
-	GlobalDeferredLightingResources GVulkanDeferredLightingResrouces;
+	REGISTER_GLOBAL_RESOURCE(GlobalDeferredLightingResources);
 
 	PBRDeferredLighting::PBRDeferredLighting(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
-		auto sunPSO = GVulkanDeferredLightingResrouces.GetSunPSO();
+		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
 		
 		//
 		auto deferredGbuffer = _owningDevice->GetColorTarget();
@@ -174,7 +171,7 @@ namespace SPP
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
-		auto sunPSO = GVulkanDeferredLightingResrouces.GetSunPSO();
+		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
 
 		SunLightParams lightParams =
 		{

@@ -568,6 +568,7 @@ namespace SPP
 		_depthOnlyFrame = {};
 		_defferedFrame = {};
 		_colorAndDepthFrame = {};
+		_lightingCompositeRenderPass = {};
 
 		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
 		_depthColor->SetName("_depthColor");
@@ -839,12 +840,11 @@ namespace SPP
 #endif
 				}
 
-				auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
-				while (CurResource)
+				auto& globalList = GetGlobalResourceList();
+				for (size_t Iter = 0; Iter < globalList.size(); Iter++)
 				{
-					CurResource->Initialize(this);
-					CurResource = CurResource->GetNext();
-				};
+					_globalResources[Iter].reset(globalList[Iter](this));
+				}
 			});
 
 		
@@ -868,12 +868,10 @@ namespace SPP
 					}
 				}
 
-				auto CurResource = InternalLinkedList<GlobalGraphicsResource>::GetRoot();
-				while (CurResource)
+				for (auto& curRes : _globalResources)
 				{
-					CurResource->Shutdown(this);
-					CurResource = CurResource->GetNext();
-				};
+					curRes.reset();
+				}
 
 				for (auto& fence : _waitFences)
 				{
@@ -887,6 +885,16 @@ namespace SPP
 				_deferredTarget.reset();
 				_piplineStateMap.clear();
 
+				_depthColor.Reset();
+				_lightingComposite.reset();
+
+				_depthOnlyFrame = {};
+				_colorAndDepthFrame = {};
+				_defferedFrame = {};
+				_lightingCompositeRenderPass = {};
+
+				_backBufferRenderPass.Reset();
+				_staticInstanceDrawInfoGPU.Reset();
 			});
 
 		Flush();
@@ -1102,11 +1110,14 @@ namespace SPP
 
 				for (int32_t Iter = 0; Iter < flushDying.size(); Iter++)
 				{
-					for (auto& curResource : *flushDying[Iter])
+					while(flushDying[Iter]->empty() == false)
 					{
-						delete curResource;
+						if (flushDying[Iter]->back())
+						{
+							delete flushDying[Iter]->back();
+						}
+						flushDying[Iter]->pop_back();
 					}
-					flushDying[Iter]->clear();
 				}
 			});
 	}

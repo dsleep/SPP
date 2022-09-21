@@ -36,6 +36,8 @@ namespace SPP
 
 	class GlobalDepthDrawerResources : public GlobalGraphicsResource
 	{
+		GLOBAL_RESOURCE(GlobalDepthDrawerResources)
+
 	private:
 		GPUReferencer < VulkanShader > _depthVS;
 		GPUReferencer< SafeVkDescriptorSetLayout > _depthVSLayout;
@@ -50,7 +52,7 @@ namespace SPP
 
 	public:
 		// called on render thread
-		virtual void Initialize(class GraphicsDevice* InOwner)
+		GlobalDepthDrawerResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
@@ -203,15 +205,9 @@ namespace SPP
 		{
 			return _depthPyramidSampler;
 		}
-
-		virtual void Shutdown(class GraphicsDevice* InOwner)
-		{
-			_depthVS.Reset();
-			_depthPyramidSampler.Reset();
-		}
 	};
 
-	GlobalDepthDrawerResources GVulkanDepthResrouces;
+	REGISTER_GLOBAL_RESOURCE(GlobalDepthDrawerResources);
 
 	struct alignas(16u) DepthReduceData
 	{
@@ -225,7 +221,7 @@ namespace SPP
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
 		//
-		auto depthVSLayout = GVulkanDepthResrouces.GetVSLayout();
+		auto depthVSLayout = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetVSLayout();
 		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, depthVSLayout->Get(), globalSharedPool);
 
 		auto cameraBuffer = InScene->GetCameraBuffer();
@@ -259,7 +255,10 @@ namespace SPP
 		// SETUP Depth pyramid texture
 		///////////////////////////////////
 
-		_depthPyramidDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(), globalSharedPool);
+		_depthPyramidDescriptorSet = Make_GPU(SafeVkDescriptorSet, 
+			_owningDevice, 
+			_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthCSPyramidLayout()->Get(), 
+			globalSharedPool);
 
 		auto DeviceExtents = _owningDevice->GetExtents();
 
@@ -278,7 +277,7 @@ namespace SPP
 		_depthPyramidDescriptors.clear();
 
 		// create those descriptors of the mip chain
-		auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+		auto depthDownsizeSampler = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthSampler();
 		for (int32_t Iter = 0; Iter < _depthPyramidViews.size(); Iter++)
 		{
 			VkDescriptorImageInfo sourceTarget;
@@ -304,7 +303,7 @@ namespace SPP
 
 			auto descChainSet = Make_GPU(SafeVkDescriptorSet,
 				_owningDevice,
-				GVulkanDepthResrouces.GetDepthCSPyramidLayout()->Get(),
+				_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthCSPyramidLayout()->Get(),
 				globalSharedPool);
 
 			{
@@ -326,7 +325,10 @@ namespace SPP
 		}
 
 		//DEPTH CULLING AGAINST PYRAMID
-		_depthCullingDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, GVulkanDepthResrouces.GepthCullingCSLayout()->Get(), globalSharedPool);
+		_depthCullingDescriptorSet = Make_GPU(SafeVkDescriptorSet, 
+			_owningDevice, 
+			_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GepthCullingCSLayout()->Get(),
+			globalSharedPool);
 
 		VkDescriptorBufferInfo drawSphereInfo = _owningScene->GetCullDataBuffer()->GetDescriptorInfo();
 		VkDescriptorBufferInfo drawVisibilityInfo = _owningScene->GetVisibleGPUBuffer()->GetDescriptorInfo();
@@ -358,8 +360,8 @@ namespace SPP
 	{
 		auto DeviceExtents = _owningDevice->GetExtents();
 
-		auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
-		auto depthPyrPSO = GVulkanDepthResrouces.GetDepthPyramidPSO();
+		auto depthDownsizeSampler = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthSampler();
+		auto depthPyrPSO = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthPyramidPSO();
 
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
@@ -422,9 +424,9 @@ namespace SPP
 	void DepthDrawer::RunDepthCullingAgainstPyramid()
 	{
 		auto DeviceExtents = _owningDevice->GetExtents();
-		auto depthDownsizeSampler = GVulkanDepthResrouces.GetDepthSampler();
+		auto depthDownsizeSampler = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthSampler();
 
-		auto depthCullingPSO = GVulkanDepthResrouces.GetDepthCullingPSO();
+		auto depthCullingPSO = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthCullingPSO();
 
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
@@ -497,7 +499,7 @@ namespace SPP
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
 		auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
-		auto meshPSO = GVulkanDepthResrouces.GetDepthDrawingPSO();
+		auto meshPSO = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthDrawingPSO();
 		auto meshCache = GetMeshCache(InVulkanRenderableMesh);
 
 		VkDeviceSize offsets[1] = { 0 };

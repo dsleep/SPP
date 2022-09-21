@@ -115,6 +115,8 @@ namespace SPP
 
 	class GlobalDeferredPBRResources : public GlobalGraphicsResource
 	{
+		GLOBAL_RESOURCE(GlobalDeferredPBRResources)
+
 	private:
 		GPUReferencer < VulkanShader > _defferedPBRVS;
 		GPUReferencer< GPUInputLayout > _deferredSMlayout;
@@ -124,7 +126,7 @@ namespace SPP
 
 	public:
 		// called on render thread
-		virtual void Initialize(class GraphicsDevice* InOwner)
+		GlobalDeferredPBRResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
@@ -176,14 +178,14 @@ namespace SPP
 		}
 	};
 
-	GlobalDeferredPBRResources GVulkanDeferredPBRResrouces;
+	REGISTER_GLOBAL_RESOURCE(GlobalDeferredPBRResources);
 
 	PBRDeferredDrawer::PBRDeferredDrawer(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
-		auto meshVSLayout = GVulkanDeferredPBRResrouces.GetVSLayout();
+		auto meshVSLayout = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVSLayout();
 		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
 
 		auto cameraBuffer = InScene->GetCameraBuffer();
@@ -240,7 +242,7 @@ namespace SPP
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InMat->GetOwner());
 			auto& paraMap = InMat->GetParameterMap();
 			auto thisParamKey = ParameterMapKey(paraMap);
-			auto foundPS = GVulkanDeferredPBRResrouces.GetPSFromParamMap(thisParamKey);
+			auto foundPS = owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetPSFromParamMap(thisParamKey);
 
 			std::vector<  GPUReferencer< GPUTexture > > texturesUsed;
 			if (foundPS)
@@ -340,13 +342,13 @@ namespace SPP
 				cacheRef->_defferedPBRPS = Make_GPU(VulkanShader, owningDevice, EShaderType::Pixel);
 				cacheRef->_defferedPBRPS->CompileShaderFromTemplate("shaders/Deferred/PBRMaterialTemplatePS.glsl", ReplacementMap);
 
-				GVulkanDeferredPBRResrouces.SetPSForParamMap(thisParamKey, cacheRef->_defferedPBRPS);
+				owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->SetPSForParamMap(thisParamKey, cacheRef->_defferedPBRPS);
 			}
 						
 			cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
-				GVulkanDeferredPBRResrouces.GetVS(),
+				owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVS(),
 				cacheRef->_defferedPBRPS,
-				GVulkanDeferredPBRResrouces.GetSMLayout());
+				owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetSMLayout());
 
 			auto& descSetLayouts = cacheRef->state[(uint8_t)InVertexInputType]->GetDescriptorSetLayouts();
 

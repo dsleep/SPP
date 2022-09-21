@@ -55,13 +55,15 @@ namespace SPP
 
 	class GlobalVulkanSDFResources : public GlobalGraphicsResource
 	{
+		GLOBAL_RESOURCE(GlobalVulkanSDFResources)
+
 	private:
 		GPUReferencer < VulkanPipelineState > _PSO;
 		GPUReferencer< VulkanShader > _CS;
 
 	public:
 		// called on render thread
-		virtual void Initialize(class GraphicsDevice* InOwner)
+		GlobalVulkanSDFResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
@@ -89,15 +91,9 @@ namespace SPP
 		{
 			return _PSO;
 		}
-
-		virtual void Shutdown(class GraphicsDevice* InOwner)
-		{
-			_PSO.Reset();
-			_CS.Reset();
-		}
 	};
 
-	GlobalVulkanSDFResources GVulkanSDFResrouces;
+	REGISTER_GLOBAL_RESOURCE(GlobalVulkanSDFResources);
 
 	//std::shared_ptr<RT_RenderableSignedDistanceField> Vulkan_CreateSDF()
 	//{
@@ -176,7 +172,7 @@ namespace SPP
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
 		auto& scratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
-		auto csPSO = GVulkanSDFResrouces.GetPSO();
+		auto csPSO = GGlobalVulkanGI->GetGlobalResource< GlobalVulkanSDFResources >()->GetPSO();
 
 		auto activePool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 		auto& descriptorSetLayouts = csPSO->GetDescriptorSetLayouts();

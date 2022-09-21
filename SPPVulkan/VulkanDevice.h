@@ -201,7 +201,7 @@ namespace SPP
 		std::vector<GPUResource*> _cpuPushedDyingResources;
 		std::vector<GPUResource*> _gpuPushedDyingResources;
 		std::array< std::vector<GPUResource*>, MAX_IN_FLIGHT > _dyingResources;
-
+		
 
 		// List of available frame buffers (same as number of swap chain images)
 		std::array< GPUReferencer<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;

@@ -252,19 +252,32 @@ namespace SPP
         }
     };
 
-    class SPP_GRAPHICS_API GlobalGraphicsResource : public InternalLinkedList<GlobalGraphicsResource>
-    {
-    protected:
+    
 
-    public:
-        GlobalGraphicsResource();
-        virtual ~GlobalGraphicsResource();
+    #define GLOBAL_RESOURCE(GR) \
+            friend struct GR##_REGISTER; \
+            static uint32_t _ID;    \
+            public:                 \
+            static uint32_t GetID();  
 
-        // called on render thread
-        virtual void Initialize(class GraphicsDevice* InOwner) = 0;
-        virtual void Shutdown(class GraphicsDevice* InOwner) = 0;
-    };
+    #define REGISTER_GLOBAL_RESOURCE(GR) \
+        uint32_t GR::_ID = 0;   \
+        uint32_t GR::GetID()    \
+        {                       \
+            return _ID;         \
+        }                       \
+        struct GR##_REGISTER    \
+        {                       \
+            GR##_REGISTER()     \
+            {                   \
+                GR::_ID = RegisterGlobalResource([](class GraphicsDevice* InGD){ return new GR(InGD); });  \
+            }                   \
+        };                      \
+        GR##_REGISTER G##GR##REGISTERED;
 
+    SPP_GRAPHICS_API uint32_t RegisterGlobalResource(std::function< GlobalGraphicsResource*(class GraphicsDevice* InGD) > AllocResource);
+    SPP_GRAPHICS_API void UnregisterGlobalResource(GlobalGraphicsResource* InResource);
+    SPP_GRAPHICS_API std::vector< std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > >& GetGlobalResourceList();
     //SPP_GRAPHICS_API void MakeResidentAllGPUResources();
 
     class SPP_GRAPHICS_API GPUShader : public GPUResource

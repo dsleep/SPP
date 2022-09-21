@@ -88,14 +88,33 @@ namespace SPP
 		_owner->PopResource(this);
 	}
 
-	GlobalGraphicsResource* InternalLinkedList<GlobalGraphicsResource>::_root = nullptr;
-	GlobalGraphicsResource::GlobalGraphicsResource() : InternalLinkedList<GlobalGraphicsResource>()
+	GlobalGraphicsResource::GlobalGraphicsResource(GraphicsDevice* InOwner) : _owner(InOwner)
 	{
-		//SE_ASSERT IsBeforeMain
+		SE_ASSERT(IsOnGPUThread());
 	}
 	GlobalGraphicsResource::~GlobalGraphicsResource()
 	{
-		SE_ASSERT(IsOnCPUThread());
+		SE_ASSERT(IsOnGPUThread());
+	}
+
+	std::vector< std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > >& GetGlobalResourceList()
+	{
+		static std::vector< std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > > sO;
+		return sO;
+	}
+
+	uint32_t RegisterGlobalResource(std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > AllocResource)
+	{
+		auto& gArray = GetGlobalResourceList();
+		uint32_t currentSize = (uint32_t)gArray.size();
+		gArray.push_back(AllocResource);
+		return currentSize;
+	}
+
+	void UnregisterGlobalResource(GlobalGraphicsResource* InResource)
+	{
+		//needed?!
+		SE_ASSERT(false);
 	}
 
 	//void MakeResidentAllGPUResources()
