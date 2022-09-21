@@ -642,7 +642,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//
 	{
 		TextureAsset test;
-		test.LoadFromDisk(*AssetPath("/textures/rocktexture.ktx2"));
+		test.LoadFromDisk(*AssetPath("/textures/SkyTextureOverCast_Cubemap.ktx2"));
 	}
 
 	//SPP::CallPython();

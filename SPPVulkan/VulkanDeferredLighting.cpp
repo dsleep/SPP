@@ -11,6 +11,7 @@
 
 #include "VulkanDeferredLighting.h"
 
+#include "SPPTextures.h"
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
@@ -39,19 +40,23 @@ namespace SPP
 		GLOBAL_RESOURCE(GlobalDeferredLightingResources)
 
 	private:
-		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS;
+		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS, _skyCubemapPS;
 		GPUReferencer< GPUInputLayout > _lightShapeLayout;
 
-		GPUReferencer< VulkanPipelineState > _psoSunLight;
+		GPUReferencer< VulkanPipelineState > _psoSunLight, _psoSkyCube;
 		GPUReferencer< SafeVkDescriptorSetLayout > _lightShapeVSLayout;
+		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet;
 
 		std::map< ParameterMapKey, GPUReferencer < VulkanShader > > _psShaderMap;
+
+		GPUReferencer< VulkanTexture > _skyCube;
 
 	public:
 		// called on render thread
 		GlobalDeferredLightingResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+			auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
 
 			_lightShapeVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_lightShapeVS->CompileShaderFromFile("shaders/Deferred/LightShapeVS.glsl");
@@ -62,12 +67,15 @@ namespace SPP
 			_lightSunPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
 			_lightSunPS->CompileShaderFromFile("shaders/Deferred/SunLightPS.glsl");
 
+			_skyCubemapPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_skyCubemapPS->CompileShaderFromFile("shaders/Deferred/SkyCubePS.glsl");
+
 			_lightShapeLayout = Make_GPU(VulkanInputLayout, InOwner);
 			_lightShapeLayout->InitializeLayout(OP_GetVertexStreams_DeferredLightingShapes());
 
 			_psoSunLight = GetVulkanPipelineState(owningDevice,
 				owningDevice->GetLightingCompositeRenderPass(),
-				EBlendState::Additive,
+				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
@@ -80,10 +88,44 @@ namespace SPP
 				nullptr,
 				nullptr);
 
+			_psoSkyCube = GetVulkanPipelineState(owningDevice,
+				owningDevice->GetLightingCompositeRenderPass(),
+				EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Disabled,
+				EDrawingTopology::TriangleStrip,
+				nullptr,
+				_lightFullscreenVS,
+				_skyCubemapPS,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr);
+
 			{
 				auto& vsSet = _lightShapeVS->GetLayoutSets();
 				_lightShapeVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
 			}
+
+
+			//
+			{
+				TextureAsset loadSky;
+				loadSky.LoadFromDisk(*AssetPath("/textures/SkyTextureOverCast_Cubemap.ktx2"));
+				_skyCube = Make_GPU(VulkanTexture, owningDevice, loadSky);
+			}
+
+			_skyCubePSDescSet = Make_GPU(SafeVkDescriptorSet,
+				owningDevice,
+				_psoSkyCube->GetDescriptorSetLayouts()[2],
+				globalSharedPool);
+
+			auto skyDesc = _skyCube->GetDescriptor();
+			_skyCubePSDescSet->Update(
+				{
+					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &skyDesc },
+				});
 		}
 
 		auto GetVS()
@@ -94,6 +136,20 @@ namespace SPP
 		auto GetSunPSO()
 		{
 			return _psoSunLight;
+		}
+
+		auto GetSkyPSO()
+		{
+			return _psoSkyCube;
+		}
+		auto GetSkyDescriptorSet()
+		{
+			return _skyCubePSDescSet;
+		}
+
+		auto GetSkyCube()
+		{
+			return _skyCube;
 		}
 	};
 
@@ -164,6 +220,36 @@ namespace SPP
 		Vector4 LightDirection;
 		Vector4 Radiance;
 	};
+
+	void PBRDeferredLighting::RenderSky()
+	{
+		auto currentFrame = _owningDevice->GetActiveFrame();
+		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+		auto skyPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSkyPSO();
+		auto skyDesc = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSkyDescriptorSet();
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, skyPSO->GetVkPipeline());
+
+		// if static we have everything pre cached		
+		uint32_t uniform_offsets[] = {
+			(sizeof(GPUViewConstants)) * currentFrame
+		};
+
+		VkDescriptorSet locaDrawSets[] = {
+			_owningScene->GetCommondDescriptorSet()->Get(),
+			_dummySet->Get(),
+			skyDesc->Get()
+		};
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			skyPSO->GetVkPipelineLayout(),
+			0,
+			ARRAY_SIZE(locaDrawSets), locaDrawSets,
+			ARRAY_SIZE(uniform_offsets), uniform_offsets);
+
+		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+	}
 
 	// TODO cleanupppp
 	void PBRDeferredLighting::Render(RT_RenderableLight& InLight)

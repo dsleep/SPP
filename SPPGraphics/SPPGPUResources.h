@@ -341,14 +341,14 @@ namespace SPP
         int32_t _width = -1;
         int32_t _height = -1;
 
-        int32_t _dimensions = 2;
-        int32_t _mipLevels = 1;
-        int32_t _faces = 1;
+        uint8_t _dimensions = 2;
+        uint8_t _mipLevels = 1;
+        uint8_t _faceCount = 1;
 
         TextureFormat _format = TextureFormat::UNKNOWN;
                 
         std::shared_ptr< ImageMeta > _metaInfo;
-        std::vector< std::shared_ptr< ArrayResource > > _rawMipData;
+        std::vector< std::shared_ptr< struct TextureFace > >  _faceData;
 
         uint32_t _uniqueID = 0;
 

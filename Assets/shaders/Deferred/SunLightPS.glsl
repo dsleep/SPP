@@ -30,6 +30,12 @@ void main()
 {
 	// Get G-Buffer values
 	float zDepthNDC = texture(samplerDepth, inUV).r;
+	
+	if(zDepthNDC <= 0)
+	{
+		discard;
+	}
+	
 	vec4 smre = texture(samplerSMRE, inUV);
 	vec3 normal = texture(samplerNormal, inUV).rgb * 2.0f - vec3(1.0f);
 	

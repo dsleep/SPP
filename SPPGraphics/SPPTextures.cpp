@@ -205,7 +205,7 @@ namespace SPP
 
 		width = 0;
 		height = 0;
-		mipData.clear();
+		faceData.clear();
 
 		SPP_LOG(LOG_TEXTURES, LOG_INFO, "Loading Texture: %s", inFileName);
 
@@ -255,22 +255,28 @@ namespace SPP
 
 				SE_ASSERT(texture2->numDimensions == 2);
 				SE_ASSERT(texture2->numLayers == 1);
-				SE_ASSERT(texture2->numFaces == 1);
 
-				for (ktx_uint32_t level = 0; level < texture2->numLevels; level++)
+				for (ktx_uint32_t faceIter = 0; faceIter < texture2->numFaces; faceIter++)
 				{
-					ktx_size_t levelOffset;
-					result = ktxTexture_GetImageOffset(ktxTexture(texture2), level, 0, 0, &levelOffset);					
-					SE_ASSERT(result == KTX_SUCCESS);
-					auto levelSize = ktxTexture_GetImageSize(ktxTexture(texture2), level);
-					SE_ASSERT(result == KTX_SUCCESS);
+					auto curFace = std::make_shared< TextureFace >();
 
-					auto rawImgData = std::make_shared< ArrayResource >();
-					mipData.push_back(rawImgData);
+					for (ktx_uint32_t level = 0; level < texture2->numLevels; level++)
+					{
+						ktx_size_t levelOffset;
+						result = ktxTexture_GetImageOffset(ktxTexture(texture2), level, 0, faceIter, &levelOffset);
+						SE_ASSERT(result == KTX_SUCCESS);
+						auto levelSize = ktxTexture_GetImageSize(ktxTexture(texture2), level);
+						SE_ASSERT(result == KTX_SUCCESS);
 
-					auto& rawData = rawImgData->GetRawByteArray();
-					rawData.resize(levelSize);
-					memcpy(rawData.data(), ktxTextureData + levelOffset, levelSize);
+						auto rawImgData = std::make_shared< ArrayResource >();
+						curFace->mipData.push_back(rawImgData);
+
+						auto& rawData = rawImgData->GetRawByteArray();
+						rawData.resize(levelSize);
+						memcpy(rawData.data(), ktxTextureData + levelOffset, levelSize);
+					}
+
+					faceData.push_back(curFace);
 				}
 
 				ktxTexture_Destroy(ktxTexture(texture2));
@@ -280,8 +286,10 @@ namespace SPP
 		}
 		else if (IsDDS)
 		{
+			auto curFace = std::make_shared< TextureFace >();
 			auto rawImgData = std::make_shared< ArrayResource >();
-			mipData.push_back(rawImgData);
+			curFace->mipData.push_back(rawImgData);
+			faceData.push_back(curFace);
 
 			const DirectX::DDS_HEADER* header = nullptr;
 			const uint8_t* bitData = nullptr;
@@ -312,8 +320,10 @@ namespace SPP
 		}
 		else
 		{
+			auto curFace = std::make_shared< TextureFace >();
 			auto rawImgData = std::make_shared< ArrayResource >();
-			mipData.push_back(rawImgData);
+			curFace->mipData.push_back(rawImgData);
+			faceData.push_back(curFace);
 
 			int x, y, n;
 			unsigned char* pixels = stbi_load(FileName.c_str(), &x, &y, &n, 0);

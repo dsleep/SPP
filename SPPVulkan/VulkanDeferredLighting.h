@@ -19,6 +19,7 @@ namespace SPP
 		
 	public:
 		PBRDeferredLighting(VulkanRenderScene* InScene);
+		void RenderSky();
 		void Render(RT_RenderableLight& InLight);
 	};
 }

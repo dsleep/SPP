@@ -78,7 +78,7 @@ namespace SPP
 		int32_t _height;
 		TextureFormat _format;
 
-		std::vector< std::shared_ptr< ArrayResource > > _rawMipData;
+		std::vector< std::shared_ptr< struct TextureFace > > _faceData;
 		std::shared_ptr< ImageMeta > _metaInfo;
 
 		std::shared_ptr< class RT_Texture > _texture;

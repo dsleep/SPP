@@ -856,6 +856,8 @@ namespace SPP
 
 		vulkanGD->SetCheckpoint(commandBuffer, "Lighting");
 
+		_deferredLightingDrawer->RenderSky();
+
 		for (uint32_t visIter = 0; visIter < curVisibleLights; visIter++)
 		{
 			_deferredLightingDrawer->Render(*(RT_RenderableLight*)_visiblelights[visIter]);

@@ -137,7 +137,10 @@ namespace SPP
 		GPUResource(InOwner),
 		_width(Width), _height(Height), _format(Format), _metaInfo(InMetaInfo)
 	{		
-		_rawMipData.push_back(RawData);
+		auto curFace = std::make_shared< TextureFace >();
+		auto rawImgData = std::make_shared< ArrayResource >();
+		curFace->mipData.push_back(RawData);
+		_faceData.push_back(curFace);
 
 		if (!GTextureAvailIDs.empty())
 		{
@@ -156,7 +159,7 @@ namespace SPP
 		_width = InTextureAsset.width;
 		_height = InTextureAsset.height;
 		_format = InTextureAsset.format;
-		_rawMipData = InTextureAsset.mipData;
+		_faceData = InTextureAsset.faceData;
 
 		//int32_t Width, int32_t Height, TextureFormat Format
 		if (!GTextureAvailIDs.empty())

@@ -28,6 +28,22 @@ namespace SPP
 
     SPP_GRAPHICS_API void GenerateMipMapCompressedTexture(const char* InPath, const char* OutPath, bool bHasAlpha);
 
+
+    struct TextureFace
+    {
+        std::vector< std::shared_ptr< ArrayResource > > mipData;
+
+        size_t GetTotalSize() const
+        {
+            size_t oSize = 0;
+            for (auto& curMip : mipData)
+            {
+                oSize += curMip->GetTotalSize();
+            }
+            return oSize;
+        }
+    };
+
     struct SPP_GRAPHICS_API TextureAsset
     {
         std::string orgFileName;
@@ -37,15 +53,15 @@ namespace SPP
         bool bSRGB = false;
         TextureFormat format = TextureFormat::UNKNOWN;
                 
-        std::vector< std::shared_ptr< ArrayResource > > mipData;
+        std::vector< std::shared_ptr< TextureFace > > faceData;
         std::shared_ptr< ImageMeta > metaInfo;
 
         size_t GetTotalSize() const
         {
             size_t oSize = 0;
-            for (auto& curMip : mipData)
+            for (auto& curLayer : faceData)
             {
-                oSize += curMip->GetTotalSize();
+                oSize += curLayer->GetTotalSize();
             }
             return oSize;
         }

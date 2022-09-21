@@ -354,7 +354,7 @@ namespace SPP
 		{
 			_width = testTexture.width;
 			_height = testTexture.height;
-			_rawMipData = testTexture.mipData;
+			_faceData = testTexture.faceData;
 			_format = testTexture.format;
 		}			
 
@@ -374,7 +374,7 @@ namespace SPP
 							.width = _width,
 							.height = _height,
 							.format = _format,							
-							.mipData = _rawMipData,
+							.faceData = _faceData,
 						});
 				});
 		}
