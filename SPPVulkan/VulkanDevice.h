@@ -568,6 +568,19 @@ namespace SPP
 		GPUReferencer< class VulkanShader > InHS,
 		GPUReferencer< class VulkanShader > InDS,
 		GPUReferencer< class VulkanShader > InCS);
+
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+		GPUReferencer< VulkanShader > InCS);
+
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+		VkFrameDataContainer& renderPassData,
+		EBlendState InBlendState,
+		ERasterizerState InRasterizerState,
+		EDepthState InDepthState,
+		EDrawingTopology InTopology,
+		GPUReferencer< VulkanInputLayout > InLayout,
+		GPUReferencer< VulkanShader > InVS,
+		GPUReferencer< VulkanShader > InPS);
 }
 
 namespace vks

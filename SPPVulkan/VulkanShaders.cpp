@@ -205,8 +205,6 @@ namespace SPP
 		AssetPath shaderBuildOutput( (std::string("CACHE\\") + ReferencePath.GetName() + ".txt").c_str());
 
 		WriteStringToFile(*shaderOutputObject, ShaderSource);
-
-		
 		
 		std::string CommandString;
 		std::string FullBinPath;

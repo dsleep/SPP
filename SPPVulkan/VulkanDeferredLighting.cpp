@@ -110,6 +110,7 @@ namespace SPP
 
 
 			//
+			//SKY CUBE
 			{
 				TextureAsset loadSky;
 				loadSky.LoadFromDisk(*AssetPath("/textures/SkyTextureOverCast_Cubemap.ktx2"));
@@ -126,6 +127,16 @@ namespace SPP
 				{
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &skyDesc },
 				});
+
+			// PBR LIGHTING 
+			auto _csGenSpecularBRDF_LUT = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_csGenSpecularBRDF_LUT->CompileShaderFromFile("shaders/PBRTools/spbrdf_cs.glsl");
+
+			auto _csComputeIRMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_csComputeIRMap->CompileShaderFromFile("shaders/PBRTools/irmap_cs.glsl");
+
+			auto _csFilterEnvMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_csFilterEnvMap->CompileShaderFromFile("shaders/PBRTools/spmap_cs.glsl");
 		}
 
 		auto GetVS()
@@ -258,6 +269,7 @@ namespace SPP
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
+		auto skyDesc = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSkyDescriptorSet();
 
 		SunLightParams lightParams =
 		{
@@ -275,7 +287,7 @@ namespace SPP
 
 		VkDescriptorSet locaDrawSets[] = {
 			_owningScene->GetCommondDescriptorSet()->Get(),
-			_dummySet->Get(),
+			skyDesc->Get(),
 			_gbufferTextureSet->Get()
 		};
 

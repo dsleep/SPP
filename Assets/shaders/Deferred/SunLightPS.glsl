@@ -14,6 +14,8 @@ layout(std430) buffer;
 // include paths based on root of shader directory
 #include "./Deferred/PBRCommon.glsl"
 
+layout (set = 1, binding = 0) uniform samplerCube irradianceTexture;
+
 layout(push_constant) readonly uniform _LightParams
 {
 	vec4 LightDirection;
@@ -45,6 +47,8 @@ void main()
 	
 	// Sample input textures to get shading model params.
 	vec3 albedo = texture(samplerDiffuse, inUV).rgb;
+	
+	float specularIrradiance = smre.r;
 	float metalness = smre.g;
 	float roughness = smre.b;
 
@@ -93,6 +97,42 @@ void main()
 	// Total contribution for this light.
 	vec3 directLighting = (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
 	
-	outputColor = vec4(directLighting,1.0f);
+	////
+	// AMBIENT LIGHTING
+	////
+	vec3 ambientLighting;
+	
+	{
+		// Sample diffuse irradiance at normal direction.
+		vec3 irradiance = texture(irradianceTexture, normal).rgb;
+
+		// Calculate Fresnel term for ambient lighting.
+		// Since we use pre-filtered cubemap(s) and irradiance is coming from many directions
+		// use cosLo instead of angle with light's half-vector (cosLh above).
+		// See: https://seblagarde.wordpress.com/2011/08/17/hello-world/
+		vec3 F = fresnelSchlick(F0, cosLo);
+
+		// Get diffuse contribution factor (as with direct lighting).
+		vec3 kd = mix(vec3(1.0) - F, vec3(0.0), metalness);
+
+		// Irradiance map contains exitant radiance assuming Lambertian BRDF, no need to scale by 1/PI here either.
+		vec3 diffuseIBL = kd * albedo * irradiance;
+
+		// Sample pre-filtered specular reflection environment at correct mipmap level.
+		//int specularTextureLevels = textureQueryLevels(specularTexture);
+		//vec3 specularIrradiance = textureLod(specularTexture, Lr, roughness * specularTextureLevels).rgb;
+
+		// Split-sum approximation factors for Cook-Torrance specular BRDF.
+		//vec2 specularBRDF = texture(specularBRDF_LUT, vec2(cosLo, roughness)).rg;
+
+		// Total specular IBL contribution.
+		//vec3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
+		vec3 specularIBL = F0 * specularIrradiance;
+
+		// Total ambient lighting contribution.
+		ambientLighting = diffuseIBL + specularIBL;
+	}
+	
+	outputColor = vec4(directLighting + ambientLighting,1.0f);
 }
 

@@ -1840,6 +1840,8 @@ namespace SPP
 		return false;
 	}
 
+	
+
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		VkFrameDataContainer& renderPassData,
 		EBlendState InBlendState,
@@ -1879,6 +1881,39 @@ namespace SPP
 		}
 
 		return findKey->second;
+	}
+
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+		GPUReferencer< VulkanShader > InCS)
+	{
+		static VkFrameDataContainer dummy = {};
+		return GetVulkanPipelineState(InOwner,
+			dummy,
+			EBlendState::Disabled,
+			ERasterizerState::NoCull,
+			EDepthState::Disabled,
+			EDrawingTopology::TriangleList,
+			nullptr,nullptr,nullptr, nullptr,nullptr,nullptr,nullptr,
+			InCS);
+	}
+
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+		VkFrameDataContainer& renderPassData,
+		EBlendState InBlendState,
+		ERasterizerState InRasterizerState,
+		EDepthState InDepthState,
+		EDrawingTopology InTopology,
+		GPUReferencer< VulkanInputLayout > InLayout,
+		GPUReferencer< VulkanShader > InVS,
+		GPUReferencer< VulkanShader > InPS)
+	{
+		return GetVulkanPipelineState(InOwner,
+			renderPassData,
+			InBlendState,
+			InRasterizerState,
+			InDepthState,
+			InTopology,
+			InLayout, InVS, InPS, nullptr, nullptr, nullptr, nullptr, nullptr);
 	}
 
 
