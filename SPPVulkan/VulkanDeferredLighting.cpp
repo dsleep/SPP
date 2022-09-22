@@ -48,9 +48,8 @@ namespace SPP
 		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet, _sunDescSet;
 
 		std::map< ParameterMapKey, GPUReferencer < VulkanShader > > _psShaderMap;
-
-		GPUReferencer< VulkanTexture > _skyCube;
-		GPUReferencer< VulkanTexture > _specularBRDF_LUT;
+				
+		GPUReferencer< VulkanTexture > _skyCube, _specularBRDF_LUT, _textureIrradianceMap;
 
 	public:
 		// called on render thread
@@ -135,8 +134,47 @@ namespace SPP
 			const uint32_t IrradianceMapSize = 32;
 
 			_specularBRDF_LUT = Make_GPU(VulkanTexture, InOwner, BRDF_LUT_Size, BRDF_LUT_Size, 1, 1, TextureFormat::R16G16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-			auto _textureIrradianceMap = Make_GPU(VulkanTexture, InOwner, IrradianceMapSize, IrradianceMapSize, 1, 6, TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			_textureIrradianceMap = Make_GPU(VulkanTexture, InOwner, IrradianceMapSize, IrradianceMapSize, 1, 6, TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 
+
+			auto textureIrradianceDesc = _textureIrradianceMap->GetDescriptor();
+
+			//GENERATE IRRADIANCE
+			{
+				// copy over
+				auto vksDevice = owningDevice->GetVKSVulkanDevice();
+				auto gQueue = owningDevice->GetGraphicsQueue(); //should be transfer
+				VkCommandBuffer immediateCommand = vksDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+				auto _csComputeIRMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+				_csComputeIRMap->CompileShaderFromFile("shaders/PBRTools/irmap_cs.glsl");
+
+				auto localPSO = GetVulkanPipelineState(owningDevice, _csComputeIRMap);
+
+				auto csDescSet = Make_GPU(SafeVkDescriptorSet,
+					owningDevice,
+					localPSO->GetDescriptorSetLayouts()[0],
+					globalSharedPool);
+
+				csDescSet->Update(
+					{
+						{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &skyDesc },
+						{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &textureIrradianceDesc }
+					}
+				);
+
+				vkCmdBindPipeline(immediateCommand, VK_PIPELINE_BIND_POINT_COMPUTE, localPSO->GetVkPipeline());
+				vkCmdBindDescriptorSets(immediateCommand,
+					VK_PIPELINE_BIND_POINT_COMPUTE,
+					localPSO->GetVkPipelineLayout(),
+					0, 1, &csDescSet->Get(),
+					0, nullptr);
+
+				vkCmdDispatch(immediateCommand, IrradianceMapSize / 32, IrradianceMapSize / 32, 6);
+				vksDevice->flushCommandBuffer(immediateCommand, gQueue);
+			}
+
+			//GENERATE BRDF SPEC LUT
 			{
 				// copy over
 				auto vksDevice = owningDevice->GetVKSVulkanDevice();
@@ -172,9 +210,8 @@ namespace SPP
 				vksDevice->flushCommandBuffer(immediateCommand, gQueue);
 			}
 
-			auto _csComputeIRMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
-			_csComputeIRMap->CompileShaderFromFile("shaders/PBRTools/irmap_cs.glsl");
-									
+
+
 			auto _csFilterEnvMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_csFilterEnvMap->CompileShaderFromFile("shaders/PBRTools/spmap_cs.glsl");
 
@@ -188,7 +225,7 @@ namespace SPP
 
 			_sunDescSet->Update(
 				{
-					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &skyDesc },
+					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureIrradianceDesc },
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyDesc },
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
 				});
