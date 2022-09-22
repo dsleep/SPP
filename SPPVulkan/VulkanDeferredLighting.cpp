@@ -45,11 +45,12 @@ namespace SPP
 
 		GPUReferencer< VulkanPipelineState > _psoSunLight, _psoSkyCube;
 		GPUReferencer< SafeVkDescriptorSetLayout > _lightShapeVSLayout;
-		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet;
+		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet, _sunDescSet;
 
 		std::map< ParameterMapKey, GPUReferencer < VulkanShader > > _psShaderMap;
 
 		GPUReferencer< VulkanTexture > _skyCube;
+		GPUReferencer< VulkanTexture > _specularBRDF_LUT;
 
 	public:
 		// called on render thread
@@ -120,7 +121,7 @@ namespace SPP
 			_skyCubePSDescSet = Make_GPU(SafeVkDescriptorSet,
 				owningDevice,
 				_psoSkyCube->GetDescriptorSetLayouts()[2],
-				globalSharedPool);
+				globalSharedPool);	
 
 			auto skyDesc = _skyCube->GetDescriptor();
 			_skyCubePSDescSet->Update(
@@ -129,26 +130,78 @@ namespace SPP
 				});
 
 			// PBR LIGHTING 
-			auto _csGenSpecularBRDF_LUT = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
-			_csGenSpecularBRDF_LUT->CompileShaderFromFile("shaders/PBRTools/spbrdf_cs.glsl");
+
+			const int32_t BRDF_LUT_Size = 256;
+			const uint32_t IrradianceMapSize = 32;
+
+			_specularBRDF_LUT = Make_GPU(VulkanTexture, InOwner, BRDF_LUT_Size, BRDF_LUT_Size, 1, 1, TextureFormat::R16G16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			auto _textureIrradianceMap = Make_GPU(VulkanTexture, InOwner, IrradianceMapSize, IrradianceMapSize, 1, 6, TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+
+			{
+				// copy over
+				auto vksDevice = owningDevice->GetVKSVulkanDevice();
+				auto gQueue = owningDevice->GetGraphicsQueue(); //should be transfer
+				VkCommandBuffer immediateCommand = vksDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+				auto csGenSpecularBRDF_LUT = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+				csGenSpecularBRDF_LUT->CompileShaderFromFile("shaders/PBRTools/spbrdf_cs.glsl");
+
+				auto psoBRDFLut = GetVulkanPipelineState(owningDevice, csGenSpecularBRDF_LUT);
+
+				auto lutDesc = _specularBRDF_LUT->GetDescriptor();
+
+				auto csBRDF_LUTDescSet = Make_GPU(SafeVkDescriptorSet,
+					owningDevice,
+					psoBRDFLut->GetDescriptorSetLayouts()[0],
+					globalSharedPool);
+
+				csBRDF_LUTDescSet->Update(
+					{
+						{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0, &lutDesc }
+					}
+				);
+			
+				vkCmdBindPipeline(immediateCommand, VK_PIPELINE_BIND_POINT_COMPUTE, psoBRDFLut->GetVkPipeline());
+				vkCmdBindDescriptorSets(immediateCommand,
+					VK_PIPELINE_BIND_POINT_COMPUTE,
+					psoBRDFLut->GetVkPipelineLayout(),
+					0, 1, &csBRDF_LUTDescSet->Get(),
+					0, nullptr);
+
+				vkCmdDispatch(immediateCommand, BRDF_LUT_Size / 32, BRDF_LUT_Size / 32, 6);
+				vksDevice->flushCommandBuffer(immediateCommand, gQueue);
+			}
 
 			auto _csComputeIRMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_csComputeIRMap->CompileShaderFromFile("shaders/PBRTools/irmap_cs.glsl");
-
+									
 			auto _csFilterEnvMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_csFilterEnvMap->CompileShaderFromFile("shaders/PBRTools/spmap_cs.glsl");
+
+			////;
+			auto specLutDesc = _specularBRDF_LUT->GetDescriptor();
+
+			_sunDescSet = Make_GPU(SafeVkDescriptorSet,
+				owningDevice,
+				_psoSunLight->GetDescriptorSetLayouts()[1],
+				globalSharedPool);
+
+			_sunDescSet->Update(
+				{
+					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &skyDesc },
+					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyDesc },
+					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
+				});
 		}
 
 		auto GetVS()
 		{
 			return _lightShapeVS;
 		}
-
 		auto GetSunPSO()
 		{
 			return _psoSunLight;
 		}
-
 		auto GetSkyPSO()
 		{
 			return _psoSkyCube;
@@ -157,7 +210,14 @@ namespace SPP
 		{
 			return _skyCubePSDescSet;
 		}
-
+		auto GetSunDescriptorSet()
+		{
+			return _sunDescSet;
+		}
+		auto GetSpecularBRDF_LUT()
+		{
+			return _specularBRDF_LUT;
+		}
 		auto GetSkyCube()
 		{
 			return _skyCube;
@@ -269,7 +329,7 @@ namespace SPP
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
-		auto skyDesc = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSkyDescriptorSet();
+		auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
 
 		SunLightParams lightParams =
 		{
@@ -287,7 +347,7 @@ namespace SPP
 
 		VkDescriptorSet locaDrawSets[] = {
 			_owningScene->GetCommondDescriptorSet()->Get(),
-			skyDesc->Get(),
+			sunPRBSec->Get(),
 			_gbufferTextureSet->Get()
 		};
 

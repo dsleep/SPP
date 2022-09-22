@@ -265,7 +265,7 @@ namespace SPP
 		_depthPyramidExtents = Vector2i(DeviceExtents[0] >> 1, DeviceExtents[1] >> 1);
 		_depthPyramidMips = std::max(powerOf2(_depthPyramidExtents[0]), powerOf2(_depthPyramidExtents[1]));
 
-		_depthPyramidTexture = Make_GPU(VulkanTexture, _owningDevice, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, TextureFormat::R32F,
+		_depthPyramidTexture = Make_GPU(VulkanTexture, _owningDevice, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, 1, TextureFormat::R32F,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 		_depthPyramidTexture->SetName("_depthPyramidTexture");
 

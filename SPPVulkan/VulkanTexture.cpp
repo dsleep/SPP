@@ -585,8 +585,11 @@ namespace SPP
 			return VK_FORMAT_R8G8B8A8_UNORM;
 		case TextureFormat::BGRA_8888:
 			return VK_FORMAT_B8G8R8A8_UNORM;
-
-			
+		
+		case TextureFormat::R16G16B16A16F:
+			return VK_FORMAT_R16G16B16A16_SFLOAT;
+		case TextureFormat::R16G16F:
+			return VK_FORMAT_R16G16_SFLOAT;
 		case TextureFormat::R32F:
 			return VK_FORMAT_R32_SFLOAT;
 		}
@@ -826,13 +829,18 @@ namespace SPP
 		updateDescriptor();
 	}
 
-	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, int32_t MipLevelCount, TextureFormat Format, VkImageUsageFlags UsageFlags)
+	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount, TextureFormat Format, VkImageUsageFlags UsageFlags)
 		: GPUTexture(InOwner, Width, Height, Format, nullptr, nullptr)
 	{
 		_width = Width;
 		_height = Height;
 		_mipLevels = MipLevelCount;
 		_imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		_faceCount = FaceCount;
+
+		//normal or cubemap
+		SE_ASSERT(_faceCount == 1 || _faceCount == 6);
+		bool IsCubemap = (_faceCount == 6);
 
 		auto copyQueue = GGlobalVulkanGI->GetGraphicsQueue();
 		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
@@ -846,7 +854,7 @@ namespace SPP
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = format;
 		imageCreateInfo.mipLevels = _mipLevels;
-		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.arrayLayers = _faceCount;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -857,6 +865,11 @@ namespace SPP
 		if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
 		{
 			imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		}
+		if (IsCubemap)
+		{
+			// This flag is required for cube map images
+			imageCreateInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		}
 		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
 
@@ -874,7 +887,7 @@ namespace SPP
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)_mipLevels, 0, 1 };
+		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)_mipLevels, 0, (uint32_t)_faceCount };
 
 		vks::tools::setImageLayout(
 			copyCmd,
@@ -907,10 +920,10 @@ namespace SPP
 		VkImageViewCreateInfo viewCreateInfo = {};
 		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCreateInfo.pNext = NULL;
-		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewCreateInfo.viewType = IsCubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		viewCreateInfo.format = format;
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t) _mipLevels, 0, 1};
+		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t) _mipLevels, 0, (uint32_t) _faceCount };
 		viewCreateInfo.image = image;
 		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
 
@@ -942,7 +955,7 @@ namespace SPP
 	}
 
 	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) : 
-		VulkanTexture(InOwner, Width, Height, 1, Format, VK_IMAGE_USAGE_SAMPLED_BIT |
+		VulkanTexture(InOwner, Width, Height, 1, 1, Format, VK_IMAGE_USAGE_SAMPLED_BIT |
 			VK_IMAGE_USAGE_STORAGE_BIT |
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 	{

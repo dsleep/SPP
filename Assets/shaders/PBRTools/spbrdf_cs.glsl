@@ -14,7 +14,7 @@ const uint NumSamples = 1024;
 const float InvNumSamples = 1.0 / float(NumSamples);
 
 #if VULKAN
-layout(set=0, binding=1, rg16f) restrict writeonly uniform image2D LUT;
+layout(set=0, binding=0, rg16f) restrict writeonly uniform image2D LUT;
 #else
 layout(binding=0, rg16f) restrict writeonly uniform image2D LUT;
 #endif // VULKAN

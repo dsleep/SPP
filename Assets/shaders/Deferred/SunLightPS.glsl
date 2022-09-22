@@ -15,6 +15,8 @@ layout(std430) buffer;
 #include "./Deferred/PBRCommon.glsl"
 
 layout (set = 1, binding = 0) uniform samplerCube irradianceTexture;
+layout (set = 1, binding = 1) uniform samplerCube specularTexture;
+layout (set = 1, binding = 2) uniform sampler2D specularBRDF_LUT;
 
 layout(push_constant) readonly uniform _LightParams
 {
@@ -119,15 +121,14 @@ void main()
 		vec3 diffuseIBL = kd * albedo * irradiance;
 
 		// Sample pre-filtered specular reflection environment at correct mipmap level.
-		//int specularTextureLevels = textureQueryLevels(specularTexture);
-		//vec3 specularIrradiance = textureLod(specularTexture, Lr, roughness * specularTextureLevels).rgb;
+		int specularTextureLevels = textureQueryLevels(specularTexture);
+		vec3 specularIrradiance = textureLod(specularTexture, Lr, roughness * specularTextureLevels).rgb;
 
 		// Split-sum approximation factors for Cook-Torrance specular BRDF.
-		//vec2 specularBRDF = texture(specularBRDF_LUT, vec2(cosLo, roughness)).rg;
+		vec2 specularBRDF = texture(specularBRDF_LUT, vec2(cosLo, roughness)).rg;
 
 		// Total specular IBL contribution.
-		//vec3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
-		vec3 specularIBL = F0 * specularIrradiance;
+		vec3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;		
 
 		// Total ambient lighting contribution.
 		ambientLighting = diffuseIBL + specularIBL;
