@@ -26,14 +26,16 @@ namespace SPP
 	{
 	protected:
 		VkFormat			  _texformat = VK_FORMAT_UNDEFINED;
-		VkImage               _image = nullptr;
 		VkImageLayout         _imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+
+		VkImage               _image = nullptr;
 		VkDeviceMemory        _deviceMemory = nullptr;
 		VkImageView           _view = nullptr;
 
 		VkDescriptorImageInfo _descriptor = {};
-		VkSampler             sampler;
-		uint32_t		      imageByteSize;
+		VkSampler             _sampler;
+		uint32_t		      _imageByteSize;
 
 		void updateDescriptor();
 		void destroy();
@@ -41,26 +43,9 @@ namespace SPP
 		virtual void _MakeResident() override {}
 		virtual void _MakeUnresident() override {}
 
+		void _allocate(VkImageUsageFlags UsageFlags);
+
 	public:
-		void loadFromFile(
-			std::string        filename,
-			VkFormat           format,
-			vks::VulkanDevice* device,
-			VkQueue            copyQueue,
-			VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-			VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			bool               forceLinear = false);
-		void fromBuffer(
-			void* buffer,
-			VkDeviceSize       bufferSize,
-			VkFormat           format,
-			uint32_t           texWidth,
-			uint32_t           texHeight,
-			vks::VulkanDevice* device,
-			VkQueue            copyQueue,
-			VkFilter           filter = VK_FILTER_LINEAR,
-			VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-			VkImageLayout      imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format);
@@ -84,7 +69,7 @@ namespace SPP
 
 		uint32_t GetImageSize() const
 		{
-			return imageByteSize;
+			return _imageByteSize;
 		}
 
 		const VkImage& GetVkImage() const

@@ -345,6 +345,8 @@ namespace SPP
         uint8_t _mipLevels = 1;
         uint8_t _faceCount = 1;
 
+        bool _bIsSRGB = false;
+
         TextureFormat _format = TextureFormat::UNKNOWN;
                 
         std::shared_ptr< ImageMeta > _metaInfo;
@@ -354,9 +356,8 @@ namespace SPP
 
     public:
         GPUTexture(GraphicsDevice* InOwner, 
-            int32_t Width, int32_t Height, TextureFormat Format,
-            std::shared_ptr< ArrayResource > RawData = nullptr, 
-            std::shared_ptr< ImageMeta > InMetaInfo = nullptr);
+            int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount,
+            TextureFormat Format );
         GPUTexture(GraphicsDevice* InOwner, const struct TextureAsset &InTextureAsset);
         virtual ~GPUTexture();
         virtual void PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Memory, uint32_t MemorySize) {};
@@ -540,7 +541,7 @@ namespace SPP
     {
     public:
         GPURenderTarget(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) :
-            GPUTexture(InOwner, Width, Height, Format) { }
+            GPUTexture(InOwner, Width, Height, 1, 1, Format) { }
         virtual ~GPURenderTarget() { }
     };
 

@@ -132,16 +132,12 @@ namespace SPP
 	static uint32_t GHighestTextureID = 0;
 	static std::list<uint32_t> GTextureAvailIDs;
 
-	GPUTexture::GPUTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format,
-		std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) :
+	GPUTexture::GPUTexture(GraphicsDevice* InOwner,
+		int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount,
+		TextureFormat Format) :
 		GPUResource(InOwner),
-		_width(Width), _height(Height), _format(Format), _metaInfo(InMetaInfo)
+		_width(Width), _height(Height), _format(Format), _mipLevels(MipLevelCount), _faceCount(FaceCount)
 	{		
-		auto curFace = std::make_shared< TextureFace >();
-		auto rawImgData = std::make_shared< ArrayResource >();
-		curFace->mipData.push_back(RawData);
-		_faceData.push_back(curFace);
-
 		if (!GTextureAvailIDs.empty())
 		{
 			_uniqueID = GTextureAvailIDs.front();
@@ -160,6 +156,13 @@ namespace SPP
 		_height = InTextureAsset.height;
 		_format = InTextureAsset.format;
 		_faceData = InTextureAsset.faceData;
+		_bIsSRGB = InTextureAsset.bSRGB;
+
+		_faceCount = _faceData.size();
+		if (_faceCount)
+		{
+			_mipLevels = _faceData.front()->mipData.size();
+		}
 
 		//int32_t Width, int32_t Height, TextureFormat Format
 		if (!GTextureAvailIDs.empty())
