@@ -29,6 +29,10 @@ namespace SPP
 	{
 		SE_ASSERT(InScene);
 		SE_ASSERT(IsOnGPUThread());
+
+		_cachedRotationScale = Matrix4x4::Identity();
+		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
+
 		_parentScene = InScene;
 		_parentScene->AddRenderable(this);
 	};

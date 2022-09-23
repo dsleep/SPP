@@ -495,6 +495,11 @@ namespace SPP
 		OLight(const std::string& InName, SPPDirectory* InParent) : ORenderableElement(InName, InParent) {}
 
 	public:
+
+		auto& GetIrradiance()
+		{
+			return _irradiance;
+		}
 		virtual ~OLight() { }
 	};
 

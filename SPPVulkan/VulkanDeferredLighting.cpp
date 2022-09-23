@@ -368,10 +368,12 @@ namespace SPP
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
 		auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
 
+		Vector3 LightDir = -InLight.GetCachedRotationAndScale().block<1, 3>(1, 0);
+		LightDir.normalize();
 		SunLightParams lightParams =
 		{
-			Vector4(0,-1,0,0),
-			Vector4(1,1,1,0)
+			ToVector4(LightDir),
+			ToVector4(InLight.GetIrradiance())
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());

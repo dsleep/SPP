@@ -139,11 +139,7 @@ public:
 		//for (auto& curShild : topChildren)
 		//{
 		//	totalBounds += curShild->Bounds();
-		//}
-
-		auto newSun = AllocateObject<OSun>("SUNNN", _gameworld);
-		_gameworld->AddChild(newSun);
-				
+		//}				
 #if 0
 		auto MeshType = rttr::type::get<VgMeshElement>();
 
@@ -275,6 +271,9 @@ public:
 
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[1] = 5;
+
+		std::vector<BoxOfCorners> boxes;
+		cam.GetFrustumCornersForRange( { 50, 150, 450 }, boxes);
 
 		//SPP::MakeResidentAllGPUResources();
 
@@ -570,6 +569,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
+	MainWatch watchMain;
 	UNREFERENCED_PARAMETER(hPrevInstance);
 
 #ifdef _DEBUG

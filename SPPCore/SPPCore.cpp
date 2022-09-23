@@ -32,6 +32,8 @@ namespace SPP
     static std::string GResourcePath;
 	static std::string GLogPath;
 
+	static bool GIsMainActive = false;
+
 	void* SPP_MALLOC(std::size_t size)
 	{
 		void* ptr = malloc(size);
@@ -113,6 +115,26 @@ namespace SPP
 		SE_ASSERT(CPUThread != std::thread::id());
 		auto currentThreadID = std::this_thread::get_id();
 		return (CPUThread == currentThreadID);
+	}
+
+	MainWatch::MainWatch()
+	{
+		SE_ASSERT(GIsMainActive == false);
+		GIsMainActive = true;
+	}
+	MainWatch::~MainWatch()
+	{
+		SE_ASSERT(GIsMainActive == true);
+		GIsMainActive = false;
+	}
+	// not implemented
+	void MainWatch::KeepAlive()
+	{
+	}
+
+	bool IsMainActive()
+	{
+		return GIsMainActive;
 	}
 
 	void IntializeCore(const char* Commandline)

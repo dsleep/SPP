@@ -168,6 +168,7 @@ namespace SPP
        
         virtual ~RT_Resource()
         {
+            SE_ASSERT(IsMainActive());
             SE_ASSERT(IsOnGPUThread());
         }
 

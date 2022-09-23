@@ -179,6 +179,11 @@ namespace SPP
 			return _scale;
 		}
 
+		auto& GetCachedRotationAndScale()
+		{
+			return _cachedRotationScale;
+		}
+
 		GPU_CALL AddToRenderScene(class RT_RenderScene* InScene)
 		{
 			this->_AddToRenderScene(InScene);
@@ -512,7 +517,10 @@ namespace SPP
 		{
 			_irradiance = InArgs.irradiance;
 		}
-
+		auto& GetIrradiance()
+		{
+			return _irradiance;
+		}
 		virtual ~RT_RenderableLight() {}
 	};
 

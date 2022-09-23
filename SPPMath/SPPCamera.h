@@ -46,6 +46,11 @@ namespace SPP
 		float nearZ,
 		const Matrix4x4& projMatrix);
 
+	struct BoxOfCorners
+	{
+		std::array< Vector3, 8 > Points;
+	};
+
 	// default is a left handed coordinate system
 	// right X+
 	// up Y+
@@ -71,11 +76,15 @@ namespace SPP
 		float _speed = 25.0f;
 		float _turnSpeedModifier = 0.1f;
 		Vector3 _eulerAngles;
+
+		bool bIsInvertedZ = false;
 				
 	public:
 		Camera() { }
 		
 		void Initialize(const Vector3d& InPosition, const Vector3 &InEuler, float FoV, float AspectRatio);
+		void Initialize(const Vector3d& InPosition, const Vector3& InEuler, Vector2 &Extents, Vector2& NearFar);
+
 		void BuildCameraMatrices();
 
 		float GetFoV() const
@@ -90,10 +99,12 @@ namespace SPP
 
 		void GenerateLHInverseZPerspectiveMatrix(float FoV, float AspectRatio);
 
-		void GenerateOrthogonalMatrix(const Vector2i &InSize);
+		void GenerateOrthogonalMatrix(const Vector2& InSize, const Vector2& InDepthRange);
 
 		void SetupStandardCorrection();
 
+		// without Camera Location Offset, but has rotation
+		void GetFrustumCornersForRange(const std::vector<float>& DepthRanges, std::vector<BoxOfCorners>& OutBoxes);
 
 		void SphereProjectionTest(const Sphere &InSphere);
 

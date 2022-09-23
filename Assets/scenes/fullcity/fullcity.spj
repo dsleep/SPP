@@ -1,199 +1,35 @@
 {
     "empty": [],
-    "lights": [],
+    "lights": [
+        {
+            "color": [
+                1.0,
+                0.899979829788208,
+                0.18761245906352997
+            ],
+            "energy": 2.1700000762939453,
+            "name": "Sun",
+            "transform": {
+                "location": [
+                    47.7834,
+                    24.0225,
+                    31.6366
+                ],
+                "rotation": [
+                    0.0,
+                    69.4,
+                    -70.4
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "type": "SUN"
+        }
+    ],
     "materials": [
-        {
-            "name": "Road",
-            "parameters": {
-                "diffuse": {
-                    "name": "Road.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Drug Store",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Drug Store.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Residential_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Residential_color03.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_SUV_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "SUV_1.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Car_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Car_1.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_House_01_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_01_color03.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_House_01_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_01_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building Sky_small_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building Sky_small_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Truck_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Truck_2.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Props_BillBoard_large",
-            "parameters": {
-                "diffuse": {
-                    "name": "Props_BillBoard_large.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Chicken Shop",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Chicken Shop.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_House_04_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_04_color02.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Container_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Container_3.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Props_TrafficProps",
-            "parameters": {
-                "diffuse": {
-                    "name": "Props_TrafficProps.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Factory",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Factory.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Residential_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Residential_color02.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
         {
             "name": "Vehicle_Police Car",
             "parameters": {
@@ -207,46 +43,10 @@
             }
         },
         {
-            "name": "Vehicle_Bus_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Bus_3.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Building_House_01_color02",
             "parameters": {
                 "diffuse": {
                     "name": "Building_House_01_color02.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Clothing",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Clothing.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Props_BillBoard_medium",
-            "parameters": {
-                "diffuse": {
-                    "name": "Props_BillBoard_medium.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -279,22 +79,10 @@
             }
         },
         {
-            "name": "Building Sky_big_color03",
+            "name": "Vehicle_Bus_color02",
             "parameters": {
                 "diffuse": {
-                    "name": "Building Sky_big_color03.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Container_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Container_2.png",
+                    "name": "Bus_2.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -327,106 +115,34 @@
             }
         },
         {
+            "name": "Building_Bar",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Bar.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Drug Store",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Drug Store.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Props_RoofProps",
             "parameters": {
                 "diffuse": {
                     "name": "Props_RoofProps.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_House_04_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_04_color03.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Residential_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Residential_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Gift Shop",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Gift Shop.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Pick up Truck_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Pick up Truck_3.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Bus_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Bus_2.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Super Market",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Super Market.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Auto Service",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Auto Service.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Taxi",
-            "parameters": {
-                "diffuse": {
-                    "name": "Taxi.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -459,6 +175,78 @@
             }
         },
         {
+            "name": "Building_Residential_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Residential_color01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Pick up Truck_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Pick up Truck_3.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Gift Shop",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Gift Shop.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Super Market",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Super Market.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Taxi",
+            "parameters": {
+                "diffuse": {
+                    "name": "Taxi.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Bus_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Bus_1.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Building_House_04_color01",
             "parameters": {
                 "diffuse": {
@@ -483,6 +271,30 @@
             }
         },
         {
+            "name": "Building_Bakery",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Bakery.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_big_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_big_color03.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Props_Props_01",
             "parameters": {
                 "diffuse": {
@@ -495,34 +307,34 @@
             }
         },
         {
+            "name": "Vehicle_Car_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Car_3.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Coffee Shop",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Coffee Shop.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Building_Pizza",
             "parameters": {
                 "diffuse": {
                     "name": "Building_Pizza.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building Sky_big_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building Sky_big_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Fruits  Shop",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Fruits  Shop.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -555,34 +367,10 @@
             }
         },
         {
-            "name": "Vehicle_Bus_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Bus_1.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Building_Gas Station",
             "parameters": {
                 "diffuse": {
                     "name": "Building_Gas Station.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Bakery",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Bakery.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -603,22 +391,10 @@
             }
         },
         {
-            "name": "Vehicle_Car_color03",
+            "name": "Vehicle_Ambulance",
             "parameters": {
                 "diffuse": {
-                    "name": "Car_3.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building Sky_small_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building Sky_small_color03.png.001.PNG",
+                    "name": "Ambulance.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -651,10 +427,70 @@
             }
         },
         {
+            "name": "Building_Auto Service",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Auto Service.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Car_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Car_2.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Props_BillBoard_small",
             "parameters": {
                 "diffuse": {
                     "name": "Props_BillBoard_small.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_big_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_big_color02.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Clothing",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Clothing.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Residential_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Residential_color02.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -675,34 +511,10 @@
             }
         },
         {
-            "name": "Building_Books Shop",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Books Shop.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Vehicle_Pick up Truck_color01",
             "parameters": {
                 "diffuse": {
                     "name": "Pick up Truck_1.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Ambulance",
-            "parameters": {
-                "diffuse": {
-                    "name": "Ambulance.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -735,22 +547,10 @@
             }
         },
         {
-            "name": "Building_Bar",
+            "name": "Road",
             "parameters": {
                 "diffuse": {
-                    "name": "Building_Bar.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Vehicle_Car_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Car_2.png",
+                    "name": "Road.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -763,18 +563,6 @@
             "parameters": {
                 "diffuse": {
                     "name": "SUV_2.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Coffee Shop",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Coffee Shop.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -807,10 +595,22 @@
             }
         },
         {
-            "name": "Building Sky_big_color02",
+            "name": "Building_Factory",
             "parameters": {
                 "diffuse": {
-                    "name": "Building Sky_big_color02.png.001.PNG",
+                    "name": "Building_Factory.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_small_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_small_color01.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -823,6 +623,234 @@
             "parameters": {
                 "diffuse": {
                     "name": "Truck_3.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Props_BillBoard_medium",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_BillBoard_medium.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Car_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Car_1.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Chicken Shop",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Chicken Shop.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_big_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_big_color01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_House_04_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_House_04_color03.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Residential_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Residential_color03.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Container_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Container_3.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Fruits  Shop",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Fruits  Shop.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Props_TrafficProps",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_TrafficProps.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_SUV_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "SUV_1.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_small_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_small_color03.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_House_01_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_House_01_color03.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_House_01_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_House_01_color01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Truck_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Truck_2.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Props_BillBoard_large",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_BillBoard_large.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Bus_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Bus_3.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_House_04_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_House_04_color02.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Books Shop",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Books Shop.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Container_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Container_2.png",
                     "uvmap": ""
                 },
                 "normal": {

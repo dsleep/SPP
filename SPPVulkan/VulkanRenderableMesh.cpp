@@ -100,9 +100,6 @@ namespace SPP
 	void RT_VulkanRenderableMesh::_AddToRenderScene(class RT_RenderScene* InScene)
 	{
 		RT_RenderableMesh::_AddToRenderScene(InScene);
-				
-		_cachedRotationScale = Matrix4x4::Identity();
-		_cachedRotationScale.block<3, 3>(0, 0) = GenerateRotationScale();
 
 		if (_bIsStatic)
 		{

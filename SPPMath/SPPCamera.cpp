@@ -11,6 +11,96 @@ namespace SPP
 	//3 miles
 	static const float FarClippingZ = 5000.0f;
 
+	/*
+		Calculate frustum split depths and matrices for the shadow map cascades
+		Based on https://johanmedestrom.wordpress.com/2016/03/18/opengl-cascaded-shadow-maps/
+	*/
+	//void CreateCascadeMatrices(float Near, float DesiredFar, uint8_t CascadeCount)
+	//{
+	//	float cascadeSplitLambda = 0.95f;
+
+	//	std::vector<float> cascadeSplits;
+	//	cascadeSplits.resize(CascadeCount);
+
+	//	float nearClip = Near;
+	//	float farClip = DesiredFar;
+	//	float clipRange = farClip - nearClip;
+
+	//	float minZ = nearClip;
+	//	float maxZ = nearClip + clipRange;
+
+	//	float range = maxZ - minZ;
+	//	float ratio = maxZ / minZ;
+
+	//	// Calculate split depths based on view camera frustum
+	//	// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+	//	for (uint32_t i = 0; i < CascadeCount; i++) {
+	//		float p = (i + 1) / static_cast<float>(CascadeCount);
+	//		float log = minZ * std::pow(ratio, p);
+	//		float uniform = minZ + range * p;
+	//		float d = cascadeSplitLambda * (log - uniform) + uniform;
+	//		cascadeSplits[i] = (d - nearClip) / clipRange;
+	//	}
+
+	//	// Calculate orthographic projection matrix for each cascade
+	//	float lastSplitDist = 0.0;
+	//	for (uint32_t i = 0; i < CascadeCount; i++) 
+	//	{
+	//		float splitDist = cascadeSplits[i];
+
+	//		glm::vec3 frustumCorners[8] = {
+	//			glm::vec3(-1.0f,  1.0f, -1.0f),
+	//			glm::vec3(1.0f,  1.0f, -1.0f),
+	//			glm::vec3(1.0f, -1.0f, -1.0f),
+	//			glm::vec3(-1.0f, -1.0f, -1.0f),
+	//			glm::vec3(-1.0f,  1.0f,  1.0f),
+	//			glm::vec3(1.0f,  1.0f,  1.0f),
+	//			glm::vec3(1.0f, -1.0f,  1.0f),
+	//			glm::vec3(-1.0f, -1.0f,  1.0f),
+	//		};
+
+	//		// Project frustum corners into world space
+	//		glm::mat4 invCam = glm::inverse(camera.matrices.perspective * camera.matrices.view);
+	//		for (uint32_t i = 0; i < 8; i++) {
+	//			glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
+	//			frustumCorners[i] = invCorner / invCorner.w;
+	//		}
+
+	//		for (uint32_t i = 0; i < 4; i++) {
+	//			glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
+	//			frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
+	//			frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+	//		}
+
+	//		// Get frustum center
+	//		glm::vec3 frustumCenter = glm::vec3(0.0f);
+	//		for (uint32_t i = 0; i < 8; i++) {
+	//			frustumCenter += frustumCorners[i];
+	//		}
+	//		frustumCenter /= 8.0f;
+
+	//		float radius = 0.0f;
+	//		for (uint32_t i = 0; i < 8; i++) {
+	//			float distance = glm::length(frustumCorners[i] - frustumCenter);
+	//			radius = glm::max(radius, distance);
+	//		}
+	//		radius = std::ceil(radius * 16.0f) / 16.0f;
+
+	//		glm::vec3 maxExtents = glm::vec3(radius);
+	//		glm::vec3 minExtents = -maxExtents;
+
+	//		glm::vec3 lightDir = normalize(-lightPos);
+	//		glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDir * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+	//		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
+
+	//		// Store split distance and matrix in cascade
+	//		cascades[i].splitDepth = (camera.getNearClip() + splitDist * clipRange) * -1.0f;
+	//		cascades[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
+
+	//		lastSplitDist = cascadeSplits[i];
+	//	}
+	//}
+
 	SPP_MATH_API void getBoundsForAxis(bool xAxis,
 		const Vector3& center,
 		float radius,
@@ -122,6 +212,16 @@ namespace SPP
 		BuildCameraMatrices();		
 	}
 
+	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InEuler, Vector2& Extents, Vector2& NearFar)
+	{
+		_cameraPosition = InPosition;
+		_eulerAngles = InEuler;
+		_FoV = -1.0f;
+
+		GenerateOrthogonalMatrix(Extents, NearFar);
+		BuildCameraMatrices();
+	}
+
 	void Camera::BuildCameraMatrices()
 	{
 		Eigen::Quaternion<float> q = EulerAnglesToQuaternion(_eulerAngles);
@@ -153,6 +253,8 @@ namespace SPP
 		_projectionMatrix(3, 3) = 0;		
 
 		_invProjectionMatrix = _projectionMatrix.inverse();
+
+		bIsInvertedZ = false;
 	}
 
 	void Camera::GenerateLHInverseZPerspectiveMatrix(float FoV, float AspectRatio)
@@ -168,19 +270,23 @@ namespace SPP
 		};
 
 		_invProjectionMatrix = _projectionMatrix.inverse();
+
+		bIsInvertedZ = true;
 	}
 
 
-	void Camera::GenerateOrthogonalMatrix(const Vector2i& InSize)
+	void Camera::GenerateOrthogonalMatrix(const Vector2& InSize, const Vector2& InDepthRange)
 	{
 		_projectionMatrix = Matrix4x4::Identity();
 
-		float fnDelta = FarClippingZ - NearClippingZ;
+		float fnDelta = InDepthRange[1] - InDepthRange[2];
 		_projectionMatrix(0, 0) = 2.0f / InSize[0]; // scale the x coordinates of the projected point 
 		_projectionMatrix(1, 1) = 2.0f / InSize[1]; // scale the y coordinates of the projected point 
 		_projectionMatrix(2, 2) = 2 / fnDelta; // used to remap z to [0,1] 
 
 		_invProjectionMatrix = _projectionMatrix.inverse();
+
+		bIsInvertedZ = false;
 	}
 
 	float Camera::GetRecipTanHalfFovy() const
@@ -316,6 +422,44 @@ namespace SPP
 			}
 		}
 #endif
+	}
+
+	void Camera::GetFrustumCornersForRange(const std::vector<float>& DepthRanges, 
+		std::vector<BoxOfCorners>& OutFrustumCorners)
+	{
+		float ZToUse = bIsInvertedZ ? 1 : 0;
+
+		std::array< Vector4, 4 > nearPoints = {
+			//near
+			Vector4(-1, -1, ZToUse, 1),
+			Vector4(-1, +1, ZToUse, 1),
+			Vector4(+1, +1, ZToUse, 1),
+			Vector4(+1, -1, ZToUse, 1)
+		};
+		
+		std::array< Vector3, 4 > frustumDirections;
+		for (int32_t Iter = 0; Iter < nearPoints.size(); Iter++)
+		{
+			// this does not have world location
+			Vector4 currentCorner = (nearPoints[Iter] * _invProjectionMatrix);
+			currentCorner /= currentCorner[3];
+			frustumDirections[Iter] = ToVector3(currentCorner).normalized();
+		}
+
+		OutFrustumCorners.resize(DepthRanges.size());
+		float LastDepth = NearClippingZ;
+		for (int32_t DepthIter = 0; DepthIter < DepthRanges.size(); DepthIter++)
+		{
+			auto curDepth = DepthRanges[DepthIter];
+			BoxOfCorners newBox;
+			for (int32_t Iter = 0; Iter < frustumDirections.size(); Iter++)
+			{
+				newBox.Points[Iter] = frustumDirections[Iter] * LastDepth;
+				newBox.Points[Iter + 4] = frustumDirections[Iter] * curDepth;
+			}
+			LastDepth = curDepth;
+			OutFrustumCorners[DepthIter] = newBox;
+		}
 	}
 
 	void Camera::GetFrustumCorners(Vector3 OutFrustumCorners[8])

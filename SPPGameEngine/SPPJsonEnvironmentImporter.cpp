@@ -34,6 +34,7 @@ namespace SPP
 
 		Json::Value materials = JsonScene.get("materials", Json::Value::nullSingleton());
 		Json::Value meshes = JsonScene.get("meshes", Json::Value::nullSingleton());
+		Json::Value lightsV = JsonScene.get("lights", Json::Value::nullSingleton());
 
 		std::map<std::string, OMaterial*> MaterialMap;
 		std::map<std::string, OTexture*> TextureMap;
@@ -229,6 +230,66 @@ namespace SPP
 					}
 
 					FileScene->AddChild(meshElement);
+				}
+			}
+		}
+
+		if (!lightsV.isNull() && lightsV.isArray())
+		{
+			for (int32_t Iter = 0; Iter < lightsV.size(); Iter++)
+			{
+				auto currentLight = lightsV[Iter];
+
+				Json::Value jName = currentLight.get("name", Json::Value::nullSingleton());
+				Json::Value jType = currentLight.get("type", Json::Value::nullSingleton());
+				Json::Value jTransform = currentLight.get("transform", Json::Value::nullSingleton());
+
+				Json::Value jColor = currentLight.get("color", Json::Value::nullSingleton());
+				Json::Value jEnergy = currentLight.get("energy", Json::Value::nullSingleton());
+
+				if (!jName.isNull() &&
+					!jType.isNull() &&
+					!jColor.isNull() &&
+					!jEnergy.isNull() &&
+					!jTransform.isNull())
+				{
+					auto newLight = AllocateObject<OSun>(jName.asCString(), FileScene);
+
+					Json::Value jLocation = jTransform.get("location", Json::Value::nullSingleton());
+					Json::Value jRot = jTransform.get("rotation", Json::Value::nullSingleton());
+					Json::Value jScale = jTransform.get("scale", Json::Value::nullSingleton());
+
+					auto& curRot = newLight->GetRotation();
+					auto& curPos = newLight->GetPosition();
+					auto& curScale = newLight->GetScale();
+
+					Vector3 LightValue;
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						LightValue[Iter] = jColor[Iter].asFloat();
+					}
+					LightValue *= jEnergy.asFloat();
+					newLight->GetIrradiance() = LightValue;
+
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						curPos[Iter] = jLocation[Iter].asDouble();
+					}
+
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						curRot[Iter] = jRot[Iter].asFloat();
+					}
+
+					//why the negative
+					curRot[2] = -curRot[2];
+
+					for (int32_t Iter = 0; Iter < 3; Iter++)
+					{
+						curScale[Iter] = jScale[Iter].asFloat();
+					}
+
+					FileScene->AddChild(newLight);
 				}
 			}
 		}

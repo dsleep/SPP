@@ -63,6 +63,16 @@ namespace SPP
 
 	SPP_CORE_API bool IsOnCPUThread();
 	
+	struct SPP_CORE_API MainWatch
+	{
+		MainWatch();
+		~MainWatch();
+		// not implemented
+		void KeepAlive();
+	};
+
+	SPP_CORE_API bool IsMainActive();
+
 	SPP_CORE_API extern std::unique_ptr<class ThreadPool> CPUThreaPool;
 
 	SPP_CORE_API void* SPP_MALLOC(std::size_t size);
