@@ -450,18 +450,7 @@ namespace SPP
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = &semaphores.renderComplete;
 
-		{
-			auto textureData = std::make_shared< ArrayResource >();
-			auto textureAccess = textureData->InitializeFromType<Color4>(128 * 128);
-
-			for (uint32_t Iter = 0; Iter < textureAccess.GetCount(); Iter++)
-			{
-				textureAccess[Iter][1] = 255;
-				textureAccess[Iter][3] = 255;
-			}
-			_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
-			_defaultTexture->SetName("_DEFAULTTEXTURE");
-		}
+		
 
 		//get those local dealios
 		vkCmdSetCheckpointNV = reinterpret_cast<PFN_vkCmdSetCheckpointNV>(vkGetDeviceProcAddr(device, "vkCmdSetCheckpointNV"));
@@ -648,7 +637,7 @@ namespace SPP
 		VkFenceCreateInfo fenceInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 
 		// Create one command buffer for each swap chain image and reuse for rendering
-		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
+		for (int32_t Iter = 0; Iter < MAX_IN_FLIGHT; Iter++)
 		{
 			_drawCmdBuffers[Iter] = Make_GPU(SafeVkCommandBuffer, this, cmdBufAllocateInfo);
 			_copyCmdBuffers[Iter].cmdBuf = Make_GPU(SafeVkCommandBuffer, this, cmdBufAllocateInfo);
@@ -781,8 +770,9 @@ namespace SPP
 				initSwapchain();
 
 				cmdPool = vulkanDevice->createCommandPool(swapChain.queueNodeIndex, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-				setupSwapChain();
+
 				createCommandBuffers();
+				setupSwapChain();
 				createSynchronizationPrimitives();
 
 				createStaticDrawInfo();
@@ -838,6 +828,19 @@ namespace SPP
 					//ImGui_ImplVulkan_DestroyFontUploadObjects
 					//ImGui_ImplVulkan_Shutdown()
 #endif
+				}
+
+				{
+					auto textureData = std::make_shared< ArrayResource >();
+					auto textureAccess = textureData->InitializeFromType<Color4>(128 * 128);
+
+					for (uint32_t Iter = 0; Iter < textureAccess.GetCount(); Iter++)
+					{
+						textureAccess[Iter][1] = 255;
+						textureAccess[Iter][3] = 255;
+					}
+					_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+					_defaultTexture->SetName("_DEFAULTTEXTURE");
 				}
 
 				auto& globalList = GetGlobalResourceList();
@@ -914,13 +917,14 @@ namespace SPP
 				// Recreate swap chain
 				width = NewWidth;
 				height = NewHeight;
+
+				destroyCommandBuffers();
+				createCommandBuffers();
+
 				setupSwapChain();
 
 				destroyFrameBuffer();
 				setupFrameBuffer();
-
-				destroyCommandBuffers();
-				createCommandBuffers();
 
 				for (auto& curScene : _renderScenes)
 				{

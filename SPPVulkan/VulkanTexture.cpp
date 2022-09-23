@@ -136,34 +136,36 @@ namespace SPP
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
 
-		// Use a separate command buffer for texture loading
-		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
 		// Create a host-visible staging buffer that contains the raw _image data
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingMemory;
+		//VkBuffer stagingBuffer;
+		//VkDeviceMemory stagingMemory;
 
-		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
-		bufferCreateInfo.size = TotalTextureSize;
-		// This buffer is used as a transfer source for the buffer copy
-		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		//VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo();
+		//bufferCreateInfo.size = TotalTextureSize;
+		//// This buffer is used as a transfer source for the buffer copy
+		//bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		//bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VK_CHECK_RESULT(vkCreateBuffer(device->logicalDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
+		//VK_CHECK_RESULT(vkCreateBuffer(device->logicalDevice, &bufferCreateInfo, nullptr, &stagingBuffer));
 
-		// Get memory requirements for the staging buffer (alignment, memory type bits)
-		vkGetBufferMemoryRequirements(device->logicalDevice, stagingBuffer, &memReqs);
+		//// Get memory requirements for the staging buffer (alignment, memory type bits)
+		//vkGetBufferMemoryRequirements(device->logicalDevice, stagingBuffer, &memReqs);
 
-		memAllocInfo.allocationSize = memReqs.size;
-		// Get memory type index for a host visible buffer
-		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		//memAllocInfo.allocationSize = memReqs.size;
+		//// Get memory type index for a host visible buffer
+		//memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &stagingMemory));
-		VK_CHECK_RESULT(vkBindBufferMemory(device->logicalDevice, stagingBuffer, stagingMemory, 0));
-				
-		// Copy texture data into staging buffer
-		uint8_t* data;
-		VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
+		//VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &stagingMemory));
+		//VK_CHECK_RESULT(vkBindBufferMemory(device->logicalDevice, stagingBuffer, stagingMemory, 0));
+		//		
+		//// Copy texture data into staging buffer
+		//uint8_t* data;
+		//VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, stagingMemory, 0, memReqs.size, 0, (void**)&data));
+
+
+		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
+		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto WritableChunk = perFrameScratchBuffer.GetWritable(TotalTextureSize, activeFrame);
 
 		// Setup buffer copy regions for each mip level
 		std::vector<VkBufferImageCopy> bufferCopyRegions;
@@ -192,22 +194,25 @@ namespace SPP
 				bufferCopyRegion.imageExtent.width = std::max< int32_t>(1u, _width >> mipIter);
 				bufferCopyRegion.imageExtent.height = std::max< int32_t>(1u, _height >> mipIter);
 				bufferCopyRegion.imageExtent.depth = 1;
-				bufferCopyRegion.bufferOffset = currentOffset;
+				bufferCopyRegion.bufferOffset = currentOffset + WritableChunk.offsetFromBase;
 
-				memcpy(data + currentOffset, curMip->GetElementData(), curMip->GetTotalSize());
+				memcpy(WritableChunk.cpuAddrWithOffset + currentOffset, curMip->GetElementData(), curMip->GetTotalSize());
 				currentOffset += curMip->GetTotalSize();
 
 				bufferCopyRegions.push_back(bufferCopyRegion);
 			}
 		}
 		
-		vkUnmapMemory(device->logicalDevice, stagingMemory);
+		//vkUnmapMemory(device->logicalDevice, stagingMemory);
 
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		subresourceRange.baseMipLevel = 0;
 		subresourceRange.levelCount = _mipLevels;
 		subresourceRange.layerCount = LayerCount;
+
+		//
+		auto& copyCmd = GGlobalVulkanGI->GetCopyCommandBuffer();
 
 		// Image barrier for optimal _image (target)
 		// Optimal _image will be used as destination for the copy
@@ -221,7 +226,7 @@ namespace SPP
 		// Copy mip levels from staging buffer
 		vkCmdCopyBufferToImage(
 			copyCmd,
-			stagingBuffer,
+			WritableChunk.buffer,
 			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			static_cast<uint32_t>(bufferCopyRegions.size()),
@@ -236,11 +241,9 @@ namespace SPP
 			_imageLayout,
 			subresourceRange);
 
-		device->flushCommandBuffer(copyCmd, copyQueue);
-
 		// Clean up staging resources
-		vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
-		vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+		//vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+		//vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 	}
 
 	void VulkanTexture::_allocate(VkImageUsageFlags UsageFlags)
@@ -321,16 +324,14 @@ namespace SPP
 		// Update descriptor _image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 
-		//TODO IMPROVE THIS, just getting out of undefined
-		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
 		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, _mipLevels, 0, _faceCount };
 		vks::tools::setImageLayout(
-			copyCmd,
+			cmdBuffer,
 			_image,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
-		device->flushCommandBuffer(copyCmd, copyQueue);
 	}
 
 	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, 
