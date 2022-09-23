@@ -497,6 +497,13 @@ namespace SPP
 		virtual void Initialize();
 	};
 
+	enum class ELightType
+	{
+		Unknown,
+		Sun,
+		Point
+	};
+
 	class SPP_GRAPHICS_API RT_RenderableLight : public Renderable, public RT_Resource
 	{
 		CLASS_RT_RESOURCE();
@@ -511,7 +518,8 @@ namespace SPP
 			Vector3 irradiance;
 		};
 
-		virtual RenderableType GetType() const { return RenderableType::Light; }
+		virtual RenderableType GetType() const override { return RenderableType::Light; }
+		virtual ELightType GetLightType() const { return ELightType::Unknown; }
 
 		void SetLightArgs(const Args& InArgs)
 		{
@@ -532,6 +540,7 @@ namespace SPP
 		RT_SunLight(GraphicsDevice* InOwner) : RT_RenderableLight(InOwner) {}
 
 	public:
+		virtual ELightType GetLightType() const { return ELightType::Sun; }
 		virtual ~RT_SunLight() {}
 	};
 
@@ -543,6 +552,7 @@ namespace SPP
 		RT_PointLight(GraphicsDevice* InOwner) : RT_RenderableLight(InOwner) {}
 
 	public:
+		virtual ELightType GetLightType() const { return ELightType::Point; }
 		virtual ~RT_PointLight() {}
 	};
 

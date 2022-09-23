@@ -77,7 +77,7 @@ namespace SPP
 				owningDevice->GetLightingCompositeRenderPass(),
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
-				EDepthState::Disabled,
+				EDepthState::Enabled_NoWrites,
 				EDrawingTopology::TriangleStrip,
 				nullptr,
 				_lightFullscreenVS,
@@ -365,37 +365,40 @@ namespace SPP
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
-		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
-		auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
-
-		Vector3 LightDir = -InLight.GetCachedRotationAndScale().block<1, 3>(1, 0);
-		LightDir.normalize();
-		SunLightParams lightParams =
+		if (InLight.GetLightType() == ELightType::Sun)
 		{
-			ToVector4(LightDir),
-			ToVector4(InLight.GetIrradiance())
-		};
+			auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
+			auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
-		vkCmdPushConstants(commandBuffer, sunPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SunLightParams), &lightParams);
-		
-		// if static we have everything pre cached		
-		uint32_t uniform_offsets[] = {
-			(sizeof(GPUViewConstants)) * currentFrame
-		};
+			Vector3 LightDir = -InLight.GetCachedRotationAndScale().block<1, 3>(1, 0);
+			LightDir.normalize();
+			SunLightParams lightParams =
+			{
+				ToVector4(LightDir),
+				ToVector4(InLight.GetIrradiance())
+			};
 
-		VkDescriptorSet locaDrawSets[] = {
-			_owningScene->GetCommondDescriptorSet()->Get(),
-			sunPRBSec->Get(),
-			_gbufferTextureSet->Get()
-		};
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
+			vkCmdPushConstants(commandBuffer, sunPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SunLightParams), &lightParams);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			sunPSO->GetVkPipelineLayout(),
-			0,
-			ARRAY_SIZE(locaDrawSets), locaDrawSets,
-			ARRAY_SIZE(uniform_offsets), uniform_offsets);		
+			// if static we have everything pre cached		
+			uint32_t uniform_offsets[] = {
+				(sizeof(GPUViewConstants)) * currentFrame
+			};
 
-		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+			VkDescriptorSet locaDrawSets[] = {
+				_owningScene->GetCommondDescriptorSet()->Get(),
+				sunPRBSec->Get(),
+				_gbufferTextureSet->Get()
+			};
+
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				sunPSO->GetVkPipelineLayout(),
+				0,
+				ARRAY_SIZE(locaDrawSets), locaDrawSets,
+				ARRAY_SIZE(uniform_offsets), uniform_offsets);
+
+			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+		}
 	}
 }

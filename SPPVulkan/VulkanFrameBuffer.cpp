@@ -94,7 +94,7 @@ namespace SPP
 		// Color attachment
 		if (createinfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 		{
-			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 
 		// Depth (and/or stencil) attachment
@@ -102,11 +102,11 @@ namespace SPP
 		{
 			if (attachment.hasDepth())
 			{
-				aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
 			}
 			if (attachment.hasStencil())
 			{
-				aspectMask = aspectMask | VK_IMAGE_ASPECT_STENCIL_BIT;
+				aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 			}
 		}
 

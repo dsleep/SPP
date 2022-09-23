@@ -612,7 +612,7 @@ namespace SPP
 
 		//UPDATE UNIFORMS
 		_viewGPU.BuildCameraMatrices();
-
+		_viewGPU.GetFrustumCornersForRange({ 50, 150, 450 }, _frustumRangeSpheres);
 		_viewGPU.GetFrustumPlanes(_frustumPlanes);
 		_cameraCullInfo = _viewGPU.GetCullingData();
 

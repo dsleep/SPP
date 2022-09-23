@@ -1695,6 +1695,10 @@ namespace SPP
 				depthStencilState.depthTestEnable = VK_TRUE;
 				depthStencilState.depthWriteEnable = VK_TRUE;
 				break;
+			case EDepthState::Enabled_NoWrites:
+				depthStencilState.depthTestEnable = VK_TRUE;
+				depthStencilState.depthWriteEnable = VK_FALSE;
+				break;
 			}
 
 			// Set pipeline shader stage info

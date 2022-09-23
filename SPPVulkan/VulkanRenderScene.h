@@ -189,6 +189,7 @@ namespace SPP
 
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
 
+		std::vector<Sphere> _frustumRangeSpheres;
 		Planed _frustumPlanes[5];		
 
 		CameraCullInfo _cameraCullInfo;
@@ -240,7 +241,10 @@ namespace SPP
 		{
 			return _cameraCullInfo;
 		}
-
+		const auto& GetFrustumRangeSpheres()
+		{
+			return _frustumRangeSpheres;
+		}
 
 		virtual void AddedToGraphicsDevice() override;
 		virtual void RemovedFromGraphicsDevice() override;		

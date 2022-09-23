@@ -18,22 +18,22 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	void VulkanTextureBase::updateDescriptor()
+	void VulkanTexture::updateDescriptor()
 	{
-		descriptor.sampler = sampler;
-		descriptor.imageView = view;
-		descriptor.imageLayout = _imageLayout;
+		_descriptor.sampler = sampler;
+		_descriptor.imageView = _view;
+		_descriptor.imageLayout = _imageLayout;
 	}
 
-	void VulkanTextureBase::destroy()
+	void VulkanTexture::destroy()
 	{
-		vkDestroyImageView(GGlobalVulkanDevice, view, nullptr);
-		vkDestroyImage(GGlobalVulkanDevice, image, nullptr);
+		vkDestroyImageView(GGlobalVulkanDevice, _view, nullptr);
+		vkDestroyImage(GGlobalVulkanDevice, _image, nullptr);
 		if (sampler)
 		{
 			vkDestroySampler(GGlobalVulkanDevice, sampler, nullptr);
 		}
-		vkFreeMemory(GGlobalVulkanDevice, deviceMemory, nullptr);
+		vkFreeMemory(GGlobalVulkanDevice, _deviceMemory, nullptr);
 	}
 
 //	bool LoadKTX2FromMemory(const void *InData, size_t InDataSize)
@@ -96,10 +96,10 @@ namespace SPP
 	* Load a 2D texture including all mip levels
 	*
 	* @param filename File to load (supports .ktx)
-	* @param format Vulkan format of the image data stored in the file
+	* @param format Vulkan format of the _image data stored in the file
 	* @param device Vulkan device to create the texture on
 	* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
-	* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+	* @param (Optional) imageUsageFlags Usage flags for the texture's _image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 	* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	* @param (Optional) forceLinear Force linear tiling (not advised, defaults to false)
 	*
@@ -146,7 +146,7 @@ namespace SPP
 
 		//if (useStaging)
 		//{
-		//	// Create a host-visible staging buffer that contains the raw image data
+		//	// Create a host-visible staging buffer that contains the raw _image data
 		//	VkBuffer stagingBuffer;
 		//	VkDeviceMemory stagingMemory;
 
@@ -196,7 +196,7 @@ namespace SPP
 		//		bufferCopyRegions.push_back(bufferCopyRegion);
 		//	}
 
-		//	// Create optimal tiled target image
+		//	// Create optimal tiled target _image
 		//	VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		//	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		//	imageCreateInfo.format = format;
@@ -213,18 +213,18 @@ namespace SPP
 		//	{
 		//		imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		//	}
-		//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+		//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &_image));
 
-		//	vks::debugmarker::setImageName(device->logicalDevice, image, sfileName.c_str());
+		//	vks::debugmarker::setImageName(device->logicalDevice, _image, sfileName.c_str());
 
-		//	vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+		//	vkGetImageMemoryRequirements(device->logicalDevice, _image, &memReqs);
 
 		//	memAllocInfo.allocationSize = memReqs.size;
 		//	imageByteSize = memReqs.size;
 
 		//	memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
-		//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+		//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &_deviceMemory));
+		//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image, _deviceMemory, 0));
 
 		//	VkImageSubresourceRange subresourceRange = {};
 		//	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -232,11 +232,11 @@ namespace SPP
 		//	subresourceRange.levelCount = mipLevels;
 		//	subresourceRange.layerCount = 1;
 
-		//	// Image barrier for optimal image (target)
-		//	// Optimal image will be used as destination for the copy
+		//	// Image barrier for optimal _image (target)
+		//	// Optimal _image will be used as destination for the copy
 		//	vks::tools::setImageLayout(
 		//		copyCmd,
-		//		image,
+		//		_image,
 		//		VK_IMAGE_LAYOUT_UNDEFINED,
 		//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		//		subresourceRange);
@@ -245,17 +245,17 @@ namespace SPP
 		//	vkCmdCopyBufferToImage(
 		//		copyCmd,
 		//		stagingBuffer,
-		//		image,
+		//		_image,
 		//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		//		static_cast<uint32_t>(bufferCopyRegions.size()),
 		//		bufferCopyRegions.data()
 		//	);
 
-		//	// Change texture image layout to shader read after all mip levels have been copied
+		//	// Change texture _image layout to shader read after all mip levels have been copied
 		//	this->imageLayout = imageLayout;
 		//	vks::tools::setImageLayout(
 		//		copyCmd,
-		//		image,
+		//		_image,
 		//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		//		imageLayout,
 		//		subresourceRange);
@@ -290,13 +290,13 @@ namespace SPP
 		//	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		//	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-		//	// Load mip map level 0 to linear tiling image
+		//	// Load mip map level 0 to linear tiling _image
 		//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &mappableImage));
 
 
-		//	vks::debugmarker::setImageName(device->logicalDevice, image, sfileName.c_str());
+		//	vks::debugmarker::setImageName(device->logicalDevice, _image, sfileName.c_str());
 
-		//	// Get memory requirements for this image 
+		//	// Get memory requirements for this _image 
 		//	// like size and alignment
 		//	vkGetImageMemoryRequirements(device->logicalDevice, mappableImage, &memReqs);
 		//	// Set memory allocation size to required memory size
@@ -308,7 +308,7 @@ namespace SPP
 		//	// Allocate host memory
 		//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &mappableMemory));
 
-		//	// Bind allocated image for use
+		//	// Bind allocated _image for use
 		//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, mappableImage, mappableMemory, 0));
 
 		//	// Get sub resource layout
@@ -324,22 +324,22 @@ namespace SPP
 		//	// Includes row pitch, size offsets, etc.
 		//	vkGetImageSubresourceLayout(device->logicalDevice, mappableImage, &subRes, &subResLayout);
 
-		//	// Map image memory
+		//	// Map _image memory
 		//	VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, mappableMemory, 0, memReqs.size, 0, &data));
 
-		//	// Copy image data into memory
+		//	// Copy _image data into memory
 		//	memcpy(data, ktxTextureData, memReqs.size);
 
 		//	vkUnmapMemory(device->logicalDevice, mappableMemory);
 
 		//	// Linear tiled images don't need to be staged
 		//	// and can be directly used as textures
-		//	image = mappableImage;
-		//	deviceMemory = mappableMemory;
+		//	_image = mappableImage;
+		//	_deviceMemory = mappableMemory;
 		//	this->imageLayout = imageLayout;
 
-		//	// Setup image memory barrier
-		//	vks::tools::setImageLayout(copyCmd, image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
+		//	// Setup _image memory barrier
+		//	vks::tools::setImageLayout(copyCmd, _image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, imageLayout);
 
 		//	device->flushCommandBuffer(copyCmd, copyQueue);
 		//}
@@ -366,9 +366,9 @@ namespace SPP
 		//samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		//VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-		//// Create image view
+		//// Create _image _view
 		//// Textures are not directly accessed by the shaders and
-		//// are abstracted by image views containing additional
+		//// are abstracted by _image views containing additional
 		//// information and sub resource ranges
 		//VkImageViewCreateInfo viewCreateInfo = {};
 		//viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -379,10 +379,10 @@ namespace SPP
 		//// Linear tiling usually won't support mip maps
 		//// Only set mip map count if optimal tiling is used
 		//viewCreateInfo.subresourceRange.levelCount = (useStaging) ? mipLevels : 1;
-		//viewCreateInfo.image = image;
-		//VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+		//viewCreateInfo._image = _image;
+		//VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &_view));
 
-		//// Update descriptor image info member that can be used for setting up descriptor sets
+		//// Update descriptor _image info member that can be used for setting up descriptor sets
 		//updateDescriptor();
 	}
 
@@ -393,11 +393,11 @@ namespace SPP
 	* @param bufferSize Size of the buffer in machine units
 	* @param width Width of the texture to create
 	* @param height Height of the texture to create
-	* @param format Vulkan format of the image data stored in the file
+	* @param format Vulkan format of the _image data stored in the file
 	* @param device Vulkan device to create the texture on
 	* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
 	* @param (Optional) filter Texture filtering for the sampler (defaults to VK_FILTER_LINEAR)
-	* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+	* @param (Optional) imageUsageFlags Usage flags for the texture's _image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 	* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	*/
 	void VulkanTexture::fromBuffer(void* buffer, 
@@ -425,7 +425,7 @@ namespace SPP
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		// Create a host-visible staging buffer that contains the raw image data
+		// Create a host-visible staging buffer that contains the raw _image data
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingMemory;
 
@@ -463,7 +463,7 @@ namespace SPP
 		bufferCopyRegion.imageExtent.depth = 1;
 		bufferCopyRegion.bufferOffset = 0;
 
-		// Create optimal tiled target image
+		// Create optimal tiled target _image
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = format;
@@ -480,18 +480,18 @@ namespace SPP
 		{
 			imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
-		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &_image));
 
-		vks::debugmarker::setImageName(device->logicalDevice, image, "VT_fromBuffer");
+		vks::debugmarker::setImageName(device->logicalDevice, _image, "VT_fromBuffer");
 
-		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+		vkGetImageMemoryRequirements(device->logicalDevice, _image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
 		imageByteSize = memReqs.size;
 
 		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
-		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &_deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image, _deviceMemory, 0));
 
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -499,11 +499,11 @@ namespace SPP
 		subresourceRange.levelCount = _mipLevels;
 		subresourceRange.layerCount = 1;
 
-		// Image barrier for optimal image (target)
-		// Optimal image will be used as destination for the copy
+		// Image barrier for optimal _image (target)
+		// Optimal _image will be used as destination for the copy
 		vks::tools::setImageLayout(
 			copyCmd,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			subresourceRange);
@@ -512,17 +512,17 @@ namespace SPP
 		vkCmdCopyBufferToImage(
 			copyCmd,
 			stagingBuffer,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&bufferCopyRegion
 		);
 
-		// Change texture image layout to shader read after all mip levels have been copied
+		// Change texture _image layout to shader read after all mip levels have been copied
 		_imageLayout = imageLayout;
 		vks::tools::setImageLayout(
 			copyCmd,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			imageLayout,
 			subresourceRange);
@@ -549,7 +549,7 @@ namespace SPP
 		samplerCreateInfo.maxAnisotropy = 1.0f;
 		VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-		// Create image view
+		// Create _image _view
 		VkImageViewCreateInfo viewCreateInfo = {};
 		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCreateInfo.pNext = NULL;
@@ -558,10 +558,10 @@ namespace SPP
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		viewCreateInfo.subresourceRange.levelCount = 1;
-		viewCreateInfo.image = image;
-		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+		viewCreateInfo.image = _image;
+		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &_view));
 
-		// Update descriptor image info member that can be used for setting up descriptor sets
+		// Update descriptor _image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 	}
 
@@ -574,7 +574,7 @@ namespace SPP
 
 	void VulkanTexture::SetName(const char* InName)
 	{
-		vks::debugmarker::setImageName(GGlobalVulkanDevice, image, InName);
+		vks::debugmarker::setImageName(GGlobalVulkanDevice, _image, InName);
 	}
 
 	VkFormat SPPToVulkan(TextureFormat InFormat)
@@ -635,7 +635,7 @@ namespace SPP
 	{
 		auto sfileName = stdfs::path(InTextureAsset.orgFileName).filename().generic_string();
 
-		texformat = TextureFormatToVKFormat(InTextureAsset.format, InTextureAsset.bSRGB);
+		_texformat = TextureFormatToVKFormat(InTextureAsset.format, InTextureAsset.bSRGB);
 		auto TotalTextureSize = InTextureAsset.GetTotalSize();
 		auto copyQueue = GGlobalVulkanGI->GetGraphicsQueue();
 		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
@@ -649,7 +649,7 @@ namespace SPP
 		
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
-		vkGetPhysicalDeviceFormatProperties(device->physicalDevice, texformat, &formatProperties);
+		vkGetPhysicalDeviceFormatProperties(device->physicalDevice, _texformat, &formatProperties);
 
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		VkMemoryRequirements memReqs;
@@ -657,7 +657,7 @@ namespace SPP
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-		// Create a host-visible staging buffer that contains the raw image data
+		// Create a host-visible staging buffer that contains the raw _image data
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingMemory;
 
@@ -721,10 +721,10 @@ namespace SPP
 		
 		vkUnmapMemory(device->logicalDevice, stagingMemory);
 
-		// Create optimal tiled target image
+		// Create optimal tiled target _image
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.format = texformat;
+		imageCreateInfo.format = _texformat;
 		imageCreateInfo.mipLevels = _mipLevels;
 		imageCreateInfo.arrayLayers = LayerCount;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -740,18 +740,18 @@ namespace SPP
 			imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		}
 
-		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &_image));
 
-		vks::debugmarker::setImageName(device->logicalDevice, image, sfileName.c_str());
+		vks::debugmarker::setImageName(device->logicalDevice, _image, sfileName.c_str());
 
-		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+		vkGetImageMemoryRequirements(device->logicalDevice, _image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
 		imageByteSize = memReqs.size;
 
 		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
-		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &_deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image, _deviceMemory, 0));
 
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -759,11 +759,11 @@ namespace SPP
 		subresourceRange.levelCount = _mipLevels;
 		subresourceRange.layerCount = LayerCount;
 
-		// Image barrier for optimal image (target)
-		// Optimal image will be used as destination for the copy
+		// Image barrier for optimal _image (target)
+		// Optimal _image will be used as destination for the copy
 		vks::tools::setImageLayout(
 			copyCmd,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			subresourceRange);
@@ -772,16 +772,16 @@ namespace SPP
 		vkCmdCopyBufferToImage(
 			copyCmd,
 			stagingBuffer,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			static_cast<uint32_t>(bufferCopyRegions.size()),
 			bufferCopyRegions.data()
 		);
 
-		// Change texture image layout to shader read after all mip levels have been copied		
+		// Change texture _image layout to shader read after all mip levels have been copied		
 		vks::tools::setImageLayout(
 			copyCmd,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			_imageLayout,
 			subresourceRange);
@@ -805,27 +805,27 @@ namespace SPP
 		samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 		samplerCreateInfo.minLod = 0.0f;
 		// Max level-of-detail should match mip level count
-		samplerCreateInfo.maxLod = (float)_mipLevels;
+		samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
 		// Only enable anisotropic filtering if enabled on the device
 		samplerCreateInfo.maxAnisotropy = device->enabledFeatures.samplerAnisotropy ? device->properties.limits.maxSamplerAnisotropy : 1.0f;
 		samplerCreateInfo.anisotropyEnable = device->enabledFeatures.samplerAnisotropy;
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-		// Create image view
+		// Create _image _view
 		// Textures are not directly accessed by the shaders and
-		// are abstracted by image views containing additional
+		// are abstracted by _image views containing additional
 		// information and sub resource ranges
 		VkImageViewCreateInfo viewCreateInfo = {};
 		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCreateInfo.viewType = IsCubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
-		viewCreateInfo.format = texformat;
+		viewCreateInfo.format = _texformat;
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)_mipLevels, 0, LayerCount };
-		viewCreateInfo.image = image;
-		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+		viewCreateInfo.image = _image;
+		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &_view));
 
-		// Update descriptor image info member that can be used for setting up descriptor sets
+		// Update descriptor _image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 	}
 
@@ -847,9 +847,9 @@ namespace SPP
 		VkFormat format = SPPToVulkan(Format);
 		VkFilter filter = VK_FILTER_NEAREST;
 
-		texformat = format;
+		_texformat = format;
 
-		// Create optimal tiled target image
+		// Create optimal tiled target _image
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = format;
@@ -871,18 +871,18 @@ namespace SPP
 			// This flag is required for cube map images
 			imageCreateInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		}
-		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+		VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &_image));
 
-		vks::debugmarker::setImageName(device->logicalDevice, image, "VT_Empty");
+		vks::debugmarker::setImageName(device->logicalDevice, _image, "VT_Empty");
 
 		VkMemoryRequirements memReqs = { 0 };
-		vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+		vkGetImageMemoryRequirements(device->logicalDevice, _image, &memReqs);
 
 		VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
-		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+		VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &_deviceMemory));
+		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image, _deviceMemory, 0));
 
 		// Use a separate command buffer for texture loading
 		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -891,7 +891,7 @@ namespace SPP
 
 		vks::tools::setImageLayout(
 			copyCmd,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
@@ -912,11 +912,11 @@ namespace SPP
 		samplerCreateInfo.mipLodBias = 0.0f;
 		samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
 		samplerCreateInfo.minLod = 0.0f;
-		samplerCreateInfo.maxLod = 0.0f;
+		samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
 		samplerCreateInfo.maxAnisotropy = 1.0f;
 		VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-		// Create image view
+		// Create _image _view
 		VkImageViewCreateInfo viewCreateInfo = {};
 		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCreateInfo.pNext = NULL;
@@ -924,10 +924,10 @@ namespace SPP
 		viewCreateInfo.format = format;
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t) _mipLevels, 0, (uint32_t) _faceCount };
-		viewCreateInfo.image = image;
-		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+		viewCreateInfo.image = _image;
+		VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &_view));
 
-		// Update descriptor image info member that can be used for setting up descriptor sets
+		// Update descriptor _image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 	}
 
@@ -942,10 +942,10 @@ namespace SPP
 			viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			viewCreateInfo.pNext = NULL;
 			viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewCreateInfo.format = texformat;
+			viewCreateInfo.format = _texformat;
 			viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 			viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)Iter, 1, 0, 1 };			
-			viewCreateInfo.image = image;
+			viewCreateInfo.image = _image;
 
 			auto newView = Make_GPU(SafeVkImageView, GGlobalVulkanGI, viewCreateInfo);
 			oViews.push_back(newView);
@@ -994,7 +994,7 @@ namespace SPP
 
 		vks::tools::setImageLayout(
 			cmdBuffer,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			subresourceRange);
@@ -1002,14 +1002,14 @@ namespace SPP
 		vkCmdCopyBufferToImage(
 			cmdBuffer,
 			WritableChunk.buffer,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&bufferCopyRegion);
 
 		vks::tools::setImageLayout(
 			cmdBuffer,
-			image,
+			_image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_GENERAL,
 			subresourceRange);
@@ -1018,10 +1018,10 @@ namespace SPP
 	//* Load a 2D texture array including all mip levels
 	//*
 	//* @param filename File to load (supports .ktx)
-	//* @param format Vulkan format of the image data stored in the file
+	//* @param format Vulkan format of the _image data stored in the file
 	//* @param device Vulkan device to create the texture on
 	//* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
-	//* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+	//* @param (Optional) imageUsageFlags Usage flags for the texture's _image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 	//* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	//*
 	//*/
@@ -1043,7 +1043,7 @@ namespace SPP
 	//	VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 	//	VkMemoryRequirements memReqs;
 
-	//	// Create a host-visible staging buffer that contains the raw image data
+	//	// Create a host-visible staging buffer that contains the raw _image data
 	//	VkBuffer stagingBuffer;
 	//	VkDeviceMemory stagingMemory;
 
@@ -1096,7 +1096,7 @@ namespace SPP
 	//		}
 	//	}
 
-	//	// Create optimal tiled target image
+	//	// Create optimal tiled target _image
 	//	VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 	//	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 	//	imageCreateInfo.format = format;
@@ -1114,20 +1114,20 @@ namespace SPP
 	//	imageCreateInfo.arrayLayers = layerCount;
 	//	imageCreateInfo.mipLevels = mipLevels;
 
-	//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+	//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &_image));
 
-	//	vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+	//	vkGetImageMemoryRequirements(device->logicalDevice, _image, &memReqs);
 
 	//	memAllocInfo.allocationSize = memReqs.size;
 	//	memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
-	//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+	//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &_deviceMemory));
+	//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image, _deviceMemory, 0));
 
 	//	// Use a separate command buffer for texture loading
 	//	VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-	//	// Image barrier for optimal image (target)
+	//	// Image barrier for optimal _image (target)
 	//	// Set initial layout for all array layers (faces) of the optimal (target) tiled texture
 	//	VkImageSubresourceRange subresourceRange = {};
 	//	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1137,25 +1137,25 @@ namespace SPP
 
 	//	vks::tools::setImageLayout(
 	//		copyCmd,
-	//		image,
+	//		_image,
 	//		VK_IMAGE_LAYOUT_UNDEFINED,
 	//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	//		subresourceRange);
 
-	//	// Copy the layers and mip levels from the staging buffer to the optimal tiled image
+	//	// Copy the layers and mip levels from the staging buffer to the optimal tiled _image
 	//	vkCmdCopyBufferToImage(
 	//		copyCmd,
 	//		stagingBuffer,
-	//		image,
+	//		_image,
 	//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	//		static_cast<uint32_t>(bufferCopyRegions.size()),
 	//		bufferCopyRegions.data());
 
-	//	// Change texture image layout to shader read after all faces have been copied
+	//	// Change texture _image layout to shader read after all faces have been copied
 	//	this->imageLayout = imageLayout;
 	//	vks::tools::setImageLayout(
 	//		copyCmd,
-	//		image,
+	//		_image,
 	//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	//		imageLayout,
 	//		subresourceRange);
@@ -1179,7 +1179,7 @@ namespace SPP
 	//	samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	//	VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-	//	// Create image view
+	//	// Create _image _view
 	//	VkImageViewCreateInfo viewCreateInfo = vks::initializers::imageViewCreateInfo();
 	//	viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 	//	viewCreateInfo.format = format;
@@ -1187,15 +1187,15 @@ namespace SPP
 	//	viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	//	viewCreateInfo.subresourceRange.layerCount = layerCount;
 	//	viewCreateInfo.subresourceRange.levelCount = mipLevels;
-	//	viewCreateInfo.image = image;
-	//	VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+	//	viewCreateInfo._image = _image;
+	//	VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &_view));
 
 	//	// Clean up staging resources
 	//	ktxTexture_Destroy(ktxTexture);
 	//	vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 	//	vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 
-	//	// Update descriptor image info member that can be used for setting up descriptor sets
+	//	// Update descriptor _image info member that can be used for setting up descriptor sets
 	//	updateDescriptor();
 	//}
 
@@ -1203,10 +1203,10 @@ namespace SPP
 	//* Load a cubemap texture including all mip levels from a single file
 	//*
 	//* @param filename File to load (supports .ktx)
-	//* @param format Vulkan format of the image data stored in the file
+	//* @param format Vulkan format of the _image data stored in the file
 	//* @param device Vulkan device to create the texture on
 	//* @param copyQueue Queue used for the texture staging copy commands (must support transfer)
-	//* @param (Optional) imageUsageFlags Usage flags for the texture's image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
+	//* @param (Optional) imageUsageFlags Usage flags for the texture's _image (defaults to VK_IMAGE_USAGE_SAMPLED_BIT)
 	//* @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 	//*
 	//*/
@@ -1227,7 +1227,7 @@ namespace SPP
 	//	VkMemoryAllocateInfo memAllocInfo = vks::initializers::memoryAllocateInfo();
 	//	VkMemoryRequirements memReqs;
 
-	//	// Create a host-visible staging buffer that contains the raw image data
+	//	// Create a host-visible staging buffer that contains the raw _image data
 	//	VkBuffer stagingBuffer;
 	//	VkDeviceMemory stagingMemory;
 
@@ -1280,7 +1280,7 @@ namespace SPP
 	//		}
 	//	}
 
-	//	// Create optimal tiled target image
+	//	// Create optimal tiled target _image
 	//	VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
 	//	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 	//	imageCreateInfo.format = format;
@@ -1302,20 +1302,20 @@ namespace SPP
 	//	imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
 
-	//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &image));
+	//	VK_CHECK_RESULT(vkCreateImage(device->logicalDevice, &imageCreateInfo, nullptr, &_image));
 
-	//	vkGetImageMemoryRequirements(device->logicalDevice, image, &memReqs);
+	//	vkGetImageMemoryRequirements(device->logicalDevice, _image, &memReqs);
 
 	//	memAllocInfo.allocationSize = memReqs.size;
 	//	memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &deviceMemory));
-	//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, image, deviceMemory, 0));
+	//	VK_CHECK_RESULT(vkAllocateMemory(device->logicalDevice, &memAllocInfo, nullptr, &_deviceMemory));
+	//	VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image, _deviceMemory, 0));
 
 	//	// Use a separate command buffer for texture loading
 	//	VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-	//	// Image barrier for optimal image (target)
+	//	// Image barrier for optimal _image (target)
 	//	// Set initial layout for all array layers (faces) of the optimal (target) tiled texture
 	//	VkImageSubresourceRange subresourceRange = {};
 	//	subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1325,25 +1325,25 @@ namespace SPP
 
 	//	vks::tools::setImageLayout(
 	//		copyCmd,
-	//		image,
+	//		_image,
 	//		VK_IMAGE_LAYOUT_UNDEFINED,
 	//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	//		subresourceRange);
 
-	//	// Copy the cube map faces from the staging buffer to the optimal tiled image
+	//	// Copy the cube map faces from the staging buffer to the optimal tiled _image
 	//	vkCmdCopyBufferToImage(
 	//		copyCmd,
 	//		stagingBuffer,
-	//		image,
+	//		_image,
 	//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	//		static_cast<uint32_t>(bufferCopyRegions.size()),
 	//		bufferCopyRegions.data());
 
-	//	// Change texture image layout to shader read after all faces have been copied
+	//	// Change texture _image layout to shader read after all faces have been copied
 	//	this->imageLayout = imageLayout;
 	//	vks::tools::setImageLayout(
 	//		copyCmd,
-	//		image,
+	//		_image,
 	//		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 	//		imageLayout,
 	//		subresourceRange);
@@ -1367,7 +1367,7 @@ namespace SPP
 	//	samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	//	VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
 
-	//	// Create image view
+	//	// Create _image _view
 	//	VkImageViewCreateInfo viewCreateInfo = vks::initializers::imageViewCreateInfo();
 	//	viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
 	//	viewCreateInfo.format = format;
@@ -1375,15 +1375,15 @@ namespace SPP
 	//	viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	//	viewCreateInfo.subresourceRange.layerCount = 6;
 	//	viewCreateInfo.subresourceRange.levelCount = mipLevels;
-	//	viewCreateInfo.image = image;
-	//	VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+	//	viewCreateInfo._image = _image;
+	//	VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &_view));
 
 	//	// Clean up staging resources
 	//	ktxTexture_Destroy(ktxTexture);
 	//	vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
 	//	vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
 
-	//	// Update descriptor image info member that can be used for setting up descriptor sets
+	//	// Update descriptor _image info member that can be used for setting up descriptor sets
 	//	updateDescriptor();
 	//}
 

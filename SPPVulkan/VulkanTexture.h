@@ -22,48 +22,21 @@
 
 namespace SPP
 {
-	class VulkanTextureBase
+	class VulkanTexture : public GPUTexture
 	{
 	protected:
-		//vks::VulkanDevice *   device;
-		VkFormat			  texformat = VK_FORMAT_UNDEFINED;
-		VkImage               image = nullptr;
+		VkFormat			  _texformat = VK_FORMAT_UNDEFINED;
+		VkImage               _image = nullptr;
 		VkImageLayout         _imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		VkDeviceMemory        deviceMemory = nullptr;
-		VkImageView           view = nullptr;
-		
-		VkDescriptorImageInfo descriptor = {};
+		VkDeviceMemory        _deviceMemory = nullptr;
+		VkImageView           _view = nullptr;
+
+		VkDescriptorImageInfo _descriptor = {};
 		VkSampler             sampler;
 		uint32_t		      imageByteSize;
 
 		void updateDescriptor();
-		void destroy();	
-
-	public:
-		const VkDescriptorImageInfo& GetDescriptor()
-		{
-			return descriptor;
-		}
-
-		uint32_t GetImageSize() const
-		{
-			return imageByteSize;
-		}
-
-		const VkImage &GetVkImage() const
-		{
-			return image;
-		}
-
-		auto GetVkImageView() const
-		{
-			return view;
-		}
-	};
-
-	class VulkanTexture : public VulkanTextureBase, public GPUTexture
-	{
-	protected:
+		void destroy();
 
 		virtual void _MakeResident() override {}
 		virtual void _MakeUnresident() override {}
@@ -103,6 +76,26 @@ namespace SPP
 		void UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize);
 
 		virtual void SetName(const char* InName) override;
+
+		const VkDescriptorImageInfo& GetDescriptor()
+		{
+			return _descriptor;
+		}
+
+		uint32_t GetImageSize() const
+		{
+			return imageByteSize;
+		}
+
+		const VkImage& GetVkImage() const
+		{
+			return _image;
+		}
+
+		auto GetVkImageView() const
+		{
+			return _view;
+		}
 
 		virtual ~VulkanTexture() 
 		{ 

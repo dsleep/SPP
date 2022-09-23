@@ -272,8 +272,8 @@ public:
 		auto& cam = renderableSceneShared->GetCamera();
 		cam.GetCameraPosition()[1] = 5;
 
-		std::vector<BoxOfCorners> boxes;
-		cam.GetFrustumCornersForRange( { 50, 150, 450 }, boxes);
+		std::vector<Sphere> rangeSpheres;
+		cam.GetFrustumCornersForRange( { 50, 150, 450 }, rangeSpheres);
 
 		//SPP::MakeResidentAllGPUResources();
 

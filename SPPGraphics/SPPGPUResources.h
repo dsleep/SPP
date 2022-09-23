@@ -67,6 +67,7 @@ namespace SPP
         Reversed,
         WritesEnabled,
         ReversedWritesEnabled,
+        Enabled_NoWrites,
 
         NumValues
     };
@@ -192,7 +193,6 @@ namespace SPP
         bool _gpuResident = false;
         bool _dying = false;
         GraphicsDevice* _owner = nullptr;
-
 
         int32_t _cppLine = -1;
         std::string _cppFile;

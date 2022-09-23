@@ -104,7 +104,7 @@ namespace SPP
 		void SetupStandardCorrection();
 
 		// without Camera Location Offset, but has rotation
-		void GetFrustumCornersForRange(const std::vector<float>& DepthRanges, std::vector<BoxOfCorners>& OutBoxes);
+		void GetFrustumCornersForRange(const std::vector<float>& DepthRanges, std::vector<Sphere>& OutFrustumSpheres);
 
 		void SphereProjectionTest(const Sphere &InSphere);
 

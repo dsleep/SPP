@@ -3,6 +3,7 @@
 // recognized in your jurisdiction.
 
 #include "SPPCamera.h"
+#include "SPPPrimitiveShapes.h"
 
 namespace SPP
 {
@@ -425,7 +426,7 @@ namespace SPP
 	}
 
 	void Camera::GetFrustumCornersForRange(const std::vector<float>& DepthRanges, 
-		std::vector<BoxOfCorners>& OutFrustumCorners)
+		std::vector<Sphere>& OutFrustumSpheres)
 	{
 		float ZToUse = bIsInvertedZ ? 1 : 0;
 
@@ -446,19 +447,21 @@ namespace SPP
 			frustumDirections[Iter] = ToVector3(currentCorner).normalized();
 		}
 
-		OutFrustumCorners.resize(DepthRanges.size());
+		OutFrustumSpheres.resize(DepthRanges.size());
+		std::array<Vector3d, 8> points;
 		float LastDepth = NearClippingZ;
 		for (int32_t DepthIter = 0; DepthIter < DepthRanges.size(); DepthIter++)
 		{
 			auto curDepth = DepthRanges[DepthIter];
-			BoxOfCorners newBox;
+
+			
 			for (int32_t Iter = 0; Iter < frustumDirections.size(); Iter++)
 			{
-				newBox.Points[Iter] = frustumDirections[Iter] * LastDepth;
-				newBox.Points[Iter + 4] = frustumDirections[Iter] * curDepth;
+				points[Iter] = (frustumDirections[Iter] * LastDepth).cast<double>();
+				points[Iter + 4] = (frustumDirections[Iter] * curDepth).cast<double>();
 			}
-			LastDepth = curDepth;
-			OutFrustumCorners[DepthIter] = newBox;
+			
+			OutFrustumSpheres[DepthIter] = MinimumBoundingSphere< Vector3d, Vector3d >(points.data(), 8);
 		}
 	}
 
