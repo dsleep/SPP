@@ -12,57 +12,9 @@
 
 namespace SPP
 {
-	FramebufferAttachment::FramebufferAttachment(FramebufferAttachment&& moveBuffer)
+	VulkanFramebuffer::VulkanFramebuffer(GraphicsDevice* InOwner,
+		uint32_t InWidth, uint32_t InHeight) : _owner(InOwner), _width(InWidth), _height(InHeight)
 	{
-		image = std::move(moveBuffer.image);
-		memory = std::move(moveBuffer.memory);
-		view = std::move(moveBuffer.view);
-		name = std::move(moveBuffer.name);
-
-		format = moveBuffer.format;
-		subresourceRange = moveBuffer.subresourceRange;
-		description = moveBuffer.description;
-	}
-
-	bool FramebufferAttachment::hasDepth()
-	{
-		std::vector<VkFormat> formats =
-		{
-			VK_FORMAT_D16_UNORM,
-			VK_FORMAT_X8_D24_UNORM_PACK32,
-			VK_FORMAT_D32_SFLOAT,
-			VK_FORMAT_D16_UNORM_S8_UINT,
-			VK_FORMAT_D24_UNORM_S8_UINT,
-			VK_FORMAT_D32_SFLOAT_S8_UINT,
-		};
-		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
-	}
-
-	bool FramebufferAttachment::hasStencil()
-	{
-		std::vector<VkFormat> formats =
-		{
-			VK_FORMAT_S8_UINT,
-			VK_FORMAT_D16_UNORM_S8_UINT,
-			VK_FORMAT_D24_UNORM_S8_UINT,
-			VK_FORMAT_D32_SFLOAT_S8_UINT,
-		};
-		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
-	}
-
-	/**
-	* @brief Returns true if the attachment is a depth and/or stencil attachment
-	*/
-	bool FramebufferAttachment::isDepthStencil()
-	{
-		return(hasDepth() || hasStencil());
-	}
-
-	VulkanFramebuffer::VulkanFramebuffer(GraphicsDevice* InOwner, vks::VulkanDevice* vulkanDevice,
-		uint32_t InWidth, uint32_t InHeight) : _owner(InOwner), width(InWidth), height(InHeight)
-	{
-		assert(vulkanDevice);
-		this->vulkanDevice = vulkanDevice;
 	}
 
 	/**
@@ -70,48 +22,19 @@ namespace SPP
 	*/
 	VulkanFramebuffer::~VulkanFramebuffer()
 	{
-		assert(vulkanDevice);
-		for (auto& attachment : attachments)
-		{
-			attachment.image.Reset();
-			attachment.view.Reset();
-			attachment.memory.Reset();
-		}
-		sampler.Reset();
+		attachments.clear();
 	}
 
 	uint32_t VulkanFramebuffer::addAttachment(AttachmentCreateInfo createinfo)
 	{
 		FramebufferAttachment attachment;
 
-		attachment.format = createinfo.format;
+		attachment.texture = createinfo.texture;
 		attachment.name = createinfo.name;
 
-		VkImageAspectFlags aspectMask = VK_FLAGS_NONE;
+		auto TextureRef = createinfo.texture.get();
 
-		// Select aspect mask and layout depending on usage
-
-		// Color attachment
-		if (createinfo.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-		{
-			aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
-		}
-
-		// Depth (and/or stencil) attachment
-		if (createinfo.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-		{
-			if (attachment.hasDepth())
-			{
-				aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-			}
-			if (attachment.hasStencil())
-			{
-				aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-			}
-		}
-
-		assert(aspectMask > 0);
-
+#if 0
 		VkImageCreateInfo image = vks::initializers::imageCreateInfo();
 		image.imageType = VK_IMAGE_TYPE_2D;
 		image.format = createinfo.format;
@@ -150,19 +73,20 @@ namespace SPP
 		imageView.image = attachment.image->Get();
 
 		attachment.view = Make_GPU(SafeVkImageView, _owner, imageView);
+#endif
 
 		// Fill attachment description
 		attachment.description = {};
-		attachment.description.samples = createinfo.imageSampleCount;
+		attachment.description.samples = VK_SAMPLE_COUNT_1_BIT;
 		attachment.description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachment.description.storeOp = (createinfo.usage & VK_IMAGE_USAGE_SAMPLED_BIT) ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachment.description.storeOp = (TextureRef->GetUsageFlags() & VK_IMAGE_USAGE_SAMPLED_BIT) ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachment.description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachment.description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachment.description.format = createinfo.format;
+		attachment.description.format = TextureRef->GetVkFormat();
 		attachment.description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		// Final layout
 		// If not, final layout depends on attachment type
-		if (attachment.hasDepth() || attachment.hasStencil())
+		if (TextureRef->isDepthStencil())
 		{
 			attachment.description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 		}
@@ -174,41 +98,6 @@ namespace SPP
 		attachments.push_back(std::move(attachment));
 
 		return static_cast<uint32_t>(attachments.size() - 1);
-	}
-
-
-	void VulkanFramebuffer::createSampler(VkFilter magFilter, VkFilter minFilter, VkSamplerAddressMode adressMode)
-	{
-		VkSamplerCreateInfo samplerInfo = vks::initializers::samplerCreateInfo();
-		samplerInfo.magFilter = magFilter;
-		samplerInfo.minFilter = minFilter;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.addressModeU = adressMode;
-		samplerInfo.addressModeV = adressMode;
-		samplerInfo.addressModeW = adressMode;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.maxAnisotropy = 1.0f;
-		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 1.0f;
-		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-
-		sampler = Make_GPU(SafeVkSampler, _owner, samplerInfo);
-	}
-
-	VkDescriptorImageInfo VulkanFramebuffer::GetImageInfo()
-	{
-		return VkDescriptorImageInfo{ 
-			.sampler = sampler->Get(),
-			.imageView = attachments.front().view->Get(),
-			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-	}
-
-	VkDescriptorImageInfo VulkanFramebuffer::GetBackImageInfo()
-	{
-		return VkDescriptorImageInfo{
-			.sampler = sampler->Get(),
-			.imageView = attachments.back().view->Get(),
-			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	}
 
 	VkFrameDataContainer VulkanFramebuffer::createCustomRenderPass(const std::set<std::string>& WhichTargets, VkAttachmentLoadOp SetLoadOp)
@@ -237,7 +126,7 @@ namespace SPP
 		{
 			if (WhichTargets.contains(attachment.name))
 			{
-				if (attachment.isDepthStencil())
+				if (attachment.texture->isDepthStencil())
 				{
 					// Only one depth attachment allowed
 					assert(!hasDepth);
@@ -309,11 +198,12 @@ namespace SPP
 		{
 			if (WhichTargets.contains(attachment.name))
 			{
-				attachmentViews.push_back(attachment.view->Get());
+				auto textureRef = attachment.texture.get();
+				attachmentViews.push_back(textureRef->GetVkImageView());
 
-				if (attachment.subresourceRange.layerCount > maxLayers)
+				if (textureRef->GetSubresourceRange().layerCount > maxLayers)
 				{
-					maxLayers = attachment.subresourceRange.layerCount;
+					maxLayers = textureRef->GetSubresourceRange().layerCount;
 				}
 			}
 		}
@@ -323,12 +213,16 @@ namespace SPP
 		framebufferInfo.renderPass = oData.renderPass->Get();
 		framebufferInfo.pAttachments = attachmentViews.data();
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachmentViews.size());
-		framebufferInfo.width = width;
-		framebufferInfo.height = height;
+		framebufferInfo.width = _width;
+		framebufferInfo.height = _height;
 		framebufferInfo.layers = maxLayers;
 		oData.frameBuffer = Make_GPU(SafeVkFrameBuffer, _owner, framebufferInfo);
 
 		return oData;
 	}
 
+	VkDescriptorImageInfo VulkanFramebuffer::GetImageInfo()
+	{
+		return attachments.front().texture->GetDescriptor();
+	}
 }

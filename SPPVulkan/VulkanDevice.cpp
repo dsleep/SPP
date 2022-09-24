@@ -157,7 +157,25 @@ namespace SPP
 
 	//////////////////////////
 
-	extern bool LoadKTX2FromMemory(const void* InData, size_t InDataSize);
+	struct VulkanGraphicsDevice::PrivImpl
+	{
+		GPUReferencer< GPUTexture > depthColor;
+		std::unique_ptr<class VulkanFramebuffer> deferredTarget;
+		std::unique_ptr<class VulkanFramebuffer> lightingComposite;
+
+		VkFrameDataContainer depthOnlyFrame;
+		VkFrameDataContainer colorAndDepthFrame;
+		VkFrameDataContainer defferedFrame;
+		VkFrameDataContainer lightingCompositeRenderPass;
+	};
+
+	VulkanGraphicsDevice::VulkanGraphicsDevice() : _impl(new PrivImpl())
+	{
+	}
+
+	VulkanGraphicsDevice::~VulkanGraphicsDevice()
+	{
+	}
 
 	VkResult VulkanGraphicsDevice::createInstance(bool enableValidation)
 	{
@@ -554,76 +572,71 @@ namespace SPP
 	{
 		swapChain.create(&width, &height, settings.vsync);
 
-		_depthOnlyFrame = {};
-		_defferedFrame = {};
-		_colorAndDepthFrame = {};
-		_lightingCompositeRenderPass = {};
+		_impl->depthOnlyFrame = {};
+		_impl->defferedFrame = {};
+		_impl->colorAndDepthFrame = {};
+		_impl->lightingCompositeRenderPass = {};
 
-		_depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
-		_depthColor->SetName("_depthColor");
+		_impl->depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
+		_impl->depthColor->SetName("_depthColor");
 
-		_deferredTarget = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
-		_deferredTarget->addAttachment(
+		auto diffuseTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1, 
+			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		auto smreTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		auto normalTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		auto depthTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+			TextureFormat::D32, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+		_impl->deferredTarget = std::make_unique< VulkanFramebuffer >(this, width, height);
+		_impl->deferredTarget->addAttachment(
 			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.texture = diffuseTexture,
 				.name = "Diffuse"
 			}
 		);
-		_deferredTarget->addAttachment(
+		_impl->deferredTarget->addAttachment(
 			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.texture = smreTexture,
 				.name = "SpecularMetallicRoughnessEmissive"
 			}
 		);
-		_deferredTarget->addAttachment(
+		_impl->deferredTarget->addAttachment(
 			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R8G8B8A8_UNORM,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.texture = normalTexture,
 				.name = "Normal"
 			}
 		);
-		_deferredTarget->addAttachment(
+		_impl->deferredTarget->addAttachment(
 			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_D32_SFLOAT,
-				.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+				.texture = depthTexture,
 				.name = "Depth"
 			}
 		);		
 		
-		_deferredTarget->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+		_impl->depthOnlyFrame = _impl->deferredTarget->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_impl->defferedFrame = _impl->deferredTarget->createCustomRenderPass({ "Diffuse", "SpecularMetallicRoughnessEmissive", "Normal", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_impl->colorAndDepthFrame = _impl->deferredTarget->createCustomRenderPass({ "Diffuse", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 
-		_depthOnlyFrame = _deferredTarget->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
-		_defferedFrame = _deferredTarget->createCustomRenderPass({ "Diffuse", "SpecularMetallicRoughnessEmissive", "Normal", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
-		_colorAndDepthFrame = _deferredTarget->createCustomRenderPass({ "Diffuse", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		auto lightingCompTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+			TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 
-		_lightingComposite = std::make_unique< VulkanFramebuffer >(this, vulkanDevice, width, height);
-		_lightingComposite->addAttachment(
+		_impl->lightingComposite = std::make_unique< VulkanFramebuffer >(this, width, height);
+		_impl->lightingComposite->addAttachment(
 			{
-				.width = width,
-				.height = height,
-				.layerCount = 1,
-				.format = VK_FORMAT_R16G16B16A16_SFLOAT,
-				.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				.texture = lightingCompTexture,
 				.name = "Color"
 			}
 		);
-		_lightingComposite->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-
-		_lightingCompositeRenderPass = _lightingComposite->createCustomRenderPass({ "Color" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		//_impl->lightingComposite->addAttachment(
+		//	{
+		//		.texture = depthTexture,
+		//		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+		//		.name = "Depth"
+		//	}
+		//);
+		_impl->lightingCompositeRenderPass = _impl->lightingComposite->createCustomRenderPass({ "Color"/*, "Depth" */}, VK_ATTACHMENT_LOAD_OP_CLEAR);
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()
@@ -885,16 +898,16 @@ namespace SPP
 				destroyCommandBuffers();
 
 				_defaultTexture.Reset();
-				_deferredTarget.reset();
+				_impl->deferredTarget.reset();
 				_piplineStateMap.clear();
 
-				_depthColor.Reset();
-				_lightingComposite.reset();
+				_impl->depthColor.Reset();
+				_impl->lightingComposite.reset();
 
-				_depthOnlyFrame = {};
-				_colorAndDepthFrame = {};
-				_defferedFrame = {};
-				_lightingCompositeRenderPass = {};
+				_impl->depthOnlyFrame = {};
+				_impl->colorAndDepthFrame = {};
+				_impl->defferedFrame = {};
+				_impl->lightingCompositeRenderPass = {};
 
 				_backBufferRenderPass.Reset();
 				_staticInstanceDrawInfoGPU.Reset();
@@ -1336,6 +1349,121 @@ namespace SPP
 
 	void VulkanGraphicsDevice::MoveToNextFrame()
 	{
+	}
+
+	uint8_t VulkanGraphicsDevice::GetCurrentFrame()
+	{
+		return (uint8_t)currentBuffer;
+	}
+
+	vks::VulkanDevice* VulkanGraphicsDevice::GetVKSVulkanDevice() {
+		return vulkanDevice;
+	}
+
+	VkQueue VulkanGraphicsDevice::GetGraphicsQueue() {
+		return graphicsQueue;
+	}
+
+	VkQueue VulkanGraphicsDevice::GetComputeQueue() {
+		return computeQueue;
+	}
+
+	VkQueue VulkanGraphicsDevice::GetTransferQueue() {
+		return transferQueue;
+	}
+
+	VkFramebuffer VulkanGraphicsDevice::GetActiveFrameBuffer()
+	{
+		return _frameBuffers[currentBuffer]->Get();
+	}
+
+	VkDescriptorPool VulkanGraphicsDevice::GetPerFrameResetDescriptorPool()
+	{
+		return _perDrawPools[currentBuffer];
+	}
+
+	VkDescriptorPool VulkanGraphicsDevice::GetPersistentDescriptorPool()
+	{
+		return _sharedGlobalPool;
+	}
+
+	uint8_t VulkanGraphicsDevice::GetActiveFrame()
+	{
+		return (uint8_t)currentBuffer;
+	}
+	uint8_t VulkanGraphicsDevice::GetInFlightFrames()
+	{
+		return (uint8_t)swapChain.imageCount;
+	}
+
+	VkCommandBuffer& VulkanGraphicsDevice::GetActiveCommandBuffer()
+	{
+		return _drawCmdBuffers[currentBuffer]->Get();
+	}
+
+	std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > >& VulkanGraphicsDevice::GetPipelineStateMap()
+	{
+		return _piplineStateMap;
+	}
+
+	PerFrameStagingBuffer& VulkanGraphicsDevice::GetPerFrameScratchBuffer()
+	{
+		return _perFrameScratchBuffer;
+	}
+
+	GPUReferencer< GPUTexture > VulkanGraphicsDevice::GetDefaultTexture()
+	{
+		return _defaultTexture;
+	}
+
+	GPUReferencer< GPUTexture > VulkanGraphicsDevice::GetDepthColor()
+	{
+		return _impl->depthColor;
+	}
+
+	struct VkFrameDataContainer& VulkanGraphicsDevice::GetMainOpaquePassFrame()
+	{
+		return _impl->defferedFrame;
+	}
+
+	struct VkFrameDataContainer& VulkanGraphicsDevice::GetColorFrameData()
+	{
+		return _impl->colorAndDepthFrame;
+	}
+
+	struct VkFrameDataContainer& VulkanGraphicsDevice::GetDeferredFrameData()
+	{
+		return _impl->defferedFrame;
+	}
+
+	struct VkFrameDataContainer& VulkanGraphicsDevice::GetLightingCompositeRenderPass()
+	{
+		return _impl->lightingCompositeRenderPass;
+	}
+
+	VulkanFramebuffer* VulkanGraphicsDevice::GetLightCompositeFrameBuffer()
+	{
+		return _impl->lightingComposite.get();
+	}
+
+	struct VkFrameDataContainer& VulkanGraphicsDevice::GetDepthOnlyFrameData()
+	{
+		return _impl->depthOnlyFrame;
+	}
+
+	VkDescriptorImageInfo VulkanGraphicsDevice::GetColorImageDescImgInfo()
+	{
+		return _impl->deferredTarget->GetImageInfo();
+	}
+
+	VulkanFramebuffer* VulkanGraphicsDevice::GetColorTarget()
+	{
+		return _impl->deferredTarget.get();
+	}
+
+	VkFrameDataContainer VulkanGraphicsDevice::GetBackBufferFrameData()
+	{
+		return VkFrameDataContainer{ 1, 0, _backBufferRenderPass, _frameBuffers[currentBuffer] };
 	}
 
 	VulkanPipelineState::VulkanPipelineState(GraphicsDevice* InOwner) : PipelineState(InOwner)

@@ -8,7 +8,7 @@
 #include "VulkanShaders.h"
 #include "VulkanTexture.h"
 #include "VulkanRenderableMesh.h"
-
+#include "VulkanFrameBuffer.hpp"
 
 #include "VulkanDepthDrawer.h"
 
@@ -273,7 +273,7 @@ namespace SPP
 
 		auto ColorTarget = _owningDevice->GetColorTarget();
 		auto& depthAttachment = ColorTarget->GetBackAttachment();
-
+		auto depthTexture = depthAttachment.texture.get();
 		_depthPyramidDescriptors.clear();
 
 		// create those descriptors of the mip chain
@@ -291,7 +291,7 @@ namespace SPP
 			//for te first iteration, we grab it from the depth image
 			if (Iter == 0)
 			{
-				sourceTarget.imageView = depthAttachment.view->Get();
+				sourceTarget.imageView = depthTexture->GetVkImageView();
 				sourceTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			}
 			//afterwards, we copy from a depth mipmap into the next
@@ -368,8 +368,9 @@ namespace SPP
 
 		auto ColorTarget = _owningDevice->GetColorTarget();
 		auto& depthAttachment = ColorTarget->GetBackAttachment();
+		auto depthTexture = depthAttachment.texture.get();
 
-		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+		vks::tools::setImageLayout(commandBuffer, depthTexture->GetVkImage(),
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
@@ -415,7 +416,7 @@ namespace SPP
 				VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)Iter, 1, 0, 1 });
 		}
 
-		vks::tools::setImageLayout(commandBuffer, depthAttachment.image->Get(),
+		vks::tools::setImageLayout(commandBuffer, depthTexture->GetVkImage(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });

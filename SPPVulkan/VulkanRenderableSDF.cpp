@@ -8,6 +8,7 @@
 #include "VulkanRenderScene.h"
 #include "VulkanTexture.h"
 #include "VulkanShaders.h"
+#include "VulkanFrameBuffer.hpp"
 
 #include "SPPSDFO.h"
 

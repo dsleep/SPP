@@ -58,52 +58,30 @@ namespace SPP
 		vks::debugmarker::setImageName(GGlobalVulkanDevice, _image->Get(), InName);
 	}
 
-	VkFormat SPPToVulkan(TextureFormat InFormat)
-	{
-		switch (InFormat)
-		{
-		case TextureFormat::RGBA_8888:
-			return VK_FORMAT_R8G8B8A8_UNORM;
-		case TextureFormat::BGRA_8888:
-			return VK_FORMAT_B8G8R8A8_UNORM;
-		
-		case TextureFormat::R16G16B16A16F:
-			return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case TextureFormat::R16G16F:
-			return VK_FORMAT_R16G16_SFLOAT;
-		case TextureFormat::R32F:
-			return VK_FORMAT_R32_SFLOAT;
-		}
-
-		SE_ASSERT(false);
-		return VK_FORMAT_UNDEFINED;
-	}
-
 	VkFormat TextureFormatToVKFormat(TextureFormat InFormat, bool isSRGB)
 	{
 		switch (InFormat)
 		{
 		case TextureFormat::RGB_888:
 			return isSRGB ? VK_FORMAT_R8G8B8_SRGB : VK_FORMAT_R8G8B8_UNORM;
-			break;
 		case TextureFormat::RGBA_8888:
 			return isSRGB ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
-			break;
+		case TextureFormat::BGRA_8888:
+			return isSRGB ? VK_FORMAT_B8G8R8A8_SRGB : VK_FORMAT_B8G8R8A8_UNORM;
 		case TextureFormat::RGB_BC1:
 			return isSRGB ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
-			break;
 		case TextureFormat::RGBA_BC7:
 			return isSRGB ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
-			break;
-
-
-		case TextureFormat::BGRA_8888:
-		case TextureFormat::RG_BC5:
-		case TextureFormat::GRAY_BC4:
-		case TextureFormat::D24_S8:
+		case TextureFormat::D32:
+			return VK_FORMAT_D32_SFLOAT;
 		case TextureFormat::R32F:
-		case TextureFormat::R32G32B32A32F:
-		case TextureFormat::R32G32B32A32:
+			return VK_FORMAT_R32_SFLOAT;
+		case TextureFormat::R16G16F:
+			return VK_FORMAT_R16G16_SFLOAT;
+		case TextureFormat::R16G16B16A16F:
+			return VK_FORMAT_R16G16B16A16_SFLOAT;
+		
+		default:
 			//TODO lazyness
 			SE_ASSERT(false);
 			break;
@@ -122,9 +100,10 @@ namespace SPP
 		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
 
 		_texformat = TextureFormatToVKFormat(_format, _bIsSRGB);
-		_imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		_usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-		_allocate(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		_allocate();
 		
 		// Get device properties for the requested texture format
 		VkFormatProperties formatProperties;
@@ -157,7 +136,7 @@ namespace SPP
 				auto& curMip = curFace->mipData[mipIter];
 
 				VkBufferImageCopy bufferCopyRegion = {};
-				bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				bufferCopyRegion.imageSubresource.aspectMask = _subresourceRange.aspectMask;
 				bufferCopyRegion.imageSubresource.mipLevel = mipIter;
 				bufferCopyRegion.imageSubresource.baseArrayLayer = faceIter;
 				bufferCopyRegion.imageSubresource.layerCount = 1;
@@ -172,12 +151,6 @@ namespace SPP
 				bufferCopyRegions.push_back(bufferCopyRegion);
 			}
 		}
-		
-		VkImageSubresourceRange subresourceRange = {};
-		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = _mipLevels;
-		subresourceRange.layerCount = LayerCount;
 
 		//
 		auto& copyCmd = GGlobalVulkanGI->GetCopyCommandBuffer();
@@ -189,7 +162,7 @@ namespace SPP
 			_image->Get(),
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			subresourceRange);
+			_subresourceRange);
 
 		// Copy mip levels from staging buffer
 		vkCmdCopyBufferToImage(
@@ -207,10 +180,10 @@ namespace SPP
 			_image->Get(),
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			_imageLayout,
-			subresourceRange);
+			_subresourceRange);
 	}
 
-	void VulkanTexture::_allocate(VkImageUsageFlags UsageFlags)
+	void VulkanTexture::_allocate()
 	{
 		//normal or cubemap
 		SE_ASSERT(_faceCount == 1 || _faceCount == 6);
@@ -220,6 +193,21 @@ namespace SPP
 		auto device = GGlobalVulkanGI->GetVKSVulkanDevice();
 		
 		VkFilter filter = VK_FILTER_NEAREST;
+
+		VkImageAspectFlags aspectMask = VK_FLAGS_NONE;
+
+		if (hasDepth())
+		{
+			aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+		}
+		if (hasStencil())
+		{
+			aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+		if (aspectMask == VK_FLAGS_NONE)
+		{
+			aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
+		}
 
 		// Create optimal tiled target _image
 		VkImageCreateInfo imageCreateInfo = vks::initializers::imageCreateInfo();
@@ -232,7 +220,7 @@ namespace SPP
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageCreateInfo.extent = { (uint32_t)_width, (uint32_t)_height, 1 };
-		imageCreateInfo.usage = UsageFlags;
+		imageCreateInfo.usage = _usageFlags;
 		// Ensure that the TRANSFER_DST bit is set for staging
 		if (!(imageCreateInfo.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT))
 		{
@@ -282,20 +270,22 @@ namespace SPP
 		viewCreateInfo.viewType = IsCubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		viewCreateInfo.format = _texformat;
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, (uint32_t)_mipLevels, 0, (uint32_t)_faceCount };
+		viewCreateInfo.subresourceRange = { aspectMask, 0, (uint32_t)_mipLevels, 0, (uint32_t)_faceCount };
 		viewCreateInfo.image = _image->Get();
 		_view = std::make_unique< SafeVkImageView >(_owner, viewCreateInfo);
 		// Update descriptor _image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 
 		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
-		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, _mipLevels, 0, _faceCount };
+
+		_subresourceRange = { aspectMask, 0, _mipLevels, 0, _faceCount };
+
 		vks::tools::setImageLayout(
 			cmdBuffer,
 			_image->Get(),
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_GENERAL,
-			subresourceRange);
+			_subresourceRange);
 	}
 
 	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, 
@@ -305,9 +295,20 @@ namespace SPP
 		: GPUTexture(InOwner, Width, Height, MipLevelCount, FaceCount, Format)
 	{
 		_imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		_texformat = SPPToVulkan(Format);
 
-		_allocate(UsageFlags);
+		if (UsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+		{
+			_imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		}
+		else if (UsageFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+		{
+			_imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		}
+
+		_texformat = TextureFormatToVKFormat(Format, false);
+		_usageFlags = UsageFlags;
+
+		_allocate();
 	}
 
 	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) :
@@ -319,8 +320,6 @@ namespace SPP
 
 	std::vector< GPUReferencer< SafeVkImageView > > VulkanTexture::GetMipChainViews() 
 	{
-		//VkImageAspectFlags aspectMask = (format == VK_FORMAT_D32_SFLOAT) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-
 		std::vector< GPUReferencer< SafeVkImageView > > oViews;
 		for (int32_t Iter = 0; Iter < _mipLevels; Iter++)
 		{
@@ -330,7 +329,7 @@ namespace SPP
 			viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			viewCreateInfo.format = _texformat;
 			viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-			viewCreateInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, (uint32_t)Iter, 1, 0, 1 };			
+			viewCreateInfo.subresourceRange = { _subresourceRange.aspectMask, (uint32_t)Iter, 1, 0, 1 };			
 			viewCreateInfo.image = _image->Get();
 
 			auto newView = Make_GPU(SafeVkImageView, GGlobalVulkanGI, viewCreateInfo);
@@ -359,7 +358,7 @@ namespace SPP
 		auto WritableChunk = perFrameScratchBuffer.Write((const uint8_t*)Data, DataSize, activeFrame);
 
 		VkBufferImageCopy bufferCopyRegion = {};
-		bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		bufferCopyRegion.imageSubresource.aspectMask = _subresourceRange.aspectMask;
 		bufferCopyRegion.imageSubresource.mipLevel = 0;
 		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 		bufferCopyRegion.imageSubresource.layerCount = 1;
@@ -370,14 +369,12 @@ namespace SPP
 		bufferCopyRegion.imageOffset.x = Start[0];
 		bufferCopyRegion.imageOffset.y = Start[1];
 
-		VkImageSubresourceRange subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
 		vks::tools::setImageLayout(
 			cmdBuffer,
 			_image->Get(),
 			VK_IMAGE_LAYOUT_GENERAL,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			subresourceRange);
+			_subresourceRange);
 
 		vkCmdCopyBufferToImage(
 			cmdBuffer,
@@ -392,7 +389,33 @@ namespace SPP
 			_image->Get(),
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_GENERAL,
-			subresourceRange);
+			_subresourceRange);
+	}
+
+	bool VulkanTexture::hasDepth()
+	{
+		std::vector<VkFormat> formats =
+		{
+			VK_FORMAT_D16_UNORM,
+			VK_FORMAT_X8_D24_UNORM_PACK32,
+			VK_FORMAT_D32_SFLOAT,
+			VK_FORMAT_D16_UNORM_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+		};
+		return std::find(formats.begin(), formats.end(), _texformat) != std::end(formats);
+	}
+
+	bool VulkanTexture::hasStencil()
+	{
+		std::vector<VkFormat> formats =
+		{
+			VK_FORMAT_S8_UINT,
+			VK_FORMAT_D16_UNORM_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+		};
+		return std::find(formats.begin(), formats.end(), _texformat) != std::end(formats);
 	}
 	///**
 	//* Load a 2D texture array including all mip levels

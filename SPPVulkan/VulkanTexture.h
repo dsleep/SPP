@@ -7,13 +7,6 @@
 #pragma once
 
 #include "VulkanDevice.h"
-
-
-#include <fstream>
-#include <stdlib.h>
-#include <string>
-#include <vector>
-
 #include "vulkan/vulkan.h"
 
 #include "VulkanBuffer.h"
@@ -25,16 +18,19 @@ namespace SPP
 	class VulkanTexture : public GPUTexture
 	{
 	protected:
-		VkFormat			  _texformat = VK_FORMAT_UNDEFINED;
-		VkImageLayout         _imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkFormat								_texformat = VK_FORMAT_UNDEFINED;
+		VkImageLayout							_imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageUsageFlags						_usageFlags = 0;
 
 		std::unique_ptr< SafeVkImage >          _image;
 		std::unique_ptr< SafeVkDeviceMemory >   _deviceMemory;
 		std::unique_ptr< SafeVkImageView >		_view;
 		std::unique_ptr< SafeVkSampler >        _sampler;
 
-		VkDescriptorImageInfo _descriptor = {};
-		uint32_t		      _imageByteSize = 0;
+		VkImageSubresourceRange					_subresourceRange = {};
+
+		VkDescriptorImageInfo					_descriptor = {};
+		uint32_t								_imageByteSize = 0;
 
 		void updateDescriptor();
 		void destroy();
@@ -42,14 +38,13 @@ namespace SPP
 		virtual void _MakeResident() override {}
 		virtual void _MakeUnresident() override {}
 
-		void _allocate(VkImageUsageFlags UsageFlags);
+		void _allocate();
 
 	public:
 
-		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format);
+		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount, TextureFormat Format, VkImageUsageFlags UsageFlags);
-
 		VulkanTexture(GraphicsDevice* InOwner, const struct TextureAsset& InTextureAsset);
 
 		std::vector< GPUReferencer< SafeVkImageView > > GetMipChainViews();
@@ -61,9 +56,32 @@ namespace SPP
 
 		virtual void SetName(const char* InName) override;
 
+		auto GetUsageFlags()
+		{
+			return _usageFlags;
+		}
+
+		bool hasDepth();
+		bool hasStencil();
+
+		bool isDepthStencil()
+		{
+			return(hasDepth() || hasStencil());
+		}
+
 		const VkDescriptorImageInfo& GetDescriptor()
 		{
 			return _descriptor;
+		}
+
+		const auto& GetSubresourceRange()
+		{
+			return _subresourceRange;
+		}
+
+		auto GetVkFormat()
+		{
+			return _texformat;
 		}
 
 		uint32_t GetImageSize() const

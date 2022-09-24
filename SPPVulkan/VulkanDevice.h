@@ -16,7 +16,6 @@
 #include "SPPHandledTimers.h"
 
 #include "VulkanResources.h"
-#include "VulkanFrameBuffer.hpp"
 #include "VulkanSwapChain.h"
 
 #include "VulkanBuffer.h"
@@ -144,12 +143,14 @@ namespace SPP
 		}
 	};
 
-
 	using StaticDrawPoolManager = DeviceLeaseManager< TSpan< StaticDrawParams > >;
 
 	class VulkanGraphicsDevice : public GraphicsDevice
 	{
 	private:
+
+		struct PrivImpl;
+		std::unique_ptr<PrivImpl> _impl;
 
 		PFN_vkCmdSetCheckpointNV vkCmdSetCheckpointNV;
 
@@ -202,7 +203,6 @@ namespace SPP
 		std::vector<GPUResource*> _gpuPushedDyingResources;
 		std::array< std::vector<GPUResource*>, MAX_IN_FLIGHT > _dyingResources;
 		
-
 		// List of available frame buffers (same as number of swap chain images)
 		std::array< GPUReferencer<SafeVkFrameBuffer>, MAX_IN_FLIGHT > _frameBuffers;
 		// Command buffers used for rendering
@@ -217,15 +217,6 @@ namespace SPP
 		VkPipelineCache pipelineCache;
 		// Wraps the swap chain to present images (framebuffers) to the windowing system
 		VulkanSwapChain swapChain;
-
-		GPUReferencer< GPUTexture > _depthColor;
-		std::unique_ptr<VulkanFramebuffer> _deferredTarget;
-		std::unique_ptr<VulkanFramebuffer> _lightingComposite;
-
-		VkFrameDataContainer _depthOnlyFrame;
-		VkFrameDataContainer _colorAndDepthFrame;
-		VkFrameDataContainer _defferedFrame;
-		VkFrameDataContainer _lightingCompositeRenderPass;
 
  		// Synchronization semaphores
 		struct {
@@ -303,140 +294,62 @@ namespace SPP
 		void CreateDescriptorPool();
 
 	public:
-		VulkanGraphicsDevice()
-		{
-		}
+		VulkanGraphicsDevice();
+		~VulkanGraphicsDevice();
 
 		bool HasCheckPoints() const;
 
 		void SetCheckpoint(VkCommandBuffer InCmdBuffer, const char *InName);
 
-		uint8_t GetCurrentFrame() 
-		{
-			return (uint8_t)currentBuffer;
-		}
+		uint8_t GetCurrentFrame();
+		vks::VulkanDevice* GetVKSVulkanDevice();
 
-		vks::VulkanDevice* GetVKSVulkanDevice() {
-			return vulkanDevice;
-		}
+		VkQueue GetGraphicsQueue();
 
-		VkQueue GetGraphicsQueue() {
-			return graphicsQueue;
-		}
+		VkQueue GetComputeQueue();
 
-		VkQueue GetComputeQueue() {
-			return computeQueue;
-		}
-
-		VkQueue GetTransferQueue() {
-			return transferQueue;
-		}
+		VkQueue GetTransferQueue();
 
 		auto GetStaticDrawPoolReservation()
 		{
 			return _staticInstanceDrawPoolManager->GetLease();
 		}
 
-		VkFramebuffer GetActiveFrameBuffer()
-		{
-			return _frameBuffers[currentBuffer]->Get();
-		}
+		VkFramebuffer GetActiveFrameBuffer();
 
-		VkDescriptorPool GetPerFrameResetDescriptorPool()
-		{
-			return _perDrawPools[currentBuffer];
-		}
+		VkDescriptorPool GetPerFrameResetDescriptorPool();
 
-		VkDescriptorPool GetPersistentDescriptorPool()
-		{
-			return _sharedGlobalPool;
-		}
+		VkDescriptorPool GetPersistentDescriptorPool();
 
-		uint8_t GetActiveFrame()
-		{
-			return (uint8_t)currentBuffer;
-		}
-		uint8_t GetInFlightFrames()
-		{
-			return (uint8_t)swapChain.imageCount;
-		}
+		uint8_t GetActiveFrame();
+		uint8_t GetInFlightFrames();
 
-		VkCommandBuffer& GetActiveCommandBuffer()
-		{
-			return _drawCmdBuffers[currentBuffer]->Get();
-		}
+		VkCommandBuffer& GetActiveCommandBuffer();
 
 		VkCommandBuffer& GetCopyCommandBuffer();
 
-		std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > >& GetPipelineStateMap()
-		{
-			return _piplineStateMap;
-		}
+		std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > >& GetPipelineStateMap();
 
-		PerFrameStagingBuffer& GetPerFrameScratchBuffer()
-		{
-			return _perFrameScratchBuffer;
-		}
+		PerFrameStagingBuffer& GetPerFrameScratchBuffer();
 
 		auto GetStaticInstanceDrawBuffer()
 		{
 			return _staticInstanceDrawInfoGPU;
 		}
 
-		GPUReferencer< GPUTexture > GetDefaultTexture()
-		{
-			return _defaultTexture;
-		}
+		GPUReferencer< GPUTexture > GetDefaultTexture();
+		GPUReferencer< GPUTexture > GetDepthColor();
 
-		GPUReferencer< GPUTexture > GetDepthColor()
-		{
-			return _depthColor;
-		}
+		struct VkFrameDataContainer& GetMainOpaquePassFrame();
+		struct VkFrameDataContainer& GetColorFrameData();
+		struct VkFrameDataContainer& GetDeferredFrameData();
+		struct VkFrameDataContainer& GetLightingCompositeRenderPass();
+		class VulkanFramebuffer* GetLightCompositeFrameBuffer();
+		struct VkFrameDataContainer& GetDepthOnlyFrameData();
 
-		auto& GetMainOpaquePassFrame()
-		{
-			return _defferedFrame;
-		}
-
-		auto &GetColorFrameData()
-		{
-			return _colorAndDepthFrame;
-		}
-
-		auto &GetDeferredFrameData()
-		{
-			return _defferedFrame;
-		}
-
-		auto& GetLightingCompositeRenderPass()
-		{
-			return _lightingCompositeRenderPass;
-		}
-
-		VulkanFramebuffer* GetLightCompositeFrameBuffer()
-		{
-			return _lightingComposite.get();
-		}
-
-		auto &GetDepthOnlyFrameData()
-		{
-			return _depthOnlyFrame;
-		}
-
-		VkDescriptorImageInfo GetColorImageDescImgInfo()
-		{
-			return _deferredTarget->GetImageInfo();
-		}
-
-		VulkanFramebuffer *GetColorTarget()
-		{
-			return _deferredTarget.get();
-		}
-
-		VkFrameDataContainer GetBackBufferFrameData()
-		{
-			return VkFrameDataContainer{ 1, 0, _backBufferRenderPass, _frameBuffers[currentBuffer] };
-		}
+		VkDescriptorImageInfo GetColorImageDescImgInfo();
+		VulkanFramebuffer* GetColorTarget();
+		VkFrameDataContainer GetBackBufferFrameData();
 
 		VkDevice GetDevice();
 		virtual void Initialize(int32_t InitialWidth, int32_t InitialHeight, void* OSWindow) override;

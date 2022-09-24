@@ -13,6 +13,8 @@
 #include "VulkanDepthDrawer.h"
 #include "VulkanDeferredLighting.h"
 
+#include "VulkanFrameBuffer.hpp"
+
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"

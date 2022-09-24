@@ -8,6 +8,7 @@
 #include "VulkanShaders.h"
 #include "VulkanTexture.h"
 #include "VulkanRenderableMesh.h"
+#include "VulkanFrameBuffer.hpp"
 
 #include "VulkanDeferredLighting.h"
 
@@ -293,10 +294,12 @@ namespace SPP
 		std::vector< VkDescriptorImageInfo > gbuffer;
 		for (auto& curAttach : gbufferAttachments)
 		{
+			auto curTexture = curAttach.texture.get();
+
 			VkDescriptorImageInfo imageInfo;
 			imageInfo.sampler = _nearestSampler->Get();
-			imageInfo.imageLayout = curAttach.isDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL  : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = curAttach.view->Get();
+			imageInfo.imageLayout = curTexture->isDepthStencil() ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL  : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = curTexture->GetVkImageView();
 			gbuffer.push_back(imageInfo);
 		}
 		
