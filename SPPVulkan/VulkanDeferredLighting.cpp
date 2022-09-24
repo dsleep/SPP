@@ -118,6 +118,9 @@ namespace SPP
 				_skyCube = Make_GPU(VulkanTexture, owningDevice, loadSky);
 			}
 
+			owningDevice->SubmitCopyCommands();
+			vkDeviceWaitIdle(owningDevice->GetDevice());
+
 			_skyCubePSDescSet = Make_GPU(SafeVkDescriptorSet,
 				owningDevice,
 				_psoSkyCube->GetDescriptorSetLayouts()[2],

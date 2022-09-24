@@ -1109,6 +1109,7 @@ namespace SPP
 
 	void VulkanGraphicsDevice::Flush()
 	{
+		//SubmitCopyCommands();
 		//SE_ASSERT(InOnCPUThread());
 
 		RunOnRTAndWait([&]()

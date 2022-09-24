@@ -66,39 +66,42 @@ void main()
 	// Fresnel reflectance at normal incidence (for metals use albedo color).
 	vec3 F0 = mix(Fdielectric, albedo, metalness);
 	
-	vec3 Li = -LightParams.LightDirection.xyz;
-	vec3 Lradiance = LightParams.Radiance.rgb;
+	vec3 directLighting;
+	{
+		vec3 Li = -LightParams.LightDirection.xyz;
+		vec3 Lradiance = LightParams.Radiance.rgb;
 
-	// Half-vector between Li and Lo.
-	vec3 Lh = normalize(Li + Lo);
+		// Half-vector between Li and Lo.
+		vec3 Lh = normalize(Li + Lo);
 	
-	// Calculate angles between surface normal and various light vectors.
-	float cosLi = max(0.0, dot(normal, Li));
-	float cosLh = max(0.0, dot(normal, Lh));
+		// Calculate angles between surface normal and various light vectors.
+		float cosLi = max(0.0, dot(normal, Li));
+		float cosLh = max(0.0, dot(normal, Lh));
 
-	// Calculate Fresnel term for direct lighting. 
-	vec3 F  = fresnelSchlick(F0, max(0.0, dot(Lh, Lo)));
-	// Calculate normal distribution for specular BRDF.
-	float D = ndfGGX(cosLh, roughness);
-	// Calculate geometric attenuation for specular BRDF.
-	float G = gaSchlickGGX(cosLi, cosLo, roughness);
+		// Calculate Fresnel term for direct lighting. 
+		vec3 F  = fresnelSchlick(F0, max(0.0, dot(Lh, Lo)));
+		// Calculate normal distribution for specular BRDF.
+		float D = ndfGGX(cosLh, roughness);
+		// Calculate geometric attenuation for specular BRDF.
+		float G = gaSchlickGGX(cosLi, cosLo, roughness);
 
-	// Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
-	// Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
-	// To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
-	vec3 kd = mix(vec3(1.0) - F, vec3(0.0), metalness);
+		// Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
+		// Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
+		// To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
+		vec3 kd = mix(vec3(1.0) - F, vec3(0.0), metalness);
 
-	// Lambert diffuse BRDF.
-	// We don't scale by 1/PI for lighting & material units to be more convenient.
-	// See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
-	vec3 diffuseBRDF = kd * albedo;
+		// Lambert diffuse BRDF.
+		// We don't scale by 1/PI for lighting & material units to be more convenient.
+		// See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
+		vec3 diffuseBRDF = kd * albedo;
 
-	// Cook-Torrance specular microfacet BRDF.
-	vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * cosLo);
+		// Cook-Torrance specular microfacet BRDF.
+		vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * cosLo);
 
-	// Total contribution for this light.
-	vec3 directLighting = (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
-	
+		// Total contribution for this light.
+		directLighting = (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+	}
+
 	////
 	// AMBIENT LIGHTING
 	////
