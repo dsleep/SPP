@@ -152,9 +152,7 @@ namespace SPP
 			}
 		}
 
-		//
-		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		//auto& copyCmd = GGlobalVulkanGI->GetCopyCommandBuffer();
+		auto& copyCmd = GGlobalVulkanGI->GetCopyCommandBuffer();
 
 		// Image barrier for optimal _image (target)
 		// Optimal _image will be used as destination for the copy
@@ -183,7 +181,7 @@ namespace SPP
 			_imageLayout,
 			_subresourceRange);
 
-		device->flushCommandBuffer(copyCmd, copyQueue);
+		GGlobalVulkanGI->SubmitCopyCommands();
 	}
 
 	void VulkanTexture::_allocate()
@@ -280,8 +278,7 @@ namespace SPP
 		updateDescriptor();
 
 		// Use a separate command buffer for texture loading
-		VkCommandBuffer copyCmd = device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-		//auto& copyCmd = GGlobalVulkanGI->GetCopyCommandBuffer();
+		auto& copyCmd = GGlobalVulkanGI->GetCopyCommandBuffer();
 
 		_subresourceRange = { aspectMask, 0, _mipLevels, 0, _faceCount };
 
@@ -292,7 +289,7 @@ namespace SPP
 			VK_IMAGE_LAYOUT_GENERAL,
 			_subresourceRange);
 
-		device->flushCommandBuffer(copyCmd, copyQueue);
+		GGlobalVulkanGI->SubmitCopyCommands();
 	}
 
 	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, 

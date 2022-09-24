@@ -1103,6 +1103,9 @@ namespace SPP
 			// Submit to the queue
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, curCopier.fence->Get()));
 
+			//TODO figure out whats up with texture and some fences
+			VK_CHECK_RESULT(vkWaitForFences(device, 1, &curCopier.fence->Get(), VK_TRUE, UINT64_MAX));
+
 			curCopier.bHasBegun = false;
 		}
 	}
