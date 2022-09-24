@@ -31,54 +31,6 @@
     ],
     "materials": [
         {
-            "name": "Vehicle_Police Car",
-            "parameters": {
-                "diffuse": {
-                    "name": "Police Car.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_House_01_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_01_color02.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Stadium",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Stadium.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Natures",
-            "parameters": {
-                "diffuse": {
-                    "name": "Natures.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Vehicle_Bus_color02",
             "parameters": {
                 "diffuse": {
@@ -127,10 +79,10 @@
             }
         },
         {
-            "name": "Building_Drug Store",
+            "name": "Vehicle_Police Car",
             "parameters": {
                 "diffuse": {
-                    "name": "Building_Drug Store.png.001.PNG",
+                    "name": "Police Car.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -139,10 +91,10 @@
             }
         },
         {
-            "name": "Props_RoofProps",
+            "name": "Building_Drug Store",
             "parameters": {
                 "diffuse": {
-                    "name": "Props_RoofProps.png.001.PNG",
+                    "name": "Building_Drug Store.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -163,10 +115,10 @@
             }
         },
         {
-            "name": "Building Sky_small_color02",
+            "name": "Building_House_04_color01",
             "parameters": {
                 "diffuse": {
-                    "name": "Building Sky_small_color02.png.001.PNG",
+                    "name": "Building_House_04_color01.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -187,10 +139,10 @@
             }
         },
         {
-            "name": "Vehicle_Pick up Truck_color03",
+            "name": "Building_Gift Shop",
             "parameters": {
                 "diffuse": {
-                    "name": "Pick up Truck_3.png",
+                    "name": "Building_Gift Shop.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -199,10 +151,34 @@
             }
         },
         {
-            "name": "Building_Gift Shop",
+            "name": "Building Sky_big_color03",
             "parameters": {
                 "diffuse": {
-                    "name": "Building_Gift Shop.png.001.PNG",
+                    "name": "Building Sky_big_color03.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Props_Props_01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_Props_01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Vehicle_Pick up Truck_color03",
+            "parameters": {
+                "diffuse": {
+                    "name": "Pick up Truck_3.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -247,18 +223,6 @@
             }
         },
         {
-            "name": "Building_House_04_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_04_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Building_House_03_color02",
             "parameters": {
                 "diffuse": {
@@ -275,30 +239,6 @@
             "parameters": {
                 "diffuse": {
                     "name": "Building_Bakery.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building Sky_big_color03",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building Sky_big_color03.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Props_Props_01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Props_Props_01.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -343,6 +283,18 @@
             }
         },
         {
+            "name": "Building_House_03_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_House_03_color01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Building_Shoes Shop",
             "parameters": {
                 "diffuse": {
@@ -367,10 +319,34 @@
             }
         },
         {
+            "name": "Props_BillBoard_small",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_BillBoard_small.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Building_Gas Station",
             "parameters": {
                 "diffuse": {
                     "name": "Building_Gas Station.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_big_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_big_color02.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -415,18 +391,6 @@
             }
         },
         {
-            "name": "Building_House_03_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_03_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Building_Auto Service",
             "parameters": {
                 "diffuse": {
@@ -451,22 +415,10 @@
             }
         },
         {
-            "name": "Props_BillBoard_small",
+            "name": "Building_House_02_color01",
             "parameters": {
                 "diffuse": {
-                    "name": "Props_BillBoard_small.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building Sky_big_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building Sky_big_color02.png.001.PNG",
+                    "name": "Building_House_02_color01.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -479,18 +431,6 @@
             "parameters": {
                 "diffuse": {
                     "name": "Building_Clothing.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Residential_color02",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Residential_color02.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -523,10 +463,46 @@
             }
         },
         {
+            "name": "Props_BillBoard_medium",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_BillBoard_medium.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building Sky_big_color01",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building Sky_big_color01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Building_Fast Food",
             "parameters": {
                 "diffuse": {
                     "name": "Building_Fast Food.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_House_01_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_House_01_color02.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -583,30 +559,6 @@
             }
         },
         {
-            "name": "Building_House_02_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_02_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Building_Factory",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_Factory.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Building Sky_small_color01",
             "parameters": {
                 "diffuse": {
@@ -631,10 +583,10 @@
             }
         },
         {
-            "name": "Props_BillBoard_medium",
+            "name": "Vehicle_Car_color01",
             "parameters": {
                 "diffuse": {
-                    "name": "Props_BillBoard_medium.png.001.PNG",
+                    "name": "Car_1.png",
                     "uvmap": ""
                 },
                 "normal": {
@@ -643,10 +595,10 @@
             }
         },
         {
-            "name": "Vehicle_Car_color01",
+            "name": "Building Sky_small_color02",
             "parameters": {
                 "diffuse": {
-                    "name": "Car_1.png",
+                    "name": "Building Sky_small_color02.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -667,10 +619,10 @@
             }
         },
         {
-            "name": "Building Sky_big_color01",
+            "name": "Building_House_04_color03",
             "parameters": {
                 "diffuse": {
-                    "name": "Building Sky_big_color01.png.001.PNG",
+                    "name": "Building_House_04_color03.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -679,10 +631,22 @@
             }
         },
         {
-            "name": "Building_House_04_color03",
+            "name": "Building_House_01_color01",
             "parameters": {
                 "diffuse": {
-                    "name": "Building_House_04_color03.png.001.PNG",
+                    "name": "Building_House_01_color01.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Props_BillBoard_large",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_BillBoard_large.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -775,34 +739,10 @@
             }
         },
         {
-            "name": "Building_House_01_color01",
-            "parameters": {
-                "diffuse": {
-                    "name": "Building_House_01_color01.png.001.PNG",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
             "name": "Vehicle_Truck_color02",
             "parameters": {
                 "diffuse": {
                     "name": "Truck_2.png",
-                    "uvmap": ""
-                },
-                "normal": {
-                    "value": "0.0 0.0 0.0"
-                }
-            }
-        },
-        {
-            "name": "Props_BillBoard_large",
-            "parameters": {
-                "diffuse": {
-                    "name": "Props_BillBoard_large.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -847,10 +787,70 @@
             }
         },
         {
+            "name": "Building_Stadium",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Stadium.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Natures",
+            "parameters": {
+                "diffuse": {
+                    "name": "Natures.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
             "name": "Vehicle_Container_color02",
             "parameters": {
                 "diffuse": {
                     "name": "Container_2.png",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Factory",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Factory.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Building_Residential_color02",
+            "parameters": {
+                "diffuse": {
+                    "name": "Building_Residential_color02.png.001.PNG",
+                    "uvmap": ""
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                }
+            }
+        },
+        {
+            "name": "Props_RoofProps",
+            "parameters": {
+                "diffuse": {
+                    "name": "Props_RoofProps.png.001.PNG",
                     "uvmap": ""
                 },
                 "normal": {
@@ -3526,270 +3526,6 @@
         },
         {
             "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.041",
-            "transform": {
-                "location": [
-                    3.4757,
-                    0.0,
-                    -71.5539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    0.5
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.040",
-            "transform": {
-                "location": [
-                    -6.5243,
-                    0.0,
-                    -71.5539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    0.5
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.039",
-            "transform": {
-                "location": [
-                    -16.5243,
-                    0.0,
-                    -71.5539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    0.5
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.038",
-            "transform": {
-                "location": [
-                    10.9757,
-                    0.0,
-                    -104.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.037",
-            "transform": {
-                "location": [
-                    10.9757,
-                    0.0,
-                    -94.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.036",
-            "transform": {
-                "location": [
-                    10.9757,
-                    0.0,
-                    -84.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.035",
-            "transform": {
-                "location": [
-                    10.9757,
-                    0.0,
-                    -74.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.034",
-            "transform": {
-                "location": [
-                    -24.0243,
-                    0.0,
-                    -74.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.033",
-            "transform": {
-                "location": [
-                    -24.0243,
-                    0.0,
-                    -84.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.032",
-            "transform": {
-                "location": [
-                    -24.0243,
-                    0.0,
-                    -94.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.031",
-            "transform": {
-                "location": [
-                    -24.0243,
-                    0.0,
-                    -104.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    0.5,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
                 "Road"
             ],
             "mesh": "Plane.294",
@@ -4345,30 +4081,6 @@
                 "Natures"
             ],
             "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.028",
-            "transform": {
-                "location": [
-                    -61.5243,
-                    0.0,
-                    -106.5539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    0.5
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
             "name": "Natures_Grass Tile Small.027",
             "transform": {
                 "location": [
@@ -4392,83 +4104,11 @@
             "materials": [
                 "Natures"
             ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.026",
-            "transform": {
-                "location": [
-                    -51.5243,
-                    0.0,
-                    -74.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.025",
-            "transform": {
-                "location": [
-                    -61.5243,
-                    0.0,
-                    -74.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
+            "mesh": "Plane.002",
             "name": "Natures_Grass Tile Small.024",
             "transform": {
                 "location": [
                     -71.5243,
-                    0.0,
-                    -74.0539
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.023",
-            "transform": {
-                "location": [
-                    -81.5243,
                     0.0,
                     -74.0539
                 ],
@@ -4567,126 +4207,6 @@
                     88.4757,
                     0.0,
                     -49.1015
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.011",
-            "transform": {
-                "location": [
-                    78.0178,
-                    0.0,
-                    51.18
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.010",
-            "transform": {
-                "location": [
-                    83.4757,
-                    0.0,
-                    55.9461
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.009",
-            "transform": {
-                "location": [
-                    83.4757,
-                    0.0,
-                    60.9461
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.008",
-            "transform": {
-                "location": [
-                    83.4757,
-                    0.0,
-                    70.9461
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.007",
-            "transform": {
-                "location": [
-                    82.6334,
-                    0.0,
-                    80.9461
                 ],
                 "rotation": [
                     -0.0,
@@ -4825,60 +4345,12 @@
                 "Natures"
             ],
             "mesh": "Plane.331",
-            "name": "Natures_Grass Tile Small.001",
-            "transform": {
-                "location": [
-                    78.4757,
-                    0.0,
-                    90.5398
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
             "name": "Natures_Grass Tile.037",
             "transform": {
                 "location": [
                     83.4757,
                     0.0,
                     100.9461
-                ],
-                "rotation": [
-                    -0.0,
-                    0.0,
-                    90.0
-                ],
-                "scale": [
-                    1.0,
-                    1.0,
-                    1.0
-                ]
-            }
-        },
-        {
-            "materials": [
-                "Natures"
-            ],
-            "mesh": "Plane.331",
-            "name": "Natures_Grass Tile.036",
-            "transform": {
-                "location": [
-                    83.4757,
-                    0.0,
-                    40.9461
                 ],
                 "rotation": [
                     -0.0,
@@ -15748,15 +15220,14 @@
             "name": "Wings.012",
             "transform": {
                 "location": [
-                    5.6713,
-                    0.8784,
-                    -0.0
+                    59.8982,
+                    9.8671,
+                    141.8977
                 ],
-                "parent": "Props_Windmill.012",
                 "rotation": [
-                    -0.0,
-                    -0.0,
-                    -0.0
+                    0.0,
+                    90.0,
+                    90.0
                 ],
                 "scale": [
                     1.0,
@@ -15797,15 +15268,14 @@
             "name": "Wings.011",
             "transform": {
                 "location": [
-                    5.6713,
-                    0.8784,
-                    -0.0
+                    100.3973,
+                    9.8671,
+                    141.8977
                 ],
-                "parent": "Props_Windmill.011",
                 "rotation": [
-                    -0.0,
-                    -0.0,
-                    -0.0
+                    0.0,
+                    90.0,
+                    90.0
                 ],
                 "scale": [
                     1.0,
@@ -15846,15 +15316,14 @@
             "name": "Wings.007",
             "transform": {
                 "location": [
-                    5.6713,
-                    0.8784,
-                    -0.0
+                    -44.2523,
+                    9.8671,
+                    141.8977
                 ],
-                "parent": "Props_Windmill.007",
                 "rotation": [
-                    -0.0,
-                    -0.0,
-                    -0.0
+                    0.0,
+                    90.0,
+                    90.0
                 ],
                 "scale": [
                     1.0,
@@ -15895,15 +15364,14 @@
             "name": "Wings.006",
             "transform": {
                 "location": [
-                    5.6713,
-                    0.8784,
-                    -0.0
+                    -83.3244,
+                    9.7924,
+                    141.8977
                 ],
-                "parent": "Props_Windmill.006",
                 "rotation": [
-                    -0.0,
-                    -0.0,
-                    -0.0
+                    0.0,
+                    90.0,
+                    90.0
                 ],
                 "scale": [
                     1.0,
@@ -34037,6 +33505,150 @@
                     1.0,
                     1.0,
                     1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.003",
+            "name": "Natures_Grass Tile.070",
+            "transform": {
+                "location": [
+                    83.4757,
+                    0.0,
+                    40.9461
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.004",
+            "name": "Natures_Grass Tile Small.001",
+            "transform": {
+                "location": [
+                    65.5856,
+                    0.0,
+                    60.9461
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.005",
+            "name": "Natures_Grass Tile Small.007",
+            "transform": {
+                "location": [
+                    65.6238,
+                    0.0,
+                    95.0954
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.006",
+            "name": "Natures_Grass Tile Small.008",
+            "transform": {
+                "location": [
+                    -31.5243,
+                    0.0,
+                    -109.0539
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    0.5
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.007",
+            "name": "Natures_Grass Tile Small.009",
+            "transform": {
+                "location": [
+                    10.9927,
+                    0.0,
+                    -90.3039
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    0.5
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Natures"
+            ],
+            "mesh": "Plane.008",
+            "name": "Natures_Grass Tile Small.010",
+            "transform": {
+                "location": [
+                    -5.0624,
+                    0.0,
+                    -71.5124
+                ],
+                "rotation": [
+                    -0.0,
+                    90.0,
+                    90.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    0.5
                 ]
             }
         }
