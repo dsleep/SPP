@@ -222,7 +222,6 @@ namespace SPP
 		std::unique_ptr<VulkanFramebuffer> _deferredTarget;
 		std::unique_ptr<VulkanFramebuffer> _lightingComposite;
 
-
 		VkFrameDataContainer _depthOnlyFrame;
 		VkFrameDataContainer _colorAndDepthFrame;
 		VkFrameDataContainer _defferedFrame;

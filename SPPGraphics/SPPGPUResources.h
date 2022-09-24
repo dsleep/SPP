@@ -172,6 +172,7 @@ namespace SPP
     {
         auto Tp = new T();
         Tp->SetDebug(line, file);
+        Tp->SetUsingGPUReferencer(true);
         return GPUReferencer<T>(line, file, Tp);
     }
 
@@ -180,6 +181,7 @@ namespace SPP
     {
         auto Tp = new T(args...);
         Tp->SetDebug(line, file);
+        Tp->SetUsingGPUReferencer(true);
         return GPUReferencer<T>(line, file, Tp);
     }
 
@@ -197,12 +199,24 @@ namespace SPP
         int32_t _cppLine = -1;
         std::string _cppFile;
 
+        bool _bIsGPUReferencer = false;
+
         virtual void _MakeResident() {}
         virtual void _MakeUnresident() {}
 
     public:
         GPUResource(GraphicsDevice* InOwner);
         virtual ~GPUResource();
+
+        bool IsUsingGPUReferencer() const 
+        {
+            return _bIsGPUReferencer;
+        }
+
+        void SetUsingGPUReferencer(bool bInValue) 
+        {
+            _bIsGPUReferencer = bInValue;
+        }
 
         void SetDebug(int line, const char* file)
         {

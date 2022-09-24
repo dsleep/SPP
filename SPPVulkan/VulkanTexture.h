@@ -28,14 +28,13 @@ namespace SPP
 		VkFormat			  _texformat = VK_FORMAT_UNDEFINED;
 		VkImageLayout         _imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-
-		VkImage               _image = nullptr;
-		VkDeviceMemory        _deviceMemory = nullptr;
-		VkImageView           _view = nullptr;
+		std::unique_ptr< SafeVkImage >          _image;
+		std::unique_ptr< SafeVkDeviceMemory >   _deviceMemory;
+		std::unique_ptr< SafeVkImageView >		_view;
+		std::unique_ptr< SafeVkSampler >        _sampler;
 
 		VkDescriptorImageInfo _descriptor = {};
-		VkSampler             _sampler;
-		uint32_t		      _imageByteSize;
+		uint32_t		      _imageByteSize = 0;
 
 		void updateDescriptor();
 		void destroy();
@@ -74,12 +73,12 @@ namespace SPP
 
 		const VkImage& GetVkImage() const
 		{
-			return _image;
+			return _image->Get();
 		}
 
 		auto GetVkImageView() const
 		{
-			return _view;
+			return _view->Get();
 		}
 
 		virtual ~VulkanTexture() 
