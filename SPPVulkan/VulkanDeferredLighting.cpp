@@ -78,7 +78,7 @@ namespace SPP
 				owningDevice->GetLightingCompositeRenderPass(),
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
-				EDepthState::Enabled_NoWrites,
+				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
 				nullptr,
 				_lightFullscreenVS,

@@ -839,6 +839,14 @@ namespace SPP
 			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
 			renderPassBeginInfo.pClearValues = clearValues;
 
+
+			//auto ColorTarget = vulkanGD->GetColorTarget();
+			//auto& depthAttachment = ColorTarget->GetBackAttachment();
+			//vks::tools::setImageLayout(commandBuffer, depthAttachment.texture->GetVkImage(),
+			//	VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+			//	VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL ,
+			//	{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+
 			// Start the first sub pass specified in our default render pass setup by the base class
 			// This will clear the color and depth attachment
 			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

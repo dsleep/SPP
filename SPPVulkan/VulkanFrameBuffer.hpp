@@ -123,7 +123,9 @@ namespace SPP
 			return attachments;
 		}
 
+
 		VkFrameDataContainer createCustomRenderPass(const std::set<std::string> &WhichTargets, VkAttachmentLoadOp SetLoadOp);
+		VkFrameDataContainer createCustomRenderPass(const std::map<std::string, VkAttachmentLoadOp>& TargetMap);
 
 		VkDescriptorImageInfo GetImageInfo();
 	};

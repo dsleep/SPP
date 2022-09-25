@@ -100,38 +100,46 @@ namespace SPP
 		return static_cast<uint32_t>(attachments.size() - 1);
 	}
 
-	VkFrameDataContainer VulkanFramebuffer::createCustomRenderPass(const std::set<std::string>& WhichTargets, VkAttachmentLoadOp SetLoadOp)
+	VkFrameDataContainer VulkanFramebuffer::createCustomRenderPass(const std::map<std::string, VkAttachmentLoadOp>& TargetMap)
 	{
 		VkFrameDataContainer oData;
-		
-		std::vector<VkAttachmentDescription> attachmentDescriptions;
-		for (auto& attachment : attachments)
-		{
-			if (WhichTargets.contains(attachment.name))
-			{
-				attachmentDescriptions.push_back(attachment.description);
-				attachmentDescriptions.back().loadOp = SetLoadOp;
-			}			
-		};
 
+		std::vector<VkAttachmentDescription> attachmentDescriptions;
 		// Collect attachment references
 		std::vector<VkAttachmentReference> colorReferences;
 		VkAttachmentReference depthReference = {};
 		bool hasDepth = false;
 		bool hasColor = false;
 
-		uint32_t attachmentIndex = 0;
+		// Find. max number of layers across attachments
+		uint32_t maxLayers = 0;
+		std::vector<VkImageView> attachmentViews;
 
+		uint32_t attachmentIndex = 0;
 		for (auto& attachment : attachments)
 		{
-			if (WhichTargets.contains(attachment.name))
+			auto foundLink = TargetMap.find(attachment.name);
+			if (foundLink != TargetMap.end())
 			{
+				attachmentDescriptions.push_back(attachment.description);
+				attachmentDescriptions.back().loadOp = foundLink->second;
+
+				bool IsLoadLoadOp = (foundLink->second == VK_ATTACHMENT_LOAD_OP_LOAD);
+
+				auto textureRef = attachment.texture.get();
+				attachmentViews.push_back(textureRef->GetVkImageView());
+				if (textureRef->GetSubresourceRange().layerCount > maxLayers)
+				{
+					maxLayers = textureRef->GetSubresourceRange().layerCount;
+				}
+
 				if (attachment.texture->isDepthStencil())
 				{
 					// Only one depth attachment allowed
 					assert(!hasDepth);
 					depthReference.attachment = attachmentIndex;
-					depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+					depthReference.layout = IsLoadLoadOp ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL :
+						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 					hasDepth = true;
 
 					oData.DepthTargets++;
@@ -145,7 +153,7 @@ namespace SPP
 				}
 				attachmentIndex++;
 			}
-		};
+		}
 
 		// Default render pass setup uses only one subpass
 		VkSubpassDescription subpass = {};
@@ -190,24 +198,6 @@ namespace SPP
 		renderPassInfo.pDependencies = dependencies.data();
 		oData.renderPass = Make_GPU(SafeVkRenderPass, _owner, renderPassInfo);
 
-
-		// Find. max number of layers across attachments
-		uint32_t maxLayers = 0;
-		std::vector<VkImageView> attachmentViews;
-		for (auto& attachment : attachments)
-		{
-			if (WhichTargets.contains(attachment.name))
-			{
-				auto textureRef = attachment.texture.get();
-				attachmentViews.push_back(textureRef->GetVkImageView());
-
-				if (textureRef->GetSubresourceRange().layerCount > maxLayers)
-				{
-					maxLayers = textureRef->GetSubresourceRange().layerCount;
-				}
-			}
-		}
-
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = oData.renderPass->Get();
@@ -219,6 +209,16 @@ namespace SPP
 		oData.frameBuffer = Make_GPU(SafeVkFrameBuffer, _owner, framebufferInfo);
 
 		return oData;
+	}
+
+	VkFrameDataContainer VulkanFramebuffer::createCustomRenderPass(const std::set<std::string>& WhichTargets, VkAttachmentLoadOp SetLoadOp)
+	{
+		std::map<std::string, VkAttachmentLoadOp> TargetMap;
+		for (auto& curTarget : WhichTargets)
+		{
+			TargetMap[curTarget] = SetLoadOp;
+		}
+		return createCustomRenderPass(TargetMap);
 	}
 
 	VkDescriptorImageInfo VulkanFramebuffer::GetImageInfo()

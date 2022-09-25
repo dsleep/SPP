@@ -629,14 +629,14 @@ namespace SPP
 				.name = "Color"
 			}
 		);
-		//_impl->lightingComposite->addAttachment(
-		//	{
-		//		.texture = depthTexture,
-		//		.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-		//		.name = "Depth"
-		//	}
-		//);
-		_impl->lightingCompositeRenderPass = _impl->lightingComposite->createCustomRenderPass({ "Color"/*, "Depth" */}, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_impl->lightingComposite->addAttachment(
+			{
+				.texture = depthTexture,
+				.name = "Depth"
+			}
+		);
+		_impl->lightingCompositeRenderPass = _impl->lightingComposite->createCustomRenderPass(
+			{ { "Color", VK_ATTACHMENT_LOAD_OP_CLEAR }, { "Depth", VK_ATTACHMENT_LOAD_OP_LOAD } } );
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()
