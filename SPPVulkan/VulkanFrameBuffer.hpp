@@ -113,16 +113,28 @@ namespace SPP
 		{
 			return attachments.front();
 		}
+
 		FramebufferAttachment& GetBackAttachment()
 		{
 			return attachments.back();
 		}
 
+		//FramebufferAttachment* GetAttachment(const std::string &InName)
+		//{
+		//	for (auto & curAttach : attachments)
+		//	{
+		//		if (curAttach.name == InName)
+		//		{
+		//			return &curAttach;
+		//		}
+		//	}
+		//	return nullptr;
+		//}
+
 		auto& GetAttachments()
 		{
 			return attachments;
 		}
-
 
 		VkFrameDataContainer createCustomRenderPass(const std::set<std::string> &WhichTargets, VkAttachmentLoadOp SetLoadOp);
 		VkFrameDataContainer createCustomRenderPass(const std::map<std::string, VkAttachmentLoadOp>& TargetMap);

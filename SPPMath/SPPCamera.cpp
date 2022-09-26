@@ -425,7 +425,7 @@ namespace SPP
 #endif
 	}
 
-	void Camera::GetFrustumCornersForRange(const std::vector<float>& DepthRanges, 
+	void Camera::GetFrustumSpheresForRanges(const std::vector<float>& DepthRanges, 
 		std::vector<Sphere>& OutFrustumSpheres)
 	{
 		float ZToUse = bIsInvertedZ ? 1 : 0;

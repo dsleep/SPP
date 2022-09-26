@@ -116,6 +116,8 @@ namespace SPP
     enum class TextureFormat
     {
         UNKNOWN,
+        R8,
+
         RGB_888,
         RGBA_8888,
         BGRA_8888,

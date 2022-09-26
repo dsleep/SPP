@@ -162,11 +162,13 @@ namespace SPP
 		GPUReferencer< GPUTexture > depthColor;
 		std::unique_ptr<class VulkanFramebuffer> deferredTarget;
 		std::unique_ptr<class VulkanFramebuffer> lightingComposite;
+		std::unique_ptr<class VulkanFramebuffer> shadowAttenuation;
 
 		VkFrameDataContainer depthOnlyFrame;
 		VkFrameDataContainer colorAndDepthFrame;
 		VkFrameDataContainer defferedFrame;
 		VkFrameDataContainer lightingCompositeRenderPass;
+		VkFrameDataContainer shadowAttenuationRenderPass;
 	};
 
 	VulkanGraphicsDevice::VulkanGraphicsDevice() : _impl(new PrivImpl())
@@ -576,6 +578,8 @@ namespace SPP
 		_impl->defferedFrame = {};
 		_impl->colorAndDepthFrame = {};
 		_impl->lightingCompositeRenderPass = {};
+		_impl->shadowAttenuationRenderPass = {};
+		
 
 		_impl->depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
 		_impl->depthColor->SetName("_depthColor");
@@ -637,6 +641,21 @@ namespace SPP
 		);
 		_impl->lightingCompositeRenderPass = _impl->lightingComposite->createCustomRenderPass(
 			{ { "Color", VK_ATTACHMENT_LOAD_OP_CLEAR }, { "Depth", VK_ATTACHMENT_LOAD_OP_LOAD } } );
+
+
+		//
+		auto shadowTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+			TextureFormat::R8, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		_impl->shadowAttenuation = std::make_unique< VulkanFramebuffer >(this, width, height);
+		_impl->shadowAttenuation->addAttachment(
+			{
+				.texture = shadowTexture,
+				.name = "Attenuation"
+			}
+		);
+		_impl->shadowAttenuationRenderPass = _impl->shadowAttenuation->createCustomRenderPass(
+			{ { "Attenuation", VK_ATTACHMENT_LOAD_OP_CLEAR } });
+		
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()
@@ -903,11 +922,13 @@ namespace SPP
 
 				_impl->depthColor.Reset();
 				_impl->lightingComposite.reset();
+				_impl->shadowAttenuation.reset();
 
 				_impl->depthOnlyFrame = {};
 				_impl->colorAndDepthFrame = {};
 				_impl->defferedFrame = {};
 				_impl->lightingCompositeRenderPass = {};
+				_impl->shadowAttenuationRenderPass = {};
 
 				_backBufferRenderPass.Reset();
 				_staticInstanceDrawInfoGPU.Reset();
@@ -1448,6 +1469,16 @@ namespace SPP
 	VulkanFramebuffer* VulkanGraphicsDevice::GetLightCompositeFrameBuffer()
 	{
 		return _impl->lightingComposite.get();
+	}
+
+	VulkanFramebuffer* VulkanGraphicsDevice::GetShadowAttenuationFrameBuffer()
+	{
+		return _impl->shadowAttenuation.get();
+	}
+
+	struct VkFrameDataContainer& VulkanGraphicsDevice::GetShadowAttenuationRenderPass()
+	{
+		return _impl->shadowAttenuationRenderPass;
 	}
 
 	struct VkFrameDataContainer& VulkanGraphicsDevice::GetDepthOnlyFrameData()

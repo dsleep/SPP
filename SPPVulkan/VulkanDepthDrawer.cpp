@@ -133,7 +133,7 @@ namespace SPP
 			//DEPTH VS
 
 			_depthVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
-			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.hlsl", "main_vs");
+			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.glsl");
 
 			_SMDepthlayout = Make_GPU(VulkanInputLayout, InOwner);
 			_SMDepthlayout->InitializeLayout(Depth_GetVertexStreams_SM());

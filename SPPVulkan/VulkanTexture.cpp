@@ -62,6 +62,8 @@ namespace SPP
 	{
 		switch (InFormat)
 		{
+		case TextureFormat::R8:
+			return VK_FORMAT_R8_UNORM;
 		case TextureFormat::RGB_888:
 			return isSRGB ? VK_FORMAT_R8G8B8_SRGB : VK_FORMAT_R8G8B8_UNORM;
 		case TextureFormat::RGBA_8888:

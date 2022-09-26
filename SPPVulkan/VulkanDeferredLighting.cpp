@@ -82,12 +82,7 @@ namespace SPP
 				EDrawingTopology::TriangleStrip,
 				nullptr,
 				_lightFullscreenVS,
-				_lightSunPS,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr);
+				_lightSunPS);
 
 			_psoSkyCube = GetVulkanPipelineState(owningDevice,
 				owningDevice->GetLightingCompositeRenderPass(),
@@ -97,18 +92,12 @@ namespace SPP
 				EDrawingTopology::TriangleStrip,
 				nullptr,
 				_lightFullscreenVS,
-				_skyCubemapPS,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr);
+				_skyCubemapPS);
 
 			{
 				auto& vsSet = _lightShapeVS->GetLayoutSets();
 				_lightShapeVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
 			}
-
 
 			//
 			//SKY CUBE
@@ -362,6 +351,85 @@ namespace SPP
 			ARRAY_SIZE(uniform_offsets), uniform_offsets);
 
 		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+	}
+
+	void PBRDeferredLighting::RenderShadow(RT_RenderableLight& InLight)
+	{
+		auto& shadowRenderPass = _owningDevice->GetShadowAttenuationRenderPass();
+		auto DeviceExtents = _owningDevice->GetExtents();
+		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+		auto currentFrame = _owningDevice->GetActiveFrame();
+
+		{
+			VkRenderPassBeginInfo renderPassBeginInfo = {};
+			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassBeginInfo.pNext = nullptr;
+			renderPassBeginInfo.renderPass = shadowRenderPass.renderPass->Get();
+			renderPassBeginInfo.framebuffer = shadowRenderPass.frameBuffer->Get();
+			renderPassBeginInfo.renderArea.offset.x = 0;
+			renderPassBeginInfo.renderArea.offset.y = 0;
+			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
+			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
+
+			renderPassBeginInfo.clearValueCount = 0;
+			renderPassBeginInfo.pClearValues = nullptr;
+
+			// Start the first sub pass specified in our default render pass setup by the base class
+			// This will clear the color and depth attachment
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			// Update dynamic viewport state
+			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+			// Update dynamic scissor state
+			VkRect2D scissor = {};
+			scissor.extent.width = DeviceExtents[0];
+			scissor.extent.height = DeviceExtents[1];
+			scissor.offset.x = 0;
+			scissor.offset.y = 0;
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
+
+		_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
+
+		if (InLight.GetLightType() == ELightType::Sun)
+		{
+			auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
+			auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
+
+			Vector3 LightDir = -InLight.GetCachedRotationAndScale().block<1, 3>(1, 0);
+			LightDir.normalize();
+			SunLightParams lightParams =
+			{
+				ToVector4(LightDir),
+				ToVector4(InLight.GetIrradiance())
+			};
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
+			vkCmdPushConstants(commandBuffer, sunPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SunLightParams), &lightParams);
+
+			// if static we have everything pre cached		
+			uint32_t uniform_offsets[] = {
+				(sizeof(GPUViewConstants)) * currentFrame
+			};
+
+			VkDescriptorSet locaDrawSets[] = {
+				_owningScene->GetCommondDescriptorSet()->Get(),
+				sunPRBSec->Get(),
+				_gbufferTextureSet->Get()
+			};
+
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				sunPSO->GetVkPipelineLayout(),
+				0,
+				ARRAY_SIZE(locaDrawSets), locaDrawSets,
+				ARRAY_SIZE(uniform_offsets), uniform_offsets);
+
+			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+		}
+
+		vkCmdEndRenderPass(commandBuffer);
 	}
 
 	// TODO cleanupppp

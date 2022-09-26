@@ -344,7 +344,12 @@ namespace SPP
 		struct VkFrameDataContainer& GetColorFrameData();
 		struct VkFrameDataContainer& GetDeferredFrameData();
 		struct VkFrameDataContainer& GetLightingCompositeRenderPass();
+
+		struct VkFrameDataContainer& GetShadowAttenuationRenderPass();
+
 		class VulkanFramebuffer* GetLightCompositeFrameBuffer();
+		class VulkanFramebuffer* GetShadowAttenuationFrameBuffer();
+
 		struct VkFrameDataContainer& GetDepthOnlyFrameData();
 
 		VkDescriptorImageInfo GetColorImageDescImgInfo();

@@ -273,7 +273,7 @@ public:
 		cam.GetCameraPosition()[1] = 5;
 
 		std::vector<Sphere> rangeSpheres;
-		cam.GetFrustumCornersForRange( { 50, 150, 450 }, rangeSpheres);
+		cam.GetFrustumSpheresForRanges( { 50, 150, 450 }, rangeSpheres);
 
 		//SPP::MakeResidentAllGPUResources();
 
