@@ -40,8 +40,6 @@ namespace SPP
 
 	private:
 		GPUReferencer < VulkanShader > _depthVS;
-		GPUReferencer< SafeVkDescriptorSetLayout > _depthVSLayout;
-
 		GPUReferencer < VulkanShader > _depthPyramidCreationCS, _depthCullingCS;
 		GPUReferencer< SafeVkDescriptorSetLayout > _depthPyramidCreationLayout, _depthCullingCSLayout;
 
@@ -65,42 +63,12 @@ namespace SPP
 				_depthCullingCSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, layoutSet.front().bindings);
 			}
 
-
-			VkFrameDataContainer dummy = {};
-
-			_depthCullingPSO = GetVulkanPipelineState(InOwner,
-				dummy,
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Enabled,
-				EDrawingTopology::TriangleList,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				_depthCullingCS);
+			_depthCullingPSO = GetVulkanPipelineState(InOwner, _depthCullingCS);
 
 			// DEPTH PYRAMID
 			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
-
-			_depthPyramidPSO = GetVulkanPipelineState(InOwner,
-				dummy,
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Enabled,
-				EDrawingTopology::TriangleList,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				_depthPyramidCreationCS);
+			_depthPyramidPSO = GetVulkanPipelineState(InOwner, _depthPyramidCreationCS);
 
 			auto& depthPyrCreationCS = _depthPyramidCreationCS->GetLayoutSets();
 			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, depthPyrCreationCS.front().bindings);
@@ -129,9 +97,7 @@ namespace SPP
 
 			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
 
-
 			//DEPTH VS
-
 			_depthVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.glsl");
 
@@ -146,21 +112,9 @@ namespace SPP
 				EDrawingTopology::TriangleList,
 				_SMDepthlayout,
 				_depthVS,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
 				nullptr);
-
-			auto& vsSet = _depthVS->GetLayoutSets();
-			_depthVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
 		}
 
-		GPUReferencer< SafeVkDescriptorSetLayout > GetVSLayout()
-		{
-			return _depthVSLayout;
-		}
 
 		auto GetDepthDrawingPSO()
 		{
@@ -219,38 +173,7 @@ namespace SPP
 	{
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
-
-		//
-		auto depthVSLayout = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetVSLayout();
-		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, depthVSLayout->Get(), globalSharedPool);
-
-		auto cameraBuffer = InScene->GetCameraBuffer();
-
-		VkDescriptorBufferInfo perFrameInfo;
-		perFrameInfo.buffer = cameraBuffer->GetBuffer();
-		perFrameInfo.offset = 0;
-		perFrameInfo.range = cameraBuffer->GetPerElementSize();
-
-		VkDescriptorBufferInfo drawConstsInfo;
-		auto staticDrawBuffer = _owningDevice->GetStaticInstanceDrawBuffer();
-		drawConstsInfo.buffer = staticDrawBuffer->GetBuffer();
-		drawConstsInfo.offset = 0;
-		drawConstsInfo.range = staticDrawBuffer->GetPerElementSize();
-
-		{
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-				vks::initializers::writeDescriptorSet(_camStaticBufferDescriptorSet->Get(),
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &drawConstsInfo),
-			};
-
-			vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-				static_cast<uint32_t>(writeDescriptorSets.size()),
-				writeDescriptorSets.data(), 0, nullptr);
-		}
-
-
+		
 		///////////////////////////////////
 		// SETUP Depth pyramid texture
 		///////////////////////////////////
@@ -332,6 +255,13 @@ namespace SPP
 
 		VkDescriptorBufferInfo drawSphereInfo = _owningScene->GetCullDataBuffer()->GetDescriptorInfo();
 		VkDescriptorBufferInfo drawVisibilityInfo = _owningScene->GetVisibleGPUBuffer()->GetDescriptorInfo();
+
+
+		auto cameraBuffer = _owningScene->GetCameraBuffer();
+		VkDescriptorBufferInfo perFrameInfo;
+		perFrameInfo.buffer = cameraBuffer->GetBuffer();
+		perFrameInfo.offset = 0;
+		perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
 		VkDescriptorImageInfo depthPyramidInfo;
 		depthPyramidInfo.sampler = depthDownsizeSampler->Get();
@@ -517,7 +447,8 @@ namespace SPP
 			};
 
 			VkDescriptorSet locaDrawSets[] = {
-				_camStaticBufferDescriptorSet->Get()
+				_owningScene->GetCommondDescriptorSet()->Get(),
+				_owningScene->GetDrawConstDescriptorSet()->Get()
 			};
 
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -529,46 +460,48 @@ namespace SPP
 		// if not static we need to write transforms
 		else
 		{
-			auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
-			auto vsLayout = GetOpaqueVSLayout();
+			//check this
+			SE_ASSERT(false);
+			//auto CurPool = _owningDevice->GetPerFrameResetDescriptorPool();
+			//auto vsLayout = GetOpaqueVSLayout();
 
-			VkDescriptorSet dynamicTransformSet;
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
+			//VkDescriptorSet dynamicTransformSet;
+			//VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, &vsLayout->Get(), 1);
+			//VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &dynamicTransformSet));
 
-			auto cameraBuffer = _owningScene->GetCameraBuffer();
+			//auto cameraBuffer = _owningScene->GetCameraBuffer();
 
-			VkDescriptorBufferInfo perFrameInfo;
-			perFrameInfo.buffer = cameraBuffer->GetBuffer();
-			perFrameInfo.offset = 0;
-			perFrameInfo.range = cameraBuffer->GetPerElementSize();
+			//VkDescriptorBufferInfo perFrameInfo;
+			//perFrameInfo.buffer = cameraBuffer->GetBuffer();
+			//perFrameInfo.offset = 0;
+			//perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			vks::initializers::writeDescriptorSet(dynamicTransformSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-			vks::initializers::writeDescriptorSet(dynamicTransformSet,
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
-			};
+			//std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+			//vks::initializers::writeDescriptorSet(dynamicTransformSet,
+			//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+			//vks::initializers::writeDescriptorSet(dynamicTransformSet,
+			//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
+			//};
 
-			vkUpdateDescriptorSets(_owningDevice->GetDevice(),
-				static_cast<uint32_t>(writeDescriptorSets.size()),
-				writeDescriptorSets.data(), 0, nullptr);
+			//vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+			//	static_cast<uint32_t>(writeDescriptorSets.size()),
+			//	writeDescriptorSets.data(), 0, nullptr);
 
-			uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame,
-				(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
-			};
+			//uint32_t uniform_offsets[] = {
+			//	(sizeof(GPUViewConstants)) * currentFrame,
+			//	(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
+			//};
 
-			VkDescriptorSet locaDrawSets[] = {
-				_camStaticBufferDescriptorSet->Get(),
-				dynamicTransformSet
-			};
+			//VkDescriptorSet locaDrawSets[] = {
+			//	_camStaticBufferDescriptorSet->Get(),
+			//	dynamicTransformSet
+			//};
 
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				meshPSO->GetVkPipelineLayout(),
-				0,
-				ARRAY_SIZE(locaDrawSets), locaDrawSets,
-				ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			//	meshPSO->GetVkPipelineLayout(),
+			//	0,
+			//	ARRAY_SIZE(locaDrawSets), locaDrawSets,
+			//	ARRAY_SIZE(uniform_offsets), uniform_offsets);
 		}
 
 		vkCmdDrawIndexed(commandBuffer, meshCache->indexedCount, 1, 0, 0, 0);

@@ -502,22 +502,49 @@ namespace SPP
 		// common set
 		_commonVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
 		_commonVS->CompileShaderFromFile("shaders/CommonVS.glsl");
-		auto bindingsCopy = _commonVS->GetLayoutSets().front().bindings;
-		for (auto& curbinding : bindingsCopy)
+
+		// create common.glsl set
 		{
-			curbinding.stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			auto bindingsCopy = _commonVS->GetLayoutSets()[0].bindings;
+			for (auto& curbinding : bindingsCopy)
+			{
+				curbinding.stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			}
+			_commonVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, bindingsCopy);
+
+			_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet,
+				_owner,
+				_commonVSLayout->Get(),
+				globalSharedPool);
+
+			VkDescriptorBufferInfo camBufferInfo = { _cameraBuffer->GetBuffer(), 0, _cameraBuffer->GetPerElementSize() };
+			_commonDescriptorSet->Update({
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &camBufferInfo},
+				});
 		}
-		_commonVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, bindingsCopy);
 
-		_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet,
-			_owner,
-			_commonVSLayout->Get(),
-			globalSharedPool);
+		// create draw const set
+		{
+			auto staticDrawBuffer = GGlobalVulkanGI->GetStaticInstanceDrawBuffer();
+			VkDescriptorBufferInfo drawConstsInfo = { staticDrawBuffer->GetBuffer(), 0, staticDrawBuffer->GetPerElementSize() };
 
-		VkDescriptorBufferInfo camBufferInfo = { _cameraBuffer->GetBuffer(), 0, _cameraBuffer->GetPerElementSize() };
-		_commonDescriptorSet->Update({
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &camBufferInfo},
-		});
+			auto bindingsCopy = _commonVS->GetLayoutSets()[1].bindings;
+			for (auto& curbinding : bindingsCopy)
+			{
+				curbinding.stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			}
+			auto drawConstLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, bindingsCopy);
+
+			_drawConstDescriptorSet = Make_GPU(SafeVkDescriptorSet,
+				_owner,
+				drawConstLayout->Get(),
+				globalSharedPool);
+
+			_drawConstDescriptorSet->Update({
+				{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &drawConstsInfo},
+				});
+		}
+
 
 		// drawers
 		_opaqueDrawer = std::make_unique< OpaqueDrawer >(this);
@@ -662,23 +689,7 @@ namespace SPP
 		auto& defferedFrame = vulkanGD->GetDeferredFrameData();
 		auto& lightingComposite = vulkanGD->GetLightingCompositeRenderPass();
 
-		{
-			VkRenderPassBeginInfo renderPassBeginInfo = depthOnlyFrame.SetupDrawPass(DeviceExtents);
-			// Start the first sub pass specified in our default render pass setup by the base class
-			// This will clear the color and depth attachment
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-			// Update dynamic viewport state
-			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-			// Update dynamic scissor state
-			VkRect2D scissor = {};
-			scissor.extent.width = DeviceExtents[0];
-			scissor.extent.height = DeviceExtents[1];
-			scissor.offset.x = 0;
-			scissor.offset.y = 0;
-			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		}
+		vulkanGD->SetFrameBufferForRenderPass(depthOnlyFrame);
 
 #if 0
 		for (auto renderItem : _renderables)
@@ -759,7 +770,7 @@ namespace SPP
 			_depthDrawer->Render(*(RT_VulkanRenderableMesh*)_visible[visIter]);
 		}
 
-		vkCmdEndRenderPass(commandBuffer);
+		vulkanGD->ConditionalEndRenderPass();
 
 		vulkanGD->SetCheckpoint(commandBuffer, "DepthPyramid");
 
@@ -769,25 +780,7 @@ namespace SPP
 
 		_depthDrawer->RunDepthCullingAgainstPyramid();
 
-		{
-			VkRenderPassBeginInfo renderPassBeginInfo = defferedFrame.SetupDrawPass(DeviceExtents);
-
-			// Start the first sub pass specified in our default render pass setup by the base class
-			// This will clear the color and depth attachment
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			// Update dynamic viewport state
-			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-			// Update dynamic scissor state
-			VkRect2D scissor = {};
-			scissor.extent.width = DeviceExtents[0];
-			scissor.extent.height = DeviceExtents[1];
-			scissor.offset.x = 0;
-			scissor.offset.y = 0;
-			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		}
+		vulkanGD->SetFrameBufferForRenderPass(defferedFrame);
 
 		vulkanGD->SetCheckpoint(commandBuffer, "OpaqueDrawing");
 
@@ -820,41 +813,11 @@ namespace SPP
 
 		_debugDrawer->Draw(this);
 
-		vkCmdEndRenderPass(commandBuffer);
+		vulkanGD->ConditionalEndRenderPass();
 
 		//Lighting
 #if 1
-		{
-			VkRenderPassBeginInfo renderPassBeginInfo = {};
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = lightingComposite.renderPass->Get();
-			renderPassBeginInfo.framebuffer = lightingComposite.frameBuffer->Get();
-			renderPassBeginInfo.renderArea.offset.x = 0;
-			renderPassBeginInfo.renderArea.offset.y = 0;
-			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-			VkClearValue clearValues[1];
-			clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-			renderPassBeginInfo.clearValueCount = ARRAY_SIZE(clearValues);
-			renderPassBeginInfo.pClearValues = clearValues;
-
-			// Start the first sub pass specified in our default render pass setup by the base class
-			// This will clear the color and depth attachment
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			// Update dynamic viewport state
-			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-			// Update dynamic scissor state
-			VkRect2D scissor = {};
-			scissor.extent.width = DeviceExtents[0];
-			scissor.extent.height = DeviceExtents[1];
-			scissor.offset.x = 0;
-			scissor.offset.y = 0;
-			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		}
+		vulkanGD->SetFrameBufferForRenderPass(lightingComposite);
 
 		vulkanGD->SetCheckpoint(commandBuffer, "Lighting");
 
@@ -866,8 +829,7 @@ namespace SPP
 			_deferredLightingDrawer->Render(*(RT_RenderableLight*)_visiblelights[visIter]);
 		}
 
-
-		vkCmdEndRenderPass(commandBuffer);
+		vulkanGD->ConditionalEndRenderPass();
 #endif
 
 #if 0

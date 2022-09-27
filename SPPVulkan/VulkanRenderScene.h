@@ -157,6 +157,8 @@ namespace SPP
 
 		GPUReferencer< class VulkanShader > _commonVS;
 		GPUReferencer< SafeVkDescriptorSet > _commonDescriptorSet;
+		GPUReferencer< SafeVkDescriptorSet > _drawConstDescriptorSet;
+
 		GPUReferencer< SafeVkDescriptorSetLayout > _commonVSLayout;
 		
 
@@ -225,6 +227,10 @@ namespace SPP
 		{
 			return _commonDescriptorSet;
 		}
+		auto GetDrawConstDescriptorSet()
+		{
+			return _drawConstDescriptorSet;
+		}		
 		auto &GetCullDataBuffer()
 		{
 			return _renderableCullDataBuffer;

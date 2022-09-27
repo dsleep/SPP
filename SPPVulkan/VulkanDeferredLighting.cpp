@@ -52,6 +52,10 @@ namespace SPP
 				
 		GPUReferencer< VulkanTexture > _skyCube, _specularBRDF_LUT, _textureIrradianceMap;
 
+		VkFrameDataContainer _shadowRenderPass;
+		std::unique_ptr<class VulkanFramebuffer> _shadowDepthFrameBuffer;
+
+
 	public:
 		// called on render thread
 		GlobalDeferredLightingResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
@@ -221,6 +225,20 @@ namespace SPP
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyDesc },
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
 				});
+
+			// shadow depth
+
+			auto shadowDepthTexture = Make_GPU(VulkanTexture, InOwner, 1024, 1024, 1, 1,
+				TextureFormat::D32, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+			_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(InOwner, 1024, 1024);
+			_shadowDepthFrameBuffer->addAttachment(
+				{
+					.texture = shadowDepthTexture,
+					.name = "Depth"
+				}
+			);
+			_shadowRenderPass = _shadowDepthFrameBuffer->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 		}
 
 		auto GetVS()
@@ -257,6 +275,7 @@ namespace SPP
 
 	PBRDeferredLighting::PBRDeferredLighting(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
+
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
@@ -361,26 +380,7 @@ namespace SPP
 		auto currentFrame = _owningDevice->GetActiveFrame();
 
 		{
-			VkRenderPassBeginInfo renderPassBeginInfo = {};
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassBeginInfo.pNext = nullptr;
-			renderPassBeginInfo.renderPass = shadowRenderPass.renderPass->Get();
-			renderPassBeginInfo.framebuffer = shadowRenderPass.frameBuffer->Get();
-			renderPassBeginInfo.renderArea.offset.x = 0;
-			renderPassBeginInfo.renderArea.offset.y = 0;
-			renderPassBeginInfo.renderArea.extent.width = DeviceExtents[0];
-			renderPassBeginInfo.renderArea.extent.height = DeviceExtents[1];
-
-			renderPassBeginInfo.clearValueCount = 0;
-			renderPassBeginInfo.pClearValues = nullptr;
-
-			// Start the first sub pass specified in our default render pass setup by the base class
-			// This will clear the color and depth attachment
-			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			// Update dynamic viewport state
-			VkViewport viewport = { 0, float(DeviceExtents[1]), float(DeviceExtents[0]), -float(DeviceExtents[1]), 0, 1 };
-			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+			_owningDevice->SetFrameBufferForRenderPass(shadowRenderPass);
 
 			// Update dynamic scissor state
 			VkRect2D scissor = {};
@@ -428,8 +428,6 @@ namespace SPP
 
 			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 		}
-
-		vkCmdEndRenderPass(commandBuffer);
 	}
 
 	// TODO cleanupppp

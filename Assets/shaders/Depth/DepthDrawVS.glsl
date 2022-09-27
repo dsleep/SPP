@@ -10,7 +10,7 @@ layout(std430) buffer;
 
 #include "Common.glsl"
 
-layout(set = 0, binding = 1) readonly uniform _DrawConstants
+layout(set = 1, binding = 0) readonly uniform _DrawConstants
 {
 	//altered viewposition translated
 	mat4 LocalToWorldScaleRotation;

@@ -208,6 +208,9 @@ namespace SPP
 		framebufferInfo.layers = maxLayers;
 		oData.frameBuffer = Make_GPU(SafeVkFrameBuffer, _owner, framebufferInfo);
 
+		oData.Width = _width;
+		oData.Height = _height;
+
 		return oData;
 	}
 

@@ -1164,9 +1164,50 @@ namespace SPP
 			});
 	}
 
+	void VulkanGraphicsDevice::SetFrameBufferForRenderPass(VkFrameDataContainer& InFrame)
+	{
+		uintptr_t inRenderPassPTR = (uintptr_t)InFrame.renderPass->Get();
+		uintptr_t inFrameBufferPTR = (uintptr_t)InFrame.frameBuffer->Get();
+
+		if (inRenderPassPTR != _activeRenderPassPTR || inFrameBufferPTR != _activeFrameBufferPTR)
+		{
+			auto& commandBuffer = GetActiveCommandBuffer();
+
+			if (_activeRenderPassPTR || _activeFrameBufferPTR)
+			{
+				vkCmdEndRenderPass(commandBuffer);
+			}
+
+			_activeRenderPassPTR = inRenderPassPTR;
+			_activeFrameBufferPTR = inFrameBufferPTR;
+
+			VkRenderPassBeginInfo renderPassBeginInfo = InFrame.SetupDrawPass(Vector2i(InFrame.Width, InFrame.Height));
+			vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			VkViewport viewport = { 0, float(InFrame.Height), float(InFrame.Width), -float(InFrame.Height), 0, 1 };
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+			VkRect2D scissor = vks::initializers::rect2D(InFrame.Width, InFrame.Height, 0, 0);
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+		}
+	}
+
+	void VulkanGraphicsDevice::ConditionalEndRenderPass()
+	{
+		if (_activeRenderPassPTR || _activeFrameBufferPTR)
+		{
+			auto& commandBuffer = GetActiveCommandBuffer();
+			vkCmdEndRenderPass(commandBuffer);
+
+			_activeRenderPassPTR = 0;
+			_activeFrameBufferPTR = 0;
+		}		
+	}
+
 	void VulkanGraphicsDevice::BeginFrame()
 	{
 		SubmitCopyCommands();
+
+		_activeRenderPassPTR = 0;
+		_activeFrameBufferPTR = 0;
 
 		// Acquire the next image from the swap chain
 		VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
@@ -1557,6 +1598,7 @@ namespace SPP
 						if (curBinding.binding == newBinding.binding)
 						{
 							curBinding.stageFlags |= newBinding.stageFlags;
+							
 							SE_ASSERT(curBinding.descriptorCount == curBinding.descriptorCount
 								&& curBinding.descriptorType == curBinding.descriptorType);
 
@@ -1608,7 +1650,6 @@ namespace SPP
 
 			auto& vsSet = InVS->GetAs<VulkanShader>().GetLayoutSets();
 			
-
 			// Deferred shading layout
 			_setLayoutBindings.clear();
 
@@ -1619,7 +1660,7 @@ namespace SPP
 				auto& psSet = InPS->GetAs<VulkanShader>().GetLayoutSets();
 				MergeBindingSet(psSet, _setLayoutBindings);
 			}
-			
+
 			SE_ASSERT(_descriptorSetLayouts.empty());
 			_descriptorSetLayouts.resize(4);
 

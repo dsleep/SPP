@@ -352,6 +352,14 @@ namespace SPP
 
 		struct VkFrameDataContainer& GetDepthOnlyFrameData();
 
+
+		uintptr_t _activeRenderPassPTR = 0;
+		uintptr_t _activeFrameBufferPTR = 0;
+		GPUReferencer<SafeVkFrameBuffer> frameBuffer;
+
+		void SetFrameBufferForRenderPass(struct VkFrameDataContainer& InFrame);
+		void ConditionalEndRenderPass();
+
 		VkDescriptorImageInfo GetColorImageDescImgInfo();
 		VulkanFramebuffer* GetColorTarget();
 		VkFrameDataContainer GetBackBufferFrameData();

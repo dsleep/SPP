@@ -29,6 +29,9 @@ namespace SPP
 		GPUReferencer<SafeVkRenderPass> renderPass;
 		GPUReferencer<SafeVkFrameBuffer> frameBuffer;
 
+		uint32_t Width = 0;
+		uint32_t Height = 0;
+
 		VkClearValue clearValueArray[5] = { };
 
 		VkRenderPassBeginInfo SetupDrawPass(const Vector2i &InRenderArea)

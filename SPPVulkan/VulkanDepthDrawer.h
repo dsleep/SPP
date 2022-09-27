@@ -12,7 +12,6 @@ namespace SPP
 	class DepthDrawer
 	{
 	protected:
-		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
 		GPUReferencer< SafeVkDescriptorSet > _depthPyramidDescriptorSet, _depthCullingDescriptorSet;
 
 		VulkanGraphicsDevice* _owningDevice = nullptr;
