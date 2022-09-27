@@ -82,7 +82,7 @@ namespace SPP
         }
     }
 
-    void LooseOctree::LooseOctreeNode::WalkElements(const Planed frustumPlanes[5],
+    void LooseOctree::LooseOctreeNode::WalkElements(const std::vector<Planed>& frustumPlanes,
         Vector3i InCurrentCenter,
         const std::function<bool(const IOctreeElement*)>& InFunction,
         const std::function<bool(const Vector3i&, int32_t)>& InContinuation,
@@ -121,7 +121,7 @@ namespace SPP
                     childCenter + Vector3i(looseChildExt,looseChildExt,looseChildExt)
                      };
 
-                if (BoxInFrustum<double, Vector3i, 5>(frustumPlanes, childAABB))
+                if (BoxInFrustum< Vector3i >(frustumPlanes, childAABB))
                 {
                     _children[ChildIter]->WalkElements(frustumPlanes, childCenter, InFunction, InContinuation, childExt, CurrentDepth - 1);
                 }                
@@ -211,7 +211,7 @@ namespace SPP
     void LooseOctree::LooseOctreeNode::Report(std::vector<LooseOctree::NodeInfo>& inNodes, uint8_t CurrentDepth) const
     {
         inNodes[CurrentDepth].activeNodes++;
-        inNodes[CurrentDepth].elementCount += _elements.size();
+        inNodes[CurrentDepth].elementCount += (int32_t) _elements.size();
 
         for (int32_t ChildIter = 0; ChildIter < 8; ChildIter++)
         {
@@ -383,7 +383,7 @@ namespace SPP
         }
     }
         
-    void LooseOctree::WalkElements(const Planed frustumPlanes[5], 
+    void LooseOctree::WalkElements(const std::vector<Planed>& frustumPlanes,
         const std::function<bool(const IOctreeElement*)>& InFunction,
         const std::function<bool(const Vector3i&, int32_t)>& InContinuation,
         uint8_t MaxDepthToWalk)

@@ -654,7 +654,7 @@ namespace SPP
 		curCam.ViewPosition = _viewGPU.GetCameraPosition();
 		curCam.FrameExtents = DeviceExtents;
 
-		for (int32_t Iter = 0; Iter < ARRAY_SIZE(_frustumPlanes); Iter++)
+		for (int32_t Iter = 0; Iter < _frustumPlanes.size(); Iter++)
 		{
 			curCam.FrustumPlanes[Iter] = _frustumPlanes[Iter].coeffs();
 		}

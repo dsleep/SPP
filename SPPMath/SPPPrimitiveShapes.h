@@ -416,10 +416,10 @@ namespace SPP
         return Sphere( center, (float)radius );
     }
 
-    template<typename T, typename D, size_t N>
-    inline bool BoxInFrustum(  const PlaneT<T> InPlanes[N], const AxisAlignedBoundingBox<D> &InBox)
+    template<typename D>
+    inline bool BoxInFrustum(const std::vector<Planed>& InPlanes, const AxisAlignedBoundingBox<D> &InBox)
     {
-        using BoxVector3 = Eigen::Matrix< T, 1, 3, Eigen::RowMajor >;
+        using BoxVector3 = Eigen::Matrix< double, 1, 3, Eigen::RowMajor >;
 
         BoxVector3 minB = InBox.GetMin().template cast<double>();
         BoxVector3 maxB = InBox.GetMax().template cast<double>();
@@ -435,7 +435,7 @@ namespace SPP
         };
 
         // check box outside/inside of frustum
-        for (int i = 0; i < N; i++)
+        for (size_t i = 0; i < InPlanes.size(); i++)
         {
             int out = 0;
             for (int j = 0; j < 8; j++)

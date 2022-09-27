@@ -192,7 +192,7 @@ namespace SPP
 		std::unique_ptr<VulkanDebugDrawing> _debugDrawer;
 
 		std::vector<Sphere> _frustumRangeSpheres;
-		Planed _frustumPlanes[5];		
+		std::vector<Planed> _frustumPlanes;		
 
 		CameraCullInfo _cameraCullInfo;
 
@@ -250,6 +250,11 @@ namespace SPP
 		const auto& GetFrustumRangeSpheres()
 		{
 			return _frustumRangeSpheres;
+		}
+
+		class DepthDrawer* GetDepthDrawer()
+		{
+			return _depthDrawer.get();
 		}
 
 		virtual void AddedToGraphicsDevice() override;

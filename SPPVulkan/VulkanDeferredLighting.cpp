@@ -11,6 +11,7 @@
 #include "VulkanFrameBuffer.hpp"
 
 #include "VulkanDeferredLighting.h"
+#include "VulkanDepthDrawer.h"
 
 #include "SPPTextures.h"
 #include "SPPFileSystem.h"
@@ -52,8 +53,6 @@ namespace SPP
 				
 		GPUReferencer< VulkanTexture > _skyCube, _specularBRDF_LUT, _textureIrradianceMap;
 
-		VkFrameDataContainer _shadowRenderPass;
-		std::unique_ptr<class VulkanFramebuffer> _shadowDepthFrameBuffer;
 
 
 	public:
@@ -226,19 +225,6 @@ namespace SPP
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
 				});
 
-			// shadow depth
-
-			auto shadowDepthTexture = Make_GPU(VulkanTexture, InOwner, 1024, 1024, 1, 1,
-				TextureFormat::D32, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
-			_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(InOwner, 1024, 1024);
-			_shadowDepthFrameBuffer->addAttachment(
-				{
-					.texture = shadowDepthTexture,
-					.name = "Depth"
-				}
-			);
-			_shadowRenderPass = _shadowDepthFrameBuffer->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 		}
 
 		auto GetVS()
@@ -269,16 +255,18 @@ namespace SPP
 		{
 			return _skyCube;
 		}
+
+
 	};
 
 	REGISTER_GLOBAL_RESOURCE(GlobalDeferredLightingResources);
 
 	PBRDeferredLighting::PBRDeferredLighting(VulkanRenderScene* InScene) : _owningScene(InScene)
-	{
-
+	{	
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
+		auto DeviceExtents = _owningDevice->GetExtents();
 		
 		//
 		auto deferredGbuffer = _owningDevice->GetColorTarget();
@@ -334,6 +322,35 @@ namespace SPP
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &gbuffer[3] }
 			}
 		);
+
+		///////////
+
+		auto shadowDepthTexture = Make_GPU(VulkanTexture, _owningDevice, 1024, 1024, 1, 1,
+			TextureFormat::D32, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+		_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(_owningDevice, 1024, 1024);
+		_shadowDepthFrameBuffer->addAttachment(
+			{
+				.texture = shadowDepthTexture,
+				.name = "Depth"
+			}
+		);
+		_shadowRenderPass = _shadowDepthFrameBuffer->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+
+		//
+		auto shadowTexture = Make_GPU(VulkanTexture, _owningDevice, DeviceExtents[0], DeviceExtents[1], 1, 1,
+			TextureFormat::R8, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		_shadowAttenuation = std::make_unique< VulkanFramebuffer >(_owningDevice, DeviceExtents[0], DeviceExtents[1]);
+		_shadowAttenuation->addAttachment(
+			{
+				.texture = shadowTexture,
+				.name = "Attenuation"
+			}
+		);
+		_shadowAttenuationRenderPass = _shadowAttenuation->createCustomRenderPass(
+			{ { "Attenuation", VK_ATTACHMENT_LOAD_OP_CLEAR } });
+
+		//
 	}
 
 	struct alignas(16u) SunLightParams
@@ -374,23 +391,41 @@ namespace SPP
 
 	void PBRDeferredLighting::RenderShadow(RT_RenderableLight& InLight)
 	{
-		auto& shadowRenderPass = _owningDevice->GetShadowAttenuationRenderPass();
+		//auto& shadowRenderPass = _owningDevice->GetShadowAttenuationRenderPass();
 		auto DeviceExtents = _owningDevice->GetExtents();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 		auto currentFrame = _owningDevice->GetActiveFrame();
 
-		{
-			_owningDevice->SetFrameBufferForRenderPass(shadowRenderPass);
+		auto& sceneOctree = _owningScene->GetOctree();
 
-			// Update dynamic scissor state
-			VkRect2D scissor = {};
-			scissor.extent.width = DeviceExtents[0];
-			scissor.extent.height = DeviceExtents[1];
-			scissor.offset.x = 0;
-			scissor.offset.y = 0;
-			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-		}
+		// RENDER DEPTHS FROM SHADOW
+		Planed cameraNearPlane;
+		std::vector<Planed> cascadePlanes;
+		auto depthDrawer = _owningScene->GetDepthDrawer();
 
+		_owningDevice->SetFrameBufferForRenderPass(_shadowRenderPass);
+
+		sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
+			{
+				auto curRenderable = ((Renderable*)InElement);
+
+				if (curRenderable->GetType() == RenderableType::Mesh)
+				{
+					depthDrawer->Render(*(RT_VulkanRenderableMesh*)curRenderable);
+				}
+				return true;
+			},
+
+			[&](const Vector3i& InCenter, int32_t InExtents) -> bool
+			{
+				double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
+				return DistanceCalc > 0.02;
+			}
+			);
+
+
+		// RENDER TO SHADOW ATTENUATION
+		_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
 		_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
 
 		if (InLight.GetLightType() == ELightType::Sun)
@@ -438,6 +473,8 @@ namespace SPP
 
 		if (InLight.GetLightType() == ELightType::Sun)
 		{
+			RenderShadow(InLight);
+
 			auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
 			auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
 

@@ -274,6 +274,11 @@ namespace SPP
 		RT_RenderScene(GraphicsDevice* InOwner);
 		virtual ~RT_RenderScene();
 
+		auto& GetOctree()
+		{
+			return _octree;
+		}
+
 		uint32_t GetGlobalRenderableID()
 		{
 			if (_globalRenderableIDPool.size())

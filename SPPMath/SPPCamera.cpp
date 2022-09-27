@@ -492,8 +492,10 @@ namespace SPP
 		}
 	}
 
-	void Camera::GetFrustumPlanes(Planed planes[5])
-	{				
+	void Camera::GetFrustumPlanes(std::vector<Planed> & planes) const
+	{	
+		planes.resize(5);
+
 		// left
 		auto& coeff0 = planes[0].coeffs();
 		auto& coeff1 = planes[1].coeffs();

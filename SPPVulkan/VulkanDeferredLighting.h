@@ -6,6 +6,7 @@
 
 #include "SPPVulkan.h"
 #include "VulkanRenderScene.h"
+#include "VulkanFrameBuffer.hpp"
 
 namespace SPP
 {
@@ -16,6 +17,12 @@ namespace SPP
 		VulkanRenderScene* _owningScene = nullptr;
 		GPUReferencer<SafeVkSampler> _nearestSampler;
 		GPUReferencer<SafeVkDescriptorSet> _gbufferTextureSet, _dummySet;
+		
+		std::unique_ptr<class VulkanFramebuffer> _shadowDepthFrameBuffer;
+		VkFrameDataContainer _shadowRenderPass;
+
+		std::unique_ptr<class VulkanFramebuffer> _shadowAttenuation;
+		VkFrameDataContainer _shadowAttenuationRenderPass;		
 		
 	public:
 		PBRDeferredLighting(VulkanRenderScene* InScene);
