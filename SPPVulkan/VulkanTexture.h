@@ -15,6 +15,9 @@
 
 namespace SPP
 {
+	/// <summary>
+	/// 
+	/// </summary>
 	class VulkanTexture : public GPUTexture
 	{
 	protected:
@@ -50,24 +53,14 @@ namespace SPP
 		std::vector< GPUReferencer< SafeVkImageView > > GetMipChainViews();
 
 		virtual void PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Memory, uint32_t MemorySize) override;
-
-
 		void UpdateRect(int32_t rectX, int32_t rectY, int32_t Width, int32_t Height, const void* Data, uint32_t DataSize);
 
 		virtual void SetName(const char* InName) override;
 
-		auto GetUsageFlags()
-		{
-			return _usageFlags;
-		}
-
+		auto GetUsageFlags() { return _usageFlags; }
 		bool hasDepth();
 		bool hasStencil();
-
-		bool isDepthStencil()
-		{
-			return(hasDepth() || hasStencil());
-		}
+		bool isDepthStencil() { return(hasDepth() || hasStencil()); }
 
 		const VkDescriptorImageInfo& GetDescriptor()
 		{
@@ -104,28 +97,4 @@ namespace SPP
 			destroy();
 		}
 	};
-
-	//class Texture2DArray : public Texture
-	//{
-	//  public:
-	//	void loadFromFile(
-	//		std::string        filename,
-	//		VkFormat           format,
-	//		vks::VulkanDevice *device,
-	//		VkQueue            copyQueue,
-	//		VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-	//		VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	//};
-
-	//class TextureCubeMap : public Texture
-	//{
-	//  public:
-	//	void loadFromFile(
-	//		std::string        filename,
-	//		VkFormat           format,
-	//		vks::VulkanDevice *device,
-	//		VkQueue            copyQueue,
-	//		VkImageUsageFlags  imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-	//		VkImageLayout      imageLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	//};
 }

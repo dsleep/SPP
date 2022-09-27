@@ -304,6 +304,8 @@ namespace SPP
 		uint8_t GetCurrentFrame();
 		vks::VulkanDevice* GetVKSVulkanDevice();
 
+		VkDevice GetVKDevice() const;
+
 		VkQueue GetGraphicsQueue();
 
 		VkQueue GetComputeQueue();

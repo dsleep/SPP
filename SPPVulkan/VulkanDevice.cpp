@@ -1426,6 +1426,11 @@ namespace SPP
 		return vulkanDevice;
 	}
 
+	VkDevice VulkanGraphicsDevice::GetVKDevice() const
+	{
+		return vulkanDevice->logicalDevice;
+	}
+
 	VkQueue VulkanGraphicsDevice::GetGraphicsQueue() {
 		return graphicsQueue;
 	}
