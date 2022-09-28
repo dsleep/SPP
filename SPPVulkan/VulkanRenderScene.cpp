@@ -644,7 +644,7 @@ namespace SPP
 		_viewGPU.GetFrustumSpheresForRanges({ 50, 150, 450 }, _frustumRangeSpheres);
 		_viewGPU.GetFrustumPlanes(_frustumPlanes);
 		_cameraCullInfo = _viewGPU.GetCullingData();
-
+		
 		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
 		GPUViewConstants& curCam = cameraSpan[currentFrame];
 		curCam.ViewMatrix = _viewGPU.GetWorldToCameraMatrix();
@@ -653,6 +653,12 @@ namespace SPP
 		curCam.InvProjectionMatrix = _viewGPU.GetInvProjectionMatrix();
 		curCam.ViewPosition = _viewGPU.GetCameraPosition();
 		curCam.FrameExtents = DeviceExtents;
+
+		_cascadeSpheres.resize(_frustumRangeSpheres.size());
+		for (size_t Iter = 0; Iter < _frustumRangeSpheres.size(); Iter++)
+		{
+			_cascadeSpheres[Iter] = Sphere( _frustumRangeSpheres[Iter].GetCenter() + curCam.ViewPosition, _frustumRangeSpheres[Iter].GetRadius() );
+		}
 
 		for (int32_t Iter = 0; Iter < _frustumPlanes.size(); Iter++)
 		{

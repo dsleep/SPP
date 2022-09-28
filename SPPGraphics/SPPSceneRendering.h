@@ -279,6 +279,7 @@ namespace SPP
 			return _octree;
 		}
 
+
 		uint32_t GetGlobalRenderableID()
 		{
 			if (_globalRenderableIDPool.size())
@@ -337,9 +338,14 @@ namespace SPP
 		virtual void AddRenderable(Renderable* InRenderable);
 		virtual void RemoveRenderable(Renderable* InRenderable);
 
-		Camera& GetCamera()
+		Camera& GetCPUCamera()
 		{
 			return _viewCPU;
+		}
+
+		Camera& GetGPUCamera()
+		{
+			return _viewGPU;
 		}
 
 		template<typename T>

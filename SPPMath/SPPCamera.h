@@ -72,18 +72,18 @@ namespace SPP
 		Matrix4x4 _invViewProjMatrix;
 
 		float _FoV = 0.0f;
-
 		float _speed = 25.0f;
 		float _turnSpeedModifier = 0.1f;
 		Vector3 _eulerAngles;
 
 		bool bIsInvertedZ = false;
+		bool bIsOrthogonal = false;
 				
 	public:
 		Camera() { }
 		
 		void Initialize(const Vector3d& InPosition, const Vector3 &InEuler, float FoV, float AspectRatio);
-		void Initialize(const Vector3d& InPosition, const Vector3& InEuler, Vector2 &Extents, Vector2& NearFar);
+		void Initialize(const Vector3d& InPosition, const Vector3& InEuler, const Vector2 &Extents, const Vector2& NearFar);
 
 		void BuildCameraMatrices();
 

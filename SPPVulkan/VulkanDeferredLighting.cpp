@@ -398,6 +398,8 @@ namespace SPP
 
 		auto& sceneOctree = _owningScene->GetOctree();
 
+		auto& cascadeSpheres = _owningScene->GetCascadeSpheres();
+
 		// RENDER DEPTHS FROM SHADOW
 		Planed cameraNearPlane;
 		std::vector<Planed> cascadePlanes;
@@ -405,23 +407,31 @@ namespace SPP
 
 		_owningDevice->SetFrameBufferForRenderPass(_shadowRenderPass);
 
-		sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
-			{
-				auto curRenderable = ((Renderable*)InElement);
+		for (auto& curSphere : cascadeSpheres)
+		{
+			auto curRadius = curSphere.GetRadius();
+			Camera orthoCam;
+			orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(1024, 1024), Vector2(curRadius, -curRadius));
+			orthoCam.GetFrustumPlanes(cascadePlanes);
 
-				if (curRenderable->GetType() == RenderableType::Mesh)
+			sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
 				{
-					depthDrawer->Render(*(RT_VulkanRenderableMesh*)curRenderable);
-				}
-				return true;
-			},
+					auto curRenderable = ((Renderable*)InElement);
 
-			[&](const Vector3i& InCenter, int32_t InExtents) -> bool
-			{
-				double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
-				return DistanceCalc > 0.02;
-			}
-			);
+					if (curRenderable->GetType() == RenderableType::Mesh)
+					{
+						depthDrawer->Render(*(RT_VulkanRenderableMesh*)curRenderable);
+					}
+					return true;
+				},
+
+				[&](const Vector3i& InCenter, int32_t InExtents) -> bool
+				{
+					double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
+					return DistanceCalc > 0.02;
+				}
+				);
+		}
 
 
 		// RENDER TO SHADOW ATTENUATION

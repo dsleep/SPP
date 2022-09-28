@@ -213,7 +213,7 @@ namespace SPP
 		BuildCameraMatrices();		
 	}
 
-	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InEuler, Vector2& Extents, Vector2& NearFar)
+	void Camera::Initialize(const Vector3d& InPosition, const Vector3& InEuler, const Vector2& Extents, const Vector2& NearFar)
 	{
 		_cameraPosition = InPosition;
 		_eulerAngles = InEuler;
@@ -273,6 +273,7 @@ namespace SPP
 		_invProjectionMatrix = _projectionMatrix.inverse();
 
 		bIsInvertedZ = true;
+		bIsOrthogonal = false;
 	}
 
 
@@ -288,6 +289,7 @@ namespace SPP
 		_invProjectionMatrix = _projectionMatrix.inverse();
 
 		bIsInvertedZ = false;
+		bIsOrthogonal = true;
 	}
 
 	float Camera::GetRecipTanHalfFovy() const
@@ -494,15 +496,32 @@ namespace SPP
 
 	void Camera::GetFrustumPlanes(std::vector<Planed> & planes) const
 	{	
-		planes.resize(5);
+		size_t TotalPlanes = 4;
+		
+		if (!bIsOrthogonal)
+		{
+			TotalPlanes = bIsInvertedZ ? 5 : 6;
+		}
+
+		planes.resize(TotalPlanes);
 
 		// left
-		auto& coeff0 = planes[0].coeffs();
-		auto& coeff1 = planes[1].coeffs();
-		auto& coeff2 = planes[2].coeffs();
-		auto& coeff3 = planes[3].coeffs();
-		auto& coeff4 = planes[4].coeffs();
-		//auto& coeff5 = planes[5].coeffs();
+		Eigen::Vector4d* coeff0 = &planes[0].coeffs();
+		Eigen::Vector4d* coeff1 = &planes[1].coeffs();
+		Eigen::Vector4d* coeff2 = &planes[2].coeffs();
+		Eigen::Vector4d* coeff3 = &planes[3].coeffs();
+
+		Eigen::Vector4d* coeff4 = nullptr;
+		Eigen::Vector4d* coeff5 = nullptr;
+
+		if (bIsOrthogonal == false)
+		{
+			coeff4 = &planes[4].coeffs();
+			if (!bIsInvertedZ)
+			{
+				coeff5 = &planes[5].coeffs();
+			}
+		}		
 
 		Matrix4x4d cameraMatrixWithTranslation = _cameraMatrix.cast<double>();
 		cameraMatrixWithTranslation.block<1, 3>(3, 0) = Vector3d(_cameraPosition[0], _cameraPosition[1], _cameraPosition[2]);
@@ -512,17 +531,23 @@ namespace SPP
 		viewProjMatrixWithTranslation.transposeInPlace();
 
 		// left
-		coeff0 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(0, 0);
+		*coeff0 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(0, 0);
 		// right
-		coeff1 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(0, 0);
+		*coeff1 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(0, 0);
 		// bottom
-		coeff2 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(1, 0);
+		*coeff2 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(1, 0);
 		// top
-		coeff3 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(1, 0);		
+		*coeff3 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(1, 0);
 		// near
-		coeff4 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(2, 0);
+		if (coeff4)
+		{
+			*coeff4 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) + viewProjMatrixWithTranslation.block<1, 4>(2, 0);
+		}
 		// far
-		//coeff5 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(2, 0);
+		if (coeff5)
+		{
+			*coeff5 = viewProjMatrixWithTranslation.block<1, 4>(3, 0) - viewProjMatrixWithTranslation.block<1, 4>(2, 0);
+		}
 
 		// normalize all planes
 		for (int32_t Iter = 0; Iter < 5; ++Iter)
