@@ -408,7 +408,7 @@ namespace SPP
 		if (InVulkanRenderableMesh.IsStatic())
 		{
 			uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame,
+				0,
 				(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
 			};
 
@@ -452,7 +452,7 @@ namespace SPP
 				writeDescriptorSets.data(), 0, nullptr);
 
 			uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame,
+				0,
 				(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
 			};
 

@@ -375,7 +375,7 @@ namespace SPP
 		cullData.occlusionEnabled = 1;
 
 		uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame,
+				0,
 				0,
 				0
 		};
@@ -424,6 +424,10 @@ namespace SPP
 		}
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="InVulkanRenderableMesh"></param>
 	void DepthDrawer::Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
 	{
 		auto currentFrame = _owningDevice->GetActiveFrame();
@@ -442,13 +446,13 @@ namespace SPP
 		if (InVulkanRenderableMesh.IsStatic())
 		{
 			uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame,
+				0,
 				(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
 			};
 
 			VkDescriptorSet locaDrawSets[] = {
-				_owningScene->GetCommondDescriptorSet()->Get(),
-				_owningScene->GetDrawConstDescriptorSet()->Get()
+				_owningScene->GetCommondDescriptorSet(),
+				_owningScene->GetStaticTransformsDescriptorSet()->Get()
 			};
 
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,

@@ -157,6 +157,9 @@ namespace SPP
 
 		GPUReferencer< class VulkanShader > _commonVS;
 		GPUReferencer< SafeVkDescriptorSet > _commonDescriptorSet;
+
+		VkDescriptorSet _overrideCommonDescriptorSet = nullptr;
+
 		GPUReferencer< SafeVkDescriptorSet > _drawConstDescriptorSet;
 
 		GPUReferencer< SafeVkDescriptorSetLayout > _commonVSLayout;
@@ -224,14 +227,19 @@ namespace SPP
 		{
 			return _cameraBuffer;
 		}
-		auto GetCommondDescriptorSet()
+		void SetCommonDescriptorOverride(VkDescriptorSet InOverride)
 		{
-			return _commonDescriptorSet;
+			_overrideCommonDescriptorSet = InOverride;
 		}
-		auto GetDrawConstDescriptorSet()
+		VkDescriptorSet GetCommondDescriptorSet();
+		auto GetStaticTransformsDescriptorSet()
 		{
 			return _drawConstDescriptorSet;
-		}		
+		}	
+		auto GetCommonShaderLayout()
+		{
+			return _commonVSLayout;
+		}
 		auto &GetCullDataBuffer()
 		{
 			return _renderableCullDataBuffer;

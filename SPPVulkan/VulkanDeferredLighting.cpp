@@ -371,11 +371,11 @@ namespace SPP
 
 		// if static we have everything pre cached		
 		uint32_t uniform_offsets[] = {
-			(sizeof(GPUViewConstants)) * currentFrame
+			0
 		};
 
 		VkDescriptorSet locaDrawSets[] = {
-			_owningScene->GetCommondDescriptorSet()->Get(),
+			_owningScene->GetCommondDescriptorSet(),
 			_dummySet->Get(),
 			skyDesc->Get()
 		};
@@ -391,88 +391,93 @@ namespace SPP
 
 	void PBRDeferredLighting::RenderShadow(RT_RenderableLight& InLight)
 	{
+#if 0
 		//auto& shadowRenderPass = _owningDevice->GetShadowAttenuationRenderPass();
 		auto DeviceExtents = _owningDevice->GetExtents();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 		auto currentFrame = _owningDevice->GetActiveFrame();
+		auto commonVSLayout = _owningScene->GetCommonShaderLayout();
 
+		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto& sceneOctree = _owningScene->GetOctree();
+		auto scratchPool = _owningDevice->GetPerFrameResetDescriptorPool();
+				
+		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(scratchPool, &commonVSLayout->Get(), 1);
 
-		auto& cascadeSpheres = _owningScene->GetCascadeSpheres();
+		auto& scratchBuffer = _owningDevice->GetPerFrameScratchBuffer();
 
-		// RENDER DEPTHS FROM SHADOW
-		Planed cameraNearPlane;
-		std::vector<Planed> cascadePlanes;
-		auto depthDrawer = _owningScene->GetDepthDrawer();
+		VkDescriptorSet commonSetOverride;
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
 
-		_owningDevice->SetFrameBufferForRenderPass(_shadowRenderPass);
+		auto cameraBuffer = _owningScene->GetCameraBuffer();
 
-		for (auto& curSphere : cascadeSpheres)
-		{
-			auto curRadius = curSphere.GetRadius();
-			Camera orthoCam;
-			orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(1024, 1024), Vector2(curRadius, -curRadius));
-			orthoCam.GetFrustumPlanes(cascadePlanes);
+		VkDescriptorBufferInfo perFrameInfo;
+		perFrameInfo.buffer = cameraBuffer->GetBuffer();
+		perFrameInfo.offset = 0;
+		perFrameInfo.range = cameraBuffer->GetPerElementSize();
 
-			sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
-				{
-					auto curRenderable = ((Renderable*)InElement);
-
-					if (curRenderable->GetType() == RenderableType::Mesh)
-					{
-						depthDrawer->Render(*(RT_VulkanRenderableMesh*)curRenderable);
-					}
-					return true;
-				},
-
-				[&](const Vector3i& InCenter, int32_t InExtents) -> bool
-				{
-					double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
-					return DistanceCalc > 0.02;
-				}
-				);
-		}
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+		vks::initializers::writeDescriptorSet(commonSetOverride,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
+		vks::initializers::writeDescriptorSet(commonSetOverride,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
+		};
 
 
-		// RENDER TO SHADOW ATTENUATION
-		_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
-		_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
+		auto _commonSetOverride = Make_GPU(SafeVkDescriptorSet,
+			_owningDevice,
+			commonVSLayout->Get(),
+			globalSharedPool);
+
+		_commonSetOverride->Update()
+
 
 		if (InLight.GetLightType() == ELightType::Sun)
 		{
-			auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
-			auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
+			auto& cascadeSpheres = _owningScene->GetCascadeSpheres();
 
-			Vector3 LightDir = -InLight.GetCachedRotationAndScale().block<1, 3>(1, 0);
-			LightDir.normalize();
-			SunLightParams lightParams =
+			// RENDER DEPTHS FROM SHADOW
+			Planed cameraNearPlane;
+			std::vector<Planed> cascadePlanes;
+			auto depthDrawer = _owningScene->GetDepthDrawer();
+
+			for (auto& curSphere : cascadeSpheres)
 			{
-				ToVector4(LightDir),
-				ToVector4(InLight.GetIrradiance())
-			};
+				// draw depths from light perspective
+				_owningDevice->SetFrameBufferForRenderPass(_shadowRenderPass);
 
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, sunPSO->GetVkPipeline());
-			vkCmdPushConstants(commandBuffer, sunPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SunLightParams), &lightParams);
+				auto curRadius = curSphere.GetRadius();
+				Camera orthoCam;
+				orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(1024, 1024), Vector2(curRadius, -curRadius));
+				orthoCam.GetFrustumPlanes(cascadePlanes);
 
-			// if static we have everything pre cached		
-			uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame
-			};
+				sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
+					{
+						auto curRenderable = ((Renderable*)InElement);
 
-			VkDescriptorSet locaDrawSets[] = {
-				_owningScene->GetCommondDescriptorSet()->Get(),
-				sunPRBSec->Get(),
-				_gbufferTextureSet->Get()
-			};
+						if (curRenderable->GetType() == RenderableType::Mesh)
+						{
+							depthDrawer->Render(*(RT_VulkanRenderableMesh*)curRenderable);
+						}
+						return true;
+					},
 
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				sunPSO->GetVkPipelineLayout(),
-				0,
-				ARRAY_SIZE(locaDrawSets), locaDrawSets,
-				ARRAY_SIZE(uniform_offsets), uniform_offsets);
+					[&](const Vector3i& InCenter, int32_t InExtents) -> bool
+					{
+						double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
+						return DistanceCalc > 0.02;
+					}
+					);
 
-			vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+				// RENDER TO SHADOW ATTENUATION
+				_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
+				_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
+			}
+
+
 		}
+
+#endif
 	}
 
 	// TODO cleanupppp
@@ -501,11 +506,11 @@ namespace SPP
 
 			// if static we have everything pre cached		
 			uint32_t uniform_offsets[] = {
-				(sizeof(GPUViewConstants)) * currentFrame
+				0
 			};
 
 			VkDescriptorSet locaDrawSets[] = {
-				_owningScene->GetCommondDescriptorSet()->Get(),
+				_owningScene->GetCommondDescriptorSet(),
 				sunPRBSec->Get(),
 				_gbufferTextureSet->Get()
 			};

@@ -362,7 +362,7 @@ namespace SPP
 			if (InVulkanRenderableMesh.IsStatic())
 			{				
 				uint32_t uniform_offsets[] = {
-					(sizeof(GPUViewConstants)) * currentFrame,
+					0,
 					(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
 				};
 
@@ -406,7 +406,7 @@ namespace SPP
 					writeDescriptorSets.data(), 0, nullptr);
 
 				uint32_t uniform_offsets[] = {
-					(sizeof(GPUViewConstants)) * currentFrame,
+					0,
 					(sizeof(StaticDrawParams) * meshCache->staticLeaseIdx)
 				};
 
@@ -486,7 +486,7 @@ namespace SPP
 		const auto InFlightFrames = GGlobalVulkanGI->GetInFlightFrames();
 
 		_cameraData = std::make_shared< ArrayResource >();
-		_cameraData->InitializeFromType< GPUViewConstants >(InFlightFrames);
+		_cameraData->InitializeFromType< GPUViewConstants >(1);
 		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
 		
 		//static_assert(sizeof(GPURenderableCullData) % 4 == 0);
@@ -646,7 +646,7 @@ namespace SPP
 		_cameraCullInfo = _viewGPU.GetCullingData();
 		
 		auto cameraSpan = _cameraData->GetSpan< GPUViewConstants>();
-		GPUViewConstants& curCam = cameraSpan[currentFrame];
+		GPUViewConstants& curCam = cameraSpan[0];
 		curCam.ViewMatrix = _viewGPU.GetWorldToCameraMatrix();
 		curCam.ViewProjectionMatrix = _viewGPU.GetViewProjMatrix();
 		curCam.InvViewProjectionMatrix = _viewGPU.GetInvViewProjMatrix();
@@ -666,7 +666,7 @@ namespace SPP
 		}
 
 		curCam.RecipTanHalfFovy = _viewGPU.GetRecipTanHalfFovy();
-		_cameraBuffer->UpdateDirtyRegion(currentFrame, 1);
+		_cameraBuffer->UpdateDirtyRegion(0, 1);
 	}
 		
 	void VulkanRenderScene::OpaqueDepthPass()
@@ -922,6 +922,11 @@ namespace SPP
 
 		WriteToFrame();
 	};
+
+	VkDescriptorSet VulkanRenderScene::GetCommondDescriptorSet()
+	{
+		return _overrideCommonDescriptorSet ? _overrideCommonDescriptorSet : _commonDescriptorSet->Get();
+	}
 
 	void VulkanRenderScene::WriteToFrame()
 	{

@@ -269,7 +269,7 @@ public:
 
 		renderableSceneShared = _gameworld->GetRenderScene();
 
-		auto& cam = renderableSceneShared->GetCamera();
+		auto& cam = renderableSceneShared->GetCPUCamera();
 		cam.GetCameraPosition()[1] = 5;
 
 		std::vector<Sphere> rangeSpheres;
@@ -379,7 +379,7 @@ public:
 
 		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
 
-		auto& cam = renderableSceneShared->GetCamera();
+		auto& cam = renderableSceneShared->GetCPUCamera();
 
 		cam.GenerateLHInverseZPerspectiveMatrix(75.0f, (float)WindowSizeX / (float)WindowSizeY);
 
@@ -447,7 +447,7 @@ public:
 		auto WindowSizeX = _graphicsDevice->GetDeviceWidth();
 		auto WindowSizeY = _graphicsDevice->GetDeviceHeight();
 
-		auto& cam = renderableSceneShared->GetCamera();
+		auto& cam = renderableSceneShared->GetCPUCamera();
 
 		Vector4 MousePosNear = Vector4(
 			((_mousePosition[0] / (float)WindowSizeX) * 2.0f - 1.0f), 
@@ -553,7 +553,7 @@ public:
 			Vector2i Delta = (currentMouse - _mouseCaptureSpot);
 			_mouseCaptureSpot = _mousePosition;
 
-			auto& cam = renderableSceneShared->GetCamera();
+			auto& cam = renderableSceneShared->GetCPUCamera();
 			cam.TurnCamera(Vector2(-Delta[0], -Delta[1]));
 		}		
 	}

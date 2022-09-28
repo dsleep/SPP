@@ -255,7 +255,7 @@ namespace SPP
 		}
 
 		uint32_t uniform_offsets[] = {
-			(sizeof(GPUViewConstants)) * currentFrame
+			0
 		};
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _impl->_state->GetVkPipeline());
