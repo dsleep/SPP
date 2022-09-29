@@ -198,6 +198,7 @@ namespace SPP
 	{
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
+		auto& graphicsCmdBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
 		auto eleSize = _cpuLink->GetPerElementSize();
@@ -212,23 +213,44 @@ namespace SPP
 		copyRegion.size = writeAmount;
 		vkCmdCopyBuffer(cmdBuffer, WritableChunk.buffer, _buffer, 1, &copyRegion);
 
-		VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
-		// Barrier to ensure that buffer copy is finished before host reading from it
-		bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-		bufferBarrier.buffer = _buffer;
-		bufferBarrier.size = VK_WHOLE_SIZE;
-		bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		// copy barrier
+		{
+			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+			bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			bufferBarrier.buffer = _buffer;
+			bufferBarrier.size = VK_WHOLE_SIZE;
+			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-		vkCmdPipelineBarrier(
-			cmdBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-			VK_FLAGS_NONE,
-			0, nullptr,
-			1, &bufferBarrier,
-			0, nullptr);
+			vkCmdPipelineBarrier(
+				cmdBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &bufferBarrier,
+				0, nullptr);
+		}
+		// graphics barrier
+		{
+			VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+			bufferBarrier.srcAccessMask = 0;
+			bufferBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			bufferBarrier.buffer = _buffer;
+			bufferBarrier.size = VK_WHOLE_SIZE;
+			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			vkCmdPipelineBarrier(
+				cmdBuffer,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_FLAGS_NONE,
+				0, nullptr,
+				1, &bufferBarrier,
+				0, nullptr);
+		}
 	}
 
 	//TODO FIX UP THESE

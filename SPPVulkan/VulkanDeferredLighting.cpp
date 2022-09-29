@@ -391,12 +391,12 @@ namespace SPP
 
 	void PBRDeferredLighting::RenderShadow(RT_RenderableLight& InLight)
 	{
-#if 0
 		//auto& shadowRenderPass = _owningDevice->GetShadowAttenuationRenderPass();
 		auto DeviceExtents = _owningDevice->GetExtents();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commonVSLayout = _owningScene->GetCommonShaderLayout();
+		auto& perFrameScratchBuffer = _owningDevice->GetPerFrameScratchBuffer();
 
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto& sceneOctree = _owningScene->GetOctree();
@@ -405,32 +405,6 @@ namespace SPP
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(scratchPool, &commonVSLayout->Get(), 1);
 
 		auto& scratchBuffer = _owningDevice->GetPerFrameScratchBuffer();
-
-		VkDescriptorSet commonSetOverride;
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
-
-		auto cameraBuffer = _owningScene->GetCameraBuffer();
-
-		VkDescriptorBufferInfo perFrameInfo;
-		perFrameInfo.buffer = cameraBuffer->GetBuffer();
-		perFrameInfo.offset = 0;
-		perFrameInfo.range = cameraBuffer->GetPerElementSize();
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-		vks::initializers::writeDescriptorSet(commonSetOverride,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo),
-		vks::initializers::writeDescriptorSet(commonSetOverride,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, &meshCache->transformBufferInfo),
-		};
-
-
-		auto _commonSetOverride = Make_GPU(SafeVkDescriptorSet,
-			_owningDevice,
-			commonVSLayout->Get(),
-			globalSharedPool);
-
-		_commonSetOverride->Update()
-
 
 		if (InLight.GetLightType() == ELightType::Sun)
 		{
@@ -451,6 +425,29 @@ namespace SPP
 				orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(1024, 1024), Vector2(curRadius, -curRadius));
 				orthoCam.GetFrustumPlanes(cascadePlanes);
 
+				GPUViewConstants cameraData;
+				cameraData.ViewMatrix = orthoCam.GetWorldToCameraMatrix();
+				cameraData.ViewProjectionMatrix = orthoCam.GetViewProjMatrix();
+				cameraData.InvViewProjectionMatrix = orthoCam.GetInvViewProjMatrix();
+				cameraData.InvProjectionMatrix = orthoCam.GetInvProjectionMatrix();
+				cameraData.ViewPosition = orthoCam.GetCameraPosition();
+				cameraData.FrameExtents = Vector2i(1024, 1024);
+
+				auto bufferSlice = scratchBuffer.Write((uint8_t*) & cameraData, sizeof(cameraData), currentFrame);
+
+				VkDescriptorSet commonSetOverride;
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
+
+				VkDescriptorBufferInfo lightCommon;
+				lightCommon.buffer = bufferSlice.buffer;
+				lightCommon.offset = bufferSlice.offsetFromBase;
+				lightCommon.range = bufferSlice.size;
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(commonSetOverride, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &lightCommon)
+				};
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+				_owningScene->SetCommonDescriptorOverride(commonSetOverride);
+
 				sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
 					{
 						auto curRenderable = ((Renderable*)InElement);
@@ -469,6 +466,8 @@ namespace SPP
 					}
 					);
 
+				_owningScene->SetCommonDescriptorOverride(nullptr);
+
 				// RENDER TO SHADOW ATTENUATION
 				_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
 				_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
@@ -477,7 +476,6 @@ namespace SPP
 
 		}
 
-#endif
 	}
 
 	// TODO cleanupppp
