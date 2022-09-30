@@ -209,7 +209,6 @@ namespace SPP
 #else
 		GenerateLeftHandFoVPerspectiveMatrix(FoV, AspectRatio);	
 #endif
-		//GenerateOrthogonalMatrix({ 1920, 1080 });
 		BuildCameraMatrices();		
 	}
 
@@ -219,6 +218,7 @@ namespace SPP
 		_eulerAngles = InEuler;
 		_FoV = -1.0f;
 
+		SetupStandardCorrection();
 		GenerateOrthogonalMatrix(Extents, NearFar);
 		BuildCameraMatrices();
 	}
@@ -281,7 +281,7 @@ namespace SPP
 	{
 		_projectionMatrix = Matrix4x4::Identity();
 
-		float fnDelta = InDepthRange[1] - InDepthRange[2];
+		float fnDelta = InDepthRange[1] - InDepthRange[0];
 		_projectionMatrix(0, 0) = 2.0f / InSize[0]; // scale the x coordinates of the projected point 
 		_projectionMatrix(1, 1) = 2.0f / InSize[1]; // scale the y coordinates of the projected point 
 		_projectionMatrix(2, 2) = 2 / fnDelta; // used to remap z to [0,1] 
@@ -550,9 +550,9 @@ namespace SPP
 		}
 
 		// normalize all planes
-		for (int32_t Iter = 0; Iter < 5; ++Iter)
+		for(auto &curPlane : planes)
 		{
-			planes[Iter].normalize();
+			curPlane.normalize();
 		}		
 	}
 

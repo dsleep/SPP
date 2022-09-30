@@ -121,7 +121,9 @@ namespace SPP
 		const Matrix4x4 &GetCorrectionMatrix() const { return _correctionMatrix; }
 		const Matrix4x4 &GetViewProjMatrix() const { return _viewProjMatrix; }
 		const Matrix4x4 &GetInvViewProjMatrix() const { return _invViewProjMatrix; }
-		Vector3d &GetCameraPosition() { return _cameraPosition; }
+		
+		Vector3d& GetCameraPosition() { return _cameraPosition; }
+		Vector3& GetCameraRotation() { return _eulerAngles; }
 
 		void TurnCamera(const Vector2 &CameraTurn);
 		void MoveCamera(float DeltaTime, ERelativeDirection Direction);

@@ -688,8 +688,11 @@ namespace SPP
 		auto& scratchBuffer = vulkanGD->GetPerFrameScratchBuffer();
 
 		auto &camPos = _viewGPU.GetCameraPosition();
-		std::string CameraText = std::string_format("CAMERA: %.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
-		vulkanGD->DrawDebugText(Vector2i(10, 20), CameraText.c_str() );
+		auto& camRot = _viewGPU.GetCameraRotation();
+		std::string CameraLocText = std::string_format("%.1f %.1f %.1f", camPos[0], camPos[1], camPos[2]);
+		std::string CameraRotText = std::string_format("%.1f %.1f %.1f", camRot[0], camRot[1], camRot[2]);
+		vulkanGD->DrawDebugText(Vector2i(10, 20), CameraLocText.c_str() );
+		vulkanGD->DrawDebugText(Vector2i(10, 40), CameraRotText.c_str());
 		
 		auto& depthOnlyFrame = vulkanGD->GetDepthOnlyFrameData();
 		auto& defferedFrame = vulkanGD->GetDeferredFrameData();

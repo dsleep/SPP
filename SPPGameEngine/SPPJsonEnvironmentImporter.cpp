@@ -20,6 +20,27 @@ namespace SPP
 		//"specular"
 	};
 
+	Matrix3x3 lookAt(const Vector3 &Dir, const Vector3& UpDir) 
+	{
+		Vector3 f = Dir.normalized();
+		Vector3 u = UpDir.normalized();
+		Vector3 s = f.cross(u).normalized();
+		u = f.cross(s);
+		Matrix3x3 mat = Matrix3x3::Zero();
+		mat(0, 0) = s.x();
+		mat(0, 1) = s.y();
+		mat(0, 2) = s.z();
+		mat(1, 0) = u.x();
+		mat(1, 1) = u.y();
+		mat(1, 2) = u.z();
+		mat(2, 0) = f.x();
+		mat(2, 1) = f.y();
+		mat(2, 2) = f.z();			
+		return mat;
+	}
+
+	
+
 	VgEnvironment* LoadJsonGameScene(const char* FilePath)
 	{
 		Json::Value JsonScene;
@@ -283,6 +304,16 @@ namespace SPP
 
 					//why the negative
 					curRot[2] = -curRot[2];
+
+
+					const float RadToDegree = 57.295755f;
+					Eigen::Quaternion<float> q = EulerAnglesToQuaternion(curRot);
+					Matrix3x3 rotationMatrix = q.matrix();
+					Vector3 tempY = rotationMatrix.block<1, 3>(1, 0);
+					rotationMatrix.block<1, 3>(1, 0) = rotationMatrix.block<1, 3>(2, 0);
+					rotationMatrix.block<1, 3>(2, 0) = -tempY;					
+					curRot = ToEulerAngles(rotationMatrix) * RadToDegree;
+					
 
 					for (int32_t Iter = 0; Iter < 3; Iter++)
 					{

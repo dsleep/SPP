@@ -401,6 +401,7 @@ namespace SPP
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto& sceneOctree = _owningScene->GetOctree();
 		auto scratchPool = _owningDevice->GetPerFrameResetDescriptorPool();
+		
 				
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(scratchPool, &commonVSLayout->Get(), 1);
 
@@ -408,21 +409,25 @@ namespace SPP
 
 		if (InLight.GetLightType() == ELightType::Sun)
 		{
+			_owningDevice->SetCheckpoint(commandBuffer, "SunShadowCascades");
+
 			auto& cascadeSpheres = _owningScene->GetCascadeSpheres();
 
 			// RENDER DEPTHS FROM SHADOW
-			Planed cameraNearPlane;
+			Planed cameraNearPlane = _owningScene->GetNearCameraPlane();
 			std::vector<Planed> cascadePlanes;
 			auto depthDrawer = _owningScene->GetDepthDrawer();
 
 			for (auto& curSphere : cascadeSpheres)
 			{
+				_owningDevice->SetCheckpoint(commandBuffer, "CASCADE");
+
 				// draw depths from light perspective
 				_owningDevice->SetFrameBufferForRenderPass(_shadowRenderPass);
 
 				auto curRadius = curSphere.GetRadius();
 				Camera orthoCam;
-				orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(1024, 1024), Vector2(curRadius, -curRadius));
+				orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(curRadius, -curRadius));
 				orthoCam.GetFrustumPlanes(cascadePlanes);
 
 				GPUViewConstants cameraData;
@@ -466,11 +471,13 @@ namespace SPP
 					}
 					);
 
-				_owningScene->SetCommonDescriptorOverride(nullptr);
+				//vkCmdClearColorImage clear on first pass
 
+				_owningScene->SetCommonDescriptorOverride(nullptr);
+				_owningDevice->ConditionalEndRenderPass();
 				// RENDER TO SHADOW ATTENUATION
-				_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
-				_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
+				//_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
+				//_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
 			}
 
 
@@ -486,12 +493,16 @@ namespace SPP
 
 		if (InLight.GetLightType() == ELightType::Sun)
 		{
-			RenderShadow(InLight);
+			auto& lightingComposite = _owningDevice->GetLightingCompositeRenderPass();
+
+			//RenderShadow(InLight);
+			_owningDevice->SetFrameBufferForRenderPass(lightingComposite);
+			_owningDevice->SetCheckpoint(commandBuffer, "Sun");
 
 			auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
 			auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
 
-			Vector3 LightDir = -InLight.GetCachedRotationAndScale().block<1, 3>(1, 0);
+			Vector3 LightDir = InLight.GetCachedRotationAndScale().block<1, 3>(2, 0);
 			LightDir.normalize();
 			SunLightParams lightParams =
 			{

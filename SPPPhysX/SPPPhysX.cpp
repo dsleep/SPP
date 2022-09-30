@@ -830,7 +830,7 @@ namespace SPP
 			const float RadToDegree = 57.295755f;
 			auto globalPose = _pxActor->getGlobalPose();
 			Eigen::Quaternion<float> q(&globalPose.q.x);
-			auto euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
+			auto euler = ToEulerAngles(q);
 			return Vector3(euler[0] * RadToDegree, euler[1] * RadToDegree, euler[2] * RadToDegree);
 		}
 		virtual Vector3 GetScale() override

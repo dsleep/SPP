@@ -231,6 +231,11 @@ namespace SPP
 		{
 			_overrideCommonDescriptorSet = InOverride;
 		}
+		Planed GetNearCameraPlane() const
+		{
+			return _frustumPlanes[4];
+		}
+
 		VkDescriptorSet GetCommondDescriptorSet();
 		auto GetStaticTransformsDescriptorSet()
 		{

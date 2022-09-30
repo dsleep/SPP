@@ -211,7 +211,7 @@ public:
 					newShape->SetTransformArgs(
 						{
 							.translation = curShape.Translation.cast<double>(),
-							.rotation = curShape.Rotation.eulerAngles(0,1,2) * 57.2958f,
+							.rotation = ToEulerAngles(curShape.Rotation) * 57.2958f,
 							.scale = curShape.Scale
 						});
 

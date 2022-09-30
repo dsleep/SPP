@@ -418,6 +418,39 @@ namespace SPP
         return (zAngle * xAngle) * yAngle;
     }
 
+    inline Vector3 ToEulerAngles(const Eigen::Quaternion<float>& q)
+    {
+        Vector3 angles;
+        const auto x = q.x();
+        const auto y = q.y();
+        const auto z = q.z();
+        const auto w = q.w();
+
+        // pitch
+        double sinr_cosp = 2 * (w * x + y * z);
+        double cosr_cosp = 1 - 2 * (x * x + y * y);
+        angles[0] = std::atan2(sinr_cosp, cosr_cosp);
+
+        // yaw
+        double sinp = 2 * (w * y - z * x);
+        if (std::abs(sinp) >= 1)
+            angles[1] = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+        else
+            angles[1] = std::asin(sinp);
+
+        // roll
+        double siny_cosp = 2 * (w * z + x * y);
+        double cosy_cosp = 1 - 2 * (y * y + z * z);
+        angles[2] = std::atan2(siny_cosp, cosy_cosp);
+
+        return angles;
+    }
+
+    inline Vector3 ToEulerAngles(const Matrix3x3& RotMat)
+    {
+        return ToEulerAngles(Eigen::Quaternion<float>(RotMat));
+    }
+
     template <typename T> 
     int8_t sgn(T val) 
     {
