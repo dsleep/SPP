@@ -23,6 +23,7 @@ namespace SPP
 	protected:
 		VkFormat								_texformat = VK_FORMAT_UNDEFINED;
 		VkImageLayout							_imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkImageLayout							_initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		VkImageUsageFlags						_usageFlags = 0;
 
 		std::unique_ptr< SafeVkImage >          _image;
@@ -47,7 +48,9 @@ namespace SPP
 
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format);
 		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
-		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount, TextureFormat Format, VkImageUsageFlags UsageFlags);
+		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height,
+			int32_t MipLevelCount, int32_t FaceCount,
+			TextureFormat Format, VkImageUsageFlags UsageFlags, VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED );
 		VulkanTexture(GraphicsDevice* InOwner, const struct TextureAsset& InTextureAsset);
 
 		std::vector< GPUReferencer< SafeVkImageView > > GetMipChainViews();
@@ -70,6 +73,11 @@ namespace SPP
 		const auto& GetSubresourceRange()
 		{
 			return _subresourceRange;
+		}
+
+		VkImageAspectFlags GetImageAspect()
+		{
+			return _subresourceRange.aspectMask;
 		}
 
 		auto GetVkFormat()

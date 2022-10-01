@@ -74,8 +74,13 @@ namespace SPP
 			return isSRGB ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
 		case TextureFormat::D32:
 			return VK_FORMAT_D32_SFLOAT;
+		case TextureFormat::D32_S8:
+			return VK_FORMAT_D32_SFLOAT_S8_UINT;
 		case TextureFormat::R32F:
 			return VK_FORMAT_R32_SFLOAT;
+		case TextureFormat::S8:
+			return VK_FORMAT_S8_UINT;
+
 		case TextureFormat::R16G16F:
 			return VK_FORMAT_R16G16_SFLOAT;
 		case TextureFormat::R16G16B16A16F:
@@ -198,18 +203,17 @@ namespace SPP
 		VkFilter filter = VK_FILTER_NEAREST;
 
 		VkImageAspectFlags aspectMask = VK_FLAGS_NONE;
+		VkImageAspectFlags viewAspectMask = VK_FLAGS_NONE;
 
-		if (hasDepth())
+		if (isDepthStencil())
 		{
-			aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+			aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			viewAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		}
-		if (hasStencil())
+		else
 		{
-			aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-		}
-		if (aspectMask == VK_FLAGS_NONE)
-		{
-			aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
+			aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewAspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 
 		// Create optimal tiled target _image
@@ -221,7 +225,7 @@ namespace SPP
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageCreateInfo.initialLayout = _initialLayout;
 		imageCreateInfo.extent = { (uint32_t)_width, (uint32_t)_height, 1 };
 		imageCreateInfo.usage = _usageFlags;
 		// Ensure that the TRANSFER_DST bit is set for staging
@@ -273,7 +277,7 @@ namespace SPP
 		viewCreateInfo.viewType = IsCubemap ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 		viewCreateInfo.format = _texformat;
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		viewCreateInfo.subresourceRange = { aspectMask, 0, (uint32_t)_mipLevels, 0, (uint32_t)_faceCount };
+		viewCreateInfo.subresourceRange = { viewAspectMask, 0, (uint32_t)_mipLevels, 0, (uint32_t)_faceCount };
 		viewCreateInfo.image = _image->Get();
 		_view = std::make_unique< SafeVkImageView >(_owner, viewCreateInfo);
 		// Update descriptor _image info member that can be used for setting up descriptor sets
@@ -284,12 +288,15 @@ namespace SPP
 
 		_subresourceRange = { aspectMask, 0, _mipLevels, 0, _faceCount };
 
-		vks::tools::setImageLayout(
-			copyCmd,
-			_image->Get(),
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_GENERAL,
-			_subresourceRange);
+		if (_initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+		{
+			vks::tools::setImageLayout(
+				copyCmd,
+				_image->Get(),
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				_imageLayout,
+				_subresourceRange);
+		}
 
 		VGD->SubmitCopyCommands();
 	}
@@ -297,10 +304,11 @@ namespace SPP
 	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, 
 		int32_t Width, int32_t Height, 
 		int32_t MipLevelCount, int32_t FaceCount, 
-		TextureFormat Format, VkImageUsageFlags UsageFlags)
+		TextureFormat Format, VkImageUsageFlags UsageFlags, VkImageLayout InitialLayout)
 		: GPUTexture(InOwner, Width, Height, MipLevelCount, FaceCount, Format)
 	{
 		_imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		_initialLayout = InitialLayout;
 
 		if (UsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 		{

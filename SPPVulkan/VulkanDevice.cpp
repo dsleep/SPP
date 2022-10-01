@@ -588,8 +588,8 @@ namespace SPP
 		auto normalTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
 			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 		auto depthTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
-			TextureFormat::D32, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
+			TextureFormat::D32_S8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+	
 		_impl->deferredTarget = std::make_unique< VulkanFramebuffer >(this, width, height);
 		_impl->deferredTarget->addAttachment(
 			{
@@ -633,11 +633,15 @@ namespace SPP
 		_impl->lightingComposite->addAttachment(
 			{
 				.texture = depthTexture,
-				.name = "Depth"
+				.name = "Depth",
+				.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
 			}
 		);
 		_impl->lightingCompositeRenderPass = _impl->lightingComposite->createCustomRenderPass(
-			{ { "Color", VK_ATTACHMENT_LOAD_OP_CLEAR }, { "Depth", VK_ATTACHMENT_LOAD_OP_LOAD } } );
+			{ 
+				{ "Color", VK_ATTACHMENT_LOAD_OP_CLEAR }, 
+				{ "Depth", VK_ATTACHMENT_LOAD_OP_LOAD }
+			} );
 	}
 
 	void VulkanGraphicsDevice::createCommandBuffers()

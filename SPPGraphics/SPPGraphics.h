@@ -128,6 +128,8 @@ namespace SPP
         RGB_BC1,
         D24_S8,
         D32,
+        D32_S8,
+        S8,
 
         R16G16F,
         R16G16B16A16F,

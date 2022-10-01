@@ -476,8 +476,8 @@ namespace SPP
 				_owningScene->SetCommonDescriptorOverride(nullptr);
 				_owningDevice->ConditionalEndRenderPass();
 				// RENDER TO SHADOW ATTENUATION
-				//_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
-				//_owningDevice->SetCheckpoint(commandBuffer, "Shadow");
+				_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
+				_owningDevice->SetCheckpoint(commandBuffer, "ShadowAttenuation");
 			}
 
 

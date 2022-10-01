@@ -83,7 +83,7 @@ namespace SPP
 		attachment.description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachment.description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		attachment.description.format = TextureRef->GetVkFormat();
-		attachment.description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachment.description.initialLayout = createinfo.initialLayout;
 		// Final layout
 		// If not, final layout depends on attachment type
 		if (TextureRef->isDepthStencil())
@@ -108,7 +108,9 @@ namespace SPP
 		// Collect attachment references
 		std::vector<VkAttachmentReference> colorReferences;
 		VkAttachmentReference depthReference = {};
+
 		bool hasDepth = false;
+		bool hasStencil = false;
 		bool hasColor = false;
 
 		// Find. max number of layers across attachments
@@ -133,16 +135,55 @@ namespace SPP
 					maxLayers = textureRef->GetSubresourceRange().layerCount;
 				}
 
-				if (attachment.texture->isDepthStencil())
+				bool IsDepth = attachment.texture->hasDepth();
+				bool IsStencil = attachment.texture->hasStencil();
+
+				if (IsDepth || IsStencil)
 				{
-					// Only one depth attachment allowed
-					assert(!hasDepth);
-					depthReference.attachment = attachmentIndex;
+					//VkImageLayout textureLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+					//if (IsLoadLoadOp)
+					//{
+					//	if (IsDepth && IsStencil)
+					//	{
+					//		textureLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+					//	}
+					//	else if (IsDepth)
+					//	{
+					//		textureLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+					//	}
+					//	else if (IsStencil)
+					//	{
+					//		textureLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+					//	}
+					//}
+					//else
+					//{
+					//	if (IsDepth && IsStencil)
+					//	{
+					//		textureLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+					//	}
+					//	else if (IsDepth)
+					//	{
+					//		textureLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+					//	}
+					//	else if (IsStencil)
+					//	{
+					//		textureLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+					//	}
+					//}
+
+					//depthReference.layout = textureLayout;
+
 					depthReference.layout = IsLoadLoadOp ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL :
 						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-					hasDepth = true;
 
-					oData.DepthTargets++;
+					// Only one depth attachment allowed
+					//assert(!hasDepth);
+					depthReference.attachment = attachmentIndex;
+					hasDepth |= IsDepth;
+					hasStencil |= IsStencil;
+
+					oData.DepthStencilTargets++;
 				}
 				else
 				{

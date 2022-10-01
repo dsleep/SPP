@@ -24,7 +24,7 @@ namespace SPP
 	struct VkFrameDataContainer
 	{
 		uint8_t ColorTargets = 0;
-		uint8_t DepthTargets = 0;
+		uint8_t DepthStencilTargets = 0;
 
 		GPUReferencer<SafeVkRenderPass> renderPass;
 		GPUReferencer<SafeVkFrameBuffer> frameBuffer;
@@ -45,7 +45,7 @@ namespace SPP
 			renderPassBeginInfo.renderArea.extent.width = InRenderArea[0];
 			renderPassBeginInfo.renderArea.extent.height = InRenderArea[1];			
 			renderPassBeginInfo.framebuffer = frameBuffer->Get();
-			auto totalClears = ColorTargets + DepthTargets;
+			auto totalClears = ColorTargets + DepthStencilTargets;
 			clearValueArray[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 			if (totalClears)
 			{
@@ -75,7 +75,8 @@ namespace SPP
 	struct AttachmentCreateInfo
 	{
 		GPUReferencer< class VulkanTexture > texture;
-		std::string name;
+		std::string name = "NOTSET";
+		VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	};
 
 	/**

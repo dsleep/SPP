@@ -299,11 +299,11 @@ namespace SPP
 		auto ColorTarget = _owningDevice->GetColorTarget();
 		auto& depthAttachment = ColorTarget->GetBackAttachment();
 		auto depthTexture = depthAttachment.texture.get();
-
+		
 		vks::tools::setImageLayout(commandBuffer, depthTexture->GetVkImage(),
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+			{ depthTexture->GetImageAspect(), 0, 1, 0, 1 });
 
 		DepthReduceData reduceData =
 		{
@@ -349,7 +349,7 @@ namespace SPP
 		vks::tools::setImageLayout(commandBuffer, depthTexture->GetVkImage(),
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
-			{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 });
+			{ depthTexture->GetImageAspect(), 0, 1, 0, 1 });
 	}
 
 	void DepthDrawer::RunDepthCullingAgainstPyramid()
