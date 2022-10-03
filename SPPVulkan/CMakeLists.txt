@@ -29,7 +29,10 @@ target_sources(SPPVulkan
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"		
+		
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanPipelineState.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanPipelineState.h"
 
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.h"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.cpp"
