@@ -76,6 +76,8 @@ namespace SPP
 			return _setLayoutBindings;
 		}
 
+		class GPUReferencer<class SafeVkDescriptorSet> CreateDescriptorSet(uint8_t Idx, VkDescriptorPool InPool) const;
+
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
 
 		void Initialize(struct VkFrameDataContainer& renderPassData,

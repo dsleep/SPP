@@ -213,18 +213,13 @@ namespace SPP
 			////;
 			auto specLutDesc = _specularBRDF_LUT->GetDescriptor();
 
-			_sunDescSet = Make_GPU(SafeVkDescriptorSet,
-				owningDevice,
-				_psoSunLight->GetDescriptorSetLayouts()[1],
-				globalSharedPool);
-
+			_sunDescSet = _psoSunLight->CreateDescriptorSet(1, globalSharedPool);
 			_sunDescSet->Update(
 				{
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureIrradianceDesc },
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyDesc },
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
 				});
-
 		}
 
 		auto GetVS()

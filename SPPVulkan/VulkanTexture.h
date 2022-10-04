@@ -29,10 +29,10 @@ namespace SPP
 		std::unique_ptr< SafeVkImage >          _image;
 		std::unique_ptr< SafeVkDeviceMemory >   _deviceMemory;
 		std::unique_ptr< SafeVkImageView >		_view;
+		//TODO make this a global cached dealio like PSO
 		std::unique_ptr< SafeVkSampler >        _sampler;
 
 		VkImageSubresourceRange					_subresourceRange = {};
-
 		VkDescriptorImageInfo					_descriptor = {};
 		uint32_t								_imageByteSize = 0;
 

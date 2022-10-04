@@ -101,6 +101,14 @@ namespace SPP
 		}
 	}
 
+	GPUReferencer<SafeVkDescriptorSet> VulkanPipelineState::CreateDescriptorSet(uint8_t Idx, VkDescriptorPool InPool) const
+	{
+		return Make_GPU(SafeVkDescriptorSet,
+			_owner,
+			_descriptorSetLayouts[Idx],
+			InPool);
+	}
+
 	void VulkanPipelineState::Initialize(VkFrameDataContainer & renderPassData,
 
 		EBlendState InBlendState,
