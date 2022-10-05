@@ -3,6 +3,7 @@
 // recognized in your jurisdiction.
 
 #include "SPPGraphicsO.h"
+#include "SPPAssetCache.h"
 #include "ThreadPool.h"
 
 SPP_OVERLOAD_ALLOCATORS
@@ -350,7 +351,36 @@ namespace SPP
 	{		
 		TextureAsset testTexture;
 		
-		if (testTexture.LoadFromDisk(FileName))
+		AssetPath curTexture(FileName);
+		auto uExt = str_to_upper(curTexture.GetExtension());
+
+		if (uExt != ".KTX2")
+		{
+			AssetPath cachedTexture;
+			bool bHasCache = GetCachedFile(curTexture, cachedTexture, ".KTX2" );
+
+			if (!bHasCache)
+			{			
+				stdfs::path TmpKTX2File = cachedTexture.GetAbsolutePath().replace_filename("TMPTEXT.KTX2");
+
+				auto parentPath = TmpKTX2File.parent_path();
+				stdfs::create_directories(parentPath);
+
+				const bool bHasAlpha = false;
+				if (GenerateMipMapCompressedTexture(FileName, TmpKTX2File.generic_string().c_str(), bHasAlpha))
+				{
+					stdfs::remove(cachedTexture.GetAbsolutePath());
+					stdfs::rename(TmpKTX2File, cachedTexture.GetAbsolutePath());
+					curTexture = cachedTexture;
+				}
+			}
+			else
+			{
+				curTexture = cachedTexture;
+			}
+		}
+
+		if (testTexture.LoadFromDisk(*curTexture))
 		{
 			_width = testTexture.width;
 			_height = testTexture.height;

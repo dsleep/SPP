@@ -70,16 +70,6 @@ namespace SPP
 	};
 
 	/**
-	* @brief Describes the attributes of an attachment to be created
-	*/
-	struct AttachmentCreateInfo
-	{
-		GPUReferencer< class VulkanTexture > texture;
-		std::string name = "NOTSET";
-		VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	};
-
-	/**
 	* @brief Encapsulates a complete Vulkan framebuffer with an arbitrary number and combination of attachments
 	*/
 	class VulkanFramebuffer
@@ -88,6 +78,13 @@ namespace SPP
 		class GraphicsDevice* _owner = nullptr;
 
 	public:
+		struct AttachmentCreateInfo
+		{
+			GPUReferencer< class VulkanTexture > texture;
+			std::string name = "NOTSET";
+			VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		};
+
 		uint32_t _width = 0, _height = 0;
 
 		std::list<FramebufferAttachment> attachments;

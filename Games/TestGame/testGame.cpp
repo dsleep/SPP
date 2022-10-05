@@ -633,16 +633,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	IntializeGraphicsThread();
 
 	// setup global asset path
-	SPP::GRootPath = stdfs::absolute(stdfs::current_path() / "..\\").generic_string();
-	SPP::GBinaryPath = SPP::GRootPath + "Binaries\\";
-	SPP::GAssetPath = SPP::GRootPath + "Assets\\";
+	SPP::GRootPath = stdfs::absolute(stdfs::current_path() / "../").generic_string();
+	SPP::GBinaryPath = SPP::GRootPath + "Binaries/";
+	SPP::GAssetPath = SPP::GRootPath + "Assets/";
 
 
 
 	//
 	{
 		TextureAsset test;
-		test.LoadFromDisk(*AssetPath("/textures/SkyTextureOverCast_Cubemap.ktx2"));
+		test.LoadFromDisk(*AssetPath("textures/SkyTextureOverCast_Cubemap.ktx2"));
 	}
 
 	//SPP::CallPython();

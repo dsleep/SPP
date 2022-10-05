@@ -7,6 +7,26 @@
 
 namespace SPP
 {
+	bool GetCachedFile(const AssetPath& InPath, AssetPath& oPath, const std::string &InExt, const std::string &Tag)
+	{
+		std::string Ext = InExt.empty() ? ".BIN" : InExt;
+		auto relativePath = InPath.GetRelativePath();
+		oPath = AssetPath(stdfs::path("CACHE") / (relativePath + Tag + Ext));
+
+		if (stdfs::exists(*oPath))
+		{
+			stdfs::file_time_type assetTime = stdfs::last_write_time(*InPath);
+			stdfs::file_time_type cacheTime = stdfs::last_write_time(*oPath);
+
+			if (cacheTime >= assetTime)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	std::shared_ptr<BinaryBlobSerializer> GetCachedAsset(const AssetPath& AssetPath, const std::string Tag)
 	{
 		auto relativePath = AssetPath.GetRelativePath();

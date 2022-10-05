@@ -137,7 +137,7 @@ namespace SPP
 		return true;
 	}
 
-	void GenerateMipMapCompressedTexture(const char *InPath, const char *OutPath, bool bHasAlpha)
+	bool GenerateMipMapCompressedTexture(const char *InPath, const char *OutPath, bool bHasAlpha)
 	{
 		auto FullBinPath = SPP::GRootPath + "/3rdParty/compressonator/bin/compressonatorcli.exe";
 
@@ -158,8 +158,12 @@ namespace SPP
 				{
 					SPP_LOG(LOG_TEXTURES, LOG_INFO, "%s", ProcessOutput.c_str());
 				}
+
+				return true;
 			}
 		}
+
+		return false;
 	}
 
 	TextureFormat VKFormatToTextureFormat(uint32_t InVKFormat, bool &IsSRGB)

@@ -13,28 +13,51 @@ namespace SPP
 	SPP_ENGINE_API std::string GAssetPath;
 	SPP_ENGINE_API std::string GBinaryPath;
 
-	AssetPath::AssetPath(const char* InRelPath) : _relPath(InRelPath)
+	AssetPath::AssetPath(const stdfs::path& InAssetPath) 
 	{
-		_finalPath = GAssetPath + InRelPath;
+		if (InAssetPath.is_absolute())
+		{
+			stdfs::path mainAssetDir(GAssetPath);
+			_relPath = stdfs::relative(InAssetPath, mainAssetDir);
+		}
+		else
+		{
+			_relPath = InAssetPath;
+		}
 	}
+
+	AssetPath::AssetPath(const char* InAssetPath) : AssetPath(stdfs::path(InAssetPath)) {}
+	AssetPath::AssetPath(const std::string& InAssetPath) : AssetPath(stdfs::path(InAssetPath)) {}
 
 	const char* AssetPath::operator *() const
 	{
-		return _finalPath.c_str();
+		stdfs::path finalPath = GAssetPath;
+		finalPath += _relPath;
+
+		//not a big fan of this, good alternatives?
+		const_cast<AssetPath*>(this)->_tmpFinalPathRet = stdfs::absolute(finalPath).generic_string();
+		return _tmpFinalPathRet.c_str();
 	}
 
 	std::string AssetPath::GetExtension() const
 	{
-		return stdfs::path(_finalPath).extension().generic_string();
+		return _relPath.extension().generic_string();
 	}
 
 	std::string AssetPath::GetName() const
 	{
-		return stdfs::path(_finalPath).filename().generic_string();
+		return _relPath.filename().generic_string();
 	}
 
 	std::string AssetPath::GetRelativePath() const
 	{
-		return _relPath;
+		return _relPath.generic_string();
+	}
+
+	stdfs::path AssetPath::GetAbsolutePath() const
+	{
+		stdfs::path finalPath = GAssetPath;
+		finalPath += _relPath;
+		return stdfs::absolute(finalPath);
 	}
 }

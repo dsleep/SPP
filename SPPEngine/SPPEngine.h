@@ -5,6 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPFileSystem.h"
 #include <string>
 
 #if _WIN32 && !defined(SPP_ENGINE_STATIC)
@@ -32,16 +33,22 @@ namespace SPP
 	class SPP_ENGINE_API AssetPath
 	{
 	private:		
-		std::string _relPath;
-		std::string _finalPath;
+		stdfs::path _relPath;
+		
+
+		std::string _tmpFinalPathRet;
 
 	public:
 		AssetPath() = default;
-		AssetPath(const char* InRelPath);
+		AssetPath(const char* InAssetPath);
+		AssetPath(const std::string & InAssetPath);
+		AssetPath(const stdfs::path& InAssetPath);
+		
 		const char* operator *() const;
 		std::string GetExtension() const;
 		std::string GetName() const;
 		std::string GetRelativePath() const;
+		stdfs::path GetAbsolutePath() const;
 	};
 }
 

@@ -26,7 +26,7 @@ namespace SPP
         const uint8_t* ImageData
     );
 
-    SPP_GRAPHICS_API void GenerateMipMapCompressedTexture(const char* InPath, const char* OutPath, bool bHasAlpha);
+    SPP_GRAPHICS_API bool GenerateMipMapCompressedTexture(const char* InPath, const char* OutPath, bool bHasAlpha=false);
 
 
     struct TextureFace
