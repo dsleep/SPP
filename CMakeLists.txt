@@ -158,7 +158,8 @@ list(APPEND
 			"SPPCoroutines" 
 			"SPPDatabase" 
 			"SPPNetworking" 
-			"SPPMath"			
+			"SPPMath"	
+			"SPPPython"
 			 )
 
 if(USE_CRYPTOCPP)
