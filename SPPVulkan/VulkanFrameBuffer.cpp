@@ -103,8 +103,7 @@ namespace SPP
 	VkFrameDataContainer VulkanFramebuffer::createCustomRenderPass(const std::map<std::string, VkAttachmentLoadOp>& TargetMap)
 	{
 		VkFrameDataContainer oData;
-
-		std::vector<VkAttachmentDescription> attachmentDescriptions;
+				
 		// Collect attachment references
 		std::vector<VkAttachmentReference> colorReferences;
 		VkAttachmentReference depthReference = {};
@@ -123,8 +122,8 @@ namespace SPP
 			auto foundLink = TargetMap.find(attachment.name);
 			if (foundLink != TargetMap.end())
 			{
-				attachmentDescriptions.push_back(attachment.description);
-				attachmentDescriptions.back().loadOp = foundLink->second;
+				oData.attachmentDescriptions.push_back(attachment.description);
+				oData.attachmentDescriptions.back().loadOp = foundLink->second;
 
 				bool IsLoadLoadOp = (foundLink->second == VK_ATTACHMENT_LOAD_OP_LOAD);
 
@@ -231,8 +230,8 @@ namespace SPP
 		// Create render pass
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.pAttachments = attachmentDescriptions.data();
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
+		renderPassInfo.pAttachments = oData.attachmentDescriptions.data();
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(oData.attachmentDescriptions.size());
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 2;

@@ -29,6 +29,6 @@ namespace SPP
 				
 		void ProcessDepthPyramid();
 		void RunDepthCullingAgainstPyramid();
-		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh);
+		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh, bool InvertedZ = true);
 	};
 }

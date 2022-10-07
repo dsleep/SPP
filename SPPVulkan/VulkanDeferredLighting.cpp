@@ -83,6 +83,7 @@ namespace SPP
 				ERasterizerState::NoCull,
 				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
+				EDepthOp::Always,
 				nullptr,
 				_lightFullscreenVS,
 				_lightSunPS);
@@ -93,6 +94,7 @@ namespace SPP
 				ERasterizerState::NoCull,
 				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
+				EDepthOp::Always,
 				nullptr,
 				_lightFullscreenVS,
 				_skyCubemapPS);
@@ -230,6 +232,7 @@ namespace SPP
 				ERasterizerState::NoCull,
 				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
+				EDepthOp::Always,
 				nullptr,
 				_lightFullscreenVS,
 				_shadowFilterPS);
@@ -348,6 +351,7 @@ namespace SPP
 			}
 		);
 		_shadowRenderPass = _shadowDepthFrameBuffer->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
+		_shadowRenderPass.bUseInvertedZ = false;
 
 		//
 		auto shadowTexture = Make_GPU(VulkanTexture, _owningDevice, DeviceExtents[0], DeviceExtents[1], 1, 1,
@@ -462,71 +466,87 @@ namespace SPP
 
 				_owningScene->AddDebugLine(cascadeSphereCenter, cascadeSphereCenter + Vector3d(0, 5, 0));
 				
-				//Camera orthoCam;
-				//orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(-curRadius, curRadius));
-				//orthoCam.GetFrustumPlanes(cascadePlanes);
+				Camera orthoCam;
+				// near far here irrelevant
+				orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(0, curRadius));
+				orthoCam.GetFrustumPlanes(cascadePlanes);
+				
+				Sphere totalBounds;
+				uint32_t eleCount = 0;
+				sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
+					{
+						auto curRenderable = ((Renderable*)InElement);
 
-				//Sphere totalBounds;
-				//uint32_t eleCount = 0;
-				//sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
-				//	{
-				//		auto curRenderable = ((Renderable*)InElement);
+						if (curRenderable->GetType() == RenderableType::Mesh)
+						{			
+							totalBounds += curRenderable->GetSphereBounds();
+							RenderableArray[eleCount++] = curRenderable;							
+						}
+						return true;
+					},
 
-				//		if (curRenderable->GetType() == RenderableType::Mesh)
-				//		{			
-				//			totalBounds += curRenderable->GetSphereBounds();
-				//			RenderableArray[eleCount++] = curRenderable;							
-				//		}
-				//		return true;
-				//	},
+					[&](const Vector3i& InCenter, int32_t InExtents) -> bool
+					{
+						double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
+						return DistanceCalc > 0.02;
+					}
+					);
 
-				//	[&](const Vector3i& InCenter, int32_t InExtents) -> bool
-				//	{
-				//		double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
-				//		return DistanceCalc > 0.02;
-				//	}
-				//	);
+				Vector3 LightDir = InLight.GetCachedRotationAndScale().block<1, 3>(2, 0);
 
-				//Vector3 LightDir = InLight.GetCachedRotationAndScale().block<1, 3>(2, 0);
+				Planed sphereEdgePlane(
+					LightDir.cast<double>(),
+					totalBounds.GetCenter() + -LightDir.cast<double>() * totalBounds.GetRadius());
+				double DistanceToSphereEdge = sphereEdgePlane.signedDistance(cascadeSphereCenter);
+				cascadeSphereCenter += -LightDir.cast<double>() * DistanceToSphereEdge;
 
-				//Planed sphereEdgePlane(
-				//	LightDir.cast<double>(),
-				//	totalBounds.GetCenter());
-				//double DistanceToSphereEdge = sphereEdgePlane.signedDistance(cascadeSphereCenter);
-				//cascadeSphereCenter += LightDir.cast<double>() * DistanceToSphereEdge * totalBounds.GetRadius();
+				// reinit it
+				orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(0, totalBounds.GetRadius() * 2));
 
-				//// reinit it
-				//orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(0, totalBounds.GetRadius() * 2));
+				Vector3 OutFrustumCorners[8];
+				orthoCam.GetFrustumCorners(OutFrustumCorners);
 
-				//GPUViewConstants cameraData;
-				//cameraData.ViewMatrix = orthoCam.GetWorldToCameraMatrix();
-				//cameraData.ViewProjectionMatrix = orthoCam.GetViewProjMatrix();
-				//cameraData.InvViewProjectionMatrix = orthoCam.GetInvViewProjMatrix();
-				//cameraData.InvProjectionMatrix = orthoCam.GetInvProjectionMatrix();
-				//cameraData.ViewPosition = orthoCam.GetCameraPosition();
-				//cameraData.FrameExtents = Vector2i(1024, 1024);
+				for (int32_t Iter = 0; Iter < 4; Iter++)
+				{
+					_owningScene->AddDebugLine(cascadeSphereCenter + OutFrustumCorners[Iter].cast < double>(),
+						cascadeSphereCenter + OutFrustumCorners[Iter + 4].cast < double>());
 
-				//auto bufferSlice = scratchBuffer.Write((uint8_t*)&cameraData, sizeof(cameraData), currentFrame);
+					int32_t nextLine = (Iter + 1) % 4;
+					_owningScene->AddDebugLine(cascadeSphereCenter + OutFrustumCorners[Iter].cast < double>(),
+						cascadeSphereCenter + OutFrustumCorners[nextLine].cast < double>());
+					_owningScene->AddDebugLine(cascadeSphereCenter + OutFrustumCorners[Iter + 4].cast < double>(),
+						cascadeSphereCenter + OutFrustumCorners[nextLine + 4].cast < double>());
+				}
 
-				//VkDescriptorSet commonSetOverride;
-				//VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
+				GPUViewConstants cameraData;
+				cameraData.ViewMatrix = orthoCam.GetWorldToCameraMatrix();
+				cameraData.ViewProjectionMatrix = orthoCam.GetViewProjMatrix();
+				cameraData.InvViewProjectionMatrix = orthoCam.GetInvViewProjMatrix();
+				cameraData.InvProjectionMatrix = orthoCam.GetInvProjectionMatrix();
+				cameraData.ViewPosition = orthoCam.GetCameraPosition();
+				cameraData.FrameExtents = Vector2i(1024, 1024);
 
-				//VkDescriptorBufferInfo lightCommon;
-				//lightCommon.buffer = bufferSlice.buffer;
-				//lightCommon.offset = bufferSlice.offsetFromBase;
-				//lightCommon.range = bufferSlice.size;
-				//std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				//	vks::initializers::writeDescriptorSet(commonSetOverride, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &lightCommon)
-				//};
-				//vkUpdateDescriptorSets(_owningDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-				//_owningScene->SetCommonDescriptorOverride(commonSetOverride);
+				auto bufferSlice = scratchBuffer.Write((uint8_t*)&cameraData, sizeof(cameraData), currentFrame);
 
-				//for (uint32_t Iter = 0; Iter < eleCount; Iter++)
-				//{
-				//	depthDrawer->Render(*(RT_VulkanRenderableMesh*)RenderableArray[Iter]);
-				//}
+				VkDescriptorSet commonSetOverride;
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
 
-				//_owningScene->SetCommonDescriptorOverride(nullptr);
+				VkDescriptorBufferInfo lightCommon;
+				lightCommon.buffer = bufferSlice.buffer;
+				lightCommon.offset = bufferSlice.offsetFromBase;
+				lightCommon.range = bufferSlice.size;
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(commonSetOverride, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &lightCommon)
+				};
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+				_owningScene->SetCommonDescriptorOverride(commonSetOverride);
+
+				for (uint32_t Iter = 0; Iter < eleCount; Iter++)
+				{
+					depthDrawer->Render(*(RT_VulkanRenderableMesh*)RenderableArray[Iter], false);
+				}
+
+				_owningScene->SetCommonDescriptorOverride(nullptr);
 
 				////vkCmdClearColorImage clear on first pass
 				//

@@ -7,6 +7,7 @@
 #include "VulkanRenderScene.h"
 #include "VulkanBuffer.h"
 #include "VulkanShaders.h"
+#include "VulkanPipelineState.h"
 #include <chrono>
 
 #define MAX_LINES 1500
@@ -15,21 +16,6 @@ namespace SPP
 {
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
-
-	extern GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
-		VkFrameDataContainer& renderPassData,
-		EBlendState InBlendState,
-		ERasterizerState InRasterizerState,
-		EDepthState InDepthState,
-		EDrawingTopology InTopology,
-		GPUReferencer< VulkanInputLayout > InLayout,
-		GPUReferencer< VulkanShader > InVS,
-		GPUReferencer< VulkanShader > InPS,
-		GPUReferencer< VulkanShader > InMS,
-		GPUReferencer< VulkanShader > InAS,
-		GPUReferencer< VulkanShader > InHS,
-		GPUReferencer< VulkanShader > InDS,
-		GPUReferencer< VulkanShader > InCS );
 
 	struct ColoredVertex
 	{
@@ -99,13 +85,13 @@ namespace SPP
 
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
 
-
 			_state = GetVulkanPipelineState(_owner,
 				owningDevice->GetLightingCompositeRenderPass(),
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
 				EDepthState::Enabled_NoWrites,
 				EDrawingTopology::LineList,
+				EDepthOp::GreaterOrEqual, //inverted z
 				_layout,
 				vsRef,
 				psRef,

@@ -72,6 +72,18 @@ namespace SPP
         NumValues
     };
 
+    enum class EDepthOp
+    {
+        Never,
+        Less,
+        Equal,
+        LessOrEqual,
+        Greater,
+        NotEqual,
+        GreaterOrEqual,
+        Always
+    };
+
     enum class ESamplerState
     {
         Linear = 0,

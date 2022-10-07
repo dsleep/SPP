@@ -32,7 +32,10 @@ namespace SPP
 		uint32_t Width = 0;
 		uint32_t Height = 0;
 
-		VkClearValue clearValueArray[5] = { };
+		std::vector<VkAttachmentDescription> attachmentDescriptions;
+		bool bUseInvertedZ = true;
+
+		std::array<VkClearValue, 5> clearValueArray;
 
 		VkRenderPassBeginInfo SetupDrawPass(const Vector2i &InRenderArea)
 		{
@@ -46,10 +49,16 @@ namespace SPP
 			renderPassBeginInfo.renderArea.extent.height = InRenderArea[1];			
 			renderPassBeginInfo.framebuffer = frameBuffer->Get();
 			auto totalClears = ColorTargets + DepthStencilTargets;
-			clearValueArray[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+			for (auto& curClear : clearValueArray)
+			{
+				curClear.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+				curClear.depthStencil = { bUseInvertedZ ? 0 : 1.0f, 0 };
+			}
+
 			if (totalClears)
 			{
-				renderPassBeginInfo.pClearValues = clearValueArray;
+				renderPassBeginInfo.pClearValues = clearValueArray.data();
 			}
 			else
 			{

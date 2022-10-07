@@ -282,9 +282,13 @@ namespace SPP
 		_projectionMatrix = Matrix4x4::Identity();
 
 		float fnDelta = InDepthRange[1] - InDepthRange[0];
-		_projectionMatrix(0, 0) = 2.0f / InSize[0]; // scale the x coordinates of the projected point 
-		_projectionMatrix(1, 1) = 2.0f / InSize[1]; // scale the y coordinates of the projected point 
-		_projectionMatrix(2, 2) = 2 / fnDelta; // used to remap z to [0,1] 
+
+		_projectionMatrix = Matrix4x4{
+			{ 2.0f / InSize[0], 0,					0,								0 },
+			{ 0,				2.0f / InSize[1],	0,								0 },
+			{ 0,				0,					1 / fnDelta,					0 },
+			{ 0,				0,					InDepthRange[0] / -fnDelta,		1.0f }
+		};
 
 		_invProjectionMatrix = _projectionMatrix.inverse();
 

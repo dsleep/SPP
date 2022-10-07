@@ -78,6 +78,7 @@ namespace SPP
 				ERasterizerState::NoCull,
 				EDepthState::Enabled,
 				EDrawingTopology::TriangleList,
+				EDepthOp::Always,
 				nullptr,
 				nullptr,
 				nullptr,

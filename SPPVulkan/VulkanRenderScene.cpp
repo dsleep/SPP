@@ -79,6 +79,7 @@ namespace SPP
 				ERasterizerState::NoCull,
 				EDepthState::Disabled,
 				EDrawingTopology::TriangleStrip,
+				EDepthOp::Always,
 				_fullscreenColorLayout,
 				_fullscreenColorVS,
 				_fullscreenColorPS,
@@ -467,6 +468,7 @@ namespace SPP
 			ERasterizerState::NoCull,
 			EDepthState::Enabled,
 			EDrawingTopology::TriangleStrip,
+			EDepthOp::Always,
 			_fullscreenRayVSLayout,
 			_fullscreenRayVS,
 			_fullscreenRaySDFPS,
@@ -641,7 +643,7 @@ namespace SPP
 
 		//UPDATE UNIFORMS
 		_viewGPU.BuildCameraMatrices();
-		_viewGPU.GetFrustumSpheresForRanges({ 50, 150, 450 }, _frustumRangeSpheres);
+		_viewGPU.GetFrustumSpheresForRanges({ 15 }, _frustumRangeSpheres);
 		_viewGPU.GetFrustumPlanes(_frustumPlanes);
 		_cameraCullInfo = _viewGPU.GetCullingData();
 		

@@ -17,6 +17,7 @@ namespace SPP
 		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
 		EDepthState depthState = EDepthState::Enabled;
 		EDrawingTopology topology = EDrawingTopology::TriangleList;
+		EDepthOp depthOp = EDepthOp::Always;
 
 		uintptr_t inputLayout = 0;
 
@@ -85,7 +86,10 @@ namespace SPP
 			ERasterizerState InRasterizerState,
 			EDepthState InDepthState,
 			EDrawingTopology InTopology,
+			EDepthOp InDepthOp,
+
 			GPUReferencer < GPUInputLayout > InLayout,
+
 			GPUReferencer< GPUShader> InVS,
 			GPUReferencer< GPUShader> InPS,
 
@@ -103,6 +107,8 @@ namespace SPP
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
+		EDepthOp InDepthOp,
+
 		GPUReferencer< class VulkanInputLayout > InLayout,
 		GPUReferencer< class VulkanShader > InVS,
 		GPUReferencer< class VulkanShader > InPS,
@@ -121,6 +127,8 @@ namespace SPP
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
+		EDepthOp InDepthOp,
+
 		GPUReferencer< VulkanInputLayout > InLayout,
 		GPUReferencer< VulkanShader > InVS,
 		GPUReferencer< VulkanShader > InPS);

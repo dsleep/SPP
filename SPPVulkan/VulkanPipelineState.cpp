@@ -115,6 +115,9 @@ namespace SPP
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
+
+		EDepthOp InDepthOp,
+
 		GPUReferencer < GPUInputLayout > InLayout,
 		GPUReferencer< GPUShader> InVS,
 		GPUReferencer< GPUShader> InPS,
@@ -359,13 +362,11 @@ namespace SPP
 			// Most states are baked into the pipeline, but there are still a few dynamic states that can be changed within a command buffer
 			// To be able to change these we need do specify which dynamic states will be changed using this pipeline. Their actual states are set later on in the command buffer.
 			// For this example we will set the viewport and scissor using dynamic states
-			std::vector<VkDynamicState> dynamicStateEnables;
-			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
+			VkDynamicState dynamicStateEnables [] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 			VkPipelineDynamicStateCreateInfo dynamicState = {};
 			dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-			dynamicState.pDynamicStates = dynamicStateEnables.data();
-			dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+			dynamicState.pDynamicStates = dynamicStateEnables;
+			dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStateEnables);
 
 			// Depth and stencil state containing depth and stencil compare and test operations
 			// We only use depth tests and want depth tests and writes to be enabled and compare with less or equal
@@ -375,7 +376,38 @@ namespace SPP
 			depthStencilState.depthWriteEnable = VK_TRUE;
 			//TODO check
 			//VK_COMPARE_OP_GREATER or VK_COMPARE_OP_GREATER_OR_EQUAL
-			depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+			depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL; //normal Z VK_COMPARE_OP_LESS_OR_EQUAL
+
+			switch (InDepthOp)
+			{
+			case EDepthOp::Never:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_NEVER;
+				break;
+			case EDepthOp::Less:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS;
+				break;
+			case EDepthOp::Equal:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_EQUAL;
+				break;
+			case EDepthOp::LessOrEqual:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+				break;
+			case EDepthOp::Greater:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER;
+				break;
+			case EDepthOp::NotEqual:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_NOT_EQUAL;
+				break;
+			case EDepthOp::GreaterOrEqual:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+				break;
+			case EDepthOp::Always:
+				depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+				break;
+			default:
+				SE_ASSERT(false);
+			}
+
 			depthStencilState.depthBoundsTestEnable = VK_FALSE;
 			depthStencilState.back.failOp = VK_STENCIL_OP_KEEP;
 			depthStencilState.back.passOp = VK_STENCIL_OP_KEEP;
@@ -504,6 +536,10 @@ namespace SPP
 		{
 			return topology < compareKey.topology;
 		}
+		if (depthOp != compareKey.depthOp)
+		{
+			return depthOp < compareKey.depthOp;
+		}		
 
 		if (inputLayout != compareKey.inputLayout)
 		{
@@ -550,6 +586,8 @@ namespace SPP
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
+		EDepthOp InDepthOp,
+
 		GPUReferencer< VulkanInputLayout > InLayout,
 		GPUReferencer< VulkanShader > InVS,
 		GPUReferencer< VulkanShader > InPS,
@@ -559,7 +597,7 @@ namespace SPP
 		GPUReferencer< VulkanShader > InDS,
 		GPUReferencer< VulkanShader > InCS)
 	{
-		VulkanPipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology,
+		VulkanPipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology, InDepthOp,
 			(uintptr_t)InLayout.get(),
 			(uintptr_t)InVS.get(),
 			(uintptr_t)InPS.get(),
@@ -577,7 +615,7 @@ namespace SPP
 		if (findKey == PipelineStateMap.end())
 		{
 			auto newPipelineState = Make_GPU(VulkanPipelineState, InOwner);
-			newPipelineState->Initialize(renderPassData, InBlendState, InRasterizerState, InDepthState, InTopology, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
+			newPipelineState->Initialize(renderPassData, InBlendState, InRasterizerState, InDepthState, InTopology, InDepthOp, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PipelineStateMap[key] = newPipelineState;
 			return newPipelineState;
 		}
@@ -595,6 +633,7 @@ namespace SPP
 			ERasterizerState::NoCull,
 			EDepthState::Disabled,
 			EDrawingTopology::TriangleList,
+			EDepthOp::Never,
 			nullptr,nullptr,nullptr, nullptr,nullptr,nullptr,nullptr,
 			InCS);
 	}
@@ -605,6 +644,7 @@ namespace SPP
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
+		EDepthOp InDepthOp,
 		GPUReferencer< VulkanInputLayout > InLayout,
 		GPUReferencer< VulkanShader > InVS,
 		GPUReferencer< VulkanShader > InPS)
@@ -615,6 +655,7 @@ namespace SPP
 			InRasterizerState,
 			InDepthState,
 			InTopology,
+			InDepthOp,
 			InLayout, InVS, InPS, nullptr, nullptr, nullptr, nullptr, nullptr);
 	}
 

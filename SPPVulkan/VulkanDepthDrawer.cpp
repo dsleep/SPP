@@ -46,7 +46,9 @@ namespace SPP
 		GPUReferencer< VulkanPipelineState > _depthPyramidPSO, _depthCullingPSO;
 		GPUReferencer< SafeVkSampler > _depthPyramidSampler;
 		GPUReferencer< GPUInputLayout > _SMDepthlayout;
+		
 		GPUReferencer< VulkanPipelineState > _SMDepthPSO;
+		GPUReferencer< VulkanPipelineState > _SMDepthPSOInvertedZ;
 
 	public:
 		// called on render thread
@@ -104,17 +106,34 @@ namespace SPP
 			_SMDepthlayout = Make_GPU(VulkanInputLayout, InOwner);
 			_SMDepthlayout->InitializeLayout(Depth_GetVertexStreams_SM());
 
+			_SMDepthPSOInvertedZ = GetVulkanPipelineState(InOwner,
+				owningDevice->GetDepthOnlyFrameData(),
+				EBlendState::Disabled,
+				ERasterizerState::BackFaceCull,
+				EDepthState::Enabled,
+				EDrawingTopology::TriangleList,
+				EDepthOp::GreaterOrEqual,
+				_SMDepthlayout,
+				_depthVS,
+				nullptr);
+
 			_SMDepthPSO = GetVulkanPipelineState(InOwner,
 				owningDevice->GetDepthOnlyFrameData(),
 				EBlendState::Disabled,
 				ERasterizerState::BackFaceCull,
 				EDepthState::Enabled,
 				EDrawingTopology::TriangleList,
+				EDepthOp::LessOrEqual,
 				_SMDepthlayout,
 				_depthVS,
 				nullptr);
 		}
 
+
+		auto GetInvertedDepthDrawingPSO()
+		{
+			return _SMDepthPSOInvertedZ;
+		}
 
 		auto GetDepthDrawingPSO()
 		{
@@ -428,13 +447,14 @@ namespace SPP
 	/// 
 	/// </summary>
 	/// <param name="InVulkanRenderableMesh"></param>
-	void DepthDrawer::Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
+	void DepthDrawer::Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh, bool InvertedZ)
 	{
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
 		auto vulkanMat = static_pointer_cast<RT_Vulkan_Material>(InVulkanRenderableMesh.GetMaterial());
-		auto meshPSO = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthDrawingPSO();
+		auto meshPSO = InvertedZ ? _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetInvertedDepthDrawingPSO() :
+			_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthDrawingPSO();
 		auto meshCache = GetMeshCache(InVulkanRenderableMesh);
 
 		VkDeviceSize offsets[1] = { 0 };
