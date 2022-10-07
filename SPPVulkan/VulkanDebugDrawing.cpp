@@ -66,11 +66,13 @@ namespace SPP
 		std::mutex _lineLock;
 
 		bool bUpdateLines = false;
-		std::vector< ColoredLine > _lines;
+		std::vector< ColoredLine > _persistentlines;
 		std::shared_ptr< ArrayResource > _linesResource;
 		GPUReferencer < VulkanBuffer > _lineBuffer;
 		uint32_t _gpuLineCount = 0;
 		GraphicsDevice* _owner = nullptr;
+
+		std::vector< ColoredLine > _transientLines;
 
 		DataImpl(class GraphicsDevice* InOwner) : _owner(InOwner)
 		{
@@ -82,9 +84,9 @@ namespace SPP
 		virtual void Initialize()
 		{
 			_simpleVS->Initialize(EShaderType::Vertex);
-			_simpleVS->CompileShaderFromFile("shaders/debugLine.hlsl", "main_vs");
+			_simpleVS->CompileShaderFromFile("shaders/debugLineVS.glsl");
 			_simplePS->Initialize(EShaderType::Pixel);
-			_simplePS->CompileShaderFromFile("shaders/debugLine.hlsl", "main_ps");
+			_simplePS->CompileShaderFromFile("shaders/debugLinePS.glsl");
 
 			_layout = Make_GPU(VulkanInputLayout, _owner);
 			ColoredVertex dummyVert;
@@ -99,10 +101,10 @@ namespace SPP
 
 
 			_state = GetVulkanPipelineState(_owner,
-				owningDevice->GetColorFrameData(),
+				owningDevice->GetLightingCompositeRenderPass(),
 				EBlendState::Disabled,
 				ERasterizerState::NoCull,
-				EDepthState::Enabled,
+				EDepthState::Enabled_NoWrites,
 				EDrawingTopology::LineList,
 				_layout,
 				vsRef,
@@ -137,17 +139,20 @@ namespace SPP
 
 	}
 
-	void VulkanDebugDrawing::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
+	void VulkanDebugDrawing::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color, bool bTransient)
 	{
 		std::unique_lock<std::mutex> lock(_impl->_lineLock);
-		_impl->_lines.push_back({ ColoredVertex{ Start.cast<float>(), Color }, ColoredVertex{ End.cast<float>(), Color } } );
-		_impl->bUpdateLines = true;
+		std::vector< ColoredLine >& curLines = bTransient ? _impl->_transientLines : _impl->_persistentlines;
+		curLines.push_back({ ColoredVertex{ Start.cast<float>(), Color }, ColoredVertex{ End.cast<float>(), Color } } );
+		_impl->bUpdateLines |= !bTransient;
 	}
 
-	void VulkanDebugDrawing::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color)
+	void VulkanDebugDrawing::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color, bool bTransient)
 	{
 		auto minValue = (Center - Extents).cast<float>();
 		auto maxValue = (Center + Extents).cast<float>();
+
+		std::vector< ColoredLine >& curLines = bTransient ? _impl->_transientLines : _impl->_persistentlines;
 
 		Vector3 topPoints[4];
 		Vector3 bottomPoints[4];
@@ -167,17 +172,17 @@ namespace SPP
 		{
 			int32_t nextPoint = (Iter + 1) % 4;
 
-			_impl->_lines.push_back({ ColoredVertex{ topPoints[Iter], Color }, ColoredVertex{ topPoints[nextPoint], Color } });
-			_impl->_lines.push_back({ ColoredVertex{ bottomPoints[Iter], Color }, ColoredVertex{ bottomPoints[nextPoint], Color } });
-			_impl->_lines.push_back({ ColoredVertex{ topPoints[Iter], Color }, ColoredVertex{ bottomPoints[Iter], Color } });
+			curLines.push_back({ ColoredVertex{ topPoints[Iter], Color }, ColoredVertex{ topPoints[nextPoint], Color } });
+			curLines.push_back({ ColoredVertex{ bottomPoints[Iter], Color }, ColoredVertex{ bottomPoints[nextPoint], Color } });
+			curLines.push_back({ ColoredVertex{ topPoints[Iter], Color }, ColoredVertex{ bottomPoints[Iter], Color } });
 		}
-		_impl->bUpdateLines = true;
+		_impl->bUpdateLines |= !bTransient;
 	}
 
 
-	void VulkanDebugDrawing::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color)
+	void VulkanDebugDrawing::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color, bool bTransient)
 	{
-
+		//std::vector< ColoredLine >& curLines = bTransient ? _impl->_transientLines : _impl->_persistentlines;
 	}
 
 	void VulkanDebugDrawing::Initialize()
@@ -196,12 +201,12 @@ namespace SPP
 		if (_impl->bUpdateLines)
 		{
 			auto lastLineCount = _impl->_gpuLineCount;
-			_impl->_gpuLineCount = _impl->_lines.size();
+			_impl->_gpuLineCount = _impl->_persistentlines.size();
 			auto updateCount = _impl->_gpuLineCount - lastLineCount;
 
 			auto lineSpan = _impl->_linesResource->GetSpan< ColoredLine >();
 
-			memcpy(&lineSpan[lastLineCount], &_impl->_lines[lastLineCount], sizeof(ColoredLine) * updateCount);
+			memcpy(&lineSpan[lastLineCount], &_impl->_persistentlines[lastLineCount], sizeof(ColoredLine) * updateCount);
 			_impl->_lineBuffer->UpdateDirtyRegion(lastLineCount, updateCount);
 
 			_impl->bUpdateLines = false;
@@ -210,10 +215,10 @@ namespace SPP
 
 	void VulkanDebugDrawing::Draw(VulkanRenderScene *InScene)
 	{
-		if (!_impl->_gpuLineCount)
-		{
-			return;
-		}
+		//if (!_impl->_gpuLineCount)
+		//{
+		//	return;
+		//}
 		auto currentFrame = GGlobalVulkanGI->GetActiveFrame();
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
@@ -222,50 +227,45 @@ namespace SPP
 
 		std::unique_lock<std::mutex> lock(_impl->_lineLock);
 
-		auto cameraBuffer = InScene->GetCameraBuffer();
+		std::vector< ColoredLine > transientCopy;
+		std::swap(transientCopy, _impl->_transientLines);
 
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_impl->_lineBuffer->GetBuffer(), offsets);
-
-		auto CurPool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
-
-		auto& descriptorSetLayouts = _impl->_state->GetDescriptorSetLayouts();
-		
-		std::vector<VkDescriptorSet> locaDrawSets;
-		locaDrawSets.resize(descriptorSetLayouts.size());
-
-		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(CurPool, descriptorSetLayouts.data(), descriptorSetLayouts.size());
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanDevice, &allocInfo, locaDrawSets.data()));
-
-		//set 0
+		if (!transientCopy.empty())
 		{
-			VkDescriptorBufferInfo perFrameInfo;
-			perFrameInfo.buffer = cameraBuffer->GetBuffer();
-			perFrameInfo.offset = 0;
-			perFrameInfo.range = cameraBuffer->GetPerElementSize();
+			uint32_t lineCount = (uint32_t)transientCopy.size();
+			auto curScratch = scratchBuffer.Write((const uint8_t *)transientCopy.data(), sizeof(ColoredLine) * transientCopy.size(), currentFrame);
+			
+			//VkBufferMemoryBarrier bufferBarrier = vks::initializers::bufferMemoryBarrier();
+			//bufferBarrier.buffer = curScratch.buffer;
+			//bufferBarrier.size = VK_WHOLE_SIZE;
+			//bufferBarrier.srcAccessMask = VK_ACCESS_HOST_READ_BIT;
+			//bufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+			//bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			//bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-			std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(locaDrawSets[0],
-					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &perFrameInfo)
-			};
+			//vkCmdPipelineBarrier(
+			//	commandBuffer,
+			//	VK_PIPELINE_STAGE_HOST_BIT,
+			//	VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+			//	VK_FLAGS_NONE,
+			//	0, nullptr,
+			//	1, &bufferBarrier,
+			//	0, nullptr);
 
-			vkUpdateDescriptorSets(vulkanDevice,
-				static_cast<uint32_t>(writeDescriptorSets.size()),
-				writeDescriptorSets.data(), 0, nullptr);
+			VkDeviceSize offsets[1] = { curScratch.offsetFromBase };
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &curScratch.buffer, offsets);
+
+			VkDescriptorSet locaDrawSets[] = { InScene->GetCommondDescriptorSet() };
+			uint32_t uniform_offsets[] = { 0 };
+
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _impl->_state->GetVkPipeline());
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				_impl->_state->GetVkPipelineLayout(),
+				0,
+				ARRAY_SIZE(locaDrawSets), locaDrawSets,
+				ARRAY_SIZE(uniform_offsets), uniform_offsets);
+			vkCmdDraw(commandBuffer, lineCount * 2, lineCount, 0, 0);
 		}
-
-		uint32_t uniform_offsets[] = {
-			0
-		};
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _impl->_state->GetVkPipeline());
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			_impl->_state->GetVkPipelineLayout(),
-			0,
-			locaDrawSets.size(), 
-			locaDrawSets.data(),
-			ARRAY_SIZE(uniform_offsets), uniform_offsets);
-		vkCmdDraw(commandBuffer, _impl->_gpuLineCount * 2, _impl->_gpuLineCount, 0, 0);
 	}
 	
 }

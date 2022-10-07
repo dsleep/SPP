@@ -115,6 +115,8 @@ namespace SPP
 		void GetFrustumCorners(Vector3 OutFrustumCorners[8]);
 		void GetFrustumPlanes(std::vector<Planed>& Planes) const;
 
+		const Matrix4x4& GetCameraMatrix() const { return _cameraMatrix; }
+
 		const Matrix4x4 &GetWorldToCameraMatrix() const { return _invCameraMatrix; }
 		const Matrix4x4 &GetProjectionMatrix() const { return _projectionMatrix; }
 		const Matrix4x4 &GetInvProjectionMatrix() const { return _invProjectionMatrix; }

@@ -42,10 +42,10 @@ namespace SPP
 		GLOBAL_RESOURCE(GlobalDeferredLightingResources)
 
 	private:
-		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS, _skyCubemapPS;
+		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS, _skyCubemapPS, _shadowFilterPS;
 		GPUReferencer< GPUInputLayout > _lightShapeLayout;
 
-		GPUReferencer< VulkanPipelineState > _psoSunLight, _psoSkyCube;
+		GPUReferencer< VulkanPipelineState > _psoSunLight, _psoSkyCube, _shadowFilterPSO;
 		GPUReferencer< SafeVkDescriptorSetLayout > _lightShapeVSLayout;
 		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet, _sunDescSet;
 
@@ -220,6 +220,21 @@ namespace SPP
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyDesc },
 					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
 				});
+			//shadow filter
+			_shadowFilterPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_shadowFilterPS->CompileShaderFromFile("shaders/Shadow/ShadowFilter.glsl");
+
+			_shadowFilterPSO = GetVulkanPipelineState(owningDevice,
+				owningDevice->GetLightingCompositeRenderPass(),
+				EBlendState::Disabled,
+				ERasterizerState::NoCull,
+				EDepthState::Disabled,
+				EDrawingTopology::TriangleStrip,
+				nullptr,
+				_lightFullscreenVS,
+				_shadowFilterPS);
+
+			
 		}
 
 		auto GetVS()
@@ -250,8 +265,10 @@ namespace SPP
 		{
 			return _skyCube;
 		}
-
-
+		auto GetShadowFilterPSO()
+		{
+			return _shadowFilterPSO;
+		}
 	};
 
 	REGISTER_GLOBAL_RESOURCE(GlobalDeferredLightingResources);
@@ -321,7 +338,7 @@ namespace SPP
 		///////////
 
 		auto shadowDepthTexture = Make_GPU(VulkanTexture, _owningDevice, 1024, 1024, 1, 1,
-			TextureFormat::D32, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+			TextureFormat::D32_S8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
 		_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(_owningDevice, 1024, 1024);
 		_shadowDepthFrameBuffer->addAttachment(
@@ -346,6 +363,20 @@ namespace SPP
 			{ { "Attenuation", VK_ATTACHMENT_LOAD_OP_CLEAR } });
 
 		//
+
+		// move down since it changes with size
+		auto shadowPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetShadowFilterPSO();
+		_shadowFilterDescriptorSet = Make_GPU(SafeVkDescriptorSet,
+			_owningDevice,
+			shadowPSO->GetDescriptorSetLayouts()[2],
+			globalSharedPool);
+		auto shadowDesc = shadowTexture->GetDescriptor();
+		_shadowFilterDescriptorSet->Update(
+			{
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &gbuffer[3] },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowDesc }
+			}
+		);
 	}
 
 	struct alignas(16u) SunLightParams
@@ -393,15 +424,13 @@ namespace SPP
 		auto commonVSLayout = _owningScene->GetCommonShaderLayout();
 		auto& perFrameScratchBuffer = _owningDevice->GetPerFrameScratchBuffer();
 
-		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto& sceneOctree = _owningScene->GetOctree();
 		auto scratchPool = _owningDevice->GetPerFrameResetDescriptorPool();
-		
 				
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(scratchPool, &commonVSLayout->Get(), 1);
 
 		auto& scratchBuffer = _owningDevice->GetPerFrameScratchBuffer();
-
+		
 		if (InLight.GetLightType() == ELightType::Sun)
 		{
 			_owningDevice->SetCheckpoint(commandBuffer, "SunShadowCascades");
@@ -413,71 +442,101 @@ namespace SPP
 			std::vector<Planed> cascadePlanes;
 			auto depthDrawer = _owningScene->GetDepthDrawer();
 
+
+			Planed facingUp(Vector3d(0, 1, 0), 0);
+
+			static std::vector< Renderable*> RenderableArray;
+			auto minSize = _owningScene->GetMaxRenderableIdx() + 1;
+			RenderableArray.resize(minSize);
+
 			for (auto& curSphere : cascadeSpheres)
-			{
+			{				
 				_owningDevice->SetCheckpoint(commandBuffer, "CASCADE");
 
 				// draw depths from light perspective
 				_owningDevice->SetFrameBufferForRenderPass(_shadowRenderPass);
+				
 
 				auto curRadius = curSphere.GetRadius();
-				Camera orthoCam;
-				orthoCam.Initialize(curSphere.GetCenter(), InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(curRadius, -curRadius));
-				orthoCam.GetFrustumPlanes(cascadePlanes);
+				Vector3d cascadeSphereCenter = curSphere.GetCenter();
 
-				GPUViewConstants cameraData;
-				cameraData.ViewMatrix = orthoCam.GetWorldToCameraMatrix();
-				cameraData.ViewProjectionMatrix = orthoCam.GetViewProjMatrix();
-				cameraData.InvViewProjectionMatrix = orthoCam.GetInvViewProjMatrix();
-				cameraData.InvProjectionMatrix = orthoCam.GetInvProjectionMatrix();
-				cameraData.ViewPosition = orthoCam.GetCameraPosition();
-				cameraData.FrameExtents = Vector2i(1024, 1024);
+				_owningScene->AddDebugLine(cascadeSphereCenter, cascadeSphereCenter + Vector3d(0, 5, 0));
+				
+				//Camera orthoCam;
+				//orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(-curRadius, curRadius));
+				//orthoCam.GetFrustumPlanes(cascadePlanes);
 
-				auto bufferSlice = scratchBuffer.Write((uint8_t*) & cameraData, sizeof(cameraData), currentFrame);
+				//Sphere totalBounds;
+				//uint32_t eleCount = 0;
+				//sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
+				//	{
+				//		auto curRenderable = ((Renderable*)InElement);
 
-				VkDescriptorSet commonSetOverride;
-				VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
+				//		if (curRenderable->GetType() == RenderableType::Mesh)
+				//		{			
+				//			totalBounds += curRenderable->GetSphereBounds();
+				//			RenderableArray[eleCount++] = curRenderable;							
+				//		}
+				//		return true;
+				//	},
 
-				VkDescriptorBufferInfo lightCommon;
-				lightCommon.buffer = bufferSlice.buffer;
-				lightCommon.offset = bufferSlice.offsetFromBase;
-				lightCommon.range = bufferSlice.size;
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-					vks::initializers::writeDescriptorSet(commonSetOverride, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &lightCommon)
-				};
-				vkUpdateDescriptorSets(_owningDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-				_owningScene->SetCommonDescriptorOverride(commonSetOverride);
+				//	[&](const Vector3i& InCenter, int32_t InExtents) -> bool
+				//	{
+				//		double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
+				//		return DistanceCalc > 0.02;
+				//	}
+				//	);
 
-				sceneOctree.WalkElements(cascadePlanes, [&](const IOctreeElement* InElement) -> bool
-					{
-						auto curRenderable = ((Renderable*)InElement);
+				//Vector3 LightDir = InLight.GetCachedRotationAndScale().block<1, 3>(2, 0);
 
-						if (curRenderable->GetType() == RenderableType::Mesh)
-						{
-							depthDrawer->Render(*(RT_VulkanRenderableMesh*)curRenderable);
-						}
-						return true;
-					},
+				//Planed sphereEdgePlane(
+				//	LightDir.cast<double>(),
+				//	totalBounds.GetCenter());
+				//double DistanceToSphereEdge = sphereEdgePlane.signedDistance(cascadeSphereCenter);
+				//cascadeSphereCenter += LightDir.cast<double>() * DistanceToSphereEdge * totalBounds.GetRadius();
 
-					[&](const Vector3i& InCenter, int32_t InExtents) -> bool
-					{
-						double DistanceCalc = (double)InExtents / cameraNearPlane.absDistance(InCenter.cast<double>());
-						return DistanceCalc > 0.02;
-					}
-					);
+				//// reinit it
+				//orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(0, totalBounds.GetRadius() * 2));
 
-				//vkCmdClearColorImage clear on first pass
+				//GPUViewConstants cameraData;
+				//cameraData.ViewMatrix = orthoCam.GetWorldToCameraMatrix();
+				//cameraData.ViewProjectionMatrix = orthoCam.GetViewProjMatrix();
+				//cameraData.InvViewProjectionMatrix = orthoCam.GetInvViewProjMatrix();
+				//cameraData.InvProjectionMatrix = orthoCam.GetInvProjectionMatrix();
+				//cameraData.ViewPosition = orthoCam.GetCameraPosition();
+				//cameraData.FrameExtents = Vector2i(1024, 1024);
 
-				_owningScene->SetCommonDescriptorOverride(nullptr);
-				_owningDevice->ConditionalEndRenderPass();
-				// RENDER TO SHADOW ATTENUATION
-				_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
-				_owningDevice->SetCheckpoint(commandBuffer, "ShadowAttenuation");
+				//auto bufferSlice = scratchBuffer.Write((uint8_t*)&cameraData, sizeof(cameraData), currentFrame);
+
+				//VkDescriptorSet commonSetOverride;
+				//VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice->GetDevice(), &allocInfo, &commonSetOverride));
+
+				//VkDescriptorBufferInfo lightCommon;
+				//lightCommon.buffer = bufferSlice.buffer;
+				//lightCommon.offset = bufferSlice.offsetFromBase;
+				//lightCommon.range = bufferSlice.size;
+				//std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+				//	vks::initializers::writeDescriptorSet(commonSetOverride, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0, &lightCommon)
+				//};
+				//vkUpdateDescriptorSets(_owningDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+				//_owningScene->SetCommonDescriptorOverride(commonSetOverride);
+
+				//for (uint32_t Iter = 0; Iter < eleCount; Iter++)
+				//{
+				//	depthDrawer->Render(*(RT_VulkanRenderableMesh*)RenderableArray[Iter]);
+				//}
+
+				//_owningScene->SetCommonDescriptorOverride(nullptr);
+
+				////vkCmdClearColorImage clear on first pass
+				//
+				//// RENDER TO SHADOW ATTENUATION
+				//_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
+				//_owningDevice->SetCheckpoint(commandBuffer, "ShadowAttenuation");
+
+
 			}
-
-
 		}
-
 	}
 
 	// TODO cleanupppp
@@ -490,7 +549,7 @@ namespace SPP
 		{
 			auto& lightingComposite = _owningDevice->GetLightingCompositeRenderPass();
 
-			//RenderShadow(InLight);
+			RenderShadow(InLight);
 			_owningDevice->SetFrameBufferForRenderPass(lightingComposite);
 			_owningDevice->SetCheckpoint(commandBuffer, "Sun");
 

@@ -283,11 +283,11 @@ namespace SPP
                 //furthest point on each...
                 Vector3d points[4];
                 CenterDir.normalize();
-                points[0] = Other._center + CenterDir * _radius;
+                points[0] = _center + CenterDir * _radius;
                 points[1] = Other._center + CenterDir * Other._radius;
 
                 points[2] = _center - CenterDir * _radius;
-                points[3] = _center - CenterDir * Other._radius;
+                points[3] = Other._center - CenterDir * Other._radius;
 
                 *this = MinimumBoundingSphere< Vector3d, Vector3d >(points, 4);
             }

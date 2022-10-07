@@ -10,22 +10,28 @@ layout(std430) buffer;
 
 #include "Common.glsl"
 
-layout (set = 2, binding = 0) uniform sampler2D shadowMap;
+layout (set = 2, binding = 0) uniform sampler2D sceneDepth;
+layout (set = 2, binding = 1) uniform sampler2D shadowMap;
+
+layout(push_constant) uniform block
+{
+	mat4 SceneToShadowUV;
+};
 
 layout (location = 0) in vec4 inPixelPosition;
 layout (location = 1) in vec2 inUV;
 
-layout (location = 0) out vec4 outputColor;
+layout (location = 0) out float outputColor;
 
 float textureProj(vec4 shadowCoord, vec2 off)
 {
 	float shadow = 1.0;
-	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
+	if ( shadowCoord.z > 0 && shadowCoord.z < 1.0 ) 
 	{
-		float dist = texture( shadowMap, shadowCoord.st + off ).r;
+		float dist = texture( shadowMap, shadowCoord.xy + off ).r;
 		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
 		{
-			shadow = ambient;
+			shadow = 0;
 		}
 	}
 	return shadow;
@@ -57,11 +63,13 @@ float filterPCF(vec4 sc)
 // pixel shader shader
 void main()
 {
-	vec3 cameraRay = normalize(Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix).xyz);	
+	//vec3 cameraRay = normalize(Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix).xyz);	
 
-	float shadow = (enablePCF == 1) ? filterPCF(inShadowCoord / inShadowCoord.w) : textureProj(inShadowCoord / inShadowCoord.w, vec2(0.0));
+	float NDCDepth = texture( sceneDepth, inUV ).r;
+	vec4 shadowUV = Multiply( vec4(inPixelPosition.xy, NDCDepth, 1.0), SceneToShadowUV );
+	shadowUV /= shadowUV.w;
 
-	
-	outputColor = vec4(texture(samplerSky, cameraRay).rgb,1.0f);
+	float shadow = filterPCF(shadowUV);	
+	outputColor = shadow;
 }
 

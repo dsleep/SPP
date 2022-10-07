@@ -567,15 +567,15 @@ namespace SPP
 
 	void VulkanRenderScene::AddDebugLine(const Vector3d& Start, const Vector3d& End, const Vector3& Color)
 	{
-		_debugDrawer->AddDebugLine(Start, End, Color);
+		_debugDrawer->AddDebugLine(Start, End, Color, true);
 	}
 	void VulkanRenderScene::AddDebugBox(const Vector3d& Center, const Vector3d& Extents, const Vector3& Color)
 	{
-		_debugDrawer->AddDebugBox(Center, Extents, Color);
+		_debugDrawer->AddDebugBox(Center, Extents, Color, true);
 	}
 	void VulkanRenderScene::AddDebugSphere(const Vector3d& Center, float Radius, const Vector3& Color)
 	{
-		_debugDrawer->AddDebugSphere(Center, Radius, Color);
+		_debugDrawer->AddDebugSphere(Center, Radius, Color, true);
 	}
 
 
@@ -656,8 +656,9 @@ namespace SPP
 
 		_cascadeSpheres.resize(_frustumRangeSpheres.size());
 		for (size_t Iter = 0; Iter < _frustumRangeSpheres.size(); Iter++)
-		{
-			_cascadeSpheres[Iter] = Sphere( _frustumRangeSpheres[Iter].GetCenter() + curCam.ViewPosition, _frustumRangeSpheres[Iter].GetRadius() );
+		{			
+			Vector4 SphereLocation = ToVector4(_frustumRangeSpheres[Iter].GetCenter().cast<float>()) * _viewGPU.GetCameraMatrix();
+			_cascadeSpheres[Iter] = Sphere(ToVector3(SphereLocation).cast<double>() + curCam.ViewPosition, _frustumRangeSpheres[Iter].GetRadius());
 		}
 
 		for (int32_t Iter = 0; Iter < _frustumPlanes.size(); Iter++)
@@ -817,25 +818,23 @@ namespace SPP
 			_opaqueDrawer->Render(*(RT_VulkanRenderableMesh*)curVis);
 		}
 #endif
-
-		vulkanGD->SetCheckpoint(commandBuffer, "DebugDrawing");
-
-		_debugDrawer->Draw(this);
-
+				
 		vulkanGD->ConditionalEndRenderPass();
 
 		//Lighting
 #if 1
 		vulkanGD->SetFrameBufferForRenderPass(lightingComposite);
-
 		vulkanGD->SetCheckpoint(commandBuffer, "Lighting");
-
 		_deferredLightingDrawer->RenderSky();
-
 
 		for (uint32_t visIter = 0; visIter < curVisibleLights; visIter++)
 		{
 			_deferredLightingDrawer->Render(*(RT_RenderableLight*)_visiblelights[visIter]);
+		}
+
+		{			
+			vulkanGD->SetCheckpoint(commandBuffer, "DebugDrawing");
+			_debugDrawer->Draw(this);
 		}
 
 		vulkanGD->ConditionalEndRenderPass();

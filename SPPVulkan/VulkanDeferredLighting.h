@@ -16,7 +16,7 @@ namespace SPP
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 		GPUReferencer<SafeVkSampler> _nearestSampler;
-		GPUReferencer<SafeVkDescriptorSet> _gbufferTextureSet, _dummySet;
+		GPUReferencer<SafeVkDescriptorSet> _gbufferTextureSet, _dummySet, _shadowFilterDescriptorSet;
 		
 		std::unique_ptr<class VulkanFramebuffer> _shadowDepthFrameBuffer;
 		VkFrameDataContainer _shadowRenderPass;

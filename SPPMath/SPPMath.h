@@ -220,6 +220,8 @@ namespace SPP
     using Plane = PlaneT< float >;
     using Planed = PlaneT< double >;
 
+    using RayD = Eigen::ParametrizedLine< double, 3 >;
+
     inline Vector4 ToVector4(const Vector3& InVector)
     {
         return Vector4(InVector[0], InVector[1], InVector[2], 1.0f);
