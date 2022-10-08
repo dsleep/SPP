@@ -323,6 +323,11 @@ namespace SPP
             return _entryPoint;
         }
 
+        EShaderType GetType() const
+        {
+            return _type;
+        }
+
         virtual const char* GetName() const override
         {
             return "Shader";

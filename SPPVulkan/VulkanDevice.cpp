@@ -25,7 +25,6 @@
 //IMGUI
 #include "imgui_impl_vulkan.h"
 
-#define ALLOW_DEVICE_FEATURES2 0
 #define ALLOW_IMGUI 1
 
 namespace SPP
@@ -382,24 +381,39 @@ namespace SPP
 		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 		vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
+				
+		if (deviceFeatures.depthBounds)
+		{
+			enabledFeatures.depthBounds = VK_TRUE;
+		}
+
+		// enable
+		if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) 
+		{
+			enabledFeatures.shaderResourceResidency = VK_TRUE;
+			enabledFeatures.shaderResourceMinLod = VK_TRUE;
+			enabledFeatures.sparseBinding = VK_TRUE;
+			enabledFeatures.sparseResidencyImage2D = VK_TRUE;
+		}
 
 		VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
 		indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
 		indexingFeatures.pNext = nullptr;
 
-		VkPhysicalDeviceFeatures2 deviceFeatures{};
-		deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		deviceFeatures.pNext = &indexingFeatures;
+		VkPhysicalDeviceFeatures2 deviceFeatures2{};
+		deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		deviceFeatures2.pNext = &indexingFeatures;
 
-#if ALLOW_DEVICE_FEATURES2
-		vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+		vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures2);
 
-		if (indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray)
-		{
-			// all set to use unbound arrays of textures
-			SPP_LOG(LOG_VULKAN, LOG_INFO, "BOUNDLESS SUPPORT!");
-		}
-#endif
+		SPP_LOG(LOG_VULKAN, LOG_INFO, "Depth Bounds Test %s", deviceFeatures.depthBounds ? "SUPPORTED" : "NOT SUPPORTED");
+		SPP_LOG(LOG_VULKAN, LOG_INFO, "Sparse Residency %s",
+			(deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) ? "SUPPORTED" : "NOT SUPPORTED");
+		SPP_LOG(LOG_VULKAN, LOG_INFO, "Boundless Indexing %s",
+			(indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray) ? "SUPPORTED" : "NOT SUPPORTED");
+		SPP_LOG(LOG_VULKAN, LOG_INFO, "Shader Double Support %s", deviceFeatures.shaderFloat64 ? "SUPPORTED" : "NOT SUPPORTED");
+
+		SE_ASSERT(deviceFeatures.shaderFloat64);
 
 		// [POI] Enable required extensions
 		enabledInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);

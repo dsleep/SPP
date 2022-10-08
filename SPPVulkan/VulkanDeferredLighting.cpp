@@ -146,7 +146,8 @@ namespace SPP
 				auto _csComputeIRMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 				_csComputeIRMap->CompileShaderFromFile("shaders/PBRTools/irmap_cs.glsl");
 
-				auto localPSO = GetVulkanPipelineState(owningDevice, _csComputeIRMap);
+				auto localPSO = VulkanPipelineStateBuilder(owningDevice)
+					.Set(_csComputeIRMap).Build();
 
 				auto csDescSet = Make_GPU(SafeVkDescriptorSet,
 					owningDevice,
@@ -226,18 +227,16 @@ namespace SPP
 			_shadowFilterPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
 			_shadowFilterPS->CompileShaderFromFile("shaders/Shadow/ShadowFilter.glsl");
 
-			_shadowFilterPSO = GetVulkanPipelineState(owningDevice,
-				owningDevice->GetLightingCompositeRenderPass(),
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Disabled,
-				EDrawingTopology::TriangleStrip,
-				EDepthOp::Always,
-				nullptr,
-				_lightFullscreenVS,
-				_shadowFilterPS);
-
-			
+			_shadowFilterPSO = VulkanPipelineStateBuilder(owningDevice)
+				.Set(owningDevice->GetLightingCompositeRenderPass())
+				.Set(EBlendState::Disabled)
+				.Set(ERasterizerState::NoCull)
+				.Set(EDepthState::Disabled)
+				.Set(EDrawingTopology::TriangleStrip)
+				.Set(EDepthOp::Always)
+				.Set(_lightFullscreenVS)
+				.Set(_shadowFilterPS)
+				.Build();			
 		}
 
 		auto GetVS()

@@ -32,6 +32,36 @@ namespace SPP
 		bool operator<(const VulkanPipelineStateKey& compareKey)const;
 	};
 
+	/// <summary>
+	/// 
+	/// </summary>
+	class VulkanPipelineStateBuilder
+	{
+	private:
+		GraphicsDevice* _owner = nullptr;
+
+		struct Impl;
+		std::unique_ptr<Impl> _impl;
+
+	public:
+		VulkanPipelineStateBuilder(GraphicsDevice* InOwner);
+		~VulkanPipelineStateBuilder();
+
+		VulkanPipelineStateBuilder& Set(struct VkFrameDataContainer& InValue);
+
+		VulkanPipelineStateBuilder& Set(EBlendState InValue);
+		VulkanPipelineStateBuilder& Set(ERasterizerState InValue);
+		VulkanPipelineStateBuilder& Set(EDepthState InValue);
+		VulkanPipelineStateBuilder& Set(EDrawingTopology InValue);
+		VulkanPipelineStateBuilder& Set(EDepthOp InValue);
+
+		VulkanPipelineStateBuilder& Set(GPUReferencer<class VulkanShader> InValue);
+
+		VulkanPipelineStateBuilder& Set(GPUReferencer<class VulkanInputLayout> InValue);
+
+		GPUReferencer< class VulkanPipelineState > Build();
+	};
+
 	class VulkanPipelineState : public PipelineState
 	{
 	private:
@@ -100,6 +130,19 @@ namespace SPP
 
 			GPUReferencer< GPUShader> InCS);
 	};
+
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
+		struct VkFrameDataContainer& renderPassData,
+
+		EBlendState InBlendState,
+		ERasterizerState InRasterizerState,
+		EDepthState InDepthState,
+		EDrawingTopology InTopology,
+		EDepthOp InDepthOp,
+
+		GPUReferencer< class VulkanInputLayout > InLayout,
+
+		const std::map< EShaderType, GPUReferencer < class VulkanShader > > &shaderMap );
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
 		struct VkFrameDataContainer& renderPassData,

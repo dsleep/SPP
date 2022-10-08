@@ -24,6 +24,91 @@
 namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
+
+	struct VulkanPipelineStateBuilder::Impl
+	{
+		VkFrameDataContainer renderPassData = {};
+
+		EBlendState blendState = EBlendState::Disabled;
+		ERasterizerState rasterizerState = ERasterizerState::NoCull;
+		EDepthState depthState = EDepthState::Disabled;
+		EDrawingTopology drawingTopology = EDrawingTopology::TriangleList;
+		EDepthOp depthOp = EDepthOp::Always;
+
+		GPUReferencer < VulkanInputLayout > inputLayout;
+
+		std::map< EShaderType, GPUReferencer < VulkanShader > > shaderMap;
+	};
+
+	VulkanPipelineStateBuilder::VulkanPipelineStateBuilder(GraphicsDevice* InOwner) : _impl(new Impl()), _owner(InOwner)
+	{
+	}
+
+	VulkanPipelineStateBuilder::~VulkanPipelineStateBuilder()
+	{
+
+	}
+
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(VkFrameDataContainer& InValue)
+	{
+		_impl->renderPassData = InValue;
+		return *this;
+	}
+
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(EBlendState InValue)
+	{
+		_impl->blendState = InValue;
+		return *this;
+	}
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(ERasterizerState InValue)
+	{
+		_impl->rasterizerState = InValue;
+		return *this;
+	}
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(EDepthState InValue)
+	{
+		_impl->depthState = InValue;
+		return *this;
+	}
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(EDrawingTopology InValue)
+	{
+		_impl->drawingTopology = InValue;
+		return *this;
+	}
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(EDepthOp InValue)
+	{
+		_impl->depthOp = InValue;
+		return *this;
+	}
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<VulkanShader> InValue)
+	{
+		_impl->shaderMap[InValue->GetType()] = InValue;
+		return *this;
+	}
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<VulkanInputLayout > InValue)
+	{
+		_impl->inputLayout = InValue;
+		return *this;
+	}
+
+
+	GPUReferencer< VulkanPipelineState > VulkanPipelineStateBuilder::Build()
+	{
+		return GetVulkanPipelineStateWithMap(_owner,
+			_impl->renderPassData,
+
+			_impl->blendState,
+			_impl->rasterizerState,
+			_impl->depthState,
+			_impl->drawingTopology,
+			_impl->depthOp,
+
+			_impl->inputLayout,
+
+			_impl->shaderMap);
+	}
+
+
 	VulkanPipelineState::VulkanPipelineState(GraphicsDevice* InOwner) : PipelineState(InOwner)
 	{
 
@@ -363,6 +448,7 @@ namespace SPP
 			// To be able to change these we need do specify which dynamic states will be changed using this pipeline. Their actual states are set later on in the command buffer.
 			// For this example we will set the viewport and scissor using dynamic states
 			VkDynamicState dynamicStateEnables [] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+			//VK_DYNAMIC_STATE_DEPTH_BOUNDS
 			VkPipelineDynamicStateCreateInfo dynamicState = {};
 			dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 			dynamicState.pDynamicStates = dynamicStateEnables;
@@ -578,7 +664,32 @@ namespace SPP
 		return false;
 	}
 
-	
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
+		struct VkFrameDataContainer& renderPassData,
+
+		EBlendState InBlendState,
+		ERasterizerState InRasterizerState,
+		EDepthState InDepthState,
+		EDrawingTopology InTopology,
+		EDepthOp InDepthOp,
+
+		GPUReferencer< class VulkanInputLayout > InLayout,
+
+		const std::map< EShaderType, GPUReferencer < VulkanShader > >& shaderMap)
+	{
+		GPUReferencer< VulkanShader > InVS = MapFindOrDefault(shaderMap, EShaderType::Vertex);
+		GPUReferencer< VulkanShader > InPS = MapFindOrDefault(shaderMap, EShaderType::Pixel);
+		GPUReferencer< VulkanShader > InCS = MapFindOrDefault(shaderMap, EShaderType::Compute);
+
+		return GetVulkanPipelineState(InOwner,
+			renderPassData,
+			InBlendState,
+			InRasterizerState,
+			InDepthState,
+			InTopology,
+			InDepthOp,
+			InLayout, InVS, InPS, nullptr, nullptr, nullptr, nullptr, InCS);
+	}
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		VkFrameDataContainer& renderPassData,
