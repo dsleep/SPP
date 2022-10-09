@@ -38,6 +38,8 @@ namespace SPP
 		GPUReferencer < VulkanInputLayout > inputLayout;
 
 		std::map< EShaderType, GPUReferencer < VulkanShader > > shaderMap;
+
+		std::vector< VkDynamicState > dynamicStates;
 	};
 
 	VulkanPipelineStateBuilder::VulkanPipelineStateBuilder(GraphicsDevice* InOwner) : _impl(new Impl()), _owner(InOwner)
@@ -90,7 +92,11 @@ namespace SPP
 		_impl->inputLayout = InValue;
 		return *this;
 	}
-
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(VkDynamicState InValue)
+	{
+		_impl->dynamicStates.push_back(InValue);
+		return *this;
+	}
 
 	GPUReferencer< VulkanPipelineState > VulkanPipelineStateBuilder::Build()
 	{
@@ -105,30 +111,26 @@ namespace SPP
 
 			_impl->inputLayout,
 
-			_impl->shaderMap);
+			_impl->shaderMap,
+			
+			_impl->dynamicStates);
 	}
 
 
 	VulkanPipelineState::VulkanPipelineState(GraphicsDevice* InOwner) : PipelineState(InOwner)
 	{
-
 	}
 
 	VulkanPipelineState::~VulkanPipelineState()
 	{
-		//auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
-		//auto device = owningDevice->GetVKDevice();
-		//
-		//for (auto& curSetLayout : _descriptorSetLayouts)
-		//{
-		//	vkDestroyDescriptorSetLayout(device, curSetLayout, nullptr);
-		//}
-		//_descriptorSetLayouts.clear();
-		
-		//vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
-		//vkDestroyPipelineCache(device, pipelineCache, nullptr);
 	}
 
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="InDescriptorSet"></param>
+	/// <param name="oSetLayoutBindings"></param>
 	void MergeBindingSet(const std::vector<DescriptorSetLayoutData>& InDescriptorSet,
 		std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > &oSetLayoutBindings)
 	{
@@ -170,6 +172,12 @@ namespace SPP
 		}
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="Idx"></param>
+	/// <param name="InPool"></param>
+	/// <returns></returns>
 	GPUReferencer<SafeVkDescriptorSet> VulkanPipelineState::CreateDescriptorSet(uint8_t Idx, VkDescriptorPool InPool) const
 	{
 		return Make_GPU(SafeVkDescriptorSet,
@@ -193,6 +201,23 @@ namespace SPP
 		return SafeArrayToResources< VkDescriptorSetLayout, decltype(_descriptorSetLayouts) >(_descriptorSetLayouts);
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="renderPassData"></param>
+	/// <param name="InBlendState"></param>
+	/// <param name="InRasterizerState"></param>
+	/// <param name="InDepthState"></param>
+	/// <param name="InTopology"></param>
+	/// <param name="InDepthOp"></param>
+	/// <param name="InLayout"></param>
+	/// <param name="InVS"></param>
+	/// <param name="InPS"></param>
+	/// <param name="InMS"></param>
+	/// <param name="InAS"></param>
+	/// <param name="InHS"></param>
+	/// <param name="InDS"></param>
+	/// <param name="InCS"></param>
 	void VulkanPipelineState::Initialize(VkFrameDataContainer & renderPassData,
 
 		EBlendState InBlendState,
@@ -211,7 +236,9 @@ namespace SPP
 		GPUReferencer< GPUShader> InHS,
 		GPUReferencer< GPUShader> InDS,
 
-		GPUReferencer< GPUShader> InCS)
+		GPUReferencer< GPUShader> InCS,
+		
+		const std::vector< VkDynamicState >& InExtraStates)
 	{
 		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
 		auto device = owningDevice->GetVKDevice();
@@ -251,22 +278,17 @@ namespace SPP
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
 					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
-					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
 				// else create dummy
 				else
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
 					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
-
-					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
-
 				descriptorSetLayoutsRefs[Iter] = _descriptorSetLayouts[Iter]->Get();
 			}
 
 			SE_ASSERT(InVS->GetAs<VulkanShader>().GetModule());
-			
 
 			shaderStages.push_back({ 
 				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -324,7 +346,6 @@ namespace SPP
 			pPipelineLayoutCreateInfo.pPushConstantRanges = push_constants.data();
 
 			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(owningDevice, pPipelineLayoutCreateInfo);
-			//VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 
 			// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
 			// A pipeline is then stored and hashed on the GPU making pipeline changes very fast
@@ -454,12 +475,14 @@ namespace SPP
 			// Most states are baked into the pipeline, but there are still a few dynamic states that can be changed within a command buffer
 			// To be able to change these we need do specify which dynamic states will be changed using this pipeline. Their actual states are set later on in the command buffer.
 			// For this example we will set the viewport and scissor using dynamic states
-			VkDynamicState dynamicStateEnables [] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+			std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+			dynamicStateEnables.insert(dynamicStateEnables.end(), InExtraStates.begin(), InExtraStates.end());
+
 			//VK_DYNAMIC_STATE_DEPTH_BOUNDS
 			VkPipelineDynamicStateCreateInfo dynamicState = {};
 			dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-			dynamicState.pDynamicStates = dynamicStateEnables;
-			dynamicState.dynamicStateCount = ARRAY_SIZE(dynamicStateEnables);
+			dynamicState.pDynamicStates = dynamicStateEnables.data();
+			dynamicState.dynamicStateCount = (uint32_t) dynamicStateEnables.size();
 
 			// Depth and stencil state containing depth and stencil compare and test operations
 			// We only use depth tests and want depth tests and writes to be enabled and compare with less or equal
@@ -694,7 +717,9 @@ namespace SPP
 
 		GPUReferencer< class VulkanInputLayout > InLayout,
 
-		const std::map< EShaderType, GPUReferencer < VulkanShader > >& shaderMap)
+		const std::map< EShaderType, GPUReferencer < VulkanShader > >& shaderMap,
+		
+		const std::vector< VkDynamicState > &InExtraStates)
 	{
 		GPUReferencer< VulkanShader > InVS = MapFindOrDefault(shaderMap, EShaderType::Vertex);
 		GPUReferencer< VulkanShader > InPS = MapFindOrDefault(shaderMap, EShaderType::Pixel);
@@ -725,7 +750,9 @@ namespace SPP
 		GPUReferencer< VulkanShader > InAS,
 		GPUReferencer< VulkanShader > InHS,
 		GPUReferencer< VulkanShader > InDS,
-		GPUReferencer< VulkanShader > InCS)
+		GPUReferencer< VulkanShader > InCS,
+		
+		const std::vector< VkDynamicState >& InExtraStates)
 	{
 		VulkanPipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology, InDepthOp,
 			(uintptr_t)InLayout.get(),

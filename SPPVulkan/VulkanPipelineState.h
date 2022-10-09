@@ -30,6 +30,9 @@ namespace SPP
 		uintptr_t ds = 0;
 		uintptr_t cs = 0;
 
+		//we always default VK_DYNAMIC_STATE_VIEWPORT VK_DYNAMIC_STATE_SCISSOR
+		uint8_t AppendedDynamicStates = 0;
+
 		bool operator<(const VulkanPipelineStateKey& compareKey)const;
 	};
 
@@ -48,18 +51,23 @@ namespace SPP
 		VulkanPipelineStateBuilder(GraphicsDevice* InOwner);
 		~VulkanPipelineStateBuilder();
 
+		/// <summary>
+		/// all the setters for the various components of a PSO
+		/// </summary>
 		VulkanPipelineStateBuilder& Set(struct VkFrameDataContainer& InValue);
-
 		VulkanPipelineStateBuilder& Set(EBlendState InValue);
 		VulkanPipelineStateBuilder& Set(ERasterizerState InValue);
 		VulkanPipelineStateBuilder& Set(EDepthState InValue);
 		VulkanPipelineStateBuilder& Set(EDrawingTopology InValue);
 		VulkanPipelineStateBuilder& Set(EDepthOp InValue);
-
 		VulkanPipelineStateBuilder& Set(GPUReferencer<class VulkanShader> InValue);
-
 		VulkanPipelineStateBuilder& Set(GPUReferencer<class VulkanInputLayout> InValue);
+		VulkanPipelineStateBuilder& Set(VkDynamicState InValue);
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <returns></returns>
 		GPUReferencer< class VulkanPipelineState > Build();
 	};
 
@@ -75,6 +83,9 @@ namespace SPP
 		return oArray;
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
 	class VulkanPipelineState : public PipelineState
 	{
 	private:
@@ -93,7 +104,7 @@ namespace SPP
 		// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
 		std::unique_ptr< class SafeVkPipeline > _pipeline;
 
-		// for debugging or just leave in?!
+		// map of set idx to binding array
 		std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > _setLayoutBindings;
 
 		virtual void _MakeResident() override {}
@@ -110,13 +121,12 @@ namespace SPP
 		{
 			return _descriptorSetLayouts;
 		}
-		std::vector< VkDescriptorSetLayout > GetDescriptorSetLayoutsDirect();
-
-		const std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> >& GetDescriptorSetLayoutBindings()
+		const auto& GetDescriptorSetLayoutBindings()
 		{
 			return _setLayoutBindings;
 		}
 
+		std::vector< VkDescriptorSetLayout > GetDescriptorSetLayoutsDirect();
 		class GPUReferencer<class SafeVkDescriptorSet> CreateDescriptorSet(uint8_t Idx, VkDescriptorPool InPool) const;
 
 		virtual const char* GetName() const { return "VulkanPipelineState"; }
@@ -138,7 +148,9 @@ namespace SPP
 			GPUReferencer< GPUShader> InHS,
 			GPUReferencer< GPUShader> InDS,
 
-			GPUReferencer< GPUShader> InCS);
+			GPUReferencer< GPUShader> InCS,
+			
+			const std::vector< VkDynamicState >& InExtraStates = {});
 	};
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
@@ -152,7 +164,8 @@ namespace SPP
 
 		GPUReferencer< class VulkanInputLayout > InLayout,
 
-		const std::map< EShaderType, GPUReferencer < class VulkanShader > > &shaderMap );
+		const std::map< EShaderType, GPUReferencer < class VulkanShader > > &shaderMap,
+		const std::vector< VkDynamicState >& InDynStates = {});
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
 		struct VkFrameDataContainer& renderPassData,
@@ -169,7 +182,9 @@ namespace SPP
 		GPUReferencer< class VulkanShader > InAS,
 		GPUReferencer< class VulkanShader > InHS,
 		GPUReferencer< class VulkanShader > InDS,
-		GPUReferencer< class VulkanShader > InCS);
+		GPUReferencer< class VulkanShader > InCS,
+		
+		const std::vector< VkDynamicState > &InDynStates = {});
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		GPUReferencer< VulkanShader > InCS);
@@ -186,4 +201,4 @@ namespace SPP
 		GPUReferencer< VulkanShader > InVS,
 		GPUReferencer< VulkanShader > InPS);
 
-}        // namespace vks
+}        
