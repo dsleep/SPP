@@ -219,6 +219,11 @@ namespace SPP
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(bindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_owningDevice, &descriptorLayout, nullptr, &_resource));
 		}
+		SafeVkDescriptorSetLayout(GraphicsDevice* InOwner, const VkDescriptorSetLayoutCreateInfo &Info) :
+			SafeVkResource< VkDescriptorSetLayout >(InOwner)
+		{
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_owningDevice, &Info, nullptr, &_resource));
+		}
 
 		virtual ~SafeVkDescriptorSetLayout()
 		{
@@ -294,6 +299,50 @@ namespace SPP
 			if (_resource)
 			{
 				vkFreeDescriptorSets(_owningDevice, _usedPool, 1, &_resource);
+				_resource = nullptr;
+			}
+		}
+	};
+
+	class SafeVkPipelineLayout : public SafeVkResource< VkPipelineLayout >
+	{
+	public:
+		SafeVkPipelineLayout(GraphicsDevice* InOwner, const VkPipelineLayoutCreateInfo& info) :
+			SafeVkResource< VkPipelineLayout >(InOwner)
+		{
+			VK_CHECK_RESULT(vkCreatePipelineLayout(_owningDevice, &info, nullptr, &_resource));
+		}
+
+		virtual ~SafeVkPipelineLayout()
+		{
+			if (_resource)
+			{
+				vkDestroyPipelineLayout(_owningDevice, _resource, nullptr);
+				_resource = nullptr;
+			}
+		}
+	};
+
+	class SafeVkPipeline : public SafeVkResource< VkPipeline >
+	{
+	public:
+		SafeVkPipeline(GraphicsDevice* InOwner, const VkGraphicsPipelineCreateInfo& info) :
+			SafeVkResource< VkPipeline >(InOwner)
+		{
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(_owningDevice, nullptr, 1, &info, nullptr, &_resource));
+		}
+
+		SafeVkPipeline(GraphicsDevice* InOwner, const VkComputePipelineCreateInfo& info) :
+			SafeVkResource< VkPipeline >(InOwner)
+		{
+			VK_CHECK_RESULT(vkCreateComputePipelines(_owningDevice, nullptr, 1, &info, nullptr, &_resource));
+		}
+
+		virtual ~SafeVkPipeline()
+		{
+			if (_resource)
+			{
+				vkDestroyPipeline(_owningDevice, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}

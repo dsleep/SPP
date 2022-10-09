@@ -7,6 +7,7 @@
 #include "SPPVulkan.h"
 #include "SPPGraphics.h"
 #include "SPPGPUResources.h"
+#include "VulkanResources.h"
 #include "vulkan/vulkan.h"
 
 namespace SPP
@@ -62,23 +63,35 @@ namespace SPP
 		GPUReferencer< class VulkanPipelineState > Build();
 	};
 
+	template<typename ResT, typename ArrayT>
+	std::vector<ResT> SafeArrayToResources(const ArrayT &InArray)
+	{
+		std::vector<ResT> oArray;
+		oArray.reserve(InArray.size());
+		for (const auto& ArrayEle : InArray)
+		{
+			oArray.push_back(ArrayEle->Get());
+		}
+		return oArray;
+	}
+
 	class VulkanPipelineState : public PipelineState
 	{
 	private:
 		// The pipeline layout is used by a pipeline to access the descriptor sets
 		// It defines interface (without binding any actual data) between the shader stages used by the pipeline and the shader resources
 		// A pipeline layout can be shared among multiple pipelines as long as their interfaces match
-		VkPipelineLayout _pipelineLayout = nullptr;
+		std::unique_ptr<class SafeVkPipelineLayout> _pipelineLayout;
 
 		// The descriptor set layout describes the shader binding layout (without actually referencing descriptor)
 		// Like the pipeline layout it's pretty much a blueprint and can be used with different descriptor sets as long as their layout matches
-		std::vector<VkDescriptorSetLayout> _descriptorSetLayouts;
+		std::vector<std::unique_ptr< class SafeVkDescriptorSetLayout> > _descriptorSetLayouts;
 
 		// Pipelines (often called "pipeline state objects") are used to bake all states that affect a pipeline
 		// While in OpenGL every state can be changed at (almost) any time, Vulkan requires to layout the graphics (and compute) pipeline states upfront
 		// So for each combination of non-dynamic pipeline states you need a new pipeline (there are a few exceptions to this not discussed here)
 		// Even though this adds a new dimension of planing ahead, it's a great opportunity for performance optimizations by the driver
-		VkPipeline _pipeline = nullptr;
+		std::unique_ptr< class SafeVkPipeline > _pipeline;
 
 		// for debugging or just leave in?!
 		std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> > _setLayoutBindings;
@@ -90,18 +103,15 @@ namespace SPP
 		VulkanPipelineState(GraphicsDevice* InOwner);
 		virtual ~VulkanPipelineState();
 
-		const VkPipeline &GetVkPipeline()
-		{
-			return _pipeline;
-		}
-		const std::vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts()
+		const VkPipeline& GetVkPipeline();
+		const VkPipelineLayout& GetVkPipelineLayout();
+
+		const auto& GetDescriptorSetLayouts()
 		{
 			return _descriptorSetLayouts;
 		}
-		const VkPipelineLayout &GetVkPipelineLayout()
-		{
-			return _pipelineLayout;
-		}
+		std::vector< VkDescriptorSetLayout > GetDescriptorSetLayoutsDirect();
+
 		const std::map<uint8_t, std::vector<VkDescriptorSetLayoutBinding> >& GetDescriptorSetLayoutBindings()
 		{
 			return _setLayoutBindings;

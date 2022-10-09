@@ -116,30 +116,14 @@ namespace SPP
 
 	VulkanPipelineState::~VulkanPipelineState()
 	{
-		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
-		auto device = owningDevice->GetVKDevice();
-
-		if (_pipeline)
-		{
-			vkDestroyPipeline(device, _pipeline, nullptr);
-			_pipeline = nullptr;
-		}
-		if (_pipelineLayout)
-		{
-			vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
-			_pipelineLayout = nullptr;
-		}
-		if (_pipelineLayout)
-		{
-			vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
-			_pipelineLayout = nullptr;
-		}
-		
-		for (auto& curSetLayout : _descriptorSetLayouts)
-		{
-			vkDestroyDescriptorSetLayout(device, curSetLayout, nullptr);
-		}
-		_descriptorSetLayouts.clear();
+		//auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		//auto device = owningDevice->GetVKDevice();
+		//
+		//for (auto& curSetLayout : _descriptorSetLayouts)
+		//{
+		//	vkDestroyDescriptorSetLayout(device, curSetLayout, nullptr);
+		//}
+		//_descriptorSetLayouts.clear();
 		
 		//vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
 		//vkDestroyPipelineCache(device, pipelineCache, nullptr);
@@ -190,8 +174,23 @@ namespace SPP
 	{
 		return Make_GPU(SafeVkDescriptorSet,
 			_owner,
-			_descriptorSetLayouts[Idx],
+			_descriptorSetLayouts[Idx]->Get(),
 			InPool);
+	}
+
+	const VkPipeline& VulkanPipelineState::GetVkPipeline()
+	{
+		return _pipeline->Get();
+	}
+
+	const VkPipelineLayout& VulkanPipelineState::GetVkPipelineLayout()
+	{
+		return _pipelineLayout->Get();
+	}
+
+	std::vector< VkDescriptorSetLayout > VulkanPipelineState::GetDescriptorSetLayoutsDirect()
+	{
+		return SafeArrayToResources< VkDescriptorSetLayout, decltype(_descriptorSetLayouts) >(_descriptorSetLayouts);
 	}
 
 	void VulkanPipelineState::Initialize(VkFrameDataContainer & renderPassData,
@@ -242,6 +241,8 @@ namespace SPP
 			SE_ASSERT(_descriptorSetLayouts.empty());
 			_descriptorSetLayouts.resize(4);
 
+			VkDescriptorSetLayout descriptorSetLayoutsRefs[4] = {};
+
 			// step through sets numerically
 			for (int32_t Iter = 0; Iter < 4; Iter++)
 			{
@@ -249,14 +250,19 @@ namespace SPP
 				if(foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
-					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
 				// else create dummy
 				else
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
-					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+
+					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
+
+				descriptorSetLayoutsRefs[Iter] = _descriptorSetLayouts[Iter]->Get();
 			}
 
 			SE_ASSERT(InVS->GetAs<VulkanShader>().GetModule());
@@ -311,13 +317,14 @@ namespace SPP
 			VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
 			pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pPipelineLayoutCreateInfo.pNext = nullptr;
-			pPipelineLayoutCreateInfo.setLayoutCount = _descriptorSetLayouts.size();
-			pPipelineLayoutCreateInfo.pSetLayouts = _descriptorSetLayouts.data();
+			pPipelineLayoutCreateInfo.setLayoutCount = ARRAY_SIZE(descriptorSetLayoutsRefs);
+			pPipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayoutsRefs;
 
 			pPipelineLayoutCreateInfo.pushConstantRangeCount = push_constants.size();
 			pPipelineLayoutCreateInfo.pPushConstantRanges = push_constants.data();
 
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
+			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(owningDevice, pPipelineLayoutCreateInfo);
+			//VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 
 			// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
 			// A pipeline is then stored and hashed on the GPU making pipeline changes very fast
@@ -326,7 +333,7 @@ namespace SPP
 			VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 			pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 			// The layout used for this pipeline (can be shared among multiple pipelines using the same layout)
-			pipelineCreateInfo.layout = _pipelineLayout;
+			pipelineCreateInfo.layout = _pipelineLayout->Get();
 			// Renderpass this pipeline is attached to
 			pipelineCreateInfo.renderPass = renderPass; 
 
@@ -534,7 +541,6 @@ namespace SPP
 			pipelineCreateInfo.renderPass = renderPass;
 			pipelineCreateInfo.pDynamicState = &dynamicState;
 
-
 			// Pipeline cache object
 			//VkPipelineCache pipelineCache;
 			//VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -542,7 +548,8 @@ namespace SPP
 			//VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 
 			// Create rendering pipeline using the specified states
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCreateInfo, nullptr, &_pipeline));
+			_pipeline = std::make_unique< SafeVkPipeline >(owningDevice, pipelineCreateInfo);
+			//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCreateInfo, nullptr, &_pipeline));
 		}
 		else if(InCS)
 		{
@@ -554,6 +561,9 @@ namespace SPP
 			SE_ASSERT(_descriptorSetLayouts.empty());
 			_descriptorSetLayouts.resize(4);
 
+
+			VkDescriptorSetLayout descriptorSetLayoutsRefs[4] = {};
+
 			// step through sets numerically
 			for (int32_t Iter = 0; Iter < 4; Iter++)
 			{
@@ -561,14 +571,20 @@ namespace SPP
 				if (foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
-					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
 				// else create dummy
 				else
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
-					VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
+
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
 				}
+
+				descriptorSetLayoutsRefs[Iter] = _descriptorSetLayouts[Iter]->Get();
 			}
 
 			// setup push constants
@@ -577,14 +593,16 @@ namespace SPP
 			VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
 			pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pPipelineLayoutCreateInfo.pNext = nullptr;
-			pPipelineLayoutCreateInfo.setLayoutCount = _descriptorSetLayouts.size();
-			pPipelineLayoutCreateInfo.pSetLayouts = _descriptorSetLayouts.data();
+			pPipelineLayoutCreateInfo.setLayoutCount = ARRAY_SIZE(descriptorSetLayoutsRefs);
+			pPipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayoutsRefs;
 			pPipelineLayoutCreateInfo.pushConstantRangeCount = push_constants.size();
 			pPipelineLayoutCreateInfo.pPushConstantRanges = push_constants.data();
 
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
+			//VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 
-			VkComputePipelineCreateInfo computePipelineCreateInfo =	vks::initializers::computePipelineCreateInfo(_pipelineLayout, 0);
+			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(owningDevice, pPipelineLayoutCreateInfo);
+
+			VkComputePipelineCreateInfo computePipelineCreateInfo =	vks::initializers::computePipelineCreateInfo(_pipelineLayout->Get(), 0);
 			computePipelineCreateInfo.stage =
 				{
 				VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -595,7 +613,8 @@ namespace SPP
 				InCS->GetAs<VulkanShader>().GetEntryPoint().c_str()
 				};
 
-			VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &_pipeline));
+			//VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &_pipeline));
+			_pipeline = std::make_unique< SafeVkPipeline >(owningDevice, computePipelineCreateInfo);
 		}
 		else
 		{

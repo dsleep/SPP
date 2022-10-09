@@ -206,7 +206,7 @@ namespace SPP
 			auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 			int32_t TextureCount = 1;
-			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, owningDevice, descSetLayouts[TEXTURE_SET_ID], globalSharedPool);
+			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, owningDevice, descSetLayouts[TEXTURE_SET_ID]->Get(), globalSharedPool);
 
 			auto& parameterMap = InMat->GetParameterMap();
 			for (int32_t Iter = 0; Iter < TextureCount; Iter++)
@@ -973,7 +973,7 @@ namespace SPP
 		//
 		auto CurPool = GGlobalVulkanGI->GetPerFrameResetDescriptorPool();
 		auto& curPSO = FullScreenWritePSO->GetAs<VulkanPipelineState>();
-		auto& descriptorSetLayouts = curPSO.GetDescriptorSetLayouts();
+		auto descriptorSetLayouts = curPSO.GetDescriptorSetLayoutsDirect();
 
 		// main scene to back buffer
 		{

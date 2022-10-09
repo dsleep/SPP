@@ -117,7 +117,7 @@ namespace SPP
 
 			_skyCubePSDescSet = Make_GPU(SafeVkDescriptorSet,
 				owningDevice,
-				_psoSkyCube->GetDescriptorSetLayouts()[2],
+				_psoSkyCube->GetDescriptorSetLayouts()[2]->Get(),
 				globalSharedPool);	
 
 			auto skyDesc = _skyCube->GetDescriptor();
@@ -151,7 +151,7 @@ namespace SPP
 
 				auto csDescSet = Make_GPU(SafeVkDescriptorSet,
 					owningDevice,
-					localPSO->GetDescriptorSetLayouts()[0],
+					localPSO->GetDescriptorSetLayouts()[0]->Get(),
 					globalSharedPool);
 
 				csDescSet->Update(
@@ -188,7 +188,7 @@ namespace SPP
 
 				auto csBRDF_LUTDescSet = Make_GPU(SafeVkDescriptorSet,
 					owningDevice,
-					psoBRDFLut->GetDescriptorSetLayouts()[0],
+					psoBRDFLut->GetDescriptorSetLayouts()[0]->Get(),
 					globalSharedPool);
 
 				csBRDF_LUTDescSet->Update(
@@ -318,12 +318,12 @@ namespace SPP
 		
 		_gbufferTextureSet = Make_GPU(SafeVkDescriptorSet,
 			_owningDevice,
-			sunPSO->GetDescriptorSetLayouts()[2],
+			sunPSO->GetDescriptorSetLayouts()[2]->Get(),
 			globalSharedPool);
 
 		_dummySet = Make_GPU(SafeVkDescriptorSet,
 			_owningDevice,
-			sunPSO->GetDescriptorSetLayouts()[3],
+			sunPSO->GetDescriptorSetLayouts()[3]->Get(),
 			globalSharedPool);
 		_dummySet->Update({});
 
@@ -371,7 +371,7 @@ namespace SPP
 		auto shadowPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetShadowFilterPSO();
 		_shadowFilterDescriptorSet = Make_GPU(SafeVkDescriptorSet,
 			_owningDevice,
-			shadowPSO->GetDescriptorSetLayouts()[2],
+			shadowPSO->GetDescriptorSetLayouts()[2]->Get(),
 			globalSharedPool);
 		auto shadowDesc = shadowTexture->GetDescriptor();
 		_shadowFilterDescriptorSet->Update(
