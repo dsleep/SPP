@@ -972,19 +972,8 @@ namespace SPP
 
 	void VulkanGraphicsDevice::DyingResource(class GPUResource* InResourceToKill)
 	{
-		if (IsOnCPUThread())
-		{
-			_cpuPushedDyingResources.push_back(InResourceToKill);
-		}
-		else if (IsOnGPUThread())
-		{
-			_gpuPushedDyingResources.push_back(InResourceToKill);
-		}
-		else
-		{
-			// uh ohs can't be on neither
-			SE_ASSERT(false);
-		}
+		SE_ASSERT(IsOnGPUThread());
+		_pendingDyingResources.push_back(InResourceToKill);
 	}
 
 	int32_t VulkanGraphicsDevice::GetDeviceWidth() const
@@ -1139,10 +1128,9 @@ namespace SPP
 				vkDeviceWaitIdle(device);
 
 				static_assert(MAX_IN_FLIGHT == 3);
-				std::array< std::vector<GPUResource*>*, MAX_IN_FLIGHT + 2 > flushDying =
+				std::array< std::vector<GPUResource*>*, MAX_IN_FLIGHT + 1 > flushDying =
 				{
-					&_cpuPushedDyingResources,
-					&_gpuPushedDyingResources,
+					&_pendingDyingResources,
 					&_dyingResources[0],
 					&_dyingResources[1],
 					&_dyingResources[2]
@@ -1240,10 +1228,11 @@ namespace SPP
 			}
 			_dyingResources[currentBuffer].clear();
 		}
-		if (!_gpuPushedDyingResources.empty())
+		if (!_pendingDyingResources.empty())
 		{
-			_dyingResources[currentBuffer].insert(_dyingResources[currentBuffer].end(), _gpuPushedDyingResources.begin(), _gpuPushedDyingResources.end());
-			_gpuPushedDyingResources.clear();
+			_dyingResources[currentBuffer].insert(_dyingResources[currentBuffer].end(), 
+				_pendingDyingResources.begin(), _pendingDyingResources.end());
+			_pendingDyingResources.clear();
 		}
 		
 		_perFrameScratchBuffer.FrameCompleted(currentBuffer);
@@ -1279,11 +1268,6 @@ namespace SPP
 	void VulkanGraphicsDevice::SyncGPUData()
 	{
 		GraphicsDevice::SyncGPUData();
-		if (!_cpuPushedDyingResources.empty())
-		{
-			_dyingResources[currentBuffer].insert(_dyingResources[currentBuffer].end(), _cpuPushedDyingResources.begin(), _cpuPushedDyingResources.end());
-			_cpuPushedDyingResources.clear();
-		}
 	}
 
 	//IMGUI

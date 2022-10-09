@@ -182,8 +182,7 @@ namespace SPP
 
 		PerFrameStagingBuffer _perFrameScratchBuffer;
 
-		std::vector<GPUResource*> _cpuPushedDyingResources;
-		std::vector<GPUResource*> _gpuPushedDyingResources;
+		std::vector<GPUResource*> _pendingDyingResources;
 		std::array< std::vector<GPUResource*>, MAX_IN_FLIGHT > _dyingResources;
 		
 		// List of available frame buffers (same as number of swap chain images)
