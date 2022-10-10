@@ -357,7 +357,7 @@ namespace SPP
 			{
 				.texture = _shadowAttenuationTexture,
 				.name = "Attenuation",
-				.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+				.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			}
 		);
 		_shadowAttenuation->addAttachment(
@@ -387,6 +387,8 @@ namespace SPP
 			.Set(EDepthOp::Always)
 			.Set(lightFullscreenVS)
 			.Set(_shadowFilterPS)
+			.Set(VK_DYNAMIC_STATE_DEPTH_BOUNDS)
+			.Set(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE)
 			.Build();
 
 		// move down since it changes with size;
@@ -582,21 +584,39 @@ namespace SPP
 
 				//shadow filtering pass
 				{
-					//vks::tools::setImageLayout(
-					//	commandBuffer,
-					//	_shadowDepthTexture->GetVkImage(),
-					//	VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-					//	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-					//	_shadowDepthTexture->GetSubresourceRange());
+					
+					VkClearColorValue ClearColorValue = { 1.0, 0.0, 0.0, 0.0 };
+
+
+					vks::tools::setImageLayout(
+						commandBuffer,
+						_shadowAttenuationTexture->GetVkImage(),
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_IMAGE_LAYOUT_GENERAL,
+						_shadowAttenuationTexture->GetSubresourceRange());
+
+					vkCmdClearColorImage(commandBuffer,
+						_shadowAttenuationTexture->GetVkImage(),
+						VK_IMAGE_LAYOUT_GENERAL,
+						&ClearColorValue, 
+						1, 
+						&_shadowAttenuationTexture->GetSubresourceRange());
+
+					vks::tools::setImageLayout(
+						commandBuffer,
+						_shadowAttenuationTexture->GetVkImage(),
+						VK_IMAGE_LAYOUT_GENERAL,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						_shadowAttenuationTexture->GetSubresourceRange());
 
 					////vkCmdClearColorImage clear on first pass
 					//
 					// RENDER TO SHADOW ATTENUATION
 					_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
 					_owningDevice->SetCheckpoint(commandBuffer, "ShadowAttenuation");
-
-					//vkCmdClearColorImage()
-					//vkCmdClearAttachments
+					
+					vkCmdSetDepthBounds(commandBuffer, 0, 1);
+					vkCmdSetDepthBoundsTestEnable(commandBuffer, VK_TRUE);
 
 					Vector3d camPosition = sceneCam.GetCameraPosition() - orthoCam.GetCameraPosition();
 
@@ -647,6 +667,9 @@ namespace SPP
 						ARRAY_SIZE(uniform_offsets), uniform_offsets);
 
 					vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+
+					_owningDevice->ConditionalEndRenderPass();
+
 				}
 			}
 		}
