@@ -14,6 +14,8 @@ namespace SPP
 {
 	struct VulkanPipelineStateKey
 	{
+		uintptr_t rp = 0;
+
 		EBlendState blendState = EBlendState::Disabled;
 		ERasterizerState rasterizerState = ERasterizerState::BackFaceCull;
 		EDepthState depthState = EDepthState::Enabled;

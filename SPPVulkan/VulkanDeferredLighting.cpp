@@ -42,12 +42,12 @@ namespace SPP
 		GLOBAL_RESOURCE(GlobalDeferredLightingResources)
 
 	private:
-		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS, _skyCubemapPS, _shadowFilterPS;
+		GPUReferencer < VulkanShader > _lightShapeVS, _lightFullscreenVS, _lightSunPS, _skyCubemapPS;
 		GPUReferencer< GPUInputLayout > _lightShapeLayout;
 
-		GPUReferencer< VulkanPipelineState > _psoSunLight, _psoSkyCube, _shadowFilterPSO;
+		GPUReferencer< VulkanPipelineState > _psoSunLight, _psoSkyCube;
 		GPUReferencer< SafeVkDescriptorSetLayout > _lightShapeVSLayout;
-		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet, _sunDescSet;
+		GPUReferencer<SafeVkDescriptorSet> _skyCubePSDescSet;
 
 		std::map< ParameterMapKey, GPUReferencer < VulkanShader > > _psShaderMap;
 				
@@ -208,40 +208,17 @@ namespace SPP
 				vksDevice->flushCommandBuffer(immediateCommand, gQueue);
 			}
 
-
-
 			auto _csFilterEnvMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_csFilterEnvMap->CompileShaderFromFile("shaders/PBRTools/spmap_cs.glsl");
-
-			////;
-			auto specLutDesc = _specularBRDF_LUT->GetDescriptor();
-
-			_sunDescSet = _psoSunLight->CreateDescriptorSet(1, globalSharedPool);
-			_sunDescSet->Update(
-				{
-					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureIrradianceDesc },
-					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyDesc },
-					{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
-				});
-			//shadow filter
-			_shadowFilterPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
-			_shadowFilterPS->CompileShaderFromFile("shaders/Shadow/ShadowFilter.glsl");
-
-			_shadowFilterPSO = VulkanPipelineStateBuilder(owningDevice)
-				.Set(owningDevice->GetLightingCompositeRenderPass())
-				.Set(EBlendState::Disabled)
-				.Set(ERasterizerState::NoCull)
-				.Set(EDepthState::Disabled)
-				.Set(EDrawingTopology::TriangleStrip)
-				.Set(EDepthOp::Always)
-				.Set(_lightFullscreenVS)
-				.Set(_shadowFilterPS)
-				.Build();			
 		}
 
-		auto GetVS()
+		auto GetShapeVS()
 		{
 			return _lightShapeVS;
+		}
+		auto GetFullScreenVS()
+		{
+			return _lightFullscreenVS;
 		}
 		auto GetSunPSO()
 		{
@@ -255,10 +232,6 @@ namespace SPP
 		{
 			return _skyCubePSDescSet;
 		}
-		auto GetSunDescriptorSet()
-		{
-			return _sunDescSet;
-		}
 		auto GetSpecularBRDF_LUT()
 		{
 			return _specularBRDF_LUT;
@@ -267,9 +240,14 @@ namespace SPP
 		{
 			return _skyCube;
 		}
-		auto GetShadowFilterPSO()
+
+		auto GetSkyCubeTextureDescriptor()
 		{
-			return _shadowFilterPSO;
+			return _skyCube->GetDescriptor();
+		}
+		auto GetIrradianceMapTextureDescriptor()
+		{
+			return _textureIrradianceMap->GetDescriptor();
 		}
 	};
 
@@ -280,6 +258,13 @@ namespace SPP
 		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
+		auto specularBRDF_LUT = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSpecularBRDF_LUT();
+
+		auto skyCubeTextureDescriptor = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSkyCubeTextureDescriptor();
+		auto irradianceMapTextureDescriptor = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetIrradianceMapTextureDescriptor();
+
+
+
 		auto DeviceExtents = _owningDevice->GetExtents();
 		
 		//
@@ -303,11 +288,18 @@ namespace SPP
 			_owningDevice,
 			createInfo);
 
+		GPUReferencer< class VulkanTexture > depthTexture;
+
 		// Update Gbuffers
 		std::vector< VkDescriptorImageInfo > gbuffer;
 		for (auto& curAttach : gbufferAttachments)
 		{
 			auto curTexture = curAttach.texture.get();
+
+			if (curTexture->isDepthStencil())
+			{
+				depthTexture = curAttach.texture;
+			}
 
 			VkDescriptorImageInfo imageInfo;
 			imageInfo.sampler = _nearestSampler->Get();
@@ -327,7 +319,9 @@ namespace SPP
 			globalSharedPool);
 		_dummySet->Update({});
 
+		// gbuffer 
 		SE_ASSERT(gbuffer.size() == 4);
+
 		_gbufferTextureSet->Update(
 			{
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &gbuffer[0]},
@@ -336,50 +330,87 @@ namespace SPP
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &gbuffer[3] }
 			}
 		);
-
-		///////////
-
-		auto shadowDepthTexture = Make_GPU(VulkanTexture, _owningDevice, 1024, 1024, 1, 1,
-			TextureFormat::D32_S8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
+				
+		////////////////////////////////////////////
+		//SHADOW DEPTH FROM LIGHT PERSPECTIVE
+		////////////////////////////////////////////
+		_shadowDepthTexture = Make_GPU(VulkanTexture, _owningDevice, 1024, 1024, 1, 1,
+			TextureFormat::D32_S8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);		
 		_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(_owningDevice, 1024, 1024);
 		_shadowDepthFrameBuffer->addAttachment(
 			{
-				.texture = shadowDepthTexture,
+				.texture = _shadowDepthTexture,
 				.name = "Depth"
 			}
 		);
 		_shadowRenderPass = _shadowDepthFrameBuffer->createCustomRenderPass({ "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 		_shadowRenderPass.bUseInvertedZ = false;
 
-		//
-		auto shadowTexture = Make_GPU(VulkanTexture, _owningDevice, DeviceExtents[0], DeviceExtents[1], 1, 1,
+		////////////////////////////////////////////
+		//SHADOW ATTENUATION
+		////////////////////////////////////////////
+		_shadowAttenuationTexture = Make_GPU(VulkanTexture, _owningDevice, DeviceExtents[0], DeviceExtents[1], 1, 1,
 			TextureFormat::R8, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		auto shadowAttenuationDesc = _shadowAttenuationTexture->GetDescriptor();
 		_shadowAttenuation = std::make_unique< VulkanFramebuffer >(_owningDevice, DeviceExtents[0], DeviceExtents[1]);
 		_shadowAttenuation->addAttachment(
 			{
-				.texture = shadowTexture,
-				.name = "Attenuation"
+				.texture = _shadowAttenuationTexture,
+				.name = "Attenuation",
+				.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			}
+		);
+		_shadowAttenuation->addAttachment(
+			{
+				.texture = depthTexture,
+				.name = "Depth",
+				.initialLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL
 			}
 		);
 		_shadowAttenuationRenderPass = _shadowAttenuation->createCustomRenderPass(
-			{ { "Attenuation", VK_ATTACHMENT_LOAD_OP_CLEAR } });
+			{ 
+				{ "Attenuation", VK_ATTACHMENT_LOAD_OP_LOAD },
+				{ "Depth", VK_ATTACHMENT_LOAD_OP_LOAD }
+			});
 
-		//
+		//shadow filter
+		_shadowFilterPS = Make_GPU(VulkanShader, _owningDevice, EShaderType::Pixel);
+		_shadowFilterPS->CompileShaderFromFile("shaders/Shadow/ShadowFilter.glsl");
 
-		// move down since it changes with size
-		auto shadowPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetShadowFilterPSO();
+		auto lightFullscreenVS = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetFullScreenVS();
+		_shadowFilterPSO = VulkanPipelineStateBuilder(_owningDevice)
+			.Set(_shadowAttenuationRenderPass)
+			.Set(EBlendState::Disabled)
+			.Set(ERasterizerState::NoCull)
+			.Set(EDepthState::Disabled)
+			.Set(EDrawingTopology::TriangleStrip)
+			.Set(EDepthOp::Always)
+			.Set(lightFullscreenVS)
+			.Set(_shadowFilterPS)
+			.Build();
+
+		// move down since it changes with size;
 		_shadowFilterDescriptorSet = Make_GPU(SafeVkDescriptorSet,
 			_owningDevice,
-			shadowPSO->GetDescriptorSetLayouts()[2]->Get(),
+			_shadowFilterPSO->GetDescriptorSetLayouts()[2]->Get(),
 			globalSharedPool);
-		auto shadowDesc = shadowTexture->GetDescriptor();
+		auto shadowDepthDesc = _shadowDepthTexture->GetDescriptor();
 		_shadowFilterDescriptorSet->Update(
 			{
 				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &gbuffer[3] },
-				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowDesc }
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &shadowDepthDesc }
 			}
 		);
+
+		auto specLutDesc = specularBRDF_LUT->GetDescriptor();
+		_sunDescSet = sunPSO->CreateDescriptorSet(1, globalSharedPool);
+		_sunDescSet->Update(
+			{
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &irradianceMapTextureDescriptor },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &skyCubeTextureDescriptor },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &specLutDesc },
+				{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &shadowAttenuationDesc }
+			});
 	}
 
 	struct alignas(16u) SunLightParams
@@ -420,7 +451,6 @@ namespace SPP
 
 	void PBRDeferredLighting::RenderShadow(RT_RenderableLight& InLight)
 	{
-		//auto& shadowRenderPass = _owningDevice->GetShadowAttenuationRenderPass();
 		auto DeviceExtents = _owningDevice->GetExtents();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 		auto currentFrame = _owningDevice->GetActiveFrame();
@@ -429,7 +459,9 @@ namespace SPP
 
 		auto& sceneOctree = _owningScene->GetOctree();
 		auto scratchPool = _owningDevice->GetPerFrameResetDescriptorPool();
-				
+
+		auto& sceneCam = _owningScene->GetGPUCamera();
+
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(scratchPool, &commonVSLayout->Get(), 1);
 
 		auto& scratchBuffer = _owningDevice->GetPerFrameScratchBuffer();
@@ -546,14 +578,76 @@ namespace SPP
 				}
 
 				_owningScene->SetCommonDescriptorOverride(nullptr);
+				_owningDevice->ConditionalEndRenderPass();
 
-				////vkCmdClearColorImage clear on first pass
-				//
-				//// RENDER TO SHADOW ATTENUATION
-				//_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
-				//_owningDevice->SetCheckpoint(commandBuffer, "ShadowAttenuation");
+				//shadow filtering pass
+				{
+					//vks::tools::setImageLayout(
+					//	commandBuffer,
+					//	_shadowDepthTexture->GetVkImage(),
+					//	VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					//	VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					//	_shadowDepthTexture->GetSubresourceRange());
 
+					////vkCmdClearColorImage clear on first pass
+					//
+					// RENDER TO SHADOW ATTENUATION
+					_owningDevice->SetFrameBufferForRenderPass(_shadowAttenuationRenderPass);
+					_owningDevice->SetCheckpoint(commandBuffer, "ShadowAttenuation");
 
+					//vkCmdClearColorImage()
+					//vkCmdClearAttachments
+
+					Vector3d camPosition = sceneCam.GetCameraPosition() - orthoCam.GetCameraPosition();
+
+					Matrix4x4 translationMat = Matrix4x4{
+						{ 1.0f, 0,		0,		0 },
+						{ 0,	1.0f,	0,		0 },
+						{ 0,	0,		1.0f,	0 },
+						{ (float)camPosition[0], (float)camPosition[1], (float)camPosition[2], 1.0f}
+					};
+
+					Matrix4x4 NDCToTex = Matrix4x4{
+						{ 0.5f, 0,		0,		0 },
+						{ 0,	0.5f,	0,		0 },
+						{ 0,	0,		1.0f,	0 },
+						{ 0.5f, 0.5f,	0,		1.0f}
+					};
+
+					Matrix4x4 sceneToShadow = /*sceneCam.GetInvProjectionMatrix() * translationMat * */ orthoCam.GetViewProjMatrix() * NDCToTex;
+
+					struct alignas(16u) ShadowParams
+					{
+						Matrix4x4 sceneToShadow;
+						Vector3 PositionShift;
+					};
+
+					ShadowParams params;
+					params.sceneToShadow = orthoCam.GetViewProjMatrix();// *NDCToTex;
+					params.PositionShift = camPosition.cast<float>();
+
+					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _shadowFilterPSO->GetVkPipeline());
+					vkCmdPushConstants(commandBuffer, _shadowFilterPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShadowParams), &params);
+
+					// if static we have everything pre cached		
+					uint32_t uniform_offsets[] = {
+						0
+					};
+
+					VkDescriptorSet locaDrawSets[] = {
+						_owningScene->GetCommondDescriptorSet(),
+						_dummySet->Get(),
+						_shadowFilterDescriptorSet->Get()
+					};
+
+					vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+						_shadowFilterPSO->GetVkPipelineLayout(),
+						0,
+						ARRAY_SIZE(locaDrawSets), locaDrawSets,
+						ARRAY_SIZE(uniform_offsets), uniform_offsets);
+
+					vkCmdDraw(commandBuffer, 4, 1, 0, 0);
+				}
 			}
 		}
 	}
@@ -573,7 +667,6 @@ namespace SPP
 			_owningDevice->SetCheckpoint(commandBuffer, "Sun");
 
 			auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
-			auto sunPRBSec = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunDescriptorSet();
 
 			Vector3 LightDir = InLight.GetCachedRotationAndScale().block<1, 3>(2, 0);
 			LightDir.normalize();
@@ -593,7 +686,7 @@ namespace SPP
 
 			VkDescriptorSet locaDrawSets[] = {
 				_owningScene->GetCommondDescriptorSet(),
-				sunPRBSec->Get(),
+				_sunDescSet->Get(),
 				_gbufferTextureSet->Get()
 			};
 

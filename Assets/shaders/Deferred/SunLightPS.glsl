@@ -18,6 +18,8 @@ layout (set = 1, binding = 0) uniform samplerCube irradianceTexture;
 layout (set = 1, binding = 1) uniform samplerCube specularTexture;
 layout (set = 1, binding = 2) uniform sampler2D specularBRDF_LUT;
 
+layout (set = 1, binding = 3) uniform sampler2D shadowAttenuation;
+
 layout(push_constant) readonly uniform _LightParams
 {
 	vec4 LightDirection;
@@ -40,6 +42,8 @@ void main()
 		discard;
 	}
 	
+	float shadowValue = texture(shadowAttenuation, inUV).r;
+
 	vec4 smre = texture(samplerSMRE, inUV);
 	vec3 normal = texture(samplerNormal, inUV).rgb * 2.0f - vec3(1.0f);
 	
@@ -99,7 +103,7 @@ void main()
 		vec3 specularBRDF = (F * D * G) / max(Epsilon, 4.0 * cosLi * cosLo);
 
 		// Total contribution for this light.
-		directLighting = (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+		directLighting = (diffuseBRDF + specularBRDF) * Lradiance * cosLi * shadowValue;
 	}
 
 	////

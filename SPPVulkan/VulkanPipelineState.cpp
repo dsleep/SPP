@@ -644,6 +644,11 @@ namespace SPP
 
 	bool VulkanPipelineStateKey::operator<(const VulkanPipelineStateKey& compareKey)const
 	{
+		if (rp != compareKey.rp)
+		{
+			return rp < compareKey.rp;
+		}
+
 		if (blendState != compareKey.blendState)
 		{
 			return blendState < compareKey.blendState;
@@ -723,7 +728,8 @@ namespace SPP
 		
 		const std::vector< VkDynamicState >& InExtraStates)
 	{
-		VulkanPipelineStateKey key{ InBlendState, InRasterizerState, InDepthState, InTopology, InDepthOp,
+		VulkanPipelineStateKey key{ renderPassData.renderPass ? (uintptr_t)renderPassData.renderPass->Get() : 0,
+			InBlendState, InRasterizerState, InDepthState, InTopology, InDepthOp,
 			(uintptr_t)InLayout.get(),
 			(uintptr_t)InVS.get(),
 			(uintptr_t)InPS.get(),

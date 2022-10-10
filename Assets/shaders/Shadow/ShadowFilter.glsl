@@ -10,12 +10,15 @@ layout(std430) buffer;
 
 #include "Common.glsl"
 
+const float ShadowEpsilon = 0.0001f;
+
 layout (set = 2, binding = 0) uniform sampler2D sceneDepth;
 layout (set = 2, binding = 1) uniform sampler2D shadowMap;
 
 layout(push_constant) uniform block
 {
 	mat4 SceneToShadowUV;
+	vec3 PositionShift;
 };
 
 layout (location = 0) in vec4 inPixelPosition;
@@ -26,10 +29,13 @@ layout (location = 0) out float outputColor;
 float textureProj(vec4 shadowCoord, vec2 off)
 {
 	float shadow = 1.0;
-	if ( shadowCoord.z > 0 && shadowCoord.z < 1.0 ) 
+	if ( shadowCoord.z > 0 && 
+		 shadowCoord.z < 1.0 &&
+		 all(lessThanEqual(shadowCoord.xy, vec2(1))) && 
+		 all(greaterThanEqual(shadowCoord.xy, vec2(0))) )
 	{
 		float dist = texture( shadowMap, shadowCoord.xy + off ).r;
-		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
+		if ( shadowCoord.w > 0.0 && (dist + ShadowEpsilon) < shadowCoord.z ) 
 		{
 			shadow = 0;
 		}
@@ -66,10 +72,17 @@ void main()
 	//vec3 cameraRay = normalize(Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix).xyz);	
 
 	float NDCDepth = texture( sceneDepth, inUV ).r;
-	vec4 shadowUV = Multiply( vec4(inPixelPosition.xy, NDCDepth, 1.0), SceneToShadowUV );
+	vec4 shadowUV = Multiply( vec4(inPixelPosition.xy, NDCDepth, 1.0), ViewConstants.InvViewProjectionMatrix );
 	shadowUV /= shadowUV.w;
 
-	float shadow = filterPCF(shadowUV);	
+	shadowUV.xyz = shadowUV.xyz + PositionShift;
+
+	shadowUV = Multiply( shadowUV, SceneToShadowUV );
+	shadowUV /= shadowUV.w;
+
+	shadowUV.xy = (shadowUV.xy * vec2(0.5f, -0.5f)) + vec2(0.5f,0.5f);
+
+	float shadow = textureProj(shadowUV, vec2(0,0));	
 	outputColor = shadow;
 }
 
