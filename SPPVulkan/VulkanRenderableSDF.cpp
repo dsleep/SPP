@@ -72,21 +72,7 @@ namespace SPP
 			_CS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 
-			_PSO = GetVulkanPipelineState(InOwner,
-				owningDevice->GetColorFrameData(),
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Enabled,
-				EDrawingTopology::TriangleList,
-				EDepthOp::Always,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				_CS );
+			_PSO = VulkanPipelineStateBuilder(InOwner).Set(_CS).Build();
 		}
 
 		auto GetPSO()

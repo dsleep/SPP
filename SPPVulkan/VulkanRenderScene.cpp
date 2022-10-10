@@ -462,21 +462,18 @@ namespace SPP
 			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
-		_fullscreenRaySDFPSO = GetVulkanPipelineState(_owner,
-			owningDevice->GetColorFrameData(),
-			EBlendState::Disabled,
-			ERasterizerState::NoCull,
-			EDepthState::Enabled,
-			EDrawingTopology::TriangleStrip,
-			EDepthOp::Always,
-			_fullscreenRayVSLayout,
-			_fullscreenRayVS,
-			_fullscreenRaySDFPS,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr);
+		_fullscreenRaySDFPSO = VulkanPipelineStateBuilder(_owner)
+			.Set(owningDevice->GetColorFrameData())
+			.Set(EBlendState::Disabled)
+			.Set(ERasterizerState::NoCull)
+			.Set(EDepthState::Enabled)
+			.Set(EDrawingTopology::TriangleStrip)
+			.Set(EDepthOp::Always)
+			.Set(_fullscreenRayVSLayout)
+			.Set(_fullscreenRayVS)
+			.Set(_fullscreenRaySDFPS)
+			.Build();
+
 
 
 		//

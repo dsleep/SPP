@@ -77,27 +77,27 @@ namespace SPP
 			_lightShapeLayout = Make_GPU(VulkanInputLayout, InOwner);
 			_lightShapeLayout->InitializeLayout(OP_GetVertexStreams_DeferredLightingShapes());
 
-			_psoSunLight = GetVulkanPipelineState(owningDevice,
-				owningDevice->GetLightingCompositeRenderPass(),
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Disabled,
-				EDrawingTopology::TriangleStrip,
-				EDepthOp::Always,
-				nullptr,
-				_lightFullscreenVS,
-				_lightSunPS);
+			_psoSunLight = VulkanPipelineStateBuilder(owningDevice)
+				.Set(owningDevice->GetLightingCompositeRenderPass())
+				.Set(EBlendState::Disabled)
+				.Set(ERasterizerState::NoCull)
+				.Set(EDepthState::Disabled)
+				.Set(EDrawingTopology::TriangleStrip)
+				.Set(EDepthOp::Always)
+				.Set(_lightFullscreenVS)
+				.Set(_lightSunPS)
+				.Build();
 
-			_psoSkyCube = GetVulkanPipelineState(owningDevice,
-				owningDevice->GetLightingCompositeRenderPass(),
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Disabled,
-				EDrawingTopology::TriangleStrip,
-				EDepthOp::Always,
-				nullptr,
-				_lightFullscreenVS,
-				_skyCubemapPS);
+			_psoSkyCube = VulkanPipelineStateBuilder(owningDevice)
+				.Set(owningDevice->GetLightingCompositeRenderPass())
+				.Set(EBlendState::Disabled)
+				.Set(ERasterizerState::NoCull)
+				.Set(EDepthState::Disabled)
+				.Set(EDrawingTopology::TriangleStrip)
+				.Set(EDepthOp::Always)
+				.Set(_lightFullscreenVS)
+				.Set(_skyCubemapPS)
+				.Build();
 
 			{
 				auto& vsSet = _lightShapeVS->GetLayoutSets();
@@ -182,7 +182,7 @@ namespace SPP
 				auto csGenSpecularBRDF_LUT = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 				csGenSpecularBRDF_LUT->CompileShaderFromFile("shaders/PBRTools/spbrdf_cs.glsl");
 
-				auto psoBRDFLut = GetVulkanPipelineState(owningDevice, csGenSpecularBRDF_LUT);
+				auto psoBRDFLut = VulkanPipelineStateBuilder(owningDevice).Set(csGenSpecularBRDF_LUT).Build();
 
 				auto lutDesc = _specularBRDF_LUT->GetDescriptor();
 

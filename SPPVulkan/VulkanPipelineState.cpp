@@ -82,39 +82,35 @@ namespace SPP
 		_impl->depthOp = InValue;
 		return *this;
 	}
-	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<VulkanShader> InValue)
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<GPUShader> InValue)
 	{
 		_impl->shaderMap[InValue->GetType()] = InValue;
 		return *this;
 	}
-	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<VulkanInputLayout > InValue)
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<class VulkanShader> InValue)
+	{
+		_impl->shaderMap[InValue->GetType()] = InValue;
+		return *this;
+	}
+
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<GPUInputLayout > InValue)
+	{
+		_impl->inputLayout = InValue;
+		return *this;
+	}	
+	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(GPUReferencer<class VulkanInputLayout> InValue)
 	{
 		_impl->inputLayout = InValue;
 		return *this;
 	}
+
 	VulkanPipelineStateBuilder& VulkanPipelineStateBuilder::Set(VkDynamicState InValue)
 	{
 		_impl->dynamicStates.push_back(InValue);
 		return *this;
 	}
 
-	GPUReferencer< VulkanPipelineState > VulkanPipelineStateBuilder::Build()
-	{
-		return GetVulkanPipelineStateWithMap(_owner,
-			_impl->renderPassData,
-
-			_impl->blendState,
-			_impl->rasterizerState,
-			_impl->depthState,
-			_impl->drawingTopology,
-			_impl->depthOp,
-
-			_impl->inputLayout,
-
-			_impl->shaderMap,
-			
-			_impl->dynamicStates);
-	}
+	
 
 
 	VulkanPipelineState::VulkanPipelineState(GraphicsDevice* InOwner) : PipelineState(InOwner)
@@ -706,34 +702,7 @@ namespace SPP
 		return false;
 	}
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
-		struct VkFrameDataContainer& renderPassData,
-
-		EBlendState InBlendState,
-		ERasterizerState InRasterizerState,
-		EDepthState InDepthState,
-		EDrawingTopology InTopology,
-		EDepthOp InDepthOp,
-
-		GPUReferencer< class VulkanInputLayout > InLayout,
-
-		const std::map< EShaderType, GPUReferencer < VulkanShader > >& shaderMap,
-		
-		const std::vector< VkDynamicState > &InExtraStates)
-	{
-		GPUReferencer< VulkanShader > InVS = MapFindOrDefault(shaderMap, EShaderType::Vertex);
-		GPUReferencer< VulkanShader > InPS = MapFindOrDefault(shaderMap, EShaderType::Pixel);
-		GPUReferencer< VulkanShader > InCS = MapFindOrDefault(shaderMap, EShaderType::Compute);
-
-		return GetVulkanPipelineState(InOwner,
-			renderPassData,
-			InBlendState,
-			InRasterizerState,
-			InDepthState,
-			InTopology,
-			InDepthOp,
-			InLayout, InVS, InPS, nullptr, nullptr, nullptr, nullptr, InCS);
-	}
+	
 
 	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
 		VkFrameDataContainer& renderPassData,
@@ -780,32 +749,25 @@ namespace SPP
 		return findKey->second;
 	}
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
-		GPUReferencer< VulkanShader > InCS)
-	{
-		static VkFrameDataContainer dummy = {};
-		return GetVulkanPipelineState(InOwner,
-			dummy,
-			EBlendState::Disabled,
-			ERasterizerState::NoCull,
-			EDepthState::Disabled,
-			EDrawingTopology::TriangleList,
-			EDepthOp::Never,
-			nullptr,nullptr,nullptr, nullptr,nullptr,nullptr,nullptr,
-			InCS);
-	}
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
+		struct VkFrameDataContainer& renderPassData,
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
-		VkFrameDataContainer& renderPassData,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
 		EDepthState InDepthState,
 		EDrawingTopology InTopology,
 		EDepthOp InDepthOp,
-		GPUReferencer< VulkanInputLayout > InLayout,
-		GPUReferencer< VulkanShader > InVS,
-		GPUReferencer< VulkanShader > InPS)
+
+		GPUReferencer< class VulkanInputLayout > InLayout,
+
+		const std::map< EShaderType, GPUReferencer < VulkanShader > >& shaderMap,
+
+		const std::vector< VkDynamicState >& InExtraStates)
 	{
+		GPUReferencer< VulkanShader > InVS = MapFindOrDefault(shaderMap, EShaderType::Vertex);
+		GPUReferencer< VulkanShader > InPS = MapFindOrDefault(shaderMap, EShaderType::Pixel);
+		GPUReferencer< VulkanShader > InCS = MapFindOrDefault(shaderMap, EShaderType::Compute);
+
 		return GetVulkanPipelineState(InOwner,
 			renderPassData,
 			InBlendState,
@@ -813,7 +775,25 @@ namespace SPP
 			InDepthState,
 			InTopology,
 			InDepthOp,
-			InLayout, InVS, InPS, nullptr, nullptr, nullptr, nullptr, nullptr);
+			InLayout, InVS, InPS, nullptr, nullptr, nullptr, nullptr, InCS, InExtraStates);
 	}
 
+
+	GPUReferencer< VulkanPipelineState > VulkanPipelineStateBuilder::Build()
+	{
+		return GetVulkanPipelineStateWithMap(_owner,
+			_impl->renderPassData,
+
+			_impl->blendState,
+			_impl->rasterizerState,
+			_impl->depthState,
+			_impl->drawingTopology,
+			_impl->depthOp,
+
+			_impl->inputLayout,
+
+			_impl->shaderMap,
+
+			_impl->dynamicStates);
+	}
 }

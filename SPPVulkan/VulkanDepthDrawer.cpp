@@ -65,12 +65,12 @@ namespace SPP
 				_depthCullingCSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, layoutSet.front().bindings);
 			}
 
-			_depthCullingPSO = GetVulkanPipelineState(InOwner, _depthCullingCS);
+			_depthCullingPSO = VulkanPipelineStateBuilder(InOwner).Set(_depthCullingCS).Build();
 
 			// DEPTH PYRAMID
 			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
 			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
-			_depthPyramidPSO = GetVulkanPipelineState(InOwner, _depthPyramidCreationCS);
+			_depthPyramidPSO = VulkanPipelineStateBuilder(InOwner).Set(_depthPyramidCreationCS).Build();
 
 			auto& depthPyrCreationCS = _depthPyramidCreationCS->GetLayoutSets();
 			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, depthPyrCreationCS.front().bindings);
@@ -106,29 +106,28 @@ namespace SPP
 			_SMDepthlayout = Make_GPU(VulkanInputLayout, InOwner);
 			_SMDepthlayout->InitializeLayout(Depth_GetVertexStreams_SM());
 
-			_SMDepthPSOInvertedZ = GetVulkanPipelineState(InOwner,
-				owningDevice->GetDepthOnlyFrameData(),
-				EBlendState::Disabled,
-				ERasterizerState::BackFaceCull,
-				EDepthState::Enabled,
-				EDrawingTopology::TriangleList,
-				EDepthOp::GreaterOrEqual,
-				_SMDepthlayout,
-				_depthVS,
-				nullptr);
+			_SMDepthPSOInvertedZ = VulkanPipelineStateBuilder(InOwner)
+				.Set(owningDevice->GetDepthOnlyFrameData())
+				.Set(EBlendState::Disabled)
+				.Set(ERasterizerState::BackFaceCull)
+				.Set(EDepthState::Enabled)
+				.Set(EDrawingTopology::TriangleList)
+				.Set(EDepthOp::GreaterOrEqual)
+				.Set(_SMDepthlayout)
+				.Set(_depthVS)
+				.Build();
 
-			_SMDepthPSO = GetVulkanPipelineState(InOwner,
-				owningDevice->GetDepthOnlyFrameData(),
-				EBlendState::Disabled,
-				ERasterizerState::BackFaceCull,
-				EDepthState::Enabled,
-				EDrawingTopology::TriangleList,
-				EDepthOp::LessOrEqual,
-				_SMDepthlayout,
-				_depthVS,
-				nullptr);
+			_SMDepthPSO = VulkanPipelineStateBuilder(InOwner)
+				.Set(owningDevice->GetDepthOnlyFrameData())
+				.Set(EBlendState::Disabled)
+				.Set(ERasterizerState::BackFaceCull)
+				.Set(EDepthState::Enabled)
+				.Set(EDrawingTopology::TriangleList)
+				.Set(EDepthOp::LessOrEqual)
+				.Set(_SMDepthlayout)
+				.Set(_depthVS)
+				.Build(); 
 		}
-
 
 		auto GetInvertedDepthDrawingPSO()
 		{

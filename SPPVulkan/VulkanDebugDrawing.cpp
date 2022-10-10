@@ -85,21 +85,17 @@ namespace SPP
 
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
 
-			_state = GetVulkanPipelineState(_owner,
-				owningDevice->GetLightingCompositeRenderPass(),
-				EBlendState::Disabled,
-				ERasterizerState::NoCull,
-				EDepthState::Enabled_NoWrites,
-				EDrawingTopology::LineList,
-				EDepthOp::GreaterOrEqual, //inverted z
-				_layout,
-				vsRef,
-				psRef,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				nullptr);
+			_state = VulkanPipelineStateBuilder(_owner)
+				.Set(owningDevice->GetLightingCompositeRenderPass())
+				.Set(EBlendState::Disabled)
+				.Set(ERasterizerState::NoCull)
+				.Set(EDepthState::Enabled_NoWrites)
+				.Set(EDrawingTopology::LineList)
+				.Set(EDepthOp::GreaterOrEqual) //inverted z
+				.Set(_layout)
+				.Set(vsRef)
+				.Set(psRef)
+				.Build();
 
 			_linesResource = std::make_shared<ArrayResource>();
 			_linesResource->InitializeFromType<ColoredLine>(MAX_LINES);

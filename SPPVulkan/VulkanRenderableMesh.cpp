@@ -33,21 +33,17 @@ namespace SPP
 		SE_ASSERT(vsShader && psShader);
 
 		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
-		return GetVulkanPipelineState(_owner,
-			owningDevice->GetDeferredFrameData(),
-			_blendState,
-			_rasterizerState,
-			_depthState,
-			topology,
-			EDepthOp::GreaterOrEqual, //inverted Z
-			layout,
-			vsShader,
-			psShader,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr);
+		return VulkanPipelineStateBuilder(_owner)
+			.Set(owningDevice->GetDeferredFrameData())
+			.Set(_blendState)
+			.Set(_rasterizerState)
+			.Set(_depthState)
+			.Set(topology)
+			.Set(EDepthOp::GreaterOrEqual) //inverted Z
+			.Set(layout)
+			.Set(vsShader)
+			.Set(psShader)
+			.Build();
 	}
 
 	std::shared_ptr< class RT_Material > VulkanGraphicsDevice::CreateMaterial()

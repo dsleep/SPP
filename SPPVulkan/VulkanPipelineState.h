@@ -60,6 +60,8 @@ namespace SPP
 		VulkanPipelineStateBuilder& Set(EDepthState InValue);
 		VulkanPipelineStateBuilder& Set(EDrawingTopology InValue);
 		VulkanPipelineStateBuilder& Set(EDepthOp InValue);
+		VulkanPipelineStateBuilder& Set(GPUReferencer<class GPUShader> InValue);
+		VulkanPipelineStateBuilder& Set(GPUReferencer<class GPUInputLayout> InValue);
 		VulkanPipelineStateBuilder& Set(GPUReferencer<class VulkanShader> InValue);
 		VulkanPipelineStateBuilder& Set(GPUReferencer<class VulkanInputLayout> InValue);
 		VulkanPipelineStateBuilder& Set(VkDynamicState InValue);
@@ -152,53 +154,4 @@ namespace SPP
 			
 			const std::vector< VkDynamicState >& InExtraStates = {});
 	};
-
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
-		struct VkFrameDataContainer& renderPassData,
-
-		EBlendState InBlendState,
-		ERasterizerState InRasterizerState,
-		EDepthState InDepthState,
-		EDrawingTopology InTopology,
-		EDepthOp InDepthOp,
-
-		GPUReferencer< class VulkanInputLayout > InLayout,
-
-		const std::map< EShaderType, GPUReferencer < class VulkanShader > > &shaderMap,
-		const std::vector< VkDynamicState >& InDynStates = {});
-
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner, 
-		struct VkFrameDataContainer& renderPassData,
-		EBlendState InBlendState,
-		ERasterizerState InRasterizerState,
-		EDepthState InDepthState,
-		EDrawingTopology InTopology,
-		EDepthOp InDepthOp,
-
-		GPUReferencer< class VulkanInputLayout > InLayout,
-		GPUReferencer< class VulkanShader > InVS,
-		GPUReferencer< class VulkanShader > InPS,
-		GPUReferencer< class VulkanShader > InMS,
-		GPUReferencer< class VulkanShader > InAS,
-		GPUReferencer< class VulkanShader > InHS,
-		GPUReferencer< class VulkanShader > InDS,
-		GPUReferencer< class VulkanShader > InCS,
-		
-		const std::vector< VkDynamicState > &InDynStates = {});
-
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
-		GPUReferencer< VulkanShader > InCS);
-
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
-		struct VkFrameDataContainer& renderPassData,
-		EBlendState InBlendState,
-		ERasterizerState InRasterizerState,
-		EDepthState InDepthState,
-		EDrawingTopology InTopology,
-		EDepthOp InDepthOp,
-
-		GPUReferencer< VulkanInputLayout > InLayout,
-		GPUReferencer< VulkanShader > InVS,
-		GPUReferencer< VulkanShader > InPS);
-
 }        
