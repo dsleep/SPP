@@ -534,7 +534,7 @@ namespace SPP
 				cascadeSphereCenter += -LightDir.cast<double>() * DistanceToSphereEdge;
 
 				// reinit it
-				orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(0, totalBounds.GetRadius() * 2));
+				orthoCam.Initialize(cascadeSphereCenter, InLight.GetRotation(), Vector2(curRadius, curRadius), Vector2(0, totalBounds.GetRadius() + curRadius));
 
 				Vector3 OutFrustumCorners[8];
 				orthoCam.GetFrustumCorners(OutFrustumCorners);
@@ -619,15 +619,6 @@ namespace SPP
 					vkCmdSetDepthBoundsTestEnable(commandBuffer, VK_TRUE);
 
 					Vector3d camPosition = sceneCam.GetCameraPosition() - orthoCam.GetCameraPosition();
-
-					//Matrix4x4 othoCameraShift = orthoCam.GetViewProjMatrix();
-					//othoCameraShift.block<1, 3>(3, 0) = camPosition.cast<float>();
-					//Matrix4x4{
-					//	{ 1.0f, 0,		0,		0 },
-					//	{ 0,	1.0f,	0,		0 },
-					//	{ 0,	0,		1.0f,	0 },
-					//	{ (float)camPosition[0], (float)camPosition[1], (float)camPosition[2], 1.0f}
-					//};
 
 					Matrix4x4 translationMat = Matrix4x4::Identity();
 					translationMat.block<1, 3>(3, 0) = camPosition.cast<float>();

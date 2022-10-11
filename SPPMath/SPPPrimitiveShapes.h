@@ -416,6 +416,21 @@ namespace SPP
         return Sphere( center, (float)radius );
     }
 
+    inline bool SphereInFrustum(const std::vector<Planed>& InPlanes, const Sphere& InSphere)
+    {
+        const auto &sphereCenter = InSphere.GetCenter();
+        const auto sphereRad = InSphere.GetRadius();
+        for (size_t i = 0; i < InPlanes.size(); i++)
+        {
+            if (InPlanes[i].signedDistance(sphereCenter) < sphereRad)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     template<typename D>
     inline bool BoxInFrustum(const std::vector<Planed>& InPlanes, const AxisAlignedBoundingBox<D> &InBox)
     {
