@@ -620,31 +620,32 @@ namespace SPP
 
 					Vector3d camPosition = sceneCam.GetCameraPosition() - orthoCam.GetCameraPosition();
 
-					Matrix4x4 translationMat = Matrix4x4{
-						{ 1.0f, 0,		0,		0 },
-						{ 0,	1.0f,	0,		0 },
-						{ 0,	0,		1.0f,	0 },
-						{ (float)camPosition[0], (float)camPosition[1], (float)camPosition[2], 1.0f}
-					};
+					//Matrix4x4 othoCameraShift = orthoCam.GetViewProjMatrix();
+					//othoCameraShift.block<1, 3>(3, 0) = camPosition.cast<float>();
+					//Matrix4x4{
+					//	{ 1.0f, 0,		0,		0 },
+					//	{ 0,	1.0f,	0,		0 },
+					//	{ 0,	0,		1.0f,	0 },
+					//	{ (float)camPosition[0], (float)camPosition[1], (float)camPosition[2], 1.0f}
+					//};
+
+					Matrix4x4 translationMat = Matrix4x4::Identity();
+					translationMat.block<1, 3>(3, 0) = camPosition.cast<float>();
 
 					Matrix4x4 NDCToTex = Matrix4x4{
 						{ 0.5f, 0,		0,		0 },
-						{ 0,	0.5f,	0,		0 },
+						{ 0,	-0.5f,	0,		0 },
 						{ 0,	0,		1.0f,	0 },
 						{ 0.5f, 0.5f,	0,		1.0f}
 					};
 
-					Matrix4x4 sceneToShadow = /*sceneCam.GetInvProjectionMatrix() * translationMat * */ orthoCam.GetViewProjMatrix() * NDCToTex;
-
 					struct alignas(16u) ShadowParams
 					{
 						Matrix4x4 sceneToShadow;
-						Vector3 PositionShift;
 					};
 
 					ShadowParams params;
-					params.sceneToShadow = orthoCam.GetViewProjMatrix();// *NDCToTex;
-					params.PositionShift = camPosition.cast<float>();
+					params.sceneToShadow = sceneCam.GetInvViewProjMatrix() * translationMat * orthoCam.GetViewProjMatrix() * NDCToTex;
 
 					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _shadowFilterPSO->GetVkPipeline());
 					vkCmdPushConstants(commandBuffer, _shadowFilterPSO->GetVkPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ShadowParams), &params);

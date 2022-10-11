@@ -18,7 +18,6 @@ layout (set = 2, binding = 1) uniform sampler2D shadowMap;
 layout(push_constant) uniform block
 {
 	mat4 SceneToShadowUV;
-	vec3 PositionShift;
 };
 
 layout (location = 0) in vec4 inPixelPosition;
@@ -72,15 +71,9 @@ void main()
 	//vec3 cameraRay = normalize(Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix).xyz);	
 
 	float NDCDepth = texture( sceneDepth, inUV ).r;
-	vec4 shadowUV = Multiply( vec4(inPixelPosition.xy, NDCDepth, 1.0), ViewConstants.InvViewProjectionMatrix );
+
+	vec4 shadowUV = Multiply( vec4(inPixelPosition.xy, NDCDepth, 1.0), SceneToShadowUV );
 	shadowUV /= shadowUV.w;
-
-	shadowUV.xyz = shadowUV.xyz + PositionShift;
-
-	shadowUV = Multiply( shadowUV, SceneToShadowUV );
-	shadowUV /= shadowUV.w;
-
-	shadowUV.xy = (shadowUV.xy * vec2(0.5f, -0.5f)) + vec2(0.5f,0.5f);
 
 	float shadow = textureProj(shadowUV, vec2(0,0));	
 	outputColor = shadow;
