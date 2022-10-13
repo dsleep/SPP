@@ -147,7 +147,7 @@ namespace SPP
 		transform.block<3, 3>(0, 0) = scaleMatrix * rotationMatrix;
 		transform.block<1, 3>(3, 0) = (bSkipTopTranslation && _parent == _scene) ?
 			Vector3(0, 0, 0) :
-			Vector3(_translation[0], _translation[1], _translation[2]);
+			Vector3((float)_translation[0], (float)_translation[1], (float)_translation[2]);
 
 		if (_parent)
 		{

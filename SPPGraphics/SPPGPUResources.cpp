@@ -158,10 +158,10 @@ namespace SPP
 		_faceData = InTextureAsset.faceData;
 		_bIsSRGB = InTextureAsset.bSRGB;
 
-		_faceCount = _faceData.size();
+		_faceCount = (uint8_t)_faceData.size();
 		if (_faceCount)
 		{
-			_mipLevels = _faceData.front()->mipData.size();
+			_mipLevels = (uint8_t)_faceData.front()->mipData.size();
 		}
 
 		//int32_t Width, int32_t Height, TextureFormat Format

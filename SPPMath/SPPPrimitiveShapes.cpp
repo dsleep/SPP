@@ -12,12 +12,13 @@ namespace SPP
         {
             return Sphere();
         }
-        Vector4 cntPt(_center[0], _center[1], _center[2], 1);
-        Vector4 transformedCnt = cntPt * transformation;
+        Matrix4x4d transformD = transformation.cast<double>();
+        Vector4d cntPt(_center[0], _center[1], _center[2], 1);
+        Vector4d transformedCnt = cntPt * transformD;
         float ScaleX = transformation.block<1, 3>(0, 0).norm();
         float ScaleY = transformation.block<1, 3>(1, 0).norm();
         float ScaleZ = transformation.block<1, 3>(2, 0).norm();
-        return Sphere(transformedCnt.block<1, 3>(0, 0).cast<double>(), _radius * ScaleX);
+        return Sphere(transformedCnt.block<1, 3>(0, 0), _radius * ScaleX);
     }
 
     Sphere Sphere::Transform(const Vector3d& Translate, float Scale) const

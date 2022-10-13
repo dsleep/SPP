@@ -546,7 +546,9 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #endif /* _WIN32_WCE */
 #endif  /* WIN32 */
 #ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <tchar.h>
 #define HAVE_MMAP 1

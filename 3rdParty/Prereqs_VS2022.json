@@ -101,6 +101,10 @@
 		{
 			"Path": "compressonator",
 			"Version": 1
+		},
+		{
+			"Path": "PolyVox",
+			"Version": 1
 		}
 	]
 }

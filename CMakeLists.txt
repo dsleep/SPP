@@ -181,7 +181,8 @@ if(OS_WINDOWS)
 				"SPPPhysX"
 				"SPPXAudio2"
 				"SPPGameEngine"
-				"SPPAnimation" )
+				"SPPAnimation"
+				"SPPVoxel" )
 				
 	if(INCLUE_WEBSERVER)
 		list(APPEND SPPProjects

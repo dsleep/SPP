@@ -434,7 +434,7 @@ namespace SPP
 	void Camera::GetFrustumSpheresForRanges(const std::vector<float>& DepthRanges, 
 		std::vector<Sphere>& OutFrustumSpheres)
 	{
-		float ZToUse = bIsInvertedZ ? 1 : 0;
+		float ZToUse = bIsInvertedZ ? 1.0f : 0.0f;
 
 		std::array< Vector4, 4 > nearPoints = {
 			//near

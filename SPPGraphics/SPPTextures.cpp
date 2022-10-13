@@ -231,9 +231,7 @@ namespace SPP
 
 
 		if (IsKTX || IsKTX2)
-		{
-			KTX_error_code result;
-			
+		{	
 			std::vector<uint8_t> fileData;
 			if (LoadFileToArray(FileName.c_str(), fileData))
 			{
