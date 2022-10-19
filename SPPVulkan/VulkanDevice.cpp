@@ -388,12 +388,16 @@ namespace SPP
 		}
 
 		// enable
-		if (deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) 
+		bool bSparseResidencySupported = deviceFeatures.sparseBinding &&
+			deviceFeatures.sparseResidencyImage2D &&
+			deviceFeatures.sparseResidencyImage3D;
+		if (bSparseResidencySupported)
 		{
 			enabledFeatures.shaderResourceResidency = VK_TRUE;
 			enabledFeatures.shaderResourceMinLod = VK_TRUE;
 			enabledFeatures.sparseBinding = VK_TRUE;
 			enabledFeatures.sparseResidencyImage2D = VK_TRUE;
+			enabledFeatures.sparseResidencyImage3D = VK_TRUE;
 		}
 
 		VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
@@ -407,8 +411,7 @@ namespace SPP
 		vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures2);
 
 		SPP_LOG(LOG_VULKAN, LOG_INFO, "Depth Bounds Test %s", deviceFeatures.depthBounds ? "SUPPORTED" : "NOT SUPPORTED");
-		SPP_LOG(LOG_VULKAN, LOG_INFO, "Sparse Residency %s",
-			(deviceFeatures.sparseBinding && deviceFeatures.sparseResidencyImage2D) ? "SUPPORTED" : "NOT SUPPORTED");
+		SPP_LOG(LOG_VULKAN, LOG_INFO, "Sparse Residency %s", bSparseResidencySupported ? "SUPPORTED" : "NOT SUPPORTED");
 		SPP_LOG(LOG_VULKAN, LOG_INFO, "Boundless Indexing %s",
 			(indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray) ? "SUPPORTED" : "NOT SUPPORTED");
 		SPP_LOG(LOG_VULKAN, LOG_INFO, "Shader Double Support %s", deviceFeatures.shaderFloat64 ? "SUPPORTED" : "NOT SUPPORTED");

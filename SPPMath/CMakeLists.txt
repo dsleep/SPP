@@ -26,6 +26,9 @@ target_sources(SPPMath
 				
 		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.h"
+		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPSparseVirtualizedVoxelOctree.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPSparseVirtualizedVoxelOctree.h"
 		)
 
 target_include_directories(SPPMath 

@@ -16,8 +16,12 @@
     #include <unistd.h>
 #endif
 
+#if PLATFORM_WINDOWS
+	#include <windows.h>
+#endif
+
 #if PLATFORM_MAC
-#include <mach-o/dyld.h>
+	#include <mach-o/dyld.h>
 #endif
 
 SPP_OVERLOAD_ALLOCATORS
@@ -162,6 +166,26 @@ namespace SPP
         chdir(GBinaryPath.c_str());
         
         SPP_LOG(LOG_CORE, LOG_INFO, "InitializeApplicationCore: making sure PWD is binary path %s", GBinaryPath.c_str());
+#elif PLATFORM_WINDOWS
+		GBinaryPath = stdfs::current_path().generic_string();
+
+		SYSTEM_INFO siSysInfo;
+
+		// Copy the hardware information to the SYSTEM_INFO structure. 
+
+		GetSystemInfo(&siSysInfo);
+
+		// Display the contents of the SYSTEM_INFO structure. 
+
+		SPP_LOG(LOG_CORE, LOG_INFO, "Hardware information: ");
+		SPP_LOG(LOG_CORE, LOG_INFO, "  OEM ID: %u", siSysInfo.dwOemId);
+		SPP_LOG(LOG_CORE, LOG_INFO, "  Number of processors: %u",siSysInfo.dwNumberOfProcessors);
+		SPP_LOG(LOG_CORE, LOG_INFO, "  Page size: %u", siSysInfo.dwPageSize);
+		SPP_LOG(LOG_CORE, LOG_INFO, "  Processor type: %u", siSysInfo.dwProcessorType);
+		SPP_LOG(LOG_CORE, LOG_INFO, "  Minimum application address: %lx",siSysInfo.lpMinimumApplicationAddress);
+		SPP_LOG(LOG_CORE, LOG_INFO, "  Maximum application address: %lx",siSysInfo.lpMaximumApplicationAddress);
+		SPP_LOG(LOG_CORE, LOG_INFO, "  Active processor mask: %u",siSysInfo.dwActiveProcessorMask);
+
 #else
         GBinaryPath = stdfs::current_path().generic_string();
 #endif
