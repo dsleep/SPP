@@ -48,6 +48,8 @@
 #include "SPPGarbageCollection.h"
 #include "SPPAnimation.h"
 
+#include "SPPSparseVirtualizedVoxelOctree.h"
+
 #define MAX_LOADSTRING 100
 
 using namespace SPP;
@@ -97,6 +99,8 @@ public:
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
 
+
+		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(250, 250, 64), 0.25f);
 
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
