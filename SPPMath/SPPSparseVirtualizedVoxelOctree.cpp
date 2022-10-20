@@ -31,6 +31,12 @@ namespace SPP
         }
     }
   
+    enum class EValueSet
+    {
+        Set,
+        Increment,
+        Decrement
+    };
 
     struct SVVOLevel
 	{
@@ -39,10 +45,11 @@ namespace SPP
         size_t _dataTypeSize = 0;
         Vector3i _dimensions = {};
         Vector3i _dimensionsPow2 = {};
-		void* _basePtr = nullptr;
+		uint8_t* _basePtr = nullptr;
         std::vector<bool> _pages;
         std::vector<uint16_t> _pageSum;
 
+        size_t _activePages = 0;
         size_t _spatialDivisor = 0;
         size_t _spatialDivisorPow2 = 0;
         bool _bVirtualAlloc = false;
@@ -72,7 +79,7 @@ namespace SPP
             if (_maximumSize < GSystemData.PageSize * 10)
             {
                 _bVirtualAlloc = false;
-                _basePtr = SPP_MALLOC(_maximumSize);
+                _basePtr = (uint8_t*)SPP_MALLOC(_maximumSize);
             }
             else
             {
@@ -89,7 +96,7 @@ namespace SPP
                 _pageSum.resize(pageCount, 0);
 
 #if PLATFORM_WINDOWS
-                _basePtr = VirtualAlloc(
+                _basePtr = (uint8_t*)VirtualAlloc(
                     nullptr,
                     _maximumSize,
                     MEM_RESERVE,
@@ -102,39 +109,80 @@ namespace SPP
             SE_ASSERT(_basePtr);
         }
 
+        size_t ValidatePage(size_t InMemOffset)
+        {
+            auto currentPage = InMemOffset / GSystemData.PageSize;
+
+            if (!_pages[currentPage])
+            {
+                _activePages++;
+#if PLATFORM_WINDOWS
+                auto finalAddr = _basePtr + InMemOffset;
+                auto curAddr = VirtualAlloc(
+                    finalAddr,
+                    GSystemData.PageSize,
+                    MEM_COMMIT,
+                    PAGE_READWRITE
+                );
+                SE_ASSERT(curAddr == finalAddr);
+#endif
+                _pages[currentPage] = true;
+            }
+
+            return currentPage;
+        }
+
         template<typename T>
-        void Set(const Vector3i& InPosition, const T &InValue)
+        bool Setter(const Vector3i& InPosition, T InValue, EValueSet InChange)
         {
             SE_ASSERT(sizeof(T) == _dataTypeSize);
 
-            //TODO spatial grouping!
+            bool bValueChaned = true;
+            bool bIsSet = true;
 
+            //TODO spatial grouping!
             auto memOffset = ( (size_t)InPosition[0] +
                 ((size_t)InPosition[1] >> _dimensionsPow2[0]) +
-                ((size_t)InPosition[2] >> _dimensionsPow2[0] >> _dimensionsPow2[1]) ) * _dataTypeSize;
+                (((size_t)InPosition[2] >> _dimensionsPow2[0]) >> _dimensionsPow2[1]) ) * _dataTypeSize;
+
+            auto setValue = [&]() {
+                T& ourValue = *(T*)(_basePtr + memOffset);
+                switch (InChange)
+                {
+                case EValueSet::Set:
+                {
+                    if (ourValue == InValue) bValueChaned = false;
+                    else ourValue = InValue;
+                }
+                break;
+                case EValueSet::Increment:
+                    ourValue += InValue;
+                    break;
+                case EValueSet::Decrement:
+                    ourValue -= InValue;
+                    break;
+                }
+                bIsSet = (ourValue != 0);
+            };
 
             if (_bVirtualAlloc)
-            {
-                auto currentPage = memOffset / GSystemData.PageSize;
+            {                
+                auto currentPage = ValidatePage(memOffset);
 
-                if (!_pages[currentPage])
+                if (bValueChaned)
                 {
-#if PLATFORM_WINDOWS
-                    auto curAddr = VirtualAlloc(
-                        _basePtr + memOffset,
-                        GSystemData.PageSize,
-                        MEM_COMMIT,
-                        PAGE_READWRITE
-                    );
-                    SE_ASSERT(curAddr == (_basePtr + memOffset));
-#endif
-                    _pages[currentPage] = true;
+                    if (bIsSet) _pageSum[currentPage]++;
+                    else _pageSum[currentPage]--;
                 }
             }
+            // just set it no paging
+            else
+            {
+                setValue();
+            }
 
-            *(T*)(_basePtr + memOffset) = InValue;
+            return bValueChaned;
         }
-
 
         template<typename T>
         T Get(const Vector3i& InPosition)
@@ -143,7 +191,7 @@ namespace SPP
 
             auto memOffset = ((size_t)InPosition[0] +
                 ((size_t)InPosition[1] >> _dimensionsPow2[0]) +
-                ((size_t)InPosition[2] >> _dimensionsPow2[0]) >> _dimensionsPow2[1]) * _dataTypeSize;
+                (((size_t)InPosition[2] >> _dimensionsPow2[0]) >> _dimensionsPow2[1])) * _dataTypeSize;
 
             if (_bVirtualAlloc)
             {                
@@ -160,6 +208,11 @@ namespace SPP
 
         SVVOLevel(SVVOLevel const&) = delete;
         SVVOLevel& operator=(SVVOLevel const&) = delete;
+
+        size_t MemUsed()
+        {
+            return _bVirtualAlloc ? (GSystemData.PageSize * _activePages) : _maximumSize;
+        }
 
         void Free()
         {
@@ -244,16 +297,32 @@ namespace SPP
 
     SparseVirtualizedVoxelOctree::~SparseVirtualizedVoxelOctree()
     {
-
+        
     }
 
     void SparseVirtualizedVoxelOctree::Set(const Vector3i& InPos, uint8_t InValue)
     {
+        // lowest level is a value change
+        if (_levels.front()->Setter<uint8_t>(InPos, InValue, EValueSet::Set))
+        {
+            EValueSet subSet = (InValue != 0) ? EValueSet::Increment : EValueSet::Decrement;
 
+            for (uint32_t Iter = 1; Iter < _levels.size(); Iter++)
+            {
+                Vector3i CurPos = Vector3i{ std::max(1, InPos[0] >> Iter),
+                    std::max(1, InPos[1] >> Iter),
+                    std::max(1, InPos[2] >> Iter)
+                };
+
+                _levels[Iter]->Setter<uint8_t>(CurPos, 1, subSet);
+            }
+        }
+
+        
     }
 
     uint8_t SparseVirtualizedVoxelOctree::Get(const Vector3i& InPos)
     {
-        return 0;
+        return _levels.front()->Get<uint8_t>(InPos);
     }
 }

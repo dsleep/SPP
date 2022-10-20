@@ -116,7 +116,6 @@ public:
 		//	});
 		//gpuCommand.wait();
 
-
 		/////////////SCENE SETUP
 
 		InitializePhysX();
