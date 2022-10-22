@@ -9,38 +9,33 @@ set_target_properties(SPPVulkan PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 add_dependencies(SPPVulkan 
 	SPPEngine
-	SPPGraphics
-	SPPGraphicsO
-	SPPSceneO
-	SPPSDFO )
+	SPPGraphics )
 
 if(DEFINED ENV{VK_SDK_PATH})
 	set(VK_SDK_PATH $ENV{VK_SDK_PATH})
 else()
 	message(FATAL_ERROR "Vulkan SDK env var not found VK_SDK_PATH")
 endif()
-			
+
+set(VULKAN_HEADER_FILES
+	"${CMAKE_CURRENT_LIST_DIR}/SPPVulkan.h"	
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.h"
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.h"
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.h"
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanPipelineState.h"	
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanInitializers.hpp")
+				
+
 target_sources(SPPVulkan
 	PRIVATE			
 		"${CMAKE_CURRENT_LIST_DIR}/SPPVulkan.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPVulkan.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.h"
-		
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.h"		
-		
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanDevice.cpp"			
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanPipelineState.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanPipelineState.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.h"
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.cpp"		
 		
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.h"
-		
-		"${CMAKE_CURRENT_LIST_DIR}/VulkanInitializers.hpp"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanFrameBuffer.hpp"
 		"${CMAKE_CURRENT_LIST_DIR}/VulkanFrameBuffer.cpp"
@@ -102,7 +97,14 @@ target_sources(SPPVulkan
 		
 		"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_tables.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_widgets.cpp"
+
+		${VULKAN_HEADER_FILES}
 		)
+
+target_precompile_headers(SPPVulkan 
+	PRIVATE
+		"$<$<COMPILE_LANGUAGE:CXX>:${VULKAN_HEADER_FILES}>")
+
 
 target_include_directories(SPPVulkan 
 	PUBLIC  	
@@ -122,9 +124,6 @@ target_link_libraries(SPPVulkan
 	PUBLIC
 		SPPEngine
 		SPPGraphics	
-		SPPGraphicsO
-		SPPSceneO
-		SPPSDFO
 		)
 		
 target_link_libraries( SPPVulkan 

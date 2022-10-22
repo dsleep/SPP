@@ -16,8 +16,8 @@
 #include <unordered_set>
 #include "SPPLogging.h"
 #include "SPPSceneRendering.h"
-#include "SPPGraphicsO.h"
-#include "SPPSDFO.h"
+//#include "SPPGraphicsO.h"
+//#include "SPPSDFO.h"
 
 #include "vulkan/vulkan_win32.h"
 

@@ -12,27 +12,29 @@ target_compile_definitions( SPPGraphics
 	PRIVATE
 		SPP_GRAPHICSE_EXPORT=1
 		KHRONOS_STATIC=1)
+
+set(GRAPHICS_HEADER_FILES
+	"${CMAKE_CURRENT_LIST_DIR}/SPPGPUResources.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPGraphics.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPSceneGraph.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPSceneRendering.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPTerrain.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.h" )
 		
 target_sources( SPPGraphics
 	PRIVATE
 			
-		"${CMAKE_CURRENT_LIST_DIR}/SPPGPUResources.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPGPUResources.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPGraphics.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPGraphics.h"
-						
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSceneGraph.h"
-		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPGPUResources.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSceneRendering.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSceneRendering.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPTerrain.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPTerrain.h"
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.h"				
-
+		"${CMAKE_CURRENT_LIST_DIR}/SPPTerrain.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPTextures.cpp"		
+		${GRAPHICS_HEADER_FILES}
 		)
+
+target_precompile_headers(SPPGraphics 
+	PRIVATE
+	"$<$<COMPILE_LANGUAGE:CXX>:${GRAPHICS_HEADER_FILES}>")
 
 target_include_directories( SPPGraphics 
 	PUBLIC  	

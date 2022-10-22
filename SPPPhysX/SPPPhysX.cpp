@@ -913,7 +913,7 @@ namespace SPP
 		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition,
 			const Vector3& InRotationEuler,
 			const Vector3& Extents,
-			OElement* InElement,
+			void* userData,
 			bool bIsDynamic = false) override
 		{
 			auto actorTransform = ToPxTransform(InPosition, InRotationEuler);
@@ -928,7 +928,7 @@ namespace SPP
 			{
 				newPxActor = PxCreateStatic(*gPhysics, actorTransform, Geom, *gMaterial);
 			}
-			newPxActor->userData = InElement;
+			newPxActor->userData = userData;
 			_scene->addActor(*newPxActor);
 
 			return std::make_shared< PhysXPrimitive >(newPxActor);
@@ -957,7 +957,7 @@ namespace SPP
 		}
 
 		virtual std::shared_ptr< PhysicsCharacter > CreateCharacterCapsule(const Vector3& Extents,
-			OElement* InElement) override
+			void* userData ) override
 		{
 			PxCapsuleControllerDesc capsuleDesc;
 
@@ -980,10 +980,11 @@ namespace SPP
 			capsuleDesc.invisibleWallHeight = INVISIBLE_WALLS_HEIGHT;
 			capsuleDesc.maxJumpHeight = MAX_JUMP_HEIGHT;
 
-			auto &elePos = InElement->GetPosition();
-			capsuleDesc.position.x = elePos[0];
-			capsuleDesc.position.y = elePos[1];
-			capsuleDesc.position.z = elePos[2];
+			//TODO FIX ME!!! 
+			//auto &elePos = InElement->GetPosition();
+			//capsuleDesc.position.x = elePos[0];
+			//capsuleDesc.position.y = elePos[1];
+			//capsuleDesc.position.z = elePos[2];
 
 			capsuleDesc.material = gMaterial;
 
@@ -1001,7 +1002,7 @@ namespace SPP
 			//capsuleDesc.behaviorCallback = desc.mBehaviorCallback;
 			//capsuleDesc.volumeGrowth = desc.mVolumeGrowth;
 			//
-			capsuleDesc.userData = InElement;
+			capsuleDesc.userData = userData;
 			PxController* ctrl = _controllerManager->createController(capsuleDesc);
 						
 			return std::make_shared< PhysXCharacter >(ctrl);
@@ -1042,7 +1043,7 @@ namespace SPP
 
 					auto globalPose = rigidActor->getGlobalPose();
 
-					auto curElement = reinterpret_cast<OElement*>(rigidActor->userData);
+					//auto curElement = reinterpret_cast<OElement*>(rigidActor->userData);
 
 					//PxU32 nbShapes = rigidActor->getNbShapes();
 					//for (PxU32 i = 0; i < nbShapes; i++)

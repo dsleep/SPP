@@ -23,53 +23,43 @@ target_compile_definitions(SPPCore
 
 add_dependencies(SPPCore AlwaysCheckGit)
 
+
+set(CORE_HEADER_FILES
+	"${CMAKE_CURRENT_LIST_DIR}/SPPCore.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPSTLUtils.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPReferenceCounter.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.h" 
+	"${CMAKE_CURRENT_LIST_DIR}/SPPGUID.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPSerialization.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPFileSystem.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPSpan.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPJsonUtils.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPString.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPMemory.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPNumberedString.h"
+	"${CMAKE_CURRENT_LIST_DIR}/ThreadPool.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPTiming.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPHandledTimers.h"		
+	"${CMAKE_CURRENT_LIST_DIR}/SPPArrayResource.h"
+    "${CMAKE_CURRENT_LIST_DIR}/SPPPlatformCore.h")
+
 target_sources(SPPCore
 	PRIVATE	
 		"${post_configure_file}"
 
-		"${CMAKE_CURRENT_LIST_DIR}/SPPCore.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPCore.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSTLUtils.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPReferenceCounter.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.h"
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPGUID.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPGUID.h"		
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSerialization.cpp"	
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSerialization.h"		
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPFileSystem.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPFileSystem.h"
-				
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSpan.h"
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonUtils.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonUtils.cpp"
-		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPCore.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPLogging.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPGUID.cpp"			
+		"${CMAKE_CURRENT_LIST_DIR}/SPPSerialization.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPFileSystem.cpp"		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonUtils.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPString.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPString.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMemory.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMemory.h"
-		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPMemory.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNumberedString.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPNumberedString.h"
-
 		"${CMAKE_CURRENT_LIST_DIR}/ThreadPool.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/ThreadPool.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPTiming.h"
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPHandledTimers.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPHandledTimers.h"		
-
-		"${CMAKE_CURRENT_LIST_DIR}/SPPArrayResource.h"
-        "${CMAKE_CURRENT_LIST_DIR}/SPPPlatformCore.h"
-		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPHandledTimers.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPDLMalloc.c"
+
 		"${CMAKE_CURRENT_LIST_DIR}/SPPDLMalloc.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPStackUtils.cpp"
@@ -85,8 +75,15 @@ target_sources(SPPCore
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPBase64.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPBase64.h"
+
+		${CORE_HEADER_FILES}
         )	
 	
+
+target_precompile_headers(SPPCore 
+	PRIVATE
+	"$<$<COMPILE_LANGUAGE:CXX>:${CORE_HEADER_FILES}>")
+
 if(OS_WINDOWS)
 	target_sources(SPPCore
 		PRIVATE	

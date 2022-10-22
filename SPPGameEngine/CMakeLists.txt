@@ -11,15 +11,24 @@ add_dependencies( SPPGameEngine SPPCore SPPObject SPPMath SPPPhysX SPPSceneO SPP
 target_compile_definitions(SPPGameEngine
 	PRIVATE
 		SPP_GAMEENGINE_EXPORT=1)
+
+
+set(GAMEENGINE_HEADER_FILES
+	"${CMAKE_CURRENT_LIST_DIR}/SPPGameEngine.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPJsonEnvironmentImporter.h" )
+		
 				
 target_sources(SPPGameEngine
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPGameEngine.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPGameEngine.h"
-		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonEnvironmentImporter.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPJsonEnvironmentImporter.h"
+		${GAMEENGINE_HEADER_FILES}
 		)
+
+target_precompile_headers(SPPGameEngine 
+	PRIVATE
+	"$<$<COMPILE_LANGUAGE:CXX>:${GRAPHICS_HEADER_FILES}>")
+
  	
 target_link_libraries( SPPGameEngine 
 	PUBLIC

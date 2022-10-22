@@ -12,24 +12,27 @@ add_dependencies( SPPMath SPPCore )
 target_compile_definitions(SPPMath
 	PRIVATE
 		SPP_MATH_EXPORT=1)
-				
+	
+set(MATH_HEADER_FILES
+	"${CMAKE_CURRENT_LIST_DIR}/SPPMath.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.h"
+	"${CMAKE_CURRENT_LIST_DIR}/SPPSparseVirtualizedVoxelOctree.h" )
+
 target_sources(SPPMath
 	PRIVATE
-		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPMath.cpp" 
-		
-		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.h"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.cpp"	
-				
-		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.h"
-				
-		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.h"
-		
+		"${CMAKE_CURRENT_LIST_DIR}/SPPPrimitiveShapes.cpp"					
+		"${CMAKE_CURRENT_LIST_DIR}/SPPCamera.cpp"				
+		"${CMAKE_CURRENT_LIST_DIR}/SPPOctree.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPSparseVirtualizedVoxelOctree.cpp"
-		"${CMAKE_CURRENT_LIST_DIR}/SPPSparseVirtualizedVoxelOctree.h"
+		${MATH_HEADER_FILES}
 		)
+				
+target_precompile_headers(SPPMath 
+	PRIVATE
+	"$<$<COMPILE_LANGUAGE:CXX>:${MATH_HEADER_FILES}>")
 
 target_include_directories(SPPMath 
 	PUBLIC  	

@@ -13,7 +13,7 @@
 #include "VulkanPipelineState.h"
 
 #include "SPPGraphics.h"
-#include "SPPGraphicsO.h"
+//#include "SPPGraphicsO.h"
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"

@@ -7,7 +7,7 @@
 #include "SPPCore.h"
 #include "SPPReferenceCounter.h"
 #include "SPPMath.h"
-#include "SPPSceneO.h"
+//#include "SPPSceneO.h"
 #include <coroutine>
 #include <list>
 
@@ -102,7 +102,7 @@ namespace SPP
 		virtual std::shared_ptr< PhysicsPrimitive > CreateBoxPrimitive(const Vector3d& InPosition, 
 			const Vector3& InRotationEuler,
 			const Vector3& Extents,
-			OElement *eleRef,
+			void *userData,
 			bool bIsDynamic = false) = 0;
 
 		virtual std::shared_ptr< PhysicsPrimitive > CreateTriangleMeshPrimitive(const Vector3d& InPosition,
@@ -111,7 +111,7 @@ namespace SPP
 			std::shared_ptr< PhysicsTriangleMesh > InTriMesh) = 0;
 
 		virtual std::shared_ptr< PhysicsCharacter > CreateCharacterCapsule(const Vector3& Extents,
-			OElement* InElement ) = 0;
+			void* userData ) = 0;
 	};
 
 	class PhysicsAPI

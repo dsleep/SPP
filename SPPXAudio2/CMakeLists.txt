@@ -5,7 +5,7 @@ add_library(SPPXAudio2 SHARED "")
 
 set_target_properties(SPPXAudio2 PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies(SPPXAudio2 SPPCore SPPMath SPPSceneO)
+add_dependencies(SPPXAudio2 SPPMath)
 
 # will need define to not create empty dll export
 target_compile_definitions(SPPXAudio2
@@ -27,9 +27,7 @@ target_include_directories(SPPXAudio2
 			
 target_link_libraries(SPPXAudio2 
 	PUBLIC
-		SPPCore 
 		SPPMath
-		SPPSceneO
 		)
 		
 # target_include_directories(SPPXAudio2 

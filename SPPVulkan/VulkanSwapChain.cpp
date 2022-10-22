@@ -10,6 +10,10 @@
 
 #include "VulkanSwapChain.h"
 
+#if PLATFORM_WINDOWS
+	#include "vulkan/vulkan_win32.h"
+#endif
+
 /** @brief Creates the platform specific surface abstraction of the native platform window used for presentation */	
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 void VulkanSwapChain::initSurface(void* platformHandle, void* platformWindow)

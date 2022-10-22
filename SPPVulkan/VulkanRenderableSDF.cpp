@@ -10,7 +10,7 @@
 #include "VulkanShaders.h"
 #include "VulkanFrameBuffer.hpp"
 
-#include "SPPSDFO.h"
+//#include "SPPSDFO.h"
 
 #include "SPPFileSystem.h"
 #include "SPPSceneRendering.h"
