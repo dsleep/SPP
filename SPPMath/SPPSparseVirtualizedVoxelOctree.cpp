@@ -42,7 +42,9 @@ namespace SPP
 	{
 	private:
         size_t _maximumSize = 0;
+        size_t _pageSize = 0;
         size_t _dataTypeSize = 0;
+        int32_t _spatialCubeExtent = 0;
         Vector3i _dimensions = {};
         Vector3i _dimensionsPow2 = {};
 		uint8_t* _basePtr = nullptr;
@@ -51,7 +53,8 @@ namespace SPP
 
         size_t _activePages = 0;
         size_t _spatialDivisor = 0;
-        size_t _spatialDivisorPow2 = 0;
+        Vector3i _spatialExtents = {};
+
         bool _bVirtualAlloc = false;
 
 	public:
@@ -60,7 +63,7 @@ namespace SPP
             SystemInfoInit();
         }
 
-        void Initialize(const Vector3i &InDimensions, size_t DataTypeSize )
+        void Initialize(const Vector3i &InDimensions, size_t DataTypeSize, size_t DesiredPageSize)
         {
             // power of 2 dimensions
             SE_ASSERT(InDimensions[0] == roundUpToPow2(InDimensions[0]));
@@ -75,8 +78,10 @@ namespace SPP
             _dataTypeSize = DataTypeSize;            
             _maximumSize = (size_t)InDimensions[0] * (size_t)InDimensions[1] * (size_t)InDimensions[2] * DataTypeSize;
 
+            _pageSize = DesiredPageSize ? DesiredPageSize : GSystemData.PageSize;
+
             // less than 10 pages
-            if (_maximumSize < GSystemData.PageSize * 10)
+            if (_maximumSize < _pageSize * 10)
             {
                 _bVirtualAlloc = false;
                 _basePtr = (uint8_t*)SPP_MALLOC(_maximumSize);
@@ -84,16 +89,18 @@ namespace SPP
             else
             {
                 _bVirtualAlloc = true;
-                _maximumSize = RoundUp(_maximumSize, GSystemData.PageSize);
+                
+                _spatialDivisor = (size_t)std::cbrt(_pageSize / DataTypeSize);
+                _spatialCubeExtent = (int32_t)_spatialDivisor;
 
-                //TODO work up spatial changes
-                _spatialDivisor = (size_t)std::cbrt(GSystemData.PageSize / DataTypeSize);
-                _spatialDivisorPow2 = powerOf2(_spatialDivisor);
+                _spatialExtents = (InDimensions + Vector3i(_spatialCubeExtent - 1, _spatialCubeExtent - 1, _spatialCubeExtent - 1)) / _spatialCubeExtent;
 
-                // could be in MB of size for pages
-                auto pageCount = _maximumSize / GSystemData.PageSize;
-                _pages.resize(pageCount, false);
-                _pageSum.resize(pageCount, 0);
+                auto TotalPages = (size_t)_spatialExtents[0] * (size_t)_spatialExtents[1] * (size_t)_spatialExtents[2];
+                                
+                _pages.resize(TotalPages, false);
+                _pageSum.resize(TotalPages, 0);
+
+                _maximumSize = TotalPages * _pageSize;
 
 #if PLATFORM_WINDOWS
                 _basePtr = (uint8_t*)VirtualAlloc(
@@ -120,7 +127,7 @@ namespace SPP
                 auto finalAddr = _basePtr + InMemOffset;
                 auto curAddr = VirtualAlloc(
                     finalAddr,
-                    GSystemData.PageSize,
+                    _pageSize,
                     MEM_COMMIT,
                     PAGE_READWRITE
                 );
@@ -139,6 +146,8 @@ namespace SPP
 
             bool bValueChaned = true;
             bool bIsSet = true;
+
+            Vector3i SpatialCube = InPosition / _spatialCubeExtent;
 
             //TODO spatial grouping!
             auto memOffset = ( (size_t)InPosition[0] +
@@ -260,7 +269,7 @@ namespace SPP
         }
     };
 
-    SparseVirtualizedVoxelOctree::SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize)
+    SparseVirtualizedVoxelOctree::SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize)
     {
         Vector3i Voxels = Vector3i{ roundUpToPow2( (int32_t)std::ceilf(InExtents[0] / VoxelSize) ),
             roundUpToPow2((int32_t)std::ceilf(InExtents[1] / VoxelSize)) ,
@@ -290,7 +299,7 @@ namespace SPP
                 std::max(1, _dimensions[2] >> Iter) 
             };
             
-            _levels[Iter]->Initialize(CurDimensions, 1);
+            _levels[Iter]->Initialize(CurDimensions, 1, DesiredPageSize);
             MaxCombined += (MaxCombined << OnesShift);
         }
     }

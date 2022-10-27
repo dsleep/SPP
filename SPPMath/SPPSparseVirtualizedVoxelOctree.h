@@ -23,7 +23,7 @@ namespace SPP
         Matrix4x4 _worldToOctree;
 
     public:    
-        SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize);
+        SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize = 0);
         ~SparseVirtualizedVoxelOctree();
 
         void Set(const Vector3i &InPos, uint8_t InValue);

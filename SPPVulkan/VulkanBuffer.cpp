@@ -39,6 +39,7 @@ namespace SPP
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(_usageFlags, _size);
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		VK_CHECK_RESULT(vkCreateBuffer(GGlobalVulkanDevice, &bufferCreateInfo, nullptr, &_buffer));
+				
 
 		// Create the memory backing up the buffer handle
 		VkMemoryRequirements memReqs;
@@ -74,6 +75,7 @@ namespace SPP
 		case GPUBufferType::Simple:
 			_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			break;
+		case GPUBufferType::Sparse:
 		case GPUBufferType::Array:
 			_usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 			break;
@@ -91,6 +93,12 @@ namespace SPP
 		// Create the buffer handle
 		VkBufferCreateInfo bufferCreateInfo = vks::initializers::bufferCreateInfo(_usageFlags, _size);
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		if (InType == GPUBufferType::Sparse)
+		{
+			bufferCreateInfo.flags = VK_BUFFER_CREATE_SPARSE_BINDING_BIT | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT;
+		}
+
 		VK_CHECK_RESULT(vkCreateBuffer(GGlobalVulkanDevice, &bufferCreateInfo, nullptr, &_buffer));
 
 		// Create the memory backing up the buffer handle
@@ -99,17 +107,21 @@ namespace SPP
 		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		_alignment = memReqs.alignment;
-		// Find a memory type index that fits the properties of the buffer
-		memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, _memoryPropertyFlags);
-		// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
-		VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
-		VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &_memory));
-		// Attach the memory to the buffer object
-		VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
 
-		if (IsCPUMem)
+		if (InType != GPUBufferType::Sparse)
 		{
-			VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, _memory, 0, _size, 0, (void**)&_CPUAddr));
+			// Find a memory type index that fits the properties of the buffer
+			memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, _memoryPropertyFlags);
+			// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+			VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+			VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &_memory));
+			// Attach the memory to the buffer object
+			VK_CHECK_RESULT(vkBindBufferMemory(GGlobalVulkanDevice, _buffer, _memory, 0));
+
+			if (IsCPUMem)
+			{
+				VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, _memory, 0, _size, 0, (void**)&_CPUAddr));
+			}
 		}
 	}
 

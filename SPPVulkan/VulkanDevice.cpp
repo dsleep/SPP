@@ -389,6 +389,7 @@ namespace SPP
 
 		// enable
 		bool bSparseResidencySupported = deviceFeatures.sparseBinding &&
+			deviceFeatures.sparseResidencyBuffer &&
 			deviceFeatures.sparseResidencyImage2D &&
 			deviceFeatures.sparseResidencyImage3D;
 		if (bSparseResidencySupported)
@@ -396,6 +397,7 @@ namespace SPP
 			enabledFeatures.shaderResourceResidency = VK_TRUE;
 			enabledFeatures.shaderResourceMinLod = VK_TRUE;
 			enabledFeatures.sparseBinding = VK_TRUE;
+			enabledFeatures.sparseResidencyBuffer = VK_TRUE;
 			enabledFeatures.sparseResidencyImage2D = VK_TRUE;
 			enabledFeatures.sparseResidencyImage3D = VK_TRUE;
 		}
@@ -440,7 +442,7 @@ namespace SPP
 		// This is handled by a separate class that gets a logical device representation
 		// and encapsulates functions related to a device
 		vulkanDevice = new vks::VulkanDevice(physicalDevice);
-		VkResult res = vulkanDevice->createLogicalDevice(VkPhysicalDeviceFeatures{},
+		VkResult res = vulkanDevice->createLogicalDevice(enabledFeatures,
 			enabledDeviceExtensions, 
 			nullptr, 
 			true,
@@ -1841,6 +1843,7 @@ namespace vks
 		// If a pNext(Chain) has been passed, we need to add it to the device creation info
 		
 		VkPhysicalDeviceFeatures2 features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		features.features = enabledFeatures;
 		features.features.multiDrawIndirect = true;
 		features.features.pipelineStatisticsQuery = true;
 		features.features.shaderInt16 = true;
@@ -1859,16 +1862,13 @@ namespace vks
 		features12.samplerFilterMinmax = true;
 		features12.scalarBlockLayout = true;
 
-
-
 		//VkPhysicalDeviceRobustness2FeaturesEXT featuresRobust = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
 		//featuresRobust.nullDescriptor = true;
 
 		deviceCreateInfo.pNext = &features;
 		features.pNext = &features11;
 		features11.pNext = &features12;
-		//features12.pNext = &featuresRobust;
-
+		
 		// Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
 		if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
 		{

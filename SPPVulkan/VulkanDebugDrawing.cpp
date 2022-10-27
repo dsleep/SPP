@@ -100,6 +100,8 @@ namespace SPP
 			_linesResource = std::make_shared<ArrayResource>();
 			_linesResource->InitializeFromType<ColoredLine>(MAX_LINES);
 			_lineBuffer = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Vertex, _linesResource);
+
+			auto testB = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Sparse, 1024 * 1024 * 128, false);
 		}
 
 		virtual void Shutdown()

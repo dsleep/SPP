@@ -110,7 +110,8 @@ namespace SPP
         Simple,
         Array,
         Index,
-        Vertex
+        Vertex,
+        Sparse
     };
 
     enum class TextureFormat
