@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+<link rel="stylesheet" href="darktheme.css">
+<style>
+html, body {
+	height: 100%;
+	width: 100%;	
+}
+body {
+	background-image: linear-gradient(to bottom, #000004, #232323 30px, #171717);
+}
+	
+	.insetArea {
+	background: #373737;
+	border-right: thin;
+	}
+	
+/*Popups*/
+/* The popup form - hidden by default */
+.config-popup {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  right: 15px;
+  border: 3px solid #f1f1f1;
+  z-index: 9;
+	padding: 10px;
+}
+
+/* width */
+::-webkit-scrollbar {
+width: 12px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+background: #888;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+background: #f1f1f1;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+background: #555;
+}
+.dropbtn {
+	background-color: #1b1b1b;
+	color: white;
+	padding: 4px;
+	border: none;
+}
+.dropdown {
+	position: relative;
+	display: inline-block;
+	font-size: 12px;
+}
+.dropdown-content {
+	display: none;
+}
+.dropdown-content {
+	display: none;
+	position: absolute;
+	background-color: #1b1b1b;
+	min-width: 120px;
+	box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+	z-index: 1;
+	color: white;
+}
+.dropdown-content a {
+	color: white;
+	padding: 4px;
+	text-decoration: none;
+	display: block;
+}
+.dropdown-content a:hover {
+	background-color: #000;
+}
+.dropdown:hover .dropdown-content {
+	display: block;
+}
+.dropdown:hover .dropbtn {
+	background-color: #000;
+}
+a {
+	color: white;
+	text-decoration: none;
+}
+a:hover {
+	color: white;
+}
+.nav a {
+	color: white;
+}
+#menuArea {
+	display: inline-block;
+	width: 100%;
+	border-bottom: thin solid #3C3C3C;
+}
+#isLan {
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+}
+.ListAndStatusArea {
+	flex: 1 1 auto;
+	display: flex;
+	flex-wrap: nowrap;
+	align-content: stretch;
+	align-items: stretch;
+	flex-direction: column;
+}
+p {
+	line-height: 1;
+	margin: 0;
+	padding: 4px;
+}
+	
+
+/* CSS */
+button {
+  align-items: center;
+  padding: 6px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  border-radius: 6px;
+  border: none;
+
+  background: #6E6D70;
+  box-shadow: 0px 0.5px 1px rgba(0, 0, 0, 0.1), inset 0px 0.5px 0.5px rgba(255, 255, 255, 0.5), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.12);
+  color: #DFDEDF;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+button:active {
+  box-shadow: inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2), 0px 0.5px 1px rgba(0, 0, 0, 0.1), 0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
+  outline: 0;
+}
+	
+</style>
+<meta charset="utf-8">
+<title>SPP Remote Desktop</title>
+<link href="../fontawesome/css/fontawesome.css" rel="stylesheet">
+<link href="../fontawesome/css/brands.css" rel="stylesheet">
+<link href="../fontawesome/css/solid.css" rel="stylesheet">
+</head>
+<body>
+  <div id="isLan"> 
+		Local Network Only <input type="checkbox" id="CB_Lan">
+	  </div>
+<div id="CoordinatorConfig" class="config-popup">
+  <form action="" class="form-container">
+    <h1>Configuration</h1>
+    <label for="cordaddr"><b>Coordinator Address</b></label>
+    <input type="text" placeholder="" name="cordaddr" required>
+    <br>
+    <label for="cordpwd"><b>Coordinator Password</b></label>
+    <input type="password" placeholder="" name="cordpwd" required>
+    <br>
+    <button type="submit" class="btn" onclick="javascript:closeCoordConfig(true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeCoordConfig(false)">Cancel</button>
+  </form>
+</div>
+	
+<div id="STUNConfig" class="config-popup">
+  <form action="" class="form-container">
+    <h1>Configuration</h1>
+    <label for="stunaddr"><b>STUN Address</b></label>
+    <input type="text" placeholder="" name="stunaddr" required>
+    <br>
+    <button type="submit" class="btn" onclick="javascript:closeStunConfig(true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeStunConfig(false)">Cancel</button>
+  </form>
+</div>
+	
+<div id="mainArea" >
+  <div id="menuArea"> 
+    <div class="dropdown">
+      <button class="dropbtn">File</button>
+      <div class="dropdown-content"> <a href="javascript:ButtonClick('Exit');">Exit</a> </div>
+    </div>
+    <div class="dropdown">
+      <button class="dropbtn">Help</button>
+      <div class="dropdown-content"> <a href="javascript:ButtonClick('GIT');">GIT Repository</a> <a href="javascript:ButtonClick('About');">About</a> </div>
+    </div>
+  </div>
+	<div >
+		<p>
+    <div class="flex-container">
+      	<button id="coordBtn" ><div><i class="fa-solid fa-power-off" style="color:red" id="CoordSignal"></i> Coordinator</div></button> 
+		<button><div><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div></button> 
+		<button><div>Remote Host</div></button> 
+    </div>
+		</p>
+  </div>
+	
+  <div id="serverBrowser">
+      <h2>Select server </h2>
+    <div id="serverList" class="insetArea" style="overflow-y: scroll; min-height: 100px"> 
+      
+      <!--
+			<a href="#">
+			<div id="currentDesktop"  >
+			 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop
+			</div>
+			</a>
+			 --> 
+    </div>
+  </div>
+  <div id="serverStatus" class="ListAndStatusArea" >
+    <h2>Server Status:</h2>
+    <div class="childListAndArea">
+      <div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red" id="clientConnected"></i>
+        <div id="serverText" style="display: inline-block;">NO CLIENT</div>
+      </div>
+    </div>
+  </div>
+  <div id="connectionInfo" class="ListAndStatusArea" style="display: none; background-color: black;  z-index: 1;" >
+    <div style="flex: 0; ">
+      <h2>Connection: </h2>
+    </div>
+    <div class="childListAndArea" style="overflow-y: scroll;">
+      <p>Status: <span id="ConnectionStatus">Pending...</span></p>
+		<p><span id="ConnectionType">Host: </span><span id="ConnectionName">UNKNOWN</span></p>
+      <p>Outgoing Bandwidth: <span id="BandwidthOut">0 kb/s</span></p>
+      <p>Incoming Bandwidth: <span id="BandwidthIn">0 kb/s</span></p>
+      <p>Latency Options:
+        <select name="cars" id="cars">
+          <option value="volvo">Favor Speed</option>
+          <option value="saab">Split Favor</option>
+          <option value="opel">Favor Quality</option>
+        </select>
+      </p>
+      <button onclick="javascript:Disconnect();">Disconnect</button>
+    </div>
+  </div>
+  
+</div>
+<script>	
+	
+	
+		function openCoordConfig() {
+			console.log("clickcoord");
+  document.getElementById("CoordinatorConfig").style.display = "block";
+}
+
+function closeCoordConfig(InAccepted) {
+  document.getElementById("CoordinatorConfig").style.display = "none";
+}
+	
+	function openSTUNConfig() {
+  document.getElementById("STUNConfig").style.display = "block";
+}
+
+function closeStunConfig() {
+  document.getElementById("STUNConfig").style.display = "none";
+}
+	
+	console.log("asfasdf");
+	document.getElementById("coordBtn").addEventListener("click", openCoordConfig);
+	document.getElementById("stunSection").addEventListener("click", openSTUNConfig);
+
+	
+	
+	</script>
+</body>
+</html>
