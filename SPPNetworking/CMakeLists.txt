@@ -37,7 +37,11 @@ target_sources(SPPNetworking
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNatTraversal.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/SPPNetworkConnection.h"
-		
+
+		#REVISTS COULD BE USEFUL
+		#"${CMAKE_CURRENT_LIST_DIR}/STUN/stun.h"
+		#"${CMAKE_CURRENT_LIST_DIR}/STUN/stun.cpp"
+				
 		"${EXTRA_SOURCE}"
 		)
 

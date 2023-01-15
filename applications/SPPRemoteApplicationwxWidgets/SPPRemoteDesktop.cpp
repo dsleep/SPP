@@ -25,6 +25,7 @@
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
 
+#include "SPPHandledTimers.h"
 #include "SPPMemory.h"
 #include "SPPReflection.h"
 
@@ -37,6 +38,10 @@
 
 #include "SPPPlatformCore.h"
 
+#include "SPPNetworkConnection.h"
+#include "SPPNetworkMessenger.h"
+#include "SPPNatTraversal.h"
+
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace std::chrono_literals;
@@ -44,6 +49,10 @@ using namespace SPP;
 
 #include <shellapi.h>
 
+
+LogEntry LOG_RD("RemoteDesktop");
+
+std::unique_ptr< std::thread > GMainThread;
 std::unique_ptr< std::thread > GWorkerThread;
 uint32_t GProcessID = 0;
 std::string GIPCMemoryID;
@@ -112,6 +121,104 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 		if (!GWorkerThread)GWorkerThread.reset(new std::thread(ClientThread, IsLanOnly));
 	}
 
+}
+
+struct LANConfiguration
+{
+	uint16_t port;
+};
+
+struct CoordinatorConfiguration
+{
+	IPv4_SocketAddress addr;
+	std::string pwd;
+};
+
+struct STUNConfiguration
+{
+	std::string addr = "stun.l.google.com";
+	uint16_t port = 19302;
+};
+
+struct APPConfig
+{
+	LANConfiguration lan;
+	CoordinatorConfiguration coord;
+	STUNConfiguration stun;
+};
+
+struct RemoteClient
+{
+	std::chrono::steady_clock::time_point LastUpdate;
+	std::string Name;
+	std::string AppName;
+	std::string AppCL;
+};
+
+APPConfig GAppConfig;
+
+void MainThread()
+{
+	auto ThisRUNGUID = std::generate_hex(3);
+
+	std::map<std::string, RemoteClient> Hosts;
+
+	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr);
+	std::unique_ptr<UDPSocket> broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
+	std::unique_ptr<UDPJuiceSocket> juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+
+	coordinator->SetPassword(GAppConfig.coord.pwd);
+	coordinator->SetKeyPair("GUID", ThisRUNGUID);
+	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
+	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+
+	//CHECK BROADCASTS
+	std::vector<uint8_t> BufferRead;
+	BufferRead.resize(std::numeric_limits<uint16_t>::max());
+
+	TimerController mainController(16ms);
+
+	mainController.AddTimer(100ms, true, [&]()
+		{
+			IPv4_SocketAddress recvAddr;
+			int32_t DataRecv = 0;
+			while ((DataRecv = broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
+			{
+				//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
+				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
+				IPv4_SocketAddress hostPort(HostString.c_str());
+
+				recvAddr.Port = hostPort.Port;
+				auto realAddrOfConnection = recvAddr.ToString();
+
+				Hosts[realAddrOfConnection] = RemoteClient{
+					std::chrono::steady_clock::now(),
+					realAddrOfConnection,
+					std::string(""),
+					std::string("")
+				};
+			}
+		});
+
+	//ICE/STUN management
+	mainController.AddTimer(100ms, true, [&]()
+		{
+			if (juiceSocket->IsReady())
+			{
+				coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
+			}
+			//if (juiceSocket->HasProblem())
+			//{
+			//	juiceSocket = std::make_unique<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+			//	SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
+			//}
+			//else if (juiceSocket->IsConnected())
+			//{
+
+			//}
+		});
+
+	mainController.Run();
 }
 
 /// <summary>
@@ -320,6 +427,15 @@ void ClientThread(bool bLanOnly)
 /// </summary>
 void StopThread()
 {
+	if (GMainThread)
+	{
+		if (GMainThread->joinable())
+		{
+			GMainThread->join();
+		}
+		GMainThread.reset();		
+	}
+
 	if (GWorkerThread)
 	{
 		CloseChild(GProcessID);
@@ -356,12 +472,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// setup global asset path
 	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
 	
+	GMainThread.reset(new std::thread(MainThread));
+
 	{
 		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;
 
 		std::thread runCEF([hInstance, &jsFuncRecv]()
 		{
-			SPP::RunBrowser(hInstance, "http://spp/assets/web/remotedesktop/index.html", {}, {}, false, &jsFuncRecv);
+			SPP::RunBrowser(hInstance, "http://spp/assets/web/remotedesktop/indexV2.html", {}, {}, false, &jsFuncRecv);
 		});
 
 		runCEF.join();

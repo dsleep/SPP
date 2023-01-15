@@ -48,9 +48,16 @@ namespace SPP
 			return (UIPAddr.IPAddr != 0 && Port != 0);
 		}
 
-		std::string ToString() const
+		std::string ToString(bool bWithPort = true) const
 		{
-			return std::string_format("%d.%d.%d.%d:%d", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4, Port);
+			if (bWithPort)
+			{
+				return std::string_format("%d.%d.%d.%d:%d", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4, Port);
+			}
+			else
+			{
+				return std::string_format("%d.%d.%d.%d", UIPAddr.Addr1, UIPAddr.Addr2, UIPAddr.Addr3, UIPAddr.Addr4);
+			}			
 		}
 
 		bool operator==(const IPv4_SocketAddress &InCompare) const

@@ -389,6 +389,8 @@ namespace SPP
 
 	struct UDPJuiceSocket::PlatImpl
 	{
+		std::string cachedAddr;
+
 		juice_agent_t* agent = nullptr;
 		juice_config_t config = { 0 };
 		std::atomic_bool bDoneGathering = false;
@@ -443,9 +445,31 @@ namespace SPP
 		juiceSocket->INTERNAL_DataRecv(data, size);
 	}
 
+	UDPJuiceSocket::UDPJuiceSocket(const IPv4_SocketAddress& InRemoteAddr) : _impl(new PlatImpl())
+	{
+		_impl->cachedAddr = InRemoteAddr.ToString(false);
+
+		_impl->config.stun_server_host = _impl->cachedAddr.c_str();
+		_impl->config.stun_server_port = InRemoteAddr.Port;
+		_impl->config.turn_servers_count = 0;
+
+		_impl->config.cb_state_changed = on_state_changed;
+		_impl->config.cb_candidate = on_candidate;
+		_impl->config.cb_gathering_done = on_gathering_done;
+		_impl->config.cb_recv = on_recv;
+		_impl->config.user_ptr = this;
+
+		_impl->agent = juice_create(&_impl->config);
+
+		juice_get_local_description(_impl->agent, _impl->sdp, JUICE_MAX_SDP_STRING_LEN);
+		juice_gather_candidates(_impl->agent);
+	}
+
 	UDPJuiceSocket::UDPJuiceSocket(const char* Addr, uint16_t InPort) : _impl(new PlatImpl())
 	{
-		_impl->config.stun_server_host = Addr;
+		_impl->cachedAddr = Addr;
+
+		_impl->config.stun_server_host = _impl->cachedAddr.c_str();
 		_impl->config.stun_server_port = InPort;
 		_impl->config.turn_servers_count = 0;
 
@@ -586,6 +610,35 @@ namespace SPP
 		}
 	}
 
+	////////////////////
+
+	struct UDPStunServer::PlatImpl
+	{
+		std::unique_ptr<UDPSocket> serverSocket;
+	};
+
+	UDPStunServer::UDPStunServer(uint16_t InPort) : _impl(new PlatImpl())
+	{
+		_impl->serverSocket = std::make_unique<UDPSocket>(InPort);
+	}
+
+	UDPStunServer::~UDPStunServer()
+	{
+
+	}
+
+	void UDPStunServer::Update()
+	{
+		std::vector<uint8_t> BufferRead;
+		BufferRead.resize(std::numeric_limits<uint16_t>::max());
+
+		IPv4_SocketAddress recvAddr;
+		int32_t DataRecv = 0;
+		while ((DataRecv = _impl->serverSocket->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
+		{
+			
+		}
+	}
 }
 	
 

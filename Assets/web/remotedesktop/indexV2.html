@@ -6,7 +6,9 @@
 <style>
 html, body {
 	height: 100%;
-	width: 100%;	
+	width: 100%;
+	 margin: 0;
+    padding: 0;
 }
 body {
 	background-image: linear-gradient(to bottom, #000004, #232323 30px, #171717);
@@ -21,10 +23,12 @@ body {
 /* The popup form - hidden by default */
 .config-popup {
   display: none;
-  position: fixed;
-  bottom: 0;
-  right: 15px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   border: 3px solid #f1f1f1;
+	background: #242424;
+	transform: translate(-50%, -50%);
   z-index: 9;
 	padding: 10px;
 }
@@ -96,6 +100,9 @@ a:hover {
 .nav a {
 	color: white;
 }
+	#mainArea {
+		margin: 10px
+	}
 #menuArea {
 	display: inline-block;
 	width: 100%;
@@ -120,6 +127,9 @@ p {
 	padding: 4px;
 }
 	
+	h3 {
+		background: #2B2B2B
+	}
 
 /* CSS */
 button {
@@ -150,12 +160,14 @@ button:active {
 <link href="../fontawesome/css/solid.css" rel="stylesheet">
 </head>
 <body>
-  <div id="isLan"> 
+  
+	<div id="isLan"> 
 		Local Network Only <input type="checkbox" id="CB_Lan">
 	  </div>
+	
 <div id="CoordinatorConfig" class="config-popup">
   <form action="" class="form-container">
-    <h1>Configuration</h1>
+    <h3>Coordinator Configuration</h3>
     <label for="cordaddr"><b>Coordinator Address</b></label>
     <input type="text" placeholder="" name="cordaddr" required>
     <br>
@@ -169,7 +181,7 @@ button:active {
 	
 <div id="STUNConfig" class="config-popup">
   <form action="" class="form-container">
-    <h1>Configuration</h1>
+    <h2>STUN Configuration</h2>
     <label for="stunaddr"><b>STUN Address</b></label>
     <input type="text" placeholder="" name="stunaddr" required>
     <br>
@@ -178,8 +190,30 @@ button:active {
   </form>
 </div>
 	
-<div id="mainArea" >
-  <div id="menuArea"> 
+	<div id="RemoteControlConfig" class="config-popup" >
+  <form action="" class="form-container">
+    <h2>Remote Control Configuration</h2>
+	  <div>Active<input type="checkbox" id="CB_Remote"></div>
+	  <div>Allow Input<input type="checkbox" id="CB_AllowInput"></div>	  
+    <br>
+    <button type="submit" class="btn" onclick="javascript:closeStunConfig(true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeStunConfig(false)">Cancel</button>
+  </form>
+</div>
+	
+	<div id="LanConfig" class="config-popup">
+  <form action="" class="form-container">
+    <p style="border-bottom: thin solid #646464;"><b>LAN Configuration</b></p>
+    <label for="stunaddr">Broadcast Port</label>
+    <input type="text" placeholder="" name="broadcastport" required>
+	  <br>
+    <br>
+    <button type="submit" class="btn" onclick="javascript:closeStunConfig(true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeStunConfig(false)">Cancel</button>
+  </form>
+</div>
+	
+	<div id="menuArea"> 
     <div class="dropdown">
       <button class="dropbtn">File</button>
       <div class="dropdown-content"> <a href="javascript:ButtonClick('Exit');">Exit</a> </div>
@@ -189,19 +223,25 @@ button:active {
       <div class="dropdown-content"> <a href="javascript:ButtonClick('GIT');">GIT Repository</a> <a href="javascript:ButtonClick('About');">About</a> </div>
     </div>
   </div>
+	
+	
+	
+<div id="mainArea"  >
+  
 	<div >
 		<p>
     <div class="flex-container">
       	<button id="coordBtn" ><div><i class="fa-solid fa-power-off" style="color:red" id="CoordSignal"></i> Coordinator</div></button> 
-		<button><div><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div></button> 
-		<button><div>Remote Host</div></button> 
+		<button id="STUNBtn"><div><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div></button> 
+		<button id="remoteBtn"><div><i class="fa-solid fa-power-off" style="color:red" id="RemoteSignal"></i> Remote Control</div></button> 
+		<button id="lanBtn"><div>Lan Broadcasting</div></button> 
     </div>
 		</p>
   </div>
 	
   <div id="serverBrowser">
       <h2>Select server </h2>
-    <div id="serverList" class="insetArea" style="overflow-y: scroll; min-height: 100px"> 
+    <div id="serverList" class="insetArea" style="overflow-y: scroll; min-height: 150px "> 
       
       <!--
 			<a href="#">
@@ -244,26 +284,26 @@ button:active {
 <script>	
 	
 	
-		function openCoordConfig() {
-			console.log("clickcoord");
-  document.getElementById("CoordinatorConfig").style.display = "block";
+		function openConfig(InName) {			
+  document.getElementById(InName).style.display = "block";
 }
 
-function closeCoordConfig(InAccepted) {
-  document.getElementById("CoordinatorConfig").style.display = "none";
+function closeConfig(InName, InAccepted) {
+  document.getElementById(InName).style.display = "none";
 }
-	
-	function openSTUNConfig() {
-  document.getElementById("STUNConfig").style.display = "block";
-}
-
-function closeStunConfig() {
-  document.getElementById("STUNConfig").style.display = "none";
-}
-	
-	console.log("asfasdf");
-	document.getElementById("coordBtn").addEventListener("click", openCoordConfig);
-	document.getElementById("stunSection").addEventListener("click", openSTUNConfig);
+		
+	document.getElementById("coordBtn").addEventListener("click", function() {
+		openConfig("CoordinatorConfig");
+	} );
+	document.getElementById("STUNBtn").addEventListener("click",  function() {
+		openConfig("STUNConfig");
+	} );
+	document.getElementById("remoteBtn").addEventListener("click",  function() {
+		openConfig("RemoteControlConfig");
+	} );
+	document.getElementById("lanBtn").addEventListener("click",  function() {
+		openConfig("LanConfig");
+	} );
 
 	
 	

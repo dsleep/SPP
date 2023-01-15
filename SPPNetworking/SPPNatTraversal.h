@@ -37,8 +37,9 @@ namespace SPP
 	private:
 		struct PlatImpl;
 		std::unique_ptr<PlatImpl> _impl;
-
+		
 	public:
+		UDPJuiceSocket(const IPv4_SocketAddress& InRemoteAddr);
 		UDPJuiceSocket(const char *Addr, uint16_t InPort);
 
 		void INTERNAL_DataRecv(const char* data, size_t size);
@@ -59,5 +60,19 @@ namespace SPP
 		virtual int32_t Receive(void* buf, uint16_t InBufferSize) override;
 
 		virtual ~UDPJuiceSocket();
+	};
+
+	//NOT WORKING, STARTED WITH THE STUN FILES...
+	class SPP_NETWORKING_API UDPStunServer 
+	{
+	private:
+		struct PlatImpl;
+		std::unique_ptr<PlatImpl> _impl;
+
+	public:
+		UDPStunServer(uint16_t InPort);
+		virtual ~UDPStunServer();
+
+		void Update();
 	};
 }
