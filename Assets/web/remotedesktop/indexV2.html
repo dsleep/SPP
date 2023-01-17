@@ -7,29 +7,27 @@
 html, body {
 	height: 100%;
 	width: 100%;
-	 margin: 0;
-    padding: 0;
+	margin: 0;
+	padding: 0;
 }
 body {
 	background-image: linear-gradient(to bottom, #000004, #232323 30px, #171717);
 }
-	
-	.insetArea {
+.insetArea {
 	background: #373737;
 	border-right: thin;
-	}
-	
+}
 /*Popups*/
 /* The popup form - hidden by default */
 .config-popup {
-  display: none;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  border: 3px solid #f1f1f1;
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	border: 3px solid #f1f1f1;
 	background: #242424;
 	transform: translate(-50%, -50%);
-  z-index: 9;
+	z-index: 9;
 	padding: 10px;
 }
 
@@ -100,9 +98,9 @@ a:hover {
 .nav a {
 	color: white;
 }
-	#mainArea {
-		margin: 10px
-	}
+#mainArea {
+	margin: 10px
+}
 #menuArea {
 	display: inline-block;
 	width: 100%;
@@ -126,32 +124,27 @@ p {
 	margin: 0;
 	padding: 4px;
 }
-	
-	h3 {
-		background: #2B2B2B
-	}
-
+h3 {
+	background: #2B2B2B
+}
 /* CSS */
 button {
-  align-items: center;
-  padding: 6px 14px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-  border-radius: 6px;
-  border: none;
-
-  background: #6E6D70;
-  box-shadow: 0px 0.5px 1px rgba(0, 0, 0, 0.1), inset 0px 0.5px 0.5px rgba(255, 255, 255, 0.5), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.12);
-  color: #DFDEDF;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
+	align-items: center;
+	padding: 6px 14px;
+	font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+	border-radius: 6px;
+	border: none;
+	background: #6E6D70;
+	box-shadow: 0px 0.5px 1px rgba(0, 0, 0, 0.1), inset 0px 0.5px 0.5px rgba(255, 255, 255, 0.5), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.12);
+	color: #DFDEDF;
+	user-select: none;
+	-webkit-user-select: none;
+	touch-action: manipulation;
 }
-
 button:active {
-  box-shadow: inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2), 0px 0.5px 1px rgba(0, 0, 0, 0.1), 0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
-  outline: 0;
+	box-shadow: inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2), 0px 0.5px 1px rgba(0, 0, 0, 0.1), 0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
+	outline: 0;
 }
-	
 </style>
 <meta charset="utf-8">
 <title>SPP Remote Desktop</title>
@@ -160,87 +153,87 @@ button:active {
 <link href="../fontawesome/css/solid.css" rel="stylesheet">
 </head>
 <body>
-  
-	<div id="isLan"> 
-		Local Network Only <input type="checkbox" id="CB_Lan">
-	  </div>
-	
+<div id="isLan"> Local Network Only
+  <input type="checkbox" id="CB_Lan">
+</div>
 <div id="CoordinatorConfig" class="config-popup">
   <form action="" class="form-container">
-    <h3>Coordinator Configuration</h3>
-    <label for="cordaddr"><b>Coordinator Address</b></label>
+    <p style="border-bottom: thin solid #646464;"><b>Coordinator Configuration</b></p>
+    <label for="cordaddr">Coordinator Address</label>
     <input type="text" placeholder="" name="cordaddr" required>
     <br>
-    <label for="cordpwd"><b>Coordinator Password</b></label>
+    <label for="cordpwd">Coordinator Password</label>
     <input type="password" placeholder="" name="cordpwd" required>
-    <br>
-    <button type="submit" class="btn" onclick="javascript:closeCoordConfig(true)">Accept</button>
-    <button type="button" class="btn cancel" onclick="javascript:closeCoordConfig(false)">Cancel</button>
+    <br><br>
+    <button type="submit" class="btn" onclick="javascript:closeConfig('CoordinatorConfig',true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeConfig('CoordinatorConfig',false)">Cancel</button>
   </form>
 </div>
-	
 <div id="STUNConfig" class="config-popup">
   <form action="" class="form-container">
-    <h2>STUN Configuration</h2>
-    <label for="stunaddr"><b>STUN Address</b></label>
+    <p style="border-bottom: thin solid #646464;"><b>STUN Configuration</b></p>
+    <label for="stunaddr">STUN Address</label>
     <input type="text" placeholder="" name="stunaddr" required>
-    <br>
-    <button type="submit" class="btn" onclick="javascript:closeStunConfig(true)">Accept</button>
-    <button type="button" class="btn cancel" onclick="javascript:closeStunConfig(false)">Cancel</button>
+    <br><br>
+    <button type="submit" class="btn" onclick="javascript:closeConfig('STUNConfig',true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeConfig('STUNConfig',false)">Cancel</button>
   </form>
 </div>
-	
-	<div id="RemoteControlConfig" class="config-popup" >
+<div id="RemoteControlConfig" class="config-popup" >
   <form action="" class="form-container">
-    <h2>Remote Control Configuration</h2>
-	  <div>Active<input type="checkbox" id="CB_Remote"></div>
-	  <div>Allow Input<input type="checkbox" id="CB_AllowInput"></div>	  
-    <br>
-    <button type="submit" class="btn" onclick="javascript:closeStunConfig(true)">Accept</button>
-    <button type="button" class="btn cancel" onclick="javascript:closeStunConfig(false)">Cancel</button>
+    <p style="border-bottom: thin solid #646464;"><b>Remote Control Configuration</b></p>
+    <div>Active
+      <input name="Enable Remote Access" type="checkbox" id="CB_Remote">
+    </div>
+    <div>Allow Input
+      <input name="Allow Remote Control" type="checkbox" id="CB_AllowInput">
+    </div>
+    <br> <br>
+    <button type="submit" class="btn" onclick="javascript:closeConfig('RemoteControlConfig',true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeConfig('RemoteControlConfig',false)">Cancel</button>
   </form>
 </div>
-	
-	<div id="LanConfig" class="config-popup">
+<div id="LanConfig" class="config-popup">
   <form action="" class="form-container">
     <p style="border-bottom: thin solid #646464;"><b>LAN Configuration</b></p>
     <label for="stunaddr">Broadcast Port</label>
     <input type="text" placeholder="" name="broadcastport" required>
-	  <br>
-    <br>
-    <button type="submit" class="btn" onclick="javascript:closeStunConfig(true)">Accept</button>
-    <button type="button" class="btn cancel" onclick="javascript:closeStunConfig(false)">Cancel</button>
+    <br><br>
+    <button type="submit" class="btn" onclick="javascript:closeConfig('LanConfig',true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeConfig('LanConfig',false)">Cancel</button>
   </form>
 </div>
-	
-	<div id="menuArea"> 
-    <div class="dropdown">
-      <button class="dropbtn">File</button>
-      <div class="dropdown-content"> <a href="javascript:ButtonClick('Exit');">Exit</a> </div>
-    </div>
-    <div class="dropdown">
-      <button class="dropbtn">Help</button>
-      <div class="dropdown-content"> <a href="javascript:ButtonClick('GIT');">GIT Repository</a> <a href="javascript:ButtonClick('About');">About</a> </div>
-    </div>
+<div id="menuArea">
+  <div class="dropdown">
+    <button class="dropbtn">File</button>
+    <div class="dropdown-content"> <a href="javascript:ButtonClick('Exit');">Exit</a> </div>
   </div>
-	
-	
-	
+  <div class="dropdown">
+    <button class="dropbtn">Help</button>
+    <div class="dropdown-content"> <a href="javascript:ButtonClick('GIT');">GIT Repository</a> <a href="javascript:ButtonClick('About');">About</a> </div>
+  </div>
+</div>
 <div id="mainArea"  >
-  
-	<div >
-		<p>
+  <div >
+    <p>
     <div class="flex-container">
-      	<button id="coordBtn" ><div><i class="fa-solid fa-power-off" style="color:red" id="CoordSignal"></i> Coordinator</div></button> 
-		<button id="STUNBtn"><div><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div></button> 
-		<button id="remoteBtn"><div><i class="fa-solid fa-power-off" style="color:red" id="RemoteSignal"></i> Remote Control</div></button> 
-		<button id="lanBtn"><div>Lan Broadcasting</div></button> 
+      <button id="coordBtn" >
+      <div><i class="fa-solid fa-power-off" style="color:red" id="CoordSignal"></i> Coordinator</div>
+      </button>
+      <button id="STUNBtn">
+      <div><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div>
+      </button>
+      <button id="remoteBtn">
+      <div><i class="fa-solid fa-power-off" style="color:red" id="RemoteSignal"></i> Remote Control</div>
+      </button>
+      <button id="lanBtn">
+      <div>Lan Broadcasting</div>
+      </button>
     </div>
-		</p>
+    </p>
   </div>
-	
   <div id="serverBrowser">
-      <h2>Select server </h2>
+    <h2>Select server </h2>
     <div id="serverList" class="insetArea" style="overflow-y: scroll; min-height: 150px "> 
       
       <!--
@@ -266,7 +259,7 @@ button:active {
     </div>
     <div class="childListAndArea" style="overflow-y: scroll;">
       <p>Status: <span id="ConnectionStatus">Pending...</span></p>
-		<p><span id="ConnectionType">Host: </span><span id="ConnectionName">UNKNOWN</span></p>
+      <p><span id="ConnectionType">Host: </span><span id="ConnectionName">UNKNOWN</span></p>
       <p>Outgoing Bandwidth: <span id="BandwidthOut">0 kb/s</span></p>
       <p>Incoming Bandwidth: <span id="BandwidthIn">0 kb/s</span></p>
       <p>Latency Options:
@@ -279,19 +272,31 @@ button:active {
       <button onclick="javascript:Disconnect();">Disconnect</button>
     </div>
   </div>
-  
 </div>
 <script>	
 	
 	
-		function openConfig(InName) {			
-  document.getElementById(InName).style.display = "block";
-}
+	function openConfig(InName) {			
+		document.getElementById(InName).style.display = "block";
+	}
 
-function closeConfig(InName, InAccepted) {
-  document.getElementById(InName).style.display = "none";
-}
+	function closeConfig(InName, InAccepted) {
+		document.getElementById(InName).style.display = "none";
+	}
 		
+	function handleSubmit(event) {
+    	event.preventDefault();
+    	const data = new FormData(event.target);
+   		const value = Object.fromEntries(data.entries());
+    	console.log(JSON.stringify( value ));
+  	}
+	
+	const allForms = document.querySelectorAll("form");
+
+	allForms.forEach((userItem) => {
+	   userItem.addEventListener('submit', handleSubmit);
+	});
+	
 	document.getElementById("coordBtn").addEventListener("click", function() {
 		openConfig("CoordinatorConfig");
 	} );
@@ -303,9 +308,7 @@ function closeConfig(InName, InAccepted) {
 	} );
 	document.getElementById("lanBtn").addEventListener("click",  function() {
 		openConfig("LanConfig");
-	} );
-
-	
+	} );	
 	
 	</script>
 </body>
