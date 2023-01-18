@@ -156,6 +156,16 @@ namespace client {
 					CefRefPtr<CefV8Value>& retval,
 					CefString& exception) OVERRIDE
 				{
+					if (name == "RegisterJS" &&
+						arguments.size() == 1 &&
+						arguments[0]->IsFunction())
+					{
+						std::string message_name = "JS_INVOKE";
+						CefRefPtr<CefV8Context> context = CefV8Context::GetCurrentContext();
+						int browser_id = context->GetBrowser()->GetIdentifier();
+						callback_map_.insert(std::make_pair(std::make_pair(message_name, browser_id), std::make_pair(context, arguments[0])));
+					}				
+
 					// In the CefV8Handler::Execute implementation for “setMessageCallback”.
 					if (name == "RegisterJSFunction" &&
 						arguments.size() == 2 &&
@@ -236,6 +246,8 @@ namespace client {
 							return true;
 						}
 					}
+
+					return false;
 				}
 
 				void OnContextReleased(CefRefPtr<CefBrowser> browser,
@@ -299,6 +311,9 @@ namespace client {
 						V8_PROPERTY_ATTRIBUTE_NONE);
 					object->SetValue("CallNativeWithJSON",
 						CefV8Value::CreateFunction("CallNativeWithJSON", _handler),
+						V8_PROPERTY_ATTRIBUTE_NONE);
+					object->SetValue("RegisterJS",
+						CefV8Value::CreateFunction("RegisterJS", _handler),
 						V8_PROPERTY_ATTRIBUTE_NONE);
 				}
 

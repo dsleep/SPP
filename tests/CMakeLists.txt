@@ -15,6 +15,23 @@ set_property(TARGET objectGeneralTests PROPERTY VS_DPI_AWARE "PerMonitor")
 if(OS_WINDOWS)
 
 ###################################################
+## testReflection
+###################################################
+add_executable( testReflection "")
+add_dependencies( testReflection SPPCore SPPReflection  )
+target_sources( testReflection 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/testReflection.cpp"				 )		
+target_link_libraries( testReflection 
+	PRIVATE
+		SPPCore
+		SPPReflection
+	)
+
+set_property(TARGET testReflection PROPERTY FOLDER "TESTS")
+set_property(TARGET testReflection PROPERTY VS_DPI_AWARE "PerMonitor")
+
+###################################################
 ## testCEFOSR
 ###################################################
 add_executable( testCEFOSR WIN32 "")

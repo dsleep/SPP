@@ -59,6 +59,55 @@ std::string GIPCMemoryID;
 std::unique_ptr< IPCMappedMemory > GIPCMem;
 const int32_t MemSize = 2 * 1024 * 1024;
 
+
+void UpdateConfig(const std::string& InValue)
+{
+
+
+}
+
+void HelpClick(const std::string &SubType)
+{
+	if (SubType == "GIT")
+	{
+		ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
+	}
+	else if (SubType == "About")
+	{
+		ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
+	}
+}
+
+void PageLoaded()
+{
+
+}
+
+template<typename... Args>
+void CallCPPReflected(const std::string &InMethod, const Args&... InArgs)
+{
+	using namespace rttr;
+
+	method meth = type::get_global_method(InMethod.c_str());
+	if (meth) // check if the function was found
+	{
+		//meth.get_parameter_infos()
+		//return_value = meth.invoke({}, 9.0, 3.0); // invoke with empty instance
+		//if (return_value.is_valid() && return_value.is_type<double>())
+		//	std::cout << return_value.get_value<double>() << std::endl; // 729
+	}
+}
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	registration::method("UpdateConfig", &UpdateConfig)
+		.method("PageLoaded", &PageLoaded)
+		.method("HelpClick", &HelpClick);
+	
+}
+
+
 /// <summary>
 /// Handles the functionality for all javascript->native calls.
 /// 
@@ -69,20 +118,61 @@ const int32_t MemSize = 2 * 1024 * 1024;
 void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 {
 	uint32_t jsonParamCount = InValue.isNull() ? 0 : InValue.size();
+	
+	using namespace rttr;
+
+	method meth = type::get_global_method(InFunc.c_str());
+	if (meth) // check if the function was found
+	{
+		auto paramInfos = meth.get_parameter_infos();
+
+		if (jsonParamCount == paramInfos.size())
+		{
+			std::vector< variant > variants;
+			variants.reserve(paramInfos.size());
+			std::vector< argument > arguments;
+			arguments.reserve(paramInfos.size());
+
+			uint32_t Iter = 0;
+			for (const auto& info : paramInfos)
+			{
+				auto curValue = InValue[Iter];
+				auto curType = info.get_type();
+
+				if (curType.is_arithmetic() ||
+					curType.is_enumeration() ||
+					curType == rttr::type::get<std::string>())
+				{										
+					variant stringValue = (std::string)curValue.asString();
+
+					if (stringValue.can_convert(curType))
+					{
+						stringValue.convert((const type)curType);
+						variants.emplace_back(std::move(stringValue));
+
+						arguments.push_back(variants.back());
+					}
+					else
+					{
+						SPP_LOG(LOG_RD, LOG_INFO, "Invoke Native From JS Failed, no conversion");					
+						return;
+					}
+				}
+
+				Iter++;
+			}
+
+			auto results = meth.invoke_variadic({}, arguments);
+			if (results.is_valid() == false)
+			{
+				SPP_LOG(LOG_RD, LOG_INFO, "Invoke Native From JS Failed");
+			}
+		}
+	}
 
 	if (InFunc == "ButtonClick" && jsonParamCount == 1)
 	{
-		auto jsonParamValue = InValue[0];
-		std::string SubCommandName = jsonParamValue.asCString();
-
-		if (SubCommandName == "GIT")
-		{
-			ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
-		}
-		else if (SubCommandName == "About")
-		{
-			ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
-		}
+		
 	}
 
 	if (InFunc == "JoinHost" && jsonParamCount == 1)

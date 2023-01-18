@@ -41,5 +41,24 @@ namespace SPP
 
 			messageCreate.Send();
 		}
+
+		template<typename... Args>
+		static inline void JS(const char* MessageName, const Args&... InArgs)
+		{
+			CEFMessage messageCreate("JS_INVOKE");
+			
+			messageCreate.SetValue(0, MessageName);
+
+			int32_t Iter = 1;
+			auto loop = [&](auto&& input)
+			{
+				messageCreate.SetValue(Iter, input);
+				Iter++;
+			};
+
+			(loop(InArgs), ...);
+
+			messageCreate.Send();
+		}
 	};	
 }
