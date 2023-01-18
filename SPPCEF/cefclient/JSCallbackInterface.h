@@ -43,7 +43,7 @@ namespace SPP
 		}
 
 		template<typename... Args>
-		static inline void JS(const char* MessageName, const Args&... InArgs)
+		static inline void InvokeJS(const char* MessageName, const Args&... InArgs)
 		{
 			CEFMessage messageCreate("JS_INVOKE");
 			

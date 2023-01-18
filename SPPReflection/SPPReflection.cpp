@@ -67,20 +67,20 @@ namespace SPP
 		return true;
 	}
 
-	void PODToJSON(const rttr::instance& inValue, Json::Value& InJsonValue)
+	void PODToJSON(const rttr::variant& inValue, Json::Value& InJsonValue)
 	{
 		auto originalType = inValue.get_type();
 		SE_ASSERT(originalType.is_wrapper());
 
-		rttr::instance orgobj = inValue;
-		rttr::instance obj = orgobj.get_type().get_raw_type().is_wrapper() ? orgobj.get_wrapped_instance() : orgobj;
-		auto curType = obj.get_derived_type();
-
-		Json::Value properties;
+		//rttr::instance obj = originalType.is_wrapper() ? inValue.extract_wrapped_value() : inValue;
+		auto curType = originalType.is_wrapper() ? originalType.get_wrapped_type() : originalType;
 		auto prop_list = curType.get_properties();
 		for (auto prop : prop_list)
 		{
-			rttr::variant org_prop_value = prop.get_value(obj);
+			rttr::variant org_prop_value = prop.get_value(inValue);
+
+			auto org_prop_type = prop.get_type();
+
 			if (!org_prop_value)
 				continue; // cannot serialize, because we cannot retrieve the value
 
@@ -114,9 +114,10 @@ namespace SPP
 				continue;
 			}
 			else if (propType.is_class() || propType.is_pointer())
-			{
-				//INTERNAL_ObjectToJSON(org_prop_value, newProperty, depth + 1);
-				SPP_LOG(LOG_REFL, LOG_INFO, " - not SUPPORTED yet...");
+			{				
+				Json::Value newProperties;
+				PODToJSON(org_prop_value, newProperties);
+				InJsonValue[name] = newProperties;
 				continue;
 			}			
 		}		

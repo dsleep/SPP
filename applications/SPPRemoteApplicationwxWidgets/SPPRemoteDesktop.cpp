@@ -78,10 +78,7 @@ void HelpClick(const std::string &SubType)
 	}
 }
 
-void PageLoaded()
-{
 
-}
 
 template<typename... Args>
 void CallCPPReflected(const std::string &InMethod, const Args&... InArgs)
@@ -98,14 +95,7 @@ void CallCPPReflected(const std::string &InMethod, const Args&... InArgs)
 	}
 }
 
-RTTR_REGISTRATION
-{
-	using namespace rttr;
-	registration::method("UpdateConfig", &UpdateConfig)
-		.method("PageLoaded", &PageLoaded)
-		.method("HelpClick", &HelpClick);
-	
-}
+
 
 
 /// <summary>
@@ -215,13 +205,13 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 
 struct LANConfiguration
 {
-	uint16_t port;
+	uint16_t port=12;
 };
 
 struct CoordinatorConfiguration
 {
-	IPv4_SocketAddress addr;
-	std::string pwd;
+	std::string addr = "estest";
+	std::string pwd = "asdfasdf";
 };
 
 struct STUNConfiguration
@@ -237,6 +227,9 @@ struct APPConfig
 	STUNConfiguration stun;
 };
 
+
+APPConfig GAppConfig;
+
 struct RemoteClient
 {
 	std::chrono::steady_clock::time_point LastUpdate;
@@ -245,7 +238,62 @@ struct RemoteClient
 	std::string AppCL;
 };
 
-APPConfig GAppConfig;
+void LoadConfigs()
+{
+	auto coordRef = std::ref(GAppConfig);
+
+	Json::Value jsonData;
+	FileToJson("./remotedesktop.config.txt", jsonData);
+	//
+	// void JSONToPOD(const rttr::instance& inValue, const Json::Value& InJsonValue)s
+	//remotedesktop.config.txt
+}
+
+void PageLoaded()
+{
+	auto coordRef = std::ref(GAppConfig);
+
+	GAppConfig.lan.port = 69;
+	GAppConfig.coord.addr = "dave";
+
+	Json::Value jsonData;
+	PODToJSON(coordRef, jsonData);
+
+	JsonToFile("./remotedesktop.config.txt", jsonData);
+
+	std::string oString;
+	JsonToString(jsonData, oString);
+	JavascriptInterface::InvokeJS("SetConfig", "CoordConfig", oString);
+}
+
+RTTR_REGISTRATION
+{
+	using namespace rttr;
+	registration::method("UpdateConfig", &UpdateConfig)
+		.method("PageLoaded", &PageLoaded)
+		.method("HelpClick", &HelpClick);
+
+	rttr::registration::class_<LANConfiguration>("LANConfiguration")
+		.property("port", &LANConfiguration::port)(rttr::policy::prop::as_reference_wrapper)
+		;
+
+	rttr::registration::class_<CoordinatorConfiguration>("CoordinatorConfiguration")
+		.property("addr", &CoordinatorConfiguration::addr)(rttr::policy::prop::as_reference_wrapper)
+		.property("pwd", &CoordinatorConfiguration::pwd)(rttr::policy::prop::as_reference_wrapper)
+		;
+
+	rttr::registration::class_<STUNConfiguration>("STUNConfiguration")
+		.property("addr", &STUNConfiguration::addr)(rttr::policy::prop::as_reference_wrapper)
+		.property("port", &STUNConfiguration::port)(rttr::policy::prop::as_reference_wrapper)
+		;
+
+	rttr::registration::class_<APPConfig>("APPConfig")
+		.property("lan", &APPConfig::lan)(rttr::policy::prop::as_reference_wrapper)
+		.property("coord", &APPConfig::coord)(rttr::policy::prop::as_reference_wrapper)
+		.property("stun", &APPConfig::stun)(rttr::policy::prop::as_reference_wrapper)
+		;
+}
+
 
 void MainThread()
 {
@@ -253,14 +301,14 @@ void MainThread()
 
 	std::map<std::string, RemoteClient> Hosts;
 
-	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr);
+	//std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr);
 	std::unique_ptr<UDPSocket> broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
 	std::unique_ptr<UDPJuiceSocket> juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 
-	coordinator->SetPassword(GAppConfig.coord.pwd);
-	coordinator->SetKeyPair("GUID", ThisRUNGUID);
-	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
-	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+	//coordinator->SetPassword(GAppConfig.coord.pwd);
+	//coordinator->SetKeyPair("GUID", ThisRUNGUID);
+	//coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
+	//coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
 
 	//CHECK BROADCASTS
 	std::vector<uint8_t> BufferRead;
@@ -295,7 +343,7 @@ void MainThread()
 		{
 			if (juiceSocket->IsReady())
 			{
-				coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
+				//coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
 			}
 			//if (juiceSocket->HasProblem())
 			//{
