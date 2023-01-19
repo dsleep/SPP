@@ -205,13 +205,13 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 
 struct LANConfiguration
 {
-	uint16_t port=12;
+	uint16_t port = 12;
 };
 
 struct CoordinatorConfiguration
 {
-	std::string addr = "estest";
-	std::string pwd = "asdfasdf";
+	std::string addr = "127.0.0.1";
+	std::string pwd = "test";
 };
 
 struct STUNConfiguration
@@ -240,30 +240,27 @@ struct RemoteClient
 
 void LoadConfigs()
 {
-	auto coordRef = std::ref(GAppConfig);
-
 	Json::Value jsonData;
-	FileToJson("./remotedesktop.config.txt", jsonData);
-	//
-	// void JSONToPOD(const rttr::instance& inValue, const Json::Value& InJsonValue)s
-	//remotedesktop.config.txt
+	if (FileToJson("./remotedesktop.config.txt", jsonData))
+	{
+		auto coordRef = std::ref(GAppConfig);
+		JSONToPOD(coordRef, jsonData);
+	}
 }
 
 void PageLoaded()
 {
+	LoadConfigs();
+
 	auto coordRef = std::ref(GAppConfig);
-
-	GAppConfig.lan.port = 69;
-	GAppConfig.coord.addr = "dave";
-
 	Json::Value jsonData;
 	PODToJSON(coordRef, jsonData);
 
-	JsonToFile("./remotedesktop.config.txt", jsonData);
+	//JsonToFile("./remotedesktop.config.txt", jsonData);
 
 	std::string oString;
 	JsonToString(jsonData, oString);
-	JavascriptInterface::InvokeJS("SetConfig", "CoordConfig", oString);
+	JavascriptInterface::InvokeJS("SetConfig", oString);
 }
 
 RTTR_REGISTRATION

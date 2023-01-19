@@ -275,6 +275,32 @@ button:active {
 </div>
 <script>	
 	
+	var DefaultConfigSettings = {
+		"coord" : 
+		{
+			"addr" : "122.0.0.1:23021",
+			"pwd" : "test"
+		},
+		"lan" : 
+		{
+			"port" : "24022"
+		},
+		"stun" : 
+		{
+			"addr" : "stun.l.google.com",
+			"port" : "19302"
+		}
+	};
+	var ConfigSettings = {}
+	
+	function SetConfig(InJSON) {
+		let JSONConfigSettings = JSON.parse(InJSON);
+		// merge these bad boys
+		ConfigSettings = {
+			...DefaultConfigSettings,
+			...JSONConfigSettings
+		};
+	}
 	
 	function openConfig(InName) {			
 		document.getElementById(InName).style.display = "block";
@@ -285,13 +311,14 @@ button:active {
 	}
 		
 	function ProcessJS(FuncName, ...Args) {	  
+		console.log("ProcessJS: " + FuncName + " : " + Args.length);
 		// find object
 		var fn = window[FuncName];
 
 		// is object a function?
 		if (typeof fn === "function") 
 		{
-			fn.apply(null, ...Args);
+			fn.apply(null, Args);
 		}
 	}
 		

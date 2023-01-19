@@ -72,7 +72,6 @@ namespace SPP
 		auto originalType = inValue.get_type();
 		SE_ASSERT(originalType.is_wrapper());
 
-		//rttr::instance obj = originalType.is_wrapper() ? inValue.extract_wrapped_value() : inValue;
 		auto curType = originalType.is_wrapper() ? originalType.get_wrapped_type() : originalType;
 		auto prop_list = curType.get_properties();
 		for (auto prop : prop_list)
@@ -276,27 +275,23 @@ namespace SPP
 		return false;
 	}
 
-	void JSONToPOD(const rttr::instance& inValue, const Json::Value& InJsonValue)
+	void JSONToPOD(const rttr::variant& inValue, const Json::Value& InJsonValue)
 	{
 		auto originalType = inValue.get_type();
 		SE_ASSERT(originalType.is_wrapper());
 
-		SPP_LOG(LOG_REFL, LOG_INFO, "JSONToPOD: %s", originalType.get_name().to_string().c_str());
-
-		rttr::instance orgobj = inValue;
-		rttr::instance obj = orgobj.get_type().get_raw_type().is_wrapper() ? orgobj.get_wrapped_instance() : orgobj;
-		auto curType = obj.get_derived_type();
+		auto curType = originalType.is_wrapper() ? originalType.get_wrapped_type() : originalType;
+		auto prop_list = curType.get_properties();
 				
 		for (Json::Value::const_iterator itr = InJsonValue.begin(); itr != InJsonValue.end(); itr++)
 		{
 			std::string PropName = itr.key().asCString();
-			std::string PropValue = (*itr).asCString();
 
 			auto prop = curType.get_property(PropName.c_str());
 
 			if (prop.is_valid())
 			{
-				rttr::variant org_prop_value = prop.get_value(obj);
+				rttr::variant org_prop_value = prop.get_value(inValue);
 				if (!org_prop_value)
 					continue; // cannot serialize, because we cannot retrieve the value
 
@@ -314,7 +309,8 @@ namespace SPP
 					propType.is_enumeration() ||
 					propType == rttr::type::get<std::string>())
 				{			
-					SetVariantValue(org_prop_value, PropValue);
+					std::string JsonStringValue = (*itr).asCString();
+					SetVariantValue(org_prop_value, JsonStringValue);
 				}
 				else if (propType.is_sequential_container())
 				{
@@ -328,8 +324,7 @@ namespace SPP
 				}
 				else if (propType.is_class() || propType.is_pointer())
 				{
-					//INTERNAL_ObjectToJSON(org_prop_value, newProperty, depth + 1);
-					SPP_LOG(LOG_REFL, LOG_INFO, " - not SUPPORTED yet...");
+					JSONToPOD(org_prop_value, *itr);
 					continue;
 				}
 

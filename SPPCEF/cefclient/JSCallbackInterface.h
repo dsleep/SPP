@@ -47,7 +47,7 @@ namespace SPP
 		{
 			CEFMessage messageCreate("JS_INVOKE");
 			
-			messageCreate.SetValue(0, MessageName);
+			messageCreate.SetValue(0, std::string(MessageName));
 
 			int32_t Iter = 1;
 			auto loop = [&](auto&& input)
