@@ -159,11 +159,11 @@ button:active {
 <div id="CoordinatorConfig" class="config-popup">
   <form action="" class="form-container">
     <p style="border-bottom: thin solid #646464;"><b>Coordinator Configuration</b></p>
-    <label for="cordaddr">Coordinator Address</label>
-    <input type="text" placeholder="" name="cordaddr" required>
+    <label for="cordaddr">Address</label><br>
+    <input data-tw-bind="coord.addr" type="text" placeholder="" name="cordaddr" required>EX: (127.0.0.1:1234)
     <br>
-    <label for="cordpwd">Coordinator Password</label>
-    <input type="password" placeholder="" name="cordpwd" required>
+    <label for="cordpwd">Password</label><br>
+    <input data-tw-bind="coord.pwd" type="password" placeholder="" name="cordpwd" required>
     <br><br>
     <button type="submit" class="btn" onclick="javascript:closeConfig('CoordinatorConfig',true)">Accept</button>
     <button type="button" class="btn cancel" onclick="javascript:closeConfig('CoordinatorConfig',false)">Cancel</button>
@@ -172,8 +172,11 @@ button:active {
 <div id="STUNConfig" class="config-popup">
   <form action="" class="form-container">
     <p style="border-bottom: thin solid #646464;"><b>STUN Configuration</b></p>
-    <label for="stunaddr">STUN Address</label>
-    <input type="text" placeholder="" name="stunaddr" required>
+    <label for="stunaddr">Address</label><br>
+    <input data-tw-bind="stun.addr" type="text" placeholder="" name="stunaddr" required>EX: stun.google.com
+	  <br>
+	<label for="stunport">Port</label><br>
+    <input data-tw-bind="stun.port" type="text" placeholder="" name="stunport" required>
     <br><br>
     <button type="submit" class="btn" onclick="javascript:closeConfig('STUNConfig',true)">Accept</button>
     <button type="button" class="btn cancel" onclick="javascript:closeConfig('STUNConfig',false)">Cancel</button>
@@ -183,10 +186,10 @@ button:active {
   <form action="" class="form-container">
     <p style="border-bottom: thin solid #646464;"><b>Remote Control Configuration</b></p>
     <div>Active
-      <input name="Enable Remote Access" type="checkbox" id="CB_Remote">
+      <input data-tw-bind="rcc.active" name="Enable Remote Access" type="checkbox" >
     </div>
     <div>Allow Input
-      <input name="Allow Remote Control" type="checkbox" id="CB_AllowInput">
+      <input data-tw-bind="rcc.allowinput" name="Allow Remote Control" type="checkbox">
     </div>
     <br> <br>
     <button type="submit" class="btn" onclick="javascript:closeConfig('RemoteControlConfig',true)">Accept</button>
@@ -196,8 +199,8 @@ button:active {
 <div id="LanConfig" class="config-popup">
   <form action="" class="form-container">
     <p style="border-bottom: thin solid #646464;"><b>LAN Configuration</b></p>
-    <label for="stunaddr">Broadcast Port</label>
-    <input type="text" placeholder="" name="broadcastport" required>
+    <label for="stunaddr">Port</label><br>
+    <input data-tw-bind="lan.port" type="text" placeholder="" name="broadcastport" required>
     <br><br>
     <button type="submit" class="btn" onclick="javascript:closeConfig('LanConfig',true)">Accept</button>
     <button type="button" class="btn cancel" onclick="javascript:closeConfig('LanConfig',false)">Cancel</button>
@@ -291,15 +294,31 @@ button:active {
 			"port" : "19302"
 		}
 	};
-	var ConfigSettings = {}
+	var ConfigSettings = {
+		"coord" : 
+		{
+			"addr" : "122.0.0.1:23021",
+			"pwd" : "test"
+		},
+		"lan" : 
+		{
+			"port" : "24022"
+		},
+		"stun" : 
+		{
+			"addr" : "stun.l.google.com",
+			"port" : "19302"
+		}
+	};
 	
 	function SetConfig(InJSON) {
 		let JSONConfigSettings = JSON.parse(InJSON);
 		// merge these bad boys
+		/*
 		ConfigSettings = {
 			...DefaultConfigSettings,
 			...JSONConfigSettings
-		};
+		};*/
 	}
 	
 	function openConfig(InName) {			
@@ -321,6 +340,7 @@ button:active {
 			fn.apply(null, Args);
 		}
 	}
+	
 		
 	function handleSubmit(event) {
     	event.preventDefault();
@@ -352,6 +372,70 @@ button:active {
 	window.onload = function(){	
 		window.InvokeNative("PageLoaded");	
 	};
+	
+	
+	 //bind prop to elements
+	function addScopeProp(InScope, prop, InElement){
+		//add property if needed
+		if(!InScope.hasOwnProperty(prop)){
+			console.log('adding scope property');
+			//value to populate with newvalue
+			var value;
+			Object.defineProperty(InScope, prop, {
+				set: function (newValue) {
+					console.log("setter");
+					value = newValue;		
+					if (InElement != null) {
+						element.value = newValue;					
+					}
+				},
+				get: function(){
+					return value;
+				},
+				enumerable: true
+			});
+		}
+	};
+	
+	addScopeProp(ConfigSettings.lan,'addres');
+	ConfigSettings.lan.addres = "test";
+	
+	/*
+	 var elements = document.querySelectorAll('[data-tw-bind]');
+    elements.forEach(function(element) {
+        //execute scope setter
+        if(element.type === 'text'|| element.type === 'textarea'){
+            var propToBind = element.getAttribute('data-tw-bind');
+			console.log("propToBind: " + propToBind);
+			
+			let propsFromPath = GetPropertyFromPath(ConfigSettings, propToBind);
+						
+			console.log("propToBind: " + propsFromPath.PropertyString);
+            addScopeProp(propsFromPath.ParentProperty, propsFromPath.PropertyString);
+			
+			propsFromPath.ParentProperty[propsFromPath.PropertyString] = "2";
+			
+            element.onkeyup = function(){
+                propsFromPath.ParentProperty[propsFromPath.PropertyString] = element.value;
+            }
+		}});*/
+	
+	
+	function GetPropertyFromPath(InRoot, InPath) {
+		var properties = InPath.split('.');
+		var lastObj = InRoot;
+		var curObj = InRoot;
+		var curPropStr = InPath;
+		properties.forEach(function(propertyStr) {
+			lastObj = curObj;
+			curObj = curObj[propertyStr];
+			curPropStr = propertyStr;
+		}); 
+		return { 'Property' : curObj, 
+				 'ParentProperty' : lastObj,
+				 'PropertyString' : curPropStr };
+	}
+	
  
 	/*
 	const handler3 = {
