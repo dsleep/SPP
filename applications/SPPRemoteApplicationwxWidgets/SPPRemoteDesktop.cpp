@@ -52,7 +52,6 @@ using namespace SPP;
 
 LogEntry LOG_RD("RemoteDesktop");
 
-std::unique_ptr< std::thread > GMainThread;
 std::unique_ptr< std::thread > GWorkerThread;
 uint32_t GProcessID = 0;
 std::string GIPCMemoryID;
@@ -60,11 +59,6 @@ std::unique_ptr< IPCMappedMemory > GIPCMem;
 const int32_t MemSize = 2 * 1024 * 1024;
 
 
-void UpdateConfig(const std::string& InValue)
-{
-
-
-}
 
 void HelpClick(const std::string &SubType)
 {
@@ -205,19 +199,34 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 
 struct LANConfiguration
 {
-	uint16_t port = 12;
+	uint16_t port = 12030;
+
+	bool operator == (const LANConfiguration& cmp) const
+	{
+		return port == cmp.port;
+	}
 };
 
 struct CoordinatorConfiguration
 {
-	std::string addr = "127.0.0.1";
+	std::string addr = "127.0.0.1:12021";
 	std::string pwd = "test";
+
+	bool operator == (const CoordinatorConfiguration& cmp) const
+	{
+		return addr == cmp.addr && pwd == cmp.pwd;
+	}
 };
 
 struct STUNConfiguration
 {
 	std::string addr = "stun.l.google.com";
 	uint16_t port = 19302;
+
+	bool operator == (const STUNConfiguration& cmp) const
+	{
+		return addr == cmp.addr && port == cmp.port;
+	}
 };
 
 struct APPConfig
@@ -237,6 +246,187 @@ struct RemoteClient
 	std::string AppName;
 	std::string AppCL;
 };
+
+class MainThreadApp
+{
+private:
+	std::unique_ptr< TimerController > _timer;
+	std::unique_ptr< ThreadPool > _localThreadPool;
+	std::unique_ptr< std::thread > _thread;
+
+	std::thread::id _runThreadID;
+
+	std::unique_ptr<UDP_SQL_Coordinator> _coordinator; 
+	std::unique_ptr<UDPSocket> _broadReceiver;
+	std::unique_ptr<UDPJuiceSocket> _juiceSocket;
+
+	const uint8_t CoordID = 0;
+	const uint8_t JuiceeID = 1;
+	const uint8_t BroadID = 2;
+	bool _bLastSent[3] = { false,false,false };
+
+	std::string _ThisRUNGUID;
+
+	std::map<std::string, RemoteClient> _remoteDevices;
+
+public:
+	MainThreadApp()
+	{
+		_ThisRUNGUID = std::generate_hex(3);
+
+		_timer = std::make_unique< TimerController >(16ms);
+		_localThreadPool = std::make_unique<ThreadPool>("MainPool", 0);
+
+		_thread.reset(new std::thread(&MainThreadApp::Run, this));
+	}
+	
+	void Shutdown()
+	{
+		_timer->Stop();
+		if (_thread->joinable())
+		{
+			_thread->join();
+		}
+		_thread.reset();
+	}
+
+	void UpdateConfig(const APPConfig& InConfig)
+	{
+		if (_runThreadID != std::this_thread::get_id())
+		{
+			_localThreadPool->enqueue([CpyConfig = InConfig, this]()
+			{
+				UpdateConfig(CpyConfig);
+			});
+			return;
+		}
+
+		if (InConfig.coord != GAppConfig.coord)
+		{
+			GAppConfig.coord = InConfig.coord;
+			CreateCoordinator();
+		}
+		if (InConfig.lan != GAppConfig.lan)
+		{
+			GAppConfig.lan = InConfig.lan;
+			_broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
+		}
+		if (InConfig.stun != GAppConfig.stun)
+		{
+			GAppConfig.stun = InConfig.stun;
+			_juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+		}
+	}
+
+	void CreateCoordinator()
+	{
+		_coordinator = std::make_unique<UDP_SQL_Coordinator>(IPv4_SocketAddress(GAppConfig.coord.addr.c_str()));
+
+		_coordinator->SetPassword(GAppConfig.coord.pwd);
+		_coordinator->SetKeyPair("GUID", _ThisRUNGUID);
+		_coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
+		_coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+	}
+
+	void SetNetGood(int8_t ID, bool bIsGood)
+	{
+		if (_bLastSent[ID] != bIsGood)
+		{
+			_bLastSent[ID] = bIsGood;
+			JavascriptInterface::InvokeJS("SetNetGood", ID, bIsGood ? 1 : 0);
+		}
+	}
+
+	void Run()
+	{
+		_runThreadID = std::this_thread::get_id();
+		
+		CreateCoordinator();
+		_juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+
+		//
+
+		_broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
+		
+
+		//CHECK BROADCASTS
+		std::vector<uint8_t> BufferRead;
+		BufferRead.resize(std::numeric_limits<uint16_t>::max());
+
+		_timer->AddTimer(100ms, true, [&]()
+		{
+			IPv4_SocketAddress recvAddr;
+			int32_t DataRecv = 0;
+			while ((DataRecv = _broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
+			{
+				//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
+				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
+				IPv4_SocketAddress hostPort(HostString.c_str());
+
+				recvAddr.Port = hostPort.Port;
+				auto realAddrOfConnection = recvAddr.ToString();
+
+				_remoteDevices[realAddrOfConnection] = RemoteClient{
+					std::chrono::steady_clock::now(),
+					realAddrOfConnection,
+					std::string(""),
+					std::string("")
+				};
+			}
+		});
+
+		//ICE/STUN management
+		_timer->AddTimer(100ms, true, [&]()
+		{
+			SetNetGood(JuiceeID, _juiceSocket && _juiceSocket->IsReady() && !_juiceSocket->HasProblem());
+
+			if (_juiceSocket)
+			{
+				if (_juiceSocket->HasProblem())
+				{
+					_juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+					SPP_LOG(LOG_RD, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
+				}
+				else if (_juiceSocket->IsReady())
+				{
+					if (_coordinator)
+					{
+						_coordinator->SetKeyPair("SDP", std::string(_juiceSocket->GetSDP_BASE64()));
+					}
+				}
+			}			
+			
+			if (_coordinator)
+			{
+				SetNetGood(CoordID, _coordinator->IsConnected());
+				_coordinator->Update();
+			}
+		});
+
+		_timer->AddTimer(10ms, true, [&]()
+		{
+			_localThreadPool->RunOnce();
+		});
+
+		_timer->Run();
+	}
+
+};
+std::unique_ptr< MainThreadApp > GMainApp;
+
+
+void UpdateConfig(const std::string& InValue)
+{
+	Json::Value jsonData;
+	if (StringToJson(InValue, jsonData))
+	{
+		APPConfig newConfig = GAppConfig;
+		auto coordRef = std::ref(newConfig);
+		JSONToPOD(coordRef, jsonData);
+
+		GMainApp->UpdateConfig(newConfig);
+	}	
+}
 
 void LoadConfigs()
 {
@@ -261,6 +451,10 @@ void PageLoaded()
 	std::string oString;
 	JsonToString(jsonData, oString);
 	JavascriptInterface::InvokeJS("SetConfig", oString);
+
+	// startup main app
+	GMainApp = std::make_unique< MainThreadApp >();
+
 }
 
 RTTR_REGISTRATION
@@ -289,71 +483,6 @@ RTTR_REGISTRATION
 		.property("coord", &APPConfig::coord)(rttr::policy::prop::as_reference_wrapper)
 		.property("stun", &APPConfig::stun)(rttr::policy::prop::as_reference_wrapper)
 		;
-}
-
-
-void MainThread()
-{
-	auto ThisRUNGUID = std::generate_hex(3);
-
-	std::map<std::string, RemoteClient> Hosts;
-
-	//std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr);
-	std::unique_ptr<UDPSocket> broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
-	std::unique_ptr<UDPJuiceSocket> juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
-
-	//coordinator->SetPassword(GAppConfig.coord.pwd);
-	//coordinator->SetKeyPair("GUID", ThisRUNGUID);
-	//coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
-	//coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
-
-	//CHECK BROADCASTS
-	std::vector<uint8_t> BufferRead;
-	BufferRead.resize(std::numeric_limits<uint16_t>::max());
-
-	TimerController mainController(16ms);
-
-	mainController.AddTimer(100ms, true, [&]()
-		{
-			IPv4_SocketAddress recvAddr;
-			int32_t DataRecv = 0;
-			while ((DataRecv = broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
-			{
-				//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
-				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
-				IPv4_SocketAddress hostPort(HostString.c_str());
-
-				recvAddr.Port = hostPort.Port;
-				auto realAddrOfConnection = recvAddr.ToString();
-
-				Hosts[realAddrOfConnection] = RemoteClient{
-					std::chrono::steady_clock::now(),
-					realAddrOfConnection,
-					std::string(""),
-					std::string("")
-				};
-			}
-		});
-
-	//ICE/STUN management
-	mainController.AddTimer(100ms, true, [&]()
-		{
-			if (juiceSocket->IsReady())
-			{
-				//coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
-			}
-			//if (juiceSocket->HasProblem())
-			//{
-			//	juiceSocket = std::make_unique<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-			//	SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
-			//}
-			//else if (juiceSocket->IsConnected())
-			//{
-
-			//}
-		});
-
-	mainController.Run();
 }
 
 /// <summary>
@@ -562,13 +691,10 @@ void ClientThread(bool bLanOnly)
 /// </summary>
 void StopThread()
 {
-	if (GMainThread)
+	if (GMainApp)
 	{
-		if (GMainThread->joinable())
-		{
-			GMainThread->join();
-		}
-		GMainThread.reset();		
+		GMainApp->Shutdown();
+		GMainApp.reset();
 	}
 
 	if (GWorkerThread)
@@ -607,7 +733,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// setup global asset path
 	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
 	
-	GMainThread.reset(new std::thread(MainThread));
 
 	{
 		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;
