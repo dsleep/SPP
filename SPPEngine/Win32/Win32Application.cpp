@@ -11,6 +11,8 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <cstdint>
+
+//#include <commctrl.h>
 #include "shellapi.h"
 
 #include <map>
@@ -18,10 +20,18 @@
 #include <thread>
 #include <chrono>
 
+#include "Win32/sppappbasicresource.h"
+
+//#pragma comment(lib, "comctl32.lib")
+
+UINT const WMAPP_NOTIFYCALLBACK = WM_APP + 1;
+
 namespace SPP
 {
 	LogEntry LOG_Win32App("Win32App");
 
+	class __declspec(uuid("44307286-2A10-4163-99FD-00680D9BCC76")) SPPGuidICON;
+						   
 	std::map<uint32_t, std::string> Win32MessageMap =
 	{
 	  { 0, "WM_NULL"},
@@ -326,6 +336,7 @@ namespace SPP
 		bool _bIsFocused = false;
 		HWND m_hwnd = nullptr;
 		HBITMAP _hBackground = nullptr;
+		HINSTANCE _hInstance = nullptr;
 
 	public:
 		Win32Application() {}
@@ -341,24 +352,30 @@ namespace SPP
 			return m_hwnd;
 		}
 
+		virtual void CreateNotificationIcon() override;
+		virtual void RemoveNotificationIcon() override;
+		void ShowNotificationContextMenu(POINT pt);
+
 	protected:
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	};
 
 	bool Win32Application::Initialize(int32_t Width, int32_t Height, void* hInstance, AppFlags Flags)
 	{
+		_width = Width;
+		_height = Height;
+		_hInstance = (HINSTANCE)hInstance;
+
 		// Initialize the window class.
 		WNDCLASSEX windowClass = { 0 };
 		windowClass.cbSize = sizeof(WNDCLASSEX);
 		windowClass.style = (Flags == AppFlags::SupportOpenGL) ? CS_OWNDC : (CS_HREDRAW | CS_VREDRAW);
 		windowClass.lpfnWndProc = WindowProc;
-		windowClass.hInstance = (HINSTANCE)hInstance;
-		windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+		windowClass.hInstance = _hInstance;
+		windowClass.hIcon = LoadIcon(_hInstance, MAKEINTRESOURCE(IDI_SPPAPP_ICON));
+		windowClass.hCursor = LoadCursor(_hInstance, IDC_ARROW);
 		windowClass.lpszClassName = L"SPPWIN32";
 		RegisterClassEx(&windowClass);
-
-		_width = Width;
-		_height = Height;
 
 		RECT windowRect = { 0, 0, (LONG)_width, (LONG)_height }; // static_cast<long>(pFramework->GetWidth()), static_cast<long>(pFramework->GetHeight())};
 		AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
@@ -374,7 +391,7 @@ namespace SPP
 			windowRect.bottom - windowRect.top,
 			nullptr,		// We have no parent window.
 			nullptr,		// We aren't using menus.
-			(HINSTANCE)hInstance,
+			_hInstance,
 			(LPVOID)this);
 
 		if (Flags == AppFlags::SupportOpenGL)
@@ -425,6 +442,62 @@ namespace SPP
 		return true;
 	}
 
+	void Win32Application::CreateNotificationIcon()
+	{
+		NOTIFYICONDATA nid = { sizeof(nid) };
+		nid.hWnd = m_hwnd;
+		// add the icon, setting the icon, tooltip, and callback message.
+		// the icon will be identified with the GUID
+		nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_GUID;
+		//NIF_TIP NIF_SHOWTIP
+		nid.guidItem = __uuidof(SPPGuidICON);
+		nid.uCallbackMessage = WMAPP_NOTIFYCALLBACK;
+		nid.hIcon = LoadIcon(_hInstance, MAKEINTRESOURCE(IDI_SPPAPP_ICON));
+		//LoadIconMetric(_hInstance, MAKEINTRESOURCE(IDI_SPPAPP_ICON), LIM_SMALL, &nid.hIcon);
+		//LoadString(g_hInst, IDS_TOOLTIP, nid.szTip, ARRAYSIZE(nid.szTip));
+		Shell_NotifyIcon(NIM_ADD, &nid);
+
+		// NOTIFYICON_VERSION_4 is prefered
+		nid.uVersion = NOTIFYICON_VERSION_4;
+		Shell_NotifyIcon(NIM_SETVERSION, &nid);
+	}
+
+	void Win32Application::RemoveNotificationIcon()
+	{
+		NOTIFYICONDATA nid = { sizeof(nid) };
+		nid.uFlags = NIF_GUID;
+		nid.guidItem = __uuidof(SPPGuidICON);
+		Shell_NotifyIcon(NIM_DELETE, &nid);
+	}
+
+	void Win32Application::ShowNotificationContextMenu(POINT pt)
+	{
+		HMENU hMenu = LoadMenu(_hInstance, MAKEINTRESOURCE(IDR_NOTIFICATION_MENU));
+		if (hMenu)
+		{
+			HMENU hSubMenu = GetSubMenu(hMenu, 0);
+			if (hSubMenu)
+			{
+				// our window must be foreground before calling TrackPopupMenu or the menu will not disappear when the user clicks away
+				SetForegroundWindow(m_hwnd);
+
+				// respect menu drop alignment
+				UINT uFlags = TPM_RIGHTBUTTON;
+				if (GetSystemMetrics(SM_MENUDROPALIGNMENT) != 0)
+				{
+					uFlags |= TPM_RIGHTALIGN;
+				}
+				else
+				{
+					uFlags |= TPM_LEFTALIGN;
+				}
+
+				TrackPopupMenuEx(hSubMenu, uFlags, pt.x, pt.y, m_hwnd, NULL);
+			}
+			DestroyMenu(hMenu);
+		}
+	}
+
 	void Win32Application::DrawImageToWindow(int32_t Width, int32_t Height, const void* InData, int32_t InDataSize, uint8_t BPP)
 	{
 		HDC hDC = GetDC(m_hwnd);
@@ -471,7 +544,6 @@ namespace SPP
 
 	int32_t Win32Application::Run()
 	{
-
 		using namespace std::chrono_literals;
 
 		ShowWindow(m_hwnd, SW_SHOW);
@@ -530,6 +602,8 @@ namespace SPP
 			SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
 		}
 		return 0;
+
+		
 
 		case WM_PAINT:
 		{
@@ -657,6 +731,20 @@ namespace SPP
 		case WM_CLOSE:
 			PostQuitMessage(0);
 			return 0;
+
+		case WMAPP_NOTIFYCALLBACK:
+		{
+			switch (LOWORD(lParam))
+			{
+			case WM_CONTEXTMENU:
+			{
+				POINT const pt = { LOWORD(wParam), HIWORD(wParam) };
+				pApp->ShowNotificationContextMenu(pt);
+			}
+			}
+		return 0;
+		}
+		return 0;
 		}
 
 		// Handle any messages the switch statement didn't.

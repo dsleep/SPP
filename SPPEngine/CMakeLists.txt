@@ -30,7 +30,9 @@ if(OS_WINDOWS)
 
 target_sources(SPPEngine
     PRIVATE
-        "${CMAKE_CURRENT_LIST_DIR}/Win32/Win32Application.cpp"        )
+		
+        "${CMAKE_CURRENT_LIST_DIR}/Win32/Win32Application.cpp"
+		)
 
 endif()
 

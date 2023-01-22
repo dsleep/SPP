@@ -260,6 +260,8 @@ private:
 	std::unique_ptr<UDPSocket> _broadReceiver;
 	std::unique_ptr<UDPJuiceSocket> _juiceSocket;
 
+	std::unique_ptr < IPCMappedMemory> _appIPC; 
+
 	const uint8_t CoordID = 0;
 	const uint8_t JuiceeID = 1;
 	const uint8_t BroadID = 2;
@@ -352,6 +354,14 @@ public:
 		//CHECK BROADCASTS
 		std::vector<uint8_t> BufferRead;
 		BufferRead.resize(std::numeric_limits<uint16_t>::max());
+
+		_timer->AddTimer(1s, true, [&]()
+		{
+			if (!_appIPC || _appIPC->IsValid() == false)
+			{
+				_appIPC = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 1 * 1024, false);
+			}
+		});
 
 		_timer->AddTimer(100ms, true, [&]()
 		{

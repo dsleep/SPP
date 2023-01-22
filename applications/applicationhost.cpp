@@ -26,6 +26,7 @@
 #include "SPPFileSystem.h"
 
 #include "SPPHandledTimers.h"
+#include "SPPApplication.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -34,6 +35,8 @@ using namespace SPP;
 LogEntry LOG_APP("APP");
 
 #define PREVENT_INPUT 0
+
+HINSTANCE GhInstance = nullptr;
 
 struct handle_data {
 	uint32_t process_id;
@@ -587,11 +590,14 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	const std::string& AppPath,
 	IPCMappedMemory& ipcMem)
 {
-
+	std::unique_ptr<ApplicationWindow> app = CreateApplication();
 	std::shared_ptr<UDPSocket> broadcastSocket = std::make_shared<UDPSocket>(0, UDPSocketOptions::Broadcast);
 	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
 	std::shared_ptr< UDPSendWrapped > videoSocket;
 	std::shared_ptr< VideoConnection > videoConnection;
+
+	app->Initialize(128, 128, GhInstance);
+	app->CreateNotificationIcon();
 
 	using namespace std::chrono_literals;
 
@@ -701,6 +707,8 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 					SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped...");
 				}
 			}
+
+			app->RunOnce();
 		});
 
 	mainController.Run();
@@ -887,8 +895,12 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 	}
 }
 
-int main(int argc, char* argv[])
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR    lpCmdLine,
+	_In_ int       nCmdShow)
 {
+	GhInstance = hInstance;
 	IntializeCore(nullptr);
 
 	std::vector<MonitorInfo> Infos;
@@ -919,19 +931,19 @@ int main(int argc, char* argv[])
 
 	std::string ClientRequestCommandline;
 
-	auto CCMap = std::BuildCCMap(argc, argv);
-	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
-	auto AppPath = MapFindOrDefault(CCMap, "APP");
-	auto AppCommandline = MapFindOrDefault(CCMap, "CMDLINE");
-	auto lanonlyCC = MapFindOrDefault(CCMap, "lanonly");
+	//auto CCMap = std::BuildCCMap(argc, argv);
+	//auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
+	std::string AppPath = "";// MapFindOrDefault(CCMap, "APP");
+	std::string AppCommandline = "";// MapFindOrDefault(CCMap, "CMDLINE");
+	std::string lanonlyCC = "true";// MapFindOrDefault(CCMap, "lanonly");
 
-	SE_ASSERT(IPMemoryID);
+	//SE_ASSERT(IPMemoryID);
 
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
+	//SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
 
-	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 1 * 1024 * 1024, false);
+	IPCMappedMemory ipcMem("SPPAPPREMOTEHOST", 1 * 1024, true);
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());

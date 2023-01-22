@@ -63,6 +63,8 @@ namespace SPP
 		virtual void DrawImageToWindow(int32_t Width, int32_t Height, const void* InData, int32_t InDataSize, uint8_t BPP) = 0;
 		virtual int32_t Run() = 0;
 		virtual int32_t RunOnce() = 0;
+		virtual void CreateNotificationIcon() {};
+		virtual void RemoveNotificationIcon() {};
 
 		void SetEvents(const ApplicationEvents& InEvents)
 		{

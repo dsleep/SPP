@@ -96,12 +96,13 @@ message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
 add_subdirectory("SPPRemoteApplicationwxWidgets")
 
 ##########
-add_executable( applicationhost "")
-add_dependencies( applicationhost SPPNetworking SPPVideo SPPCapture)			
+add_executable( applicationhost WIN32 "")
+add_dependencies( applicationhost SPPNetworking SPPEngine SPPVideo SPPCapture)			
 target_sources( applicationhost 
 	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/applicationhost.cpp" )		
-target_link_libraries( applicationhost SPPNetworking SPPVideo SPPCapture )
+		"${CMAKE_CURRENT_LIST_DIR}/applicationhost.cpp"
+        "${SPP_ROOT}/SPPEngine/Win32/sppbasicresource.rc" )		
+target_link_libraries( applicationhost SPPNetworking SPPEngine SPPVideo SPPCapture )
 set_target_properties( applicationhost PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET applicationhost PROPERTY FOLDER "APPLICATIONS")
 set_property(TARGET applicationhost PROPERTY VS_DPI_AWARE "PerMonitor")

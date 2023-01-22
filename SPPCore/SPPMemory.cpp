@@ -159,7 +159,12 @@ namespace SPP
 				MappedName);               // name of mapping object
 		}
 
-		SE_ASSERT(_impl->hMapFile);
+		if (_impl->hMapFile == nullptr)
+		{
+			SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: hMapFile is null");
+			return;
+		}
+
 		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has Link");
 
 		_impl->dataLink = (uint8_t*)MapViewOfFile(_impl->hMapFile,   // handle to map object
@@ -192,7 +197,21 @@ namespace SPP
 	}
 	IPCMappedMemory::~IPCMappedMemory()
 	{
-        //TODO FIX THIS!!!
+		if (_impl->hFileMutex)
+		{
+			CloseHandle(_impl->hFileMutex);
+			_impl->hFileMutex = nullptr;
+		}
+		if (_impl->dataLink)
+		{
+			UnmapViewOfFile(_impl->dataLink);
+			_impl->dataLink = nullptr;
+		}
+		if (_impl->hMapFile)
+		{
+			CloseHandle(_impl->hMapFile);
+			_impl->hMapFile = nullptr;
+		}
 	}
 
 	bool IPCMappedMemory::IsValid() const
