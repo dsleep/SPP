@@ -14,20 +14,22 @@
 
 #define IDR_MAINFRAME           128
 
-#define IDM_LOWINK              121
-#define IDM_PRINTJOB            122
-#define IDM_NOINK               123
+
+#define ID_NOTIFYAPP_OPEN       121
+#define ID_NOTIFYAPP_QUIT       122
+
 #define IDM_EXIT                124
 #define IDM_OPTIONS             125
 #define IDM_FLYOUT              126
 
-#define ID_NOTIFYAPP_OPEN               0x50001
-#define ID_NOTIFYAPP_QUIT      0x50002
+
 
 #define IDI_SPPAPP_ICON        207
 #define IDC_NOTIFICATIONICON        208
 
 #define IDR_NOTIFICATION_MENU    210
+
+
 
 #define IDC_MYICON              2
 #define IDB_PRINTER             110

@@ -340,6 +340,7 @@ namespace SPP
 
 	public:
 		Win32Application() {}
+		virtual ~Win32Application();
 		int Run(HINSTANCE hInstance, int nCmdShow);
 		HWND GetHwnd() { return m_hwnd; }
 
@@ -442,8 +443,15 @@ namespace SPP
 		return true;
 	}
 
+	Win32Application::~Win32Application()
+	{
+		RemoveNotificationIcon();
+	}
+
 	void Win32Application::CreateNotificationIcon()
 	{
+		RemoveNotificationIcon();
+
 		NOTIFYICONDATA nid = { sizeof(nid) };
 		nid.hWnd = m_hwnd;
 		// add the icon, setting the icon, tooltip, and callback message.
@@ -514,17 +522,22 @@ namespace SPP
 
 	int32_t Win32Application::RunOnce()
 	{
-		MSG msg = {};
-		if (PeekMessage(&msg, m_hwnd, 0, 0, PM_REMOVE))
+		MSG msg = { 0 };
+		while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) == TRUE)
 		{
-			if (WM_QUIT == msg.message)
-			{
-				return -1;
-			}
-			else
+			if (GetMessage(&msg, NULL, 0, 0))
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
+			}
+			else
+			{
+				if (_windowClosed)
+				{
+					_windowClosed();
+				}
+
+				return -1;
 			}
 		}
 
@@ -732,17 +745,36 @@ namespace SPP
 			PostQuitMessage(0);
 			return 0;
 
+		case WM_COMMAND:
+		{
+			int const wmId = LOWORD(wParam);
+			// Parse the menu selections:
+			switch (wmId)
+			{
+			case ID_NOTIFYAPP_OPEN:
+				break;
+
+			case ID_NOTIFYAPP_QUIT:
+				PostQuitMessage(0);
+				break;
+
+			default:
+				return DefWindowProc(hWnd, message, wParam, lParam);
+			}
+		}
+		break;
+
+
 		case WMAPP_NOTIFYCALLBACK:
 		{
 			switch (LOWORD(lParam))
 			{
-			case WM_CONTEXTMENU:
-			{
-				POINT const pt = { LOWORD(wParam), HIWORD(wParam) };
-				pApp->ShowNotificationContextMenu(pt);
+				case WM_CONTEXTMENU:
+				{
+					POINT const pt = { LOWORD(wParam), HIWORD(wParam) };
+					pApp->ShowNotificationContextMenu(pt);
+				}
 			}
-			}
-		return 0;
 		}
 		return 0;
 		}

@@ -51,6 +51,7 @@ namespace SPP
 
 	public:
 		ApplicationWindow() {}
+		virtual ~ApplicationWindow() {}
 
 		void GetWidthHeight(int32_t& oWidth, int32_t& oHeight)
 		{

@@ -708,7 +708,10 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 				}
 			}
 
-			app->RunOnce();
+			if (app->RunOnce() < 0)
+			{
+				mainController.Stop();
+			}
 		});
 
 	mainController.Run();
