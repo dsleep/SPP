@@ -609,6 +609,16 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	//IPC UPDATES
 	mainController.AddTimer(500ms, true, [&]()
 		{
+			{
+				auto memAcces = ipcMem.Lock();
+				if (memAcces[1024])
+				{
+					mainController.Stop();
+				}
+				ipcMem.Release();
+			}
+
+
 			bool IsConnectedToCoord = false;
 
 			Json::Value JsonMessage;
@@ -792,7 +802,8 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 	//auto LastSentTime = std::chrono::steady_clock::now();
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 
-	while (true)
+	bool bIsRunning = true;
+	while (bIsRunning)
 	{
 		coordinator->Update();
 
@@ -810,7 +821,17 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 			}
 		}
 
+		{
+			auto memAcces = ipcMem.Lock();
+			if (memAcces[1024])
+			{
+				bIsRunning = false;
+			}
+			ipcMem.Release();
+		}
+
 		//write status
+
 		{
 			bool IsConnectedToCoord = coordinator->IsConnected();
 
@@ -946,7 +967,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
 	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
 
-	IPCMappedMemory ipcMem("SPPAPPREMOTEHOST", 1 * 1024, true);
+	IPCMappedMemory ipcMem("SPPAPPREMOTEHOST", 2 * 1024, true);
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());

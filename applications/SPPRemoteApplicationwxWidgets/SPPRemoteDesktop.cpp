@@ -282,7 +282,7 @@ private:
 
 	const uint8_t CoordID = 0;
 	const uint8_t JuiceeID = 1;
-	const uint8_t BroadID = 2;
+	const uint8_t RemoteID = 2;
 	bool _bLastSent[3] = { false,false,false };
 
 	std::string _ThisRUNGUID;
@@ -344,6 +344,10 @@ public:
 			{
 				StartRemoteAccess();
 			}
+			else
+			{
+				CloseRemoteAccess();
+			}
 		}
 	}
 
@@ -368,20 +372,29 @@ public:
 
 	void CloseRemoteAccess()
 	{
-
+		auto mapIPCMem = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 2 * 1024, false);
+		if (mapIPCMem->IsValid())
+		{
+			auto memAcces = mapIPCMem->Lock();
+			memAcces[1024] = 1;
+			mapIPCMem->Release();
+			std::this_thread::sleep_for(1s);
+		}
 	}
 
 	void StartRemoteAccess()
 	{
 		CloseRemoteAccess();
 
-		auto remoteAccessProcess = CreatePlatformProcess(REMOTE_ACCESS_APP, nullptr, true, false, false);
+		auto FullBinPath = SPP::GRootPath + "Binaries/" + REMOTE_ACCESS_APP;
+
+		auto remoteAccessProcess = CreatePlatformProcess(FullBinPath.c_str(), "", true, false, false);
 
 		if (remoteAccessProcess->IsValid())
 		{
 			for(int32_t Iter = 0; Iter < 20; Iter++)
 			{
-				auto mapIPCMem = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 1 * 1024, false);
+				auto mapIPCMem = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 2 * 1024, false);
 				if (mapIPCMem->IsValid())
 				{
 					break;
@@ -393,16 +406,21 @@ public:
 
 	void ValidateRemoteAccess()
 	{
-		if (!GAppConfig.remote.bEnabled)return;
-		//if (!_appIPC || _appIPC->IsValid() == false)
-		//{
-		//	_appIPC = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 1 * 1024, false);
-		//}
+		if (!GAppConfig.remote.bEnabled)
+		{
+			SetNetGood(RemoteID, false);
+			return;
+		}
 
-		////if ()
-		//{
-		//	CreatePlatformProcess( REMOTE_ACCESS_APP, nullptr, true, false, false);
-		//}
+		auto mapIPCMem = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 2 * 1024, false);
+		if (mapIPCMem->IsValid())
+		{
+			SetNetGood(RemoteID, true);
+		}
+		else
+		{
+			SetNetGood(RemoteID, false);
+		}		
 	}
 
 	void Run()
@@ -498,6 +516,8 @@ void UpdateConfig(const std::string& InValue)
 		JSONToPOD(coordRef, jsonData);
 
 		GMainApp->UpdateConfig(newConfig);
+
+		JsonToFile("./remotedesktop.config.txt", jsonData);
 	}	
 }
 
@@ -810,8 +830,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 #endif
 
 	// setup global asset path
-	SPP::GAssetPath = stdfs::absolute(stdfs::current_path() / "..\\Assets\\").generic_string();
-	
+	SPP::GRootPath = stdfs::absolute(stdfs::current_path() / "..\\").generic_string();
+	SPP::GBinaryPath = SPP::GRootPath + "Binaries\\";
+	SPP::GAssetPath = SPP::GRootPath + "Assets\\";
 
 	{
 		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;

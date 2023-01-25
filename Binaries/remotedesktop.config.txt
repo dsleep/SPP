@@ -8,6 +8,11 @@
 	{
 		"port" : "12030"
 	},
+	"remote" : 
+	{
+		"bAllowInput" : "false",
+		"bEnabled" : "false"
+	},
 	"stun" : 
 	{
 		"addr" : "stun.l.google.com",

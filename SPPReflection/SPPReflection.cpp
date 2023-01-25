@@ -4,6 +4,7 @@
 
 #include "SPPReflection.h"
 #include "SPPLogging.h"
+#include "SPPString.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -170,6 +171,23 @@ namespace SPP
 		}
 		return false;
 	}
+
+	template<>
+	bool impl_NumericConvert<bool>(rttr::variant& InVar, const std::string& InValue)
+	{
+		auto VarType = InVar.get_type();
+		SE_ASSERT(VarType.is_wrapper());
+		VarType = VarType.get_wrapped_type();
+		if (VarType == rttr::type::get<bool>())
+		{
+			bool realValue = (str_to_upper(InValue) == "TRUE") ? true : false;		
+			std::reference_wrapper<bool> wrappedValue =	InVar.get_value< std::reference_wrapper<bool> >();
+			wrappedValue.get() = realValue;
+			return true;
+		}
+		return false;
+	}
+
 
 	template<typename ... Types>
 	bool NumericConvert(rttr::variant& InVar, const std::string& InValue)

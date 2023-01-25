@@ -192,7 +192,23 @@ namespace SPP
 			if (bSuccess == 0)
 			{
 				auto LastError = GetLastError();
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateProcess failed : error(%d)0x%X", LastError, LastError);
+				
+				LPVOID lpMsgBuf;
+
+				FormatMessageA(
+					FORMAT_MESSAGE_ALLOCATE_BUFFER |
+					FORMAT_MESSAGE_FROM_SYSTEM |
+					FORMAT_MESSAGE_IGNORE_INSERTS,
+					NULL,
+					LastError,
+					MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+					(LPSTR)&lpMsgBuf,
+					0, NULL);
+
+				SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateProcess failed : error(%d)0x%X : %s", LastError, LastError, (const char*)lpMsgBuf);
+
+				LocalFree(lpMsgBuf);
+
 				return;
 			}
 

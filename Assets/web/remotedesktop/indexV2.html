@@ -203,13 +203,13 @@ button:active {
   </form>
 </div>
 <div id="RemoteControlConfig" class="config-popup" >
-  <form action="" class="form-container">
+  <form action="" class="form-container" name="remote">
     <p style="border-bottom: thin solid #646464;"><b>Remote Control Configuration</b></p>
     <div>Active
-      <input data-tw-bind="rcc.active" name="Enable Remote Access" type="checkbox" >
+      <input name="bEnabled" type="checkbox" >
     </div>
     <div>Allow Input
-      <input data-tw-bind="rcc.allowinput" name="Allow Remote Control" type="checkbox">
+      <input name="bAllowInput" type="checkbox">
     </div>
     <br>
     <br>
@@ -315,6 +315,11 @@ button:active {
 		{
 			"addr" : "stun.l.google.com",
 			"port" : "19302"
+		},
+		"remote" :
+		{
+			"bEnabled" : "false",
+			"bAllowInput" : "false"
 		}
 	};
 	
@@ -342,10 +347,13 @@ button:active {
 		
 		let curObject = ConfigSettings[configsForm.name];
 		for (const curEntry of formInputs) {
-			 if(curEntry.type === 'text'|| curEntry.type === 'textarea') {
-				 
-				 console.log(curEntry);
+			 if(curEntry.type === 'text'|| curEntry.type === 'textarea') {				 
 				 curEntry.value = curObject[curEntry.name];
+			 }
+			 if(curEntry.type === 'checkbox') {
+				 let jsonPropValue = curObject[curEntry.name].toLowerCase();
+				 curEntry.checked = (jsonPropValue == "true");
+				 curEntry.value = jsonPropValue;
 			 }
 		}
 		
@@ -373,9 +381,16 @@ button:active {
 	function handleSubmit(event) {
     	event.preventDefault();		
  		console.log( event.target.name );
-    	const data = new FormData(event.target);
+    	let formData = new FormData(event.target);
+		
+		//add checkboxes, false OR true
+		const formCheckboxes = event.target.querySelectorAll('input[type="checkbox"]');
+		formCheckboxes.forEach((userItem) => {
+			formData.append(userItem.name, userItem.value);
+		});		
+		
 		let targetName = String(event.target.name);
-   		const value = Object.fromEntries(data.entries());
+   		const value = Object.fromEntries(formData.entries());
 		
 		// merge these bad boys
 		ConfigSettings[targetName] = {
@@ -386,10 +401,20 @@ button:active {
 		window.InvokeNative("UpdateConfig", JSON.stringify(ConfigSettings));
   	}
 	
+	function handSetTrueFalse(InEvent) { 		
+	   	event.target.value = (event.target.checked ? "true" : "false");
+		console.log("handSetTrueFalse:" + event.target.value);
+    }
+	
 	const allForms = document.querySelectorAll("form");
 
 	allForms.forEach((userItem) => {
 	   userItem.addEventListener('submit', handleSubmit);
+	});
+	
+	const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+	allCheckboxes.forEach((userItem) => {
+	   userItem.addEventListener('click', handSetTrueFalse);
 	});
 	
 	document.getElementById("coordBtn").addEventListener("click", function() {
