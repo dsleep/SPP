@@ -22,7 +22,7 @@
 #include "SPPNetworkMessenger.h"
 #include "SPPPlatformCore.h"
 #include "SPPJsonUtils.h"
-
+#include "SPPReflection.h"
 #include "SPPFileSystem.h"
 
 #include "SPPHandledTimers.h"
@@ -37,6 +37,10 @@ LogEntry LOG_APP("APP");
 #define PREVENT_INPUT 0
 
 HINSTANCE GhInstance = nullptr;
+
+#include "./SPPRemoteApplicationwxWidgets/SPP_RD_AppConfig.inl"
+
+APPConfig GAppConfig;
 
 struct handle_data {
 	uint32_t process_id;
@@ -569,11 +573,6 @@ public:
 };
 
 
-std::string CoordPWD;
-IPv4_SocketAddress RemoteCoordAddres;
-std::string StunURL;
-uint16_t StunPort;
-
 /// <summary>
 /// 
 /// </summary>
@@ -656,7 +655,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 		});
 
 	//UDP BEACON
-	IPv4_SocketAddress broadcastAddr("255.255.255.255", RemoteCoordAddres.Port);
+	IPv4_SocketAddress broadcastAddr("255.255.255.255", GAppConfig.lan.port);
 	IPv4_SocketAddress localAddr = serverSocket->GetLocalAddress();
 	auto curSockAddr = localAddr.ToString();
 
@@ -743,11 +742,11 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 	const std::string& AppPath,
 	IPCMappedMemory &ipcMem)
 {
-	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+	auto juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 
-	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
+	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr.c_str());
 
-	coordinator->SetPassword(CoordPWD);
+	coordinator->SetPassword(GAppConfig.coord.pwd);
 	coordinator->SetKeyPair("GUID", ThisRUNGUID);
 	coordinator->SetKeyPair("APPNAME", SimpleAppName);
 	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
@@ -877,7 +876,7 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 			if (videoConnection->IsValid() == false)
 			{
 				videoConnection.reset();
-				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+				juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 				SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
 			}
 			else if (videoConnection->IsConnected())
@@ -889,7 +888,7 @@ void MainWithNatTraverasl(const std::string &ThisRUNGUID,
 		{
 			if (juiceSocket->HasProblem())
 			{
-				juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+				juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 				SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
 			}
 			else if (juiceSocket->IsConnected())
@@ -931,23 +930,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	GetMonitorInfo(Infos);
 
 	{
-		Json::Value JsonConfig;
-		SE_ASSERT(FileToJson("config.txt", JsonConfig));
+		//Json::Value JsonConfig;
+		//SE_ASSERT(FileToJson("remoteaccess.config.txt", JsonConfig));
+
+		Json::Value jsonData;
+		SE_ASSERT(FileToJson("./remoteaccess.config.txt", jsonData));
 		
-		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
-		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
-		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
-		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
-
-		SE_ASSERT(!STUN_URL.isNull());
-		SE_ASSERT(!STUN_PORT.isNull());
-		SE_ASSERT(!COORDINATOR_IP.isNull());
-		SE_ASSERT(!COORD_PASS.isNull());
-
-		StunURL = STUN_URL.asCString();
-		StunPort = STUN_PORT.asUInt();
-		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());		
-		CoordPWD = COORD_PASS.asCString();
+		auto coordRef = std::ref(GAppConfig);
+		JSONToPOD(coordRef, jsonData);		
 	}
 
 	auto ThisRUNGUID = std::generate_hex(3);

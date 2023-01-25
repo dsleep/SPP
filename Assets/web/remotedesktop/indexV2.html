@@ -3,6 +3,7 @@
 <head>
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
 <link rel="stylesheet" href="darktheme.css">
+<script src="../lodash/lodash.js"></script>
 <style>
 html, body {
 	height: 100%;
@@ -267,8 +268,8 @@ button:active {
 			<div id="currentDesktop"  >
 			 <i class="fa-solid fa-desktop" style="color:green"></i> Dave's Desktop
 			</div>
-			</a>
-			 --> 
+			</a> -->
+
     </div>
   </div>
   <div id="serverStatus" class="ListAndStatusArea" >
@@ -330,6 +331,45 @@ button:active {
 			...ConfigSettings,
 			...JSONConfigSettings
 		};
+	}
+	
+	function ClickHost(InGUID) {
+		
+	}
+	
+	var remoteDevices = {};
+	
+	var remoteHTMLText = `<a href="javascript:ClickHost('{0}');" id="HOST_{0}">
+		<i class="fa-solid fa-desktop" style="color:green"></i> {1}
+		</a>`;
+		
+	
+	// First, checks if it isn't implemented yet.
+	String.prototype.format = function () {
+	  var args = arguments;
+	  return this.replace(/{([0-9]+)}/g, function (match, index) {
+		// check if the argument is there
+		return typeof args[index] == 'undefined' ? match : args[index];
+	  });
+	};
+
+	function UpdateRemoteDevices(InJSON) {
+		let newRemoteDevices = JSON.parse(InJSON);
+		console.log(InJSON);
+				
+		if( !_.isEqual(remoteDevices, newRemoteDevices) ){
+			
+			remoteDevices = newRemoteDevices;
+			
+			document.getElementById("serverList").innerHTML = "";
+			
+			for (const newDevice of remoteDevices) {
+				console.log("new: " + newDevice)
+				let formattedText = remoteHTMLText.format( newDevice.Name, newDevice.Name );
+				document.getElementById("serverList").innerHTML += formattedText;
+			}
+			
+		}
 	}
 	
 	var IDMatch = [ "CoordSignal", "StunSignal", "RemoteSignal" ];

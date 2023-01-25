@@ -197,57 +197,7 @@ void JSFunctionReceiver(const std::string& InFunc, Json::Value& InValue)
 
 }
 
-struct LANConfiguration
-{
-	uint16_t port = 12030;
-
-	bool operator == (const LANConfiguration& cmp) const
-	{
-		return port == cmp.port;
-	}
-};
-
-struct CoordinatorConfiguration
-{
-	std::string addr = "127.0.0.1:12021";
-	std::string pwd = "test";
-
-	bool operator == (const CoordinatorConfiguration& cmp) const
-	{
-		return addr == cmp.addr && pwd == cmp.pwd;
-	}
-};
-
-struct STUNConfiguration
-{
-	std::string addr = "stun.l.google.com";
-	uint16_t port = 19302;
-
-	bool operator == (const STUNConfiguration& cmp) const
-	{
-		return addr == cmp.addr && port == cmp.port;
-	}
-};
-
-struct RemoteAccess
-{
-	bool bEnabled = false;
-	bool bAllowInput = false;
-
-	bool operator == (const RemoteAccess& cmp) const
-	{
-		return bEnabled == cmp.bEnabled && bAllowInput == cmp.bAllowInput;
-	}
-};
-
-struct APPConfig
-{
-	LANConfiguration lan;
-	CoordinatorConfiguration coord;
-	STUNConfiguration stun;
-	RemoteAccess remote;
-};
-
+#include "SPP_RD_AppConfig.inl"
 
 APPConfig GAppConfig;
 
@@ -257,6 +207,13 @@ struct RemoteClient
 	std::string Name;
 	std::string AppName;
 	std::string AppCL;
+
+	bool operator == (const RemoteClient& cmp) const
+	{
+		return Name == cmp.Name && 
+			AppName == cmp.AppName &&
+			AppCL == cmp.AppCL;
+	}
 };
 
 #if _DEBUG
@@ -423,6 +380,22 @@ public:
 		}		
 	}
 
+	void UpdateRemoteDevices()
+	{		
+		Json::Value jsonData;
+		for (auto& [key, value] : _remoteDevices)
+		{
+			auto dataRef = std::ref(value);
+			Json::Value remoteJSONData;
+			PODToJSON(dataRef, remoteJSONData);
+			jsonData.append(remoteJSONData);
+		}
+
+		std::string oString;
+		JsonToString(jsonData, oString);
+		JavascriptInterface::InvokeJS("UpdateRemoteDevices", oString);
+	}
+
 	void Run()
 	{
 		_runThreadID = std::this_thread::get_id();
@@ -442,6 +415,7 @@ public:
 		_timer->AddTimer(1s, true, [&]()
 		{
 			ValidateRemoteAccess();
+			UpdateRemoteDevices();
 		});
 
 		_timer->AddTimer(100ms, true, [&]()
@@ -515,9 +489,10 @@ void UpdateConfig(const std::string& InValue)
 		auto coordRef = std::ref(newConfig);
 		JSONToPOD(coordRef, jsonData);
 
-		GMainApp->UpdateConfig(newConfig);
-
 		JsonToFile("./remotedesktop.config.txt", jsonData);
+		JsonToFile("./remoteaccess.config.txt", jsonData);
+
+		GMainApp->UpdateConfig(newConfig);
 	}	
 }
 
@@ -550,39 +525,20 @@ void PageLoaded()
 
 }
 
-RTTR_REGISTRATION
+SPP_AUTOREG_START
 {
 	using namespace rttr;
 	registration::method("UpdateConfig", &UpdateConfig)
 		.method("PageLoaded", &PageLoaded)
 		.method("HelpClick", &HelpClick);
 
-	rttr::registration::class_<LANConfiguration>("LANConfiguration")
-		.property("port", &LANConfiguration::port)(rttr::policy::prop::as_reference_wrapper)
-		;
-
-	rttr::registration::class_<CoordinatorConfiguration>("CoordinatorConfiguration")
-		.property("addr", &CoordinatorConfiguration::addr)(rttr::policy::prop::as_reference_wrapper)
-		.property("pwd", &CoordinatorConfiguration::pwd)(rttr::policy::prop::as_reference_wrapper)
-		;
-
-	rttr::registration::class_<STUNConfiguration>("STUNConfiguration")
-		.property("addr", &STUNConfiguration::addr)(rttr::policy::prop::as_reference_wrapper)
-		.property("port", &STUNConfiguration::port)(rttr::policy::prop::as_reference_wrapper)
-		;
-
-	rttr::registration::class_<RemoteAccess>("RemoteAccess")
-		.property("bEnabled", &RemoteAccess::bEnabled)(rttr::policy::prop::as_reference_wrapper)
-		.property("bAllowInput", &RemoteAccess::bAllowInput)(rttr::policy::prop::as_reference_wrapper)
-		;
-
-	rttr::registration::class_<APPConfig>("APPConfig")
-		.property("lan", &APPConfig::lan)(rttr::policy::prop::as_reference_wrapper)
-		.property("coord", &APPConfig::coord)(rttr::policy::prop::as_reference_wrapper)
-		.property("stun", &APPConfig::stun)(rttr::policy::prop::as_reference_wrapper)
-		.property("remote", &APPConfig::remote)(rttr::policy::prop::as_reference_wrapper)
+	rttr::registration::class_<RemoteClient>("RemoteClient")
+		.property("Name", &RemoteClient::Name)(rttr::policy::prop::as_reference_wrapper)
+		.property("AppName", &RemoteClient::AppName)(rttr::policy::prop::as_reference_wrapper)
+		.property("AppCL", &RemoteClient::AppCL)(rttr::policy::prop::as_reference_wrapper)
 		;
 }
+SPP_AUTOREG_END
 
 /// <summary>
 /// Generic Status update coming from the child launched app "client" or "host"

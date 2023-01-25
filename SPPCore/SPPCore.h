@@ -87,7 +87,20 @@ namespace SPP
 	SPP_CORE_API const char* GetGitTag();
 }
 
+#define SPP_CAT_IMPL(a, b) a##b
+#define SPP_CAT(a, b) SPP_CAT_IMPL(a, b)
 
+#define SPP_AUTOREG_START                                                           \
+namespace SPP_CAT(spp_auto_reg_namespace_, __LINE__)								\
+{																					\
+    struct RegStruct																\
+    {                                                                               \
+        RegStruct()
+
+#define SPP_AUTOREG_END		\
+	};						\
+	const static RegStruct _reg;			\
+}
 
 #define SPP_OVERLOAD_ALLOCATORS      \
 void* operator new  (std::size_t size) { return SPP::SPP_MALLOC(size); }                                         \
