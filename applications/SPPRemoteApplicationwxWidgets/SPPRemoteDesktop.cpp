@@ -204,6 +204,7 @@ APPConfig GAppConfig;
 struct RemoteClient
 {
 	std::chrono::steady_clock::time_point LastUpdate;
+	std::string GUID;
 	std::string Name;
 	std::string AppName;
 	std::string AppCL;
@@ -424,19 +425,25 @@ public:
 			int32_t DataRecv = 0;
 			while ((DataRecv = _broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
 			{
-				//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
-				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
-				IPv4_SocketAddress hostPort(HostString.c_str());
+				if (DataRecv >= 24)
+				{
+					//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
+					std::string GUIDString((char*)BufferRead.data(), (char*)BufferRead.data() + 6);
+					std::string HostPort((char*)BufferRead.data() + 6, (char*)BufferRead.data() + 12);
+					std::string HostName((char*)BufferRead.data() + 12, (char*)BufferRead.data() + 36);
+					HostName = std::trim(HostName);
+					IPv4_SocketAddress hostPort(0, 0, 0, 0, std::atoi(HostPort.c_str()));
+					recvAddr.Port = hostPort.Port;
+					auto realAddrOfConnection = recvAddr.ToString();
 
-				recvAddr.Port = hostPort.Port;
-				auto realAddrOfConnection = recvAddr.ToString();
-
-				_remoteDevices[realAddrOfConnection] = RemoteClient{
-					std::chrono::steady_clock::now(),
-					realAddrOfConnection,
-					std::string(""),
-					std::string("")
-				};
+					_remoteDevices[GUIDString] = RemoteClient{
+						std::chrono::steady_clock::now(),
+						GUIDString,
+						HostName,
+						std::string(""),
+						std::string("")
+					};
+				}
 			}
 		});
 
@@ -533,6 +540,7 @@ SPP_AUTOREG_START
 		.method("HelpClick", &HelpClick);
 
 	rttr::registration::class_<RemoteClient>("RemoteClient")
+		.property("GUID", &RemoteClient::GUID)(rttr::policy::prop::as_reference_wrapper)
 		.property("Name", &RemoteClient::Name)(rttr::policy::prop::as_reference_wrapper)
 		.property("AppName", &RemoteClient::AppName)(rttr::policy::prop::as_reference_wrapper)
 		.property("AppCL", &RemoteClient::AppCL)(rttr::policy::prop::as_reference_wrapper)

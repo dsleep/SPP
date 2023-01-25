@@ -334,7 +334,7 @@ button:active {
 	}
 	
 	function ClickHost(InGUID) {
-		
+		console.log("join: " + InGUID);
 	}
 	
 	var remoteDevices = {};
@@ -365,7 +365,7 @@ button:active {
 			
 			for (const newDevice of remoteDevices) {
 				console.log("new: " + newDevice)
-				let formattedText = remoteHTMLText.format( newDevice.Name, newDevice.Name );
+				let formattedText = remoteHTMLText.format( newDevice.GUID, newDevice.Name );
 				document.getElementById("serverList").innerHTML += formattedText;
 			}
 			

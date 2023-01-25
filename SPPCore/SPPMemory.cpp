@@ -139,7 +139,7 @@ namespace SPP
 
 	IPCMappedMemory::IPCMappedMemory(const char* MappedName, size_t MemorySize, bool bIsNew) : _impl(new PlatImpl()), _memorySize(MemorySize)
 	{
-		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: (%s:%d) %d", MappedName, bIsNew, MemorySize);
+		SPP_LOG(LOG_IPC, LOG_VERBOSE, "IPCMappedMemory::IPCMappedMemory: (%s:%d) %d", MappedName, bIsNew, MemorySize);
 
 		if (bIsNew)
 		{
@@ -161,11 +161,11 @@ namespace SPP
 
 		if (_impl->hMapFile == nullptr)
 		{
-			SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: hMapFile is null");
+			SPP_LOG(LOG_IPC, LOG_VERBOSE, "IPCMappedMemory::IPCMappedMemory: hMapFile is null");
 			return;
 		}
 
-		SPP_LOG(LOG_IPC, LOG_INFO, "IPCMappedMemory::IPCMappedMemory: has Link");
+		SPP_LOG(LOG_IPC, LOG_VERBOSE, "IPCMappedMemory::IPCMappedMemory: has Link");
 
 		_impl->dataLink = (uint8_t*)MapViewOfFile(_impl->hMapFile,   // handle to map object
 			FILE_MAP_ALL_ACCESS, // read/write permission

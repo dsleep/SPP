@@ -657,13 +657,13 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	//UDP BEACON
 	IPv4_SocketAddress broadcastAddr("255.255.255.255", GAppConfig.lan.port);
 	IPv4_SocketAddress localAddr = serverSocket->GetLocalAddress();
-	auto curSockAddr = localAddr.ToString();
+	std::string socketData = std::string_format("%6.6s%6u%24.24s", ThisRUNGUID.c_str(), localAddr.Port, GetOSNetwork().HostName.c_str());
 
 	mainController.AddTimer(1s, true, [&]()
 		{
 			if (!videoConnection)
 			{	
-				broadcastSocket->SendTo(broadcastAddr, curSockAddr.c_str(), curSockAddr.length());
+				broadcastSocket->SendTo(broadcastAddr, socketData.c_str(), socketData.length());
 			}
 		});
 
