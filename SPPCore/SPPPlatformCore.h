@@ -64,7 +64,7 @@ namespace SPP
 		virtual std::string GetOutput() = 0;
 	};
 
-	SPP_CORE_API std::shared_ptr< PlatformProcess> CreatePlatformProcess(const char* ProcessPath, const char* Commandline = nullptr, bool bStartVisible = false, bool bInPutToString = false);
+	SPP_CORE_API std::shared_ptr< PlatformProcess> CreatePlatformProcess(const char* ProcessPath, const char* Commandline = nullptr, bool bStartVisible = false, bool bInPutToString = false, bool bAsChildProcess = true);
 }
 
 extern "C" SPP_CORE_API uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible);

@@ -87,15 +87,18 @@ namespace SPP
 		HANDLE _childStd_OUT_Wr = NULL;
 
 		std::thread _outputThread;
-		std::shared_ptr< PROCESS_INFORMATION> pi;
+		PROCESS_INFORMATION _pi = { 0 };
 
 		std::mutex _outputMutex;
 		std::string _outputString;
 
+		bool _bIsChildProcess = true;
+
 	public:
 
-		Win32Process(const char* ProcessPath, const char* Commandline, bool bStartVisible, bool bInputToString) :
-			PlatformProcess(ProcessPath, Commandline, bStartVisible, bInputToString)
+		Win32Process(const char* ProcessPath, const char* Commandline, bool bStartVisible, 
+			bool bInputToString, bool bIsChildProcess) :
+			PlatformProcess(ProcessPath, Commandline, bStartVisible, bInputToString), _bIsChildProcess(bIsChildProcess)
 		{
 			std::string stringProcessPath = _processPath;
 			stdfs::path asPath(_processPath);
@@ -105,56 +108,58 @@ namespace SPP
 			}
 			const char* CorrectedProcessPath = stringProcessPath.c_str();
 
-			SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: %s %s", CorrectedProcessPath, Commandline);
-
-			BOOL bIsProcessInJob = false;
-			BOOL bSuccess = IsProcessInJob(GetCurrentProcess(), NULL, &bIsProcessInJob);
-			if (bSuccess == 0)
-			{
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: IsProcessInJob failed: error %d", GetLastError());
-				return;
-			}
-
-			bool bCreateJob = true;
+			SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateProcess(isChild:%d): %s %s", _bIsChildProcess, CorrectedProcessPath, Commandline);
 
 			HANDLE hJob = nullptr;
-			if (bIsProcessInJob)
+			BOOL bSuccess = TRUE;
+			if (_bIsChildProcess)
 			{
-				bCreateJob = false;
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: already in job");
-
-				JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
-				QueryInformationJobObject(NULL, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli), NULL);
-
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  silent break away %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK));
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  kill on close %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE));
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  break away %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_BREAKAWAY_OK));
-
-				bCreateJob = (jeli.BasicLimitInformation.LimitFlags & (JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)) != 0;
-
-				SPP_LOG(LOG_WIN32CORE, LOG_INFO, " - bCreateJob %d", bCreateJob);
-			}
-
-			if (bCreateJob)
-			{
-				hJob = CreateJobObject(NULL, NULL);
-				if (hJob == NULL)
+				BOOL bIsProcessInJob = false;
+				bSuccess = IsProcessInJob(GetCurrentProcess(), NULL, &bIsProcessInJob);
+				if (bSuccess == 0)
 				{
-					SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateJobObject failed : error 0x%X", GetLastError());
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: IsProcessInJob failed: error %d", GetLastError());
 					return;
 				}
 
-				JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
-				jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-				bSuccess = SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
-				if (bSuccess == 0) 
+				bool bCreateJob = true;
+
+				if (bIsProcessInJob)
 				{
-					printf("SetInformationJobObject failed: error 0x%X\n", GetLastError());
-					return;
+					bCreateJob = false;
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateChildProcess: already in job");
+
+					JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
+					QueryInformationJobObject(NULL, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli), NULL);
+
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  silent break away %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK));
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  kill on close %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE));
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, " -  break away %d", (jeli.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_BREAKAWAY_OK));
+
+					bCreateJob = (jeli.BasicLimitInformation.LimitFlags & (JOB_OBJECT_LIMIT_BREAKAWAY_OK | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)) != 0;
+
+					SPP_LOG(LOG_WIN32CORE, LOG_INFO, " - bCreateJob %d", bCreateJob);
+				}
+
+				if (bCreateJob)
+				{
+					hJob = CreateJobObject(NULL, NULL);
+					if (hJob == NULL)
+					{
+						SPP_LOG(LOG_WIN32CORE, LOG_INFO, "CreateJobObject failed : error 0x%X", GetLastError());
+						return;
+					}
+
+					JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
+					jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+					bSuccess = SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
+					if (bSuccess == 0)
+					{
+						printf("SetInformationJobObject failed: error 0x%X\n", GetLastError());
+						return;
+					}
 				}
 			}
-
-			pi = std::make_shared< PROCESS_INFORMATION >(PROCESS_INFORMATION{ 0 });
 
 			std::string OutputCommandline = stdfs::path(CorrectedProcessPath).filename().generic_string();
 			std::string WorkingDir = stdfs::path(CorrectedProcessPath).parent_path().generic_string();
@@ -183,7 +188,7 @@ namespace SPP
 			dwCreationFlags |= CREATE_NEW_CONSOLE;
 			bSuccess = CreateProcessA(CorrectedProcessPath, (LPSTR)OutputCommandline.c_str(),
 				NULL, NULL, bInputToString,
-				dwCreationFlags, NULL, WorkingDir.c_str(), &si, pi.get());
+				dwCreationFlags, NULL, WorkingDir.c_str(), &si, &_pi);
 			if (bSuccess == 0)
 			{
 				auto LastError = GetLastError();
@@ -191,7 +196,7 @@ namespace SPP
 				return;
 			}
 
-			_processID = pi->dwProcessId;
+			_processID = _pi.dwProcessId;
 
 			if (bInputToString)
 			{
@@ -205,7 +210,7 @@ namespace SPP
 			// could be null if parent was alreayd in a job so child will auto inherit it
 			if (hJob != nullptr)
 			{
-				bSuccess = AssignProcessToJobObject(hJob, pi->hProcess);
+				bSuccess = AssignProcessToJobObject(hJob, _pi.hProcess);
 				if (bSuccess == 0)
 				{
 					SPP_LOG(LOG_WIN32CORE, LOG_INFO, "AssignProcessToJobObject failed: error %d", GetLastError());
@@ -216,10 +221,10 @@ namespace SPP
 
 		virtual ~Win32Process()
 		{
-			if(IsRunning())
+			if(_bIsChildProcess && IsRunning())
 			{
 				SPP_LOG(LOG_WIN32CORE, LOG_INFO, "~Win32Process: process was still running!");
-				TerminateProcess(pi->hProcess, 0);
+				TerminateProcess(_pi.hProcess, 0);
 			}
 
 			if (_outputThread.joinable())
@@ -227,14 +232,13 @@ namespace SPP
 				_outputThread.join();
 			}
 
-			if (pi)
+			if (_pi.hProcess)
 			{
-				// Close handles to the child process and its primary thread.
-				// Some applications might keep these handles to monitor the status
-				// of the child process, for example. 
-				CloseHandle(pi->hProcess);
-				CloseHandle(pi->hThread);
-				pi = nullptr;
+				CloseHandle(_pi.hProcess);
+			}
+			if (_pi.hThread)
+			{
+				CloseHandle(_pi.hThread);
 			}
 		}
 
@@ -279,15 +283,15 @@ namespace SPP
 
 		virtual bool IsValid()
 		{
-			return (pi && pi->dwProcessId);
+			return (_pi.dwProcessId);
 		}
 
 		virtual bool IsRunning()
 		{
-			if (pi)
+			if (_pi.hProcess)
 			{
 				DWORD exit_code;
-				GetExitCodeProcess(pi->hProcess, &exit_code);
+				GetExitCodeProcess(_pi.hProcess, &exit_code);
 				if (exit_code == STILL_ACTIVE) 
 				{
 					return true;
@@ -309,9 +313,9 @@ namespace SPP
 		}
 	};
 
-	std::shared_ptr<PlatformProcess> CreatePlatformProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible, bool bInPutToString)
+	std::shared_ptr<PlatformProcess> CreatePlatformProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible, bool bInPutToString, bool bAsChildProcess)
 	{
-		return std::make_shared< Win32Process >(ProcessPath, Commandline, bStartVisible, bInPutToString);
+		return std::make_shared< Win32Process >(ProcessPath, Commandline, bStartVisible, bInPutToString, bAsChildProcess);
 	}
 
 	std::map< uint32_t, std::shared_ptr< PROCESS_INFORMATION > > hostedChildProcesses;

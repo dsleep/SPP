@@ -229,11 +229,23 @@ struct STUNConfiguration
 	}
 };
 
+struct RemoteAccess
+{
+	bool bEnabled = false;
+	bool bAllowInput = false;
+
+	bool operator == (const RemoteAccess& cmp) const
+	{
+		return bEnabled == cmp.bEnabled && bAllowInput == cmp.bAllowInput;
+	}
+};
+
 struct APPConfig
 {
 	LANConfiguration lan;
 	CoordinatorConfiguration coord;
 	STUNConfiguration stun;
+	RemoteAccess remote;
 };
 
 
@@ -246,6 +258,12 @@ struct RemoteClient
 	std::string AppName;
 	std::string AppCL;
 };
+
+#if _DEBUG
+	static const char* REMOTE_ACCESS_APP = "applicationhostd";
+#else
+	static const char* REMOTE_ACCESS_APP = "applicationhost";
+#endif
 
 class MainThreadApp
 {
@@ -318,6 +336,15 @@ public:
 			GAppConfig.stun = InConfig.stun;
 			_juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 		}
+		if (InConfig.remote != GAppConfig.remote)
+		{
+			GAppConfig.remote = InConfig.remote;
+		
+			if (GAppConfig.remote.bEnabled)
+			{
+				StartRemoteAccess();
+			}
+		}
 	}
 
 	void CreateCoordinator()
@@ -339,6 +366,45 @@ public:
 		}
 	}
 
+	void CloseRemoteAccess()
+	{
+
+	}
+
+	void StartRemoteAccess()
+	{
+		CloseRemoteAccess();
+
+		auto remoteAccessProcess = CreatePlatformProcess(REMOTE_ACCESS_APP, nullptr, true, false, false);
+
+		if (remoteAccessProcess->IsValid())
+		{
+			for(int32_t Iter = 0; Iter < 20; Iter++)
+			{
+				auto mapIPCMem = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 1 * 1024, false);
+				if (mapIPCMem->IsValid())
+				{
+					break;
+				}
+				std::this_thread::sleep_for(250ms);
+			}
+		}
+	}
+
+	void ValidateRemoteAccess()
+	{
+		if (!GAppConfig.remote.bEnabled)return;
+		//if (!_appIPC || _appIPC->IsValid() == false)
+		//{
+		//	_appIPC = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 1 * 1024, false);
+		//}
+
+		////if ()
+		//{
+		//	CreatePlatformProcess( REMOTE_ACCESS_APP, nullptr, true, false, false);
+		//}
+	}
+
 	void Run()
 	{
 		_runThreadID = std::this_thread::get_id();
@@ -357,10 +423,7 @@ public:
 
 		_timer->AddTimer(1s, true, [&]()
 		{
-			if (!_appIPC || _appIPC->IsValid() == false)
-			{
-				_appIPC = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 1 * 1024, false);
-			}
+			ValidateRemoteAccess();
 		});
 
 		_timer->AddTimer(100ms, true, [&]()
@@ -488,10 +551,16 @@ RTTR_REGISTRATION
 		.property("port", &STUNConfiguration::port)(rttr::policy::prop::as_reference_wrapper)
 		;
 
+	rttr::registration::class_<RemoteAccess>("RemoteAccess")
+		.property("bEnabled", &RemoteAccess::bEnabled)(rttr::policy::prop::as_reference_wrapper)
+		.property("bAllowInput", &RemoteAccess::bAllowInput)(rttr::policy::prop::as_reference_wrapper)
+		;
+
 	rttr::registration::class_<APPConfig>("APPConfig")
 		.property("lan", &APPConfig::lan)(rttr::policy::prop::as_reference_wrapper)
 		.property("coord", &APPConfig::coord)(rttr::policy::prop::as_reference_wrapper)
 		.property("stun", &APPConfig::stun)(rttr::policy::prop::as_reference_wrapper)
+		.property("remote", &APPConfig::remote)(rttr::policy::prop::as_reference_wrapper)
 		;
 }
 
