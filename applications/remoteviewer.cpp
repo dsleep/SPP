@@ -42,9 +42,9 @@
 #include <wx/wx.h>
 #include <wx/glcanvas.h>
 
-#if PLATFORM_WINDOWS && HAS_WINRT
-	#include "SPPWinRTBTE.h"
-#endif
+//#if PLATFORM_WINDOWS && HAS_WINRT
+//	#include "SPPWinRTBTE.h"
+//#endif
 
 #if PLATFORM_MAC
     #include "SPPMacBT.h"
@@ -627,11 +627,11 @@ protected:
 
 	std::vector<uint8_t> recvBuffer;
 
-	std::function<void(const void*, uint16_t)> _btSendMessage;
-	using BtSendFunc = decltype(_btSendMessage);
+	//std::function<void(const void*, uint16_t)> _btSendMessage;
+	//using BtSendFunc = decltype(_btSendMessage);
 
 public:
-	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, BtSendFunc InSendBTMessage) : NetworkConnection(InPeer, false), _btSendMessage(InSendBTMessage)
+	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer/*, BtSendFunc InSendBTMessage*/) : NetworkConnection(InPeer, false) //, _btSendMessage(InSendBTMessage)
 	{ 
 		//app = std::make_unique< SimpleGlutApp>(this);
 		//hWnd = app->CreateOpenGLWindow("Viewer", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
@@ -742,39 +742,37 @@ public:
 			DataView.RebuildViewFromCurrent();
 			VideoDecoder->Decode(DataView.GetData(), DataView.Size());
 		}
-		else if (MessageType == 2)
-		{
-			if (_btSendMessage)
-			{
-				BinaryBlobSerializer thisMessage;
-				thisMessage << (uint8_t)1;
-				_btSendMessage(thisMessage.GetData(), thisMessage.Size());
-			}
-		}
+		//else if (MessageType == 2)
+		//{
+		//	if (_btSendMessage)
+		//	{
+		//		BinaryBlobSerializer thisMessage;
+		//		thisMessage << (uint8_t)1;
+		//		_btSendMessage(thisMessage.GetData(), thisMessage.Size());
+		//	}
+		//}
 	}
 };
 
-
-
-template<typename T>
-struct LocalBTEWatcher : public IBTEWatcher
-{
-private:
-	T& funcAdd;
-public:
-	LocalBTEWatcher(T& inT) : funcAdd(inT) { }
-	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
-	{
-		std::string strConv(InData, InData + DataSize);
-		funcAdd(strConv);
-	}
-};
-
-struct DummyBTEWatcher
-{
-    void Update() { };
-    void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize) {}
-};
+//template<typename T>
+//struct LocalBTEWatcher : public IBTEWatcher
+//{
+//private:
+//	T& funcAdd;
+//public:
+//	LocalBTEWatcher(T& inT) : funcAdd(inT) { }
+//	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
+//	{
+//		std::string strConv(InData, InData + DataSize);
+//		funcAdd(strConv);
+//	}
+//};
+//
+//struct DummyBTEWatcher
+//{
+//    void Update() { };
+//    void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize) {}
+//};
 
 void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 {
@@ -913,7 +911,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
 							// connect to this host
 							videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
 
-							videoConnection = std::make_shared< VideoConnection >(videoSocket, [](const void*, uint16_t) {});
+							videoConnection = std::make_shared< VideoConnection >(videoSocket);
 							videoConnection->CreateTranscoderStack(
 								// allow reliability to UDP
 								std::make_shared< ReliabilityTranscoder >(),
@@ -981,29 +979,29 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 	std::shared_ptr< VideoConnection > videoConnection;
 
 	//START UP BTE
-#if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
-	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
-	{
-		if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
-		{
-			BinaryBlobSerializer thisMessage;
-			thisMessage << (uint8_t)4;
-			thisMessage << InMessage;
-			videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
-		}
-	};
-	//DummyBTEWatcher watcher;
-
-	LocalBTEWatcher oWatcher(sendBTDataTOManager);
-	BTEWatcher watcher;
-	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
-		{
-			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
-		});
-#else
-
-	DummyBTEWatcher watcher;
-#endif
+//#if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
+//	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
+//	{
+//		if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
+//		{
+//			BinaryBlobSerializer thisMessage;
+//			thisMessage << (uint8_t)4;
+//			thisMessage << InMessage;
+//			videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+//		}
+//	};
+//	//DummyBTEWatcher watcher;
+//
+//	LocalBTEWatcher oWatcher(sendBTDataTOManager);
+//	BTEWatcher watcher;
+//	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
+//		{
+//			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
+//		});
+//#else
+//
+//	DummyBTEWatcher watcher;
+//#endif
 
 
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
@@ -1072,41 +1070,41 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 		});
 
 	//BT UPDATES
-	mainController.AddTimer(16ms, true, [&]()
-		{
-			if (BTRFComm)
-			{
-				if (BTRFComm->IsValid())
-				{
-					LastBTTime = std::chrono::steady_clock::now();
-					BTRFComm->Tick();
-				}
-				else
-				{
-					BTRFComm.reset();
-				}
-			}
-#if PLATFORM_WINDOWS
-			else
-			{
-				auto newBTConnection = listenSocket->Accept();
-				if (newBTConnection)
-				{
-					BTRFComm = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
-					SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
-				}
-			}
-#endif
-
-			// check on BTE
-			watcher.Update();
-			bBTEConnected = watcher.IsConnected();
-
-			if (bBTEConnected)
-			{
-				LastBTTime = std::chrono::steady_clock::now();
-			}
-		});
+//	mainController.AddTimer(16ms, true, [&]()
+//		{
+//			if (BTRFComm)
+//			{
+//				if (BTRFComm->IsValid())
+//				{
+//					LastBTTime = std::chrono::steady_clock::now();
+//					BTRFComm->Tick();
+//				}
+//				else
+//				{
+//					BTRFComm.reset();
+//				}
+//			}
+//#if PLATFORM_WINDOWS
+//			else
+//			{
+//				auto newBTConnection = listenSocket->Accept();
+//				if (newBTConnection)
+//				{
+//					BTRFComm = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
+//					SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
+//				}
+//			}
+//#endif
+//
+//			// check on BTE
+//			watcher.Update();
+//			bBTEConnected = watcher.IsConnected();
+//
+//			if (bBTEConnected)
+//			{
+//				LastBTTime = std::chrono::steady_clock::now();
+//			}
+//		});
 
 	//IPC UPDATES
 	mainController.AddTimer(100ms, true, [&]()
@@ -1270,17 +1268,18 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 				}
 				else if (juiceSocket->IsConnected())
 				{
-					videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&BTRFComm, &watcher](const void* buf, uint16_t BufferSize)
-						{
-							if (BTRFComm && BTRFComm->IsValid())
-							{
-								BTRFComm->SendMessage(buf, BufferSize);
-							}
-							watcher.WriteData(
-								"366DEE95-85A3-41C1-A507-8C3E02342000",
-								"366DEE95-85A3-41C1-A507-8C3E02342002",
-								buf, BufferSize);
-						});
+					videoConnection = std::make_shared< VideoConnection >(juiceSocket);
+					//videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&BTRFComm, &watcher](const void* buf, uint16_t BufferSize)
+					//	{
+					//		if (BTRFComm && BTRFComm->IsValid())
+					//		{
+					//			BTRFComm->SendMessage(buf, BufferSize);
+					//		}
+					//		watcher.WriteData(
+					//			"366DEE95-85A3-41C1-A507-8C3E02342000",
+					//			"366DEE95-85A3-41C1-A507-8C3E02342002",
+					//			buf, BufferSize);
+					//	});
 					videoConnection->CreateTranscoderStack(
 						// allow reliability to UDP
 						std::make_shared< ReliabilityTranscoder >(),

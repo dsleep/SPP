@@ -11,7 +11,7 @@
 	"remote" : 
 	{
 		"bAllowInput" : "false",
-		"bEnabled" : "true"
+		"bEnabled" : "false"
 	},
 	"stun" : 
 	{

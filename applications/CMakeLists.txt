@@ -50,7 +50,7 @@ if(OS_MAC)
 endif()
 
 add_executable( remoteviewer "")
-add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo ${SPP_BTE_PROJECT} )
+add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo) # ${SPP_BTE_PROJECT} )
 target_sources( remoteviewer
     PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
@@ -59,8 +59,8 @@ target_link_libraries( remoteviewer
     PRIVATE
         SPPNetworking
         SPPEngine
-        SPPVideo
-        ${SPP_BTE_PROJECT} )
+        SPPVideo)
+        #${SPP_BTE_PROJECT} )
         
 set_target_properties( remoteviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET remoteviewer PROPERTY FOLDER "APPLICATIONS")
