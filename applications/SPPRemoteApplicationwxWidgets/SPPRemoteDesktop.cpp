@@ -205,13 +205,7 @@ struct RemoteClient
 	std::string Name;
 	std::string AppName;
 	std::string AppCL;
-
-	bool operator == (const RemoteClient& cmp) const
-	{
-		return Name == cmp.Name && 
-			AppName == cmp.AppName &&
-			AppCL == cmp.AppCL;
-	}
+	std::string LanAddr;
 };
 
 #if _DEBUG
@@ -282,11 +276,23 @@ public:
 
 		if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - _lastRemoteJoin).count() > 2)
 		{
-			auto FullBinPath = SPP::GRootPath + "Binaries/" + REMOTE_VIEWER_APP;
-			auto remoteViewerProc = CreatePlatformProcess(FullBinPath.c_str(), "", true, false, false);
-			if (remoteViewerProc->IsValid())
+			auto foundDevice = _remoteDevices.find(InGUID);
+			if (foundDevice != _remoteDevices.end())
 			{
-				//
+				auto FullBinPath = SPP::GRootPath + "Binaries/" + REMOTE_VIEWER_APP;
+				std::string ArgString = "";
+				
+				if (foundDevice->second.LanAddr.length())
+				{
+					ArgString += std::string_format(" -lanaddr=%s", foundDevice->second.LanAddr.c_str());
+				}
+
+				auto remoteViewerProc = CreatePlatformProcess(FullBinPath.c_str(), ArgString.c_str(), true, false, false);
+
+				if (remoteViewerProc->IsValid())
+				{
+					//
+				}
 			}
 		}
 
@@ -407,18 +413,25 @@ public:
 
 	void UpdateRemoteDevices()
 	{		
-		Json::Value jsonData;
-		for (auto& [key, value] : _remoteDevices)
+		if (_remoteDevices.size())
 		{
-			auto dataRef = std::ref(value);
-			Json::Value remoteJSONData;
-			PODToJSON(dataRef, remoteJSONData);
-			jsonData.append(remoteJSONData);
-		}
+			Json::Value jsonData;
+			for (auto& [key, value] : _remoteDevices)
+			{
+				auto dataRef = std::ref(value);
+				Json::Value remoteJSONData;
+				PODToJSON(dataRef, remoteJSONData);
+				jsonData.append(remoteJSONData);
+			}
 
-		std::string oString;
-		JsonToString(jsonData, oString);
-		JavascriptInterface::InvokeJS("UpdateRemoteDevices", oString);
+			std::string oString;
+			JsonToString(jsonData, oString);
+			JavascriptInterface::InvokeJS("UpdateRemoteDevices", oString);
+		}
+		else
+		{
+			JavascriptInterface::InvokeJS("UpdateRemoteDevices", std::string("[]"));
+		}
 	}
 
 	void Run()
@@ -465,7 +478,8 @@ public:
 						GUIDString,
 						HostName,
 						std::string(""),
-						std::string("")
+						std::string(""),
+						realAddrOfConnection
 					};
 				}
 			}
@@ -521,7 +535,9 @@ void UpdateConfig(const std::string& InValue)
 		JSONToPOD(coordRef, jsonData);
 
 		JsonToFile("./remotedesktop.config.txt", jsonData);
+		JsonToFile("./remotecontrol.config.txt", jsonData);
 		JsonToFile("./remoteaccess.config.txt", jsonData);
+
 
 		GMainApp->UpdateConfig(newConfig);
 	}	
@@ -575,6 +591,7 @@ SPP_AUTOREG_START
 		.property("Name", &RemoteClient::Name)(rttr::policy::prop::as_reference_wrapper)
 		.property("AppName", &RemoteClient::AppName)(rttr::policy::prop::as_reference_wrapper)
 		.property("AppCL", &RemoteClient::AppCL)(rttr::policy::prop::as_reference_wrapper)
+		.property("LanAddr", &RemoteClient::LanAddr)(rttr::policy::prop::as_reference_wrapper)		
 		;
 }
 SPP_AUTOREG_END

@@ -54,7 +54,7 @@ add_dependencies( remoteviewer SPPNetworking SPPEngine SPPVideo) # ${SPP_BTE_PRO
 target_sources( remoteviewer
     PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/remoteviewer.cpp"
-        "${CMAKE_CURRENT_LIST_DIR}/sppbasicresource.rc" )
+        "${SPP_ROOT}/SPPEngine/Win32/sppbasicresource.rc" )
 target_link_libraries( remoteviewer
     PRIVATE
         SPPNetworking

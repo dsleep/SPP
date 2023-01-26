@@ -46,9 +46,15 @@
 //	#include "SPPWinRTBTE.h"
 //#endif
 
-#if PLATFORM_MAC
-    #include "SPPMacBT.h"
-#endif
+//#if PLATFORM_MAC
+//    #include "SPPMacBT.h"
+//#endif
+
+#include "SPPReflection.h"
+
+#include "./SPPRemoteApplicationwxWidgets/SPP_RD_AppConfig.inl"
+
+APPConfig GAppConfig;
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -56,10 +62,6 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
-std::string CoordPWD;
-IPv4_SocketAddress RemoteCoordAddres;
-std::string StunURL;
-uint16_t StunPort;
 
 class MyApp;
 MyApp* GApp = nullptr;
@@ -774,161 +776,25 @@ public:
 //    void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize) {}
 //};
 
-void MainWithLanOnly(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
-{
-	std::map<std::string, RemoteClient> Hosts;
-
-	std::unique_ptr<UDPSocket> broadReceiver = std::make_unique<UDPSocket>(RemoteCoordAddres.Port, 
-		UDPSocketOptions::Broadcast);
-
+void MainWithLanOnly(const std::string& ThisRUNGUID, const std::string &LanAddr)//, IPCMappedMemory& ipcMem)
+{			
 	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
+	std::shared_ptr< UDPSendWrapped > videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, IPv4_SocketAddress(LanAddr.c_str()));
 
-	std::shared_ptr< UDPSendWrapped > videoSocket;
-
-	std::shared_ptr< VideoConnection > videoConnection;
+	std::shared_ptr< VideoConnection > videoConnection = std::make_shared< VideoConnection >(videoSocket);
+	videoConnection->CreateTranscoderStack(
+		// allow reliability to UDP
+		std::make_shared< ReliabilityTranscoder >(),
+		// push on the splitter so we can ignore sizes
+		std::make_shared< MessageSplitTranscoder >());
+	// we are the client
+	videoConnection->Connect();
+	
 	TimerController mainController(16ms);
-
 
 	std::vector<uint8_t> BufferRead;
 	BufferRead.resize(std::numeric_limits<uint16_t>::max());
-
-	//CHECK BROADCASTS
-	mainController.AddTimer(100ms, true, [&]()
-		{
-			IPv4_SocketAddress recvAddr;
-			int32_t DataRecv = 0;
-			while ((DataRecv = broadReceiver->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
-			{
-				//SPP_LOG(LOG_APP, LOG_INFO, "UDP BROADCAST!!!");
-				std::string HostString((char*)BufferRead.data(), (char*)BufferRead.data() + DataRecv);
-				IPv4_SocketAddress hostPort(HostString.c_str());
-
-				recvAddr.Port = hostPort.Port;
-				auto realAddrOfConnection = recvAddr.ToString();
-
-				Hosts[realAddrOfConnection] = RemoteClient{
-					std::chrono::steady_clock::now(),
-					realAddrOfConnection,
-					std::string(""),
-					std::string("")
-				};
-			}
-		});
-
-	//IPC UPDATES
-	mainController.AddTimer(100ms, true, [&]()
-		{
-			auto CurrentTime = std::chrono::high_resolution_clock::now();
-			//write status
-			{
-				Json::Value JsonMessage;
-				JsonMessage["COORD"] = false;
-				JsonMessage["RESOLVEDSDP"] = false;
-				JsonMessage["BLUETOOTH"] = false;
-
-				if (!videoConnection)
-				{
-					JsonMessage["CONNSTATUS"] = 0;
-				}
-				else
-				{
-					if (videoConnection->IsConnected())
-					{
-						JsonMessage["CONNSTATUS"] = 2;
-						auto& stats = videoConnection->GetStats();
-						JsonMessage["KBIN"] = stats.LastKBsIncoming;
-						JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
-						JsonMessage["CONNNAME"] = videoConnection->ToString();
-					}
-					else
-					{
-						JsonMessage["CONNSTATUS"] = 1;
-					}
-				}
-
-				if (Hosts.empty() == false)
-				{
-					Json::Value HostValues;
-					for (auto& [key, value] : Hosts)
-					{
-						if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
-						{
-							auto appCLArgs = std::str_split(value.AppCL, ';');
-							if (appCLArgs.empty()) appCLArgs.push_back("");
-							for (auto& appCL : appCLArgs)
-							{
-								Json::Value SingleHost;
-								SingleHost["NAME"] = value.Name;
-								SingleHost["APPNAME"] = value.AppName;
-								SingleHost["APPCL"] = appCL;
-								SingleHost["GUID"] = key;
-								HostValues.append(SingleHost);
-							}
-						}
-					}
-					JsonMessage["HOSTS"] = HostValues;
-				}
-
-				Json::StreamWriterBuilder wbuilder;
-				std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-
-				// our status
-				{
-					BinaryBlobSerializer outData;
-					outData << (uint32_t)StrMessage.length();
-					outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-					ipcMem.WriteMemory(outData.GetData(), outData.Size());
-				}
-
-				//BinaryBlobSerializer outData;
-				//outData << (uint32_t)StrMessage.length();
-				//outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-				//ipcMem.WriteMemory(outData.GetData(), outData.Size());
-
-				// app wants to connect
-				auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
-
-				MemoryView inMem(memLock, 1 * 1024 * 1024);
-				uint8_t hasData = 0;
-				inMem >> hasData;
-
-				if (hasData)
-				{
-					std::string IPString;
-					std::string AppCLStr;
-
-					inMem >> IPString;
-					inMem >> AppCLStr;
-
-					IPv4_SocketAddress recvAddr(IPString.c_str());
-
-					SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST %s!!!", recvAddr.ToString().c_str());
-
-					for (auto& [key, value] : Hosts)
-					{
-						if (key == IPString)
-						{
-							// connect to this host
-							videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
-
-							videoConnection = std::make_shared< VideoConnection >(videoSocket);
-							videoConnection->CreateTranscoderStack(
-								// allow reliability to UDP
-								std::make_shared< ReliabilityTranscoder >(),
-								// push on the splitter so we can ignore sizes
-								std::make_shared< MessageSplitTranscoder >());
-							// we are the client
-							videoConnection->Connect();
-						}
-					}
-
-					memLock[0] = 0;
-				}
-
-				ipcMem.Release();
-			}
-		});
-
+		
 	//VIDEO UPDATES
 	mainController.AddTimer(16.6666ms, true, [&]()
 		{
@@ -968,13 +834,13 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 	using namespace std::chrono_literals;
 
 	//BLUTETOOTH STUFFS
-	bool bBTEConnected = false;
-	std::shared_ptr< SimpleJSONPeerReader > BTRFComm;
-	//START UP RFCOMM BT
-#if PLATFORM_WINDOWS
-	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
-	listenSocket->Listen();
-#endif
+//	bool bBTEConnected = false;
+//	std::shared_ptr< SimpleJSONPeerReader > BTRFComm;
+//	//START UP RFCOMM BT
+//#if PLATFORM_WINDOWS
+//	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
+//	listenSocket->Listen();
+//#endif
 
 	std::shared_ptr< VideoConnection > videoConnection;
 
@@ -1004,10 +870,10 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 //#endif
 
 
-	auto juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
-	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(RemoteCoordAddres);
+	auto juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr.c_str());
 
-	coordinator->SetPassword(CoordPWD);
+	coordinator->SetPassword(GAppConfig.coord.pwd);
 	coordinator->SetKeyPair("GUID", ThisRUNGUID);
 	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
@@ -1107,113 +973,113 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 //		});
 
 	//IPC UPDATES
-	mainController.AddTimer(100ms, true, [&]()
-		{
-			auto CurrentTime = std::chrono::high_resolution_clock::now();
-			//write status
-			{
-				Json::Value JsonMessage;
-				JsonMessage["COORD"] = coordinator->IsConnected();
-				JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
-				JsonMessage["BLUETOOTH"] = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime - LastBTTime).count() < 1000;
+	//mainController.AddTimer(100ms, true, [&]()
+	//	{
+	//		auto CurrentTime = std::chrono::high_resolution_clock::now();
+	//		//write status
+	//		{
+	//			Json::Value JsonMessage;
+	//			JsonMessage["COORD"] = coordinator->IsConnected();
+	//			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
+	//			JsonMessage["BLUETOOTH"] = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime - LastBTTime).count() < 1000;
 
-				if (!videoConnection)
-				{
-					std::string ConnectKey;
-					coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
-					JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
-				}
-				else
-				{
-					if (videoConnection->IsConnected())
-					{
-						JsonMessage["CONNSTATUS"] = 2;
-						auto& stats = videoConnection->GetStats();
-						JsonMessage["KBIN"] = stats.LastKBsIncoming;
-						JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
-						JsonMessage["CONNNAME"] = videoConnection->ToString();
-					}
-					else
-					{
-						JsonMessage["CONNSTATUS"] = 1;
-					}
-				}
+	//			if (!videoConnection)
+	//			{
+	//				std::string ConnectKey;
+	//				coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
+	//				JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
+	//			}
+	//			else
+	//			{
+	//				if (videoConnection->IsConnected())
+	//				{
+	//					JsonMessage["CONNSTATUS"] = 2;
+	//					auto& stats = videoConnection->GetStats();
+	//					JsonMessage["KBIN"] = stats.LastKBsIncoming;
+	//					JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
+	//					JsonMessage["CONNNAME"] = videoConnection->ToString();
+	//				}
+	//				else
+	//				{
+	//					JsonMessage["CONNSTATUS"] = 1;
+	//				}
+	//			}
 
-				if (Hosts.empty() == false)
-				{
-					Json::Value HostValues;
-					for (auto& [key, value] : Hosts)
-					{
-						if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
-						{
-							auto appCLArgs = std::str_split(value.AppCL, ';');
-							if (appCLArgs.empty()) appCLArgs.push_back("");
-							for (auto& appCL : appCLArgs)
-							{
-								Json::Value SingleHost;
-								SingleHost["NAME"] = value.Name;
-								SingleHost["APPNAME"] = value.AppName;
-								SingleHost["APPCL"] = appCL;
-								SingleHost["GUID"] = key;
-								HostValues.append(SingleHost);
-							}
-						}
-					}
-					JsonMessage["HOSTS"] = HostValues;
-				}
+	//			if (Hosts.empty() == false)
+	//			{
+	//				Json::Value HostValues;
+	//				for (auto& [key, value] : Hosts)
+	//				{
+	//					if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
+	//					{
+	//						auto appCLArgs = std::str_split(value.AppCL, ';');
+	//						if (appCLArgs.empty()) appCLArgs.push_back("");
+	//						for (auto& appCL : appCLArgs)
+	//						{
+	//							Json::Value SingleHost;
+	//							SingleHost["NAME"] = value.Name;
+	//							SingleHost["APPNAME"] = value.AppName;
+	//							SingleHost["APPCL"] = appCL;
+	//							SingleHost["GUID"] = key;
+	//							HostValues.append(SingleHost);
+	//						}
+	//					}
+	//				}
+	//				JsonMessage["HOSTS"] = HostValues;
+	//			}
 
-				Json::StreamWriterBuilder wbuilder;
-				std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
+	//			Json::StreamWriterBuilder wbuilder;
+	//			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
 
-				// our status
-				{
-					BinaryBlobSerializer outData;
-					outData << (uint32_t)StrMessage.length();
-					outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-					ipcMem.WriteMemory(outData.GetData(), outData.Size());
-				}
+	//			// our status
+	//			{
+	//				BinaryBlobSerializer outData;
+	//				outData << (uint32_t)StrMessage.length();
+	//				outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
+	//				ipcMem.WriteMemory(outData.GetData(), outData.Size());
+	//			}
 
-				//BinaryBlobSerializer outData;
-				//outData << (uint32_t)StrMessage.length();
-				//outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-				//ipcMem.WriteMemory(outData.GetData(), outData.Size());
+	//			//BinaryBlobSerializer outData;
+	//			//outData << (uint32_t)StrMessage.length();
+	//			//outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
+	//			//ipcMem.WriteMemory(outData.GetData(), outData.Size());
 
-				// app wants to connect
-				auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
+	//			// app wants to connect
+	//			auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
 
-				MemoryView inMem(memLock, 1 * 1024 * 1024);
-				uint8_t hasData = 0;
-				inMem >> hasData;
+	//			MemoryView inMem(memLock, 1 * 1024 * 1024);
+	//			uint8_t hasData = 0;
+	//			inMem >> hasData;
 
-				if (hasData)
-				{
-					std::string GUIDStr;
-					std::string AppCLStr;
+	//			if (hasData)
+	//			{
+	//				std::string GUIDStr;
+	//				std::string AppCLStr;
 
-					inMem >> GUIDStr;
-					inMem >> AppCLStr;
+	//				inMem >> GUIDStr;
+	//				inMem >> AppCLStr;
 
-					SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", GUIDStr.c_str(), AppCLStr.c_str());
+	//				SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", GUIDStr.c_str(), AppCLStr.c_str());
 
-					for (auto& [key, value] : Hosts)
-					{
-						if (key == GUIDStr)
-						{
-							if (juiceSocket->HasRemoteSDP() == false)
-							{
-								coordinator->SetKeyPair("GUIDCONNECTTO", key);
-								// set the string we want them to run
-								coordinator->SetKeyPair("APPCL", AppCLStr);
-							}
-						}
-					}
+	//				for (auto& [key, value] : Hosts)
+	//				{
+	//					if (key == GUIDStr)
+	//					{
+	//						if (juiceSocket->HasRemoteSDP() == false)
+	//						{
+	//							coordinator->SetKeyPair("GUIDCONNECTTO", key);
+	//							// set the string we want them to run
+	//							coordinator->SetKeyPair("APPCL", AppCLStr);
+	//						}
+	//					}
+	//				}
 
-					memLock[0] = 0;
-				}
+	//				memLock[0] = 0;
+	//			}
 
-				ipcMem.Release();
-			}
-		});
+	//			ipcMem.Release();
+	//		}
+	//	});
 
 	//JUICE UPDATES
 	mainController.AddTimer(33ms, true, [&]()
@@ -1251,7 +1117,7 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 				if (videoConnection->IsValid() == false)
 				{
 					videoConnection.reset();
-					juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+					juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 					SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
 				}
 				else if (videoConnection->IsConnected())
@@ -1263,7 +1129,7 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 			{
 				if (juiceSocket->HasProblem())
 				{
-					juiceSocket = std::make_shared<UDPJuiceSocket>(StunURL.c_str(), StunPort);
+					juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 					SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
 				}
 				else if (juiceSocket->IsConnected())
@@ -1296,43 +1162,22 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 
 void SPPApp(int argc, char* argv[])
 {
-#if PLATFORM_LINUX || PLATFORM_MAC
-    std::thread ChildDestroy([]()
-    {
-        char c;
-        while (std::cin.get(c))
-        {
-        }
-        exit(0);
-    });
-#endif
+//#if PLATFORM_LINUX || PLATFORM_MAC
+//    std::thread ChildDestroy([]()
+//    {
+//        char c;
+//        while (std::cin.get(c))
+//        {
+//        }
+//        exit(0);
+//    });
+//#endif
     
 	{
-		Json::Value JsonConfig;
-#if PLATFORM_MAC
-        std::string ResourceDir = GetResourceDirectory();		
-		if(FileToJson((ResourceDir + "/config.txt").c_str(), JsonConfig) == false)
-#else
-        if(FileToJson("config.txt", JsonConfig) == false)
-#endif
-        {
-            SPP_LOG(LOG_APP, LOG_INFO, "COULD NOT OPEN OR PARSE CONFIG");
-        }
-
-		Json::Value STUN_URL = JsonConfig.get("STUN_URL", Json::Value::nullSingleton());
-		Json::Value STUN_PORT = JsonConfig.get("STUN_PORT", Json::Value::nullSingleton());
-		Json::Value COORDINATOR_IP = JsonConfig.get("COORDINATOR_IP", Json::Value::nullSingleton());
-		Json::Value COORD_PASS = JsonConfig.get("COORDINATOR_PASSWORD", Json::Value::nullSingleton());
-		
-		SE_ASSERT(!STUN_URL.isNull());
-		SE_ASSERT(!STUN_PORT.isNull());
-		SE_ASSERT(!COORDINATOR_IP.isNull());
-		SE_ASSERT(!COORD_PASS.isNull());
-
-		StunURL = STUN_URL.asCString();
-		StunPort = STUN_PORT.asUInt();
-		RemoteCoordAddres = IPv4_SocketAddress(COORDINATOR_IP.asCString());
-		CoordPWD = COORD_PASS.asCString();
+		Json::Value jsonData;
+		SE_ASSERT(FileToJson("./remotecontrol.config.txt", jsonData));
+		auto coordRef = std::ref(GAppConfig);
+		JSONToPOD(coordRef, jsonData);
 	}
 
 	auto ThisRUNGUID = std::generate_hex(3);
@@ -1341,6 +1186,9 @@ void SPPApp(int argc, char* argv[])
 #endif
 
 	auto CCMap = std::BuildCCMap(argc, argv);
+	auto lanAddr = MapFindOrDefault(CCMap, "lanaddr");
+
+	/*auto CCMap = std::BuildCCMap(argc, argv);
 	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
 	auto lanonlyCC = MapFindOrDefault(CCMap, "lanonly");
 
@@ -1350,21 +1198,21 @@ void SPPApp(int argc, char* argv[])
     
 	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 2 * 1024 * 1024, false);
 
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
+	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());*/
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
 
 	// START OS NETWORKING
 	GetOSNetwork();
 
 	//
-	if (lanonlyCC.length())
+	if (lanAddr.length())
 	{
-		MainWithLanOnly(ThisRUNGUID, ipcMem);
+		MainWithLanOnly(ThisRUNGUID, lanAddr);// , ipcMem);
 	}
-	else
-	{
-		MainWithNatTraverasl(ThisRUNGUID, ipcMem);
-	}
+	//else
+	//{
+	//	MainWithNatTraverasl(ThisRUNGUID, ipcMem);
+	//}
 }
 
 int try_main(int argc, char *argv[])

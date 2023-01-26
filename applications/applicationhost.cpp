@@ -34,7 +34,7 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
-#define PREVENT_INPUT 0
+#define PREVENT_INPUT 1
 
 HINSTANCE GhInstance = nullptr;
 

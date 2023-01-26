@@ -26,6 +26,7 @@ extern "C"
 #include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
 #include <libavformat/avio.h>
+#include <libavutil/pixdesc.h>
 }
 
 SPP_OVERLOAD_ALLOCATORS
@@ -363,6 +364,7 @@ namespace SPP
 		int linesize[AV_NUM_DATA_POINTERS] = { 0 };
 		bool bIsEncoder = false;
 		int32_t frameCounter = 0;
+		bool bCodecSupportsRGBX = false;
 
 	public:
 		LibAVCodecHandler(int32_t FrameWidth, int32_t FrameHeight, bool _bencoder, int32_t fps = 2, int32_t latency = 5, int32_t bitrate = 40000)
@@ -377,11 +379,12 @@ namespace SPP
 			
 			if (bIsEncoder)
 			{
-#if WITH_CUDA				
 				_codec = avcodec_find_encoder_by_name("hevc_nvenc");
-#else
-				_codec = avcodec_find_encoder(AV_CODEC_ID_HEVC);
-#endif
+				
+				if (!_codec)
+				{
+					_codec = avcodec_find_encoder(AV_CODEC_ID_HEVC);
+				}
 			}
 			else
 			{
@@ -402,7 +405,7 @@ namespace SPP
 			_codecContext->codec_id = _codec->id;
 			_codecContext->codec_type = _codec->type;
 
-			av_opt_show2(_codecContext->priv_data, NULL, bIsEncoder ? AV_OPT_FLAG_ENCODING_PARAM : AV_OPT_FLAG_DECODING_PARAM, 0);
+			//av_opt_show2(_codecContext->priv_data, NULL, (bIsEncoder ? AV_OPT_FLAG_ENCODING_PARAM : AV_OPT_FLAG_DECODING_PARAM) | AV_OPT_FLAG_CHILD_CONSTS, 0);
 						
 			_codecContext->bit_rate = 120000;
 			_codecContext->width = _width;
@@ -410,24 +413,60 @@ namespace SPP
 			_codecContext->time_base = { 1, _fps }; // {1,4} 
 			_codecContext->framerate = { _fps, 1 };
 
-			_codecContext->gop_size = 10;
+			_codecContext->gop_size = -1;
 			_codecContext->max_b_frames = 1;
+			// this one seems universally supported
 			_codecContext->pix_fmt = AV_PIX_FMT_YUV420P;
 
-			//if (bIsEncoder)
-			//{
-			//	int error;				
-			//	
-			//	if (error = av_opt_set(_codecContext->priv_data, "preset", "llhp", 0) != 0)
-			//	{
-			//		SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed llhp");
-			//	}
+			// see if we can go straight through with RGBA						
+			{
+				const AVPixelFormat* curFormat = _codec->pix_fmts;
+				while (curFormat != nullptr && *curFormat != -1)
+				{
+					SPP_LOG(LOG_LAV, LOG_INFO, "Codec supports %s", av_get_pix_fmt_name(*curFormat));
 
-			//	if (error = av_opt_set(_codecContext->priv_data, "zerolatency", "1", 0) != 0)
-			//	{
-			//		SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed zerolatency");
-			//	}
-			//}
+					if (*curFormat == AV_PIX_FMT_RGBA || *curFormat == AV_PIX_FMT_RGB0)
+					{
+						bCodecSupportsRGBX = true;
+						_codecContext->pix_fmt = *curFormat;
+						break;
+					}
+				
+					++curFormat;
+				}
+			}
+
+			if (bIsEncoder)
+			{
+				int error;				
+				
+				const AVOption* opt = NULL;
+				while ((opt = av_opt_next(_codecContext->priv_data, opt)))
+				{
+					if (opt->unit)
+					{
+						SPP_LOG(LOG_LAV, LOG_WARNING, "Category %s - has option %s", opt->unit, opt->name);
+					}
+					else
+					{
+						SPP_LOG(LOG_LAV, LOG_WARNING, "OPT %s", opt->name);
+					}
+				}
+
+				if (error = av_opt_set(_codecContext->priv_data, "preset", "p2", 0) != 0)
+				{
+					SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed llhp");
+				}
+				if (error = av_opt_set(_codecContext->priv_data, "tune", "ull", 0) != 0)
+				{
+					SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed llhp");
+				}
+
+				//if (error = av_opt_set(_codecContext->priv_data, "zerolatency", "1", 0) != 0)
+				//{
+				//	SPP_LOG(LOG_LAV, LOG_WARNING, "av_opt_set: failed zerolatency");
+				//}
+			}
 			
 			auto ret = avcodec_open2(_codecContext, _codec, nullptr);
 			if (ret < 0)
@@ -436,30 +475,36 @@ namespace SPP
 				SE_ASSERT(false);
 			}
 
-			if (bIsEncoder)
+			if (!bCodecSupportsRGBX)
 			{
-				convertCtx = sws_getContext(_width, _height,
-					AV_PIX_FMT_RGBA, _width, _height,
-					AV_PIX_FMT_YUV420P, SWS_POINT,
-					NULL, NULL, NULL); // Preparing to convert my generated RGB images to YUV frames.
-			}
-			else
-			{
-				convertCtx = sws_getContext(_width, _height,
-					AV_PIX_FMT_YUV420P, _width, _height,
-					AV_PIX_FMT_BGRA, SWS_POINT,
-					NULL, NULL, NULL); // Preparing to convert my generated RGB images to YUV frames.
+				if (bIsEncoder)
+				{
+					convertCtx = sws_getContext(_width, _height,
+						AV_PIX_FMT_RGBA, _width, _height,
+						AV_PIX_FMT_YUV420P, SWS_POINT,
+						NULL, NULL, NULL); // Preparing to convert my generated RGB images to YUV frames.
+				}
+				else
+				{
+					convertCtx = sws_getContext(_width, _height,
+						AV_PIX_FMT_YUV420P, _width, _height,
+						AV_PIX_FMT_BGRA, SWS_POINT,
+						NULL, NULL, NULL); // Preparing to convert my generated RGB images to YUV frames.
+				}
+
+				SE_ASSERT(convertCtx);
 			}
 			
-			SE_ASSERT(convertCtx);
-
 			linesize[0] = _width * 4;
-						
-			yuvpic = av_frame_alloc();
-			yuvpic->format = AV_PIX_FMT_YUV420P;
-			yuvpic->width = _width;
-			yuvpic->height = _height;
-			av_frame_get_buffer(yuvpic, 1);
+				
+			if (!bCodecSupportsRGBX)
+			{
+				yuvpic = av_frame_alloc();
+				yuvpic->format = AV_PIX_FMT_YUV420P;
+				yuvpic->width = _width;
+				yuvpic->height = _height;
+				av_frame_get_buffer(yuvpic, 1);
+			}
 
 			// Allocating memory for each RGB frame, which will be lately converted to YUV:
 			rgbpic = av_frame_alloc();
@@ -483,14 +528,24 @@ namespace SPP
 		void EncodingFrame(const void *InData, int32_t DataSize, std::function<void(const void*, int32_t)> cbFunc)
 		{
 			SE_ASSERT(!InData || (DataSize == (_width * _height * 4)));
+			
 			if (InData)
 			{
 				memcpy(rgbpic->data[0], InData, DataSize);
-				sws_scale(convertCtx, rgbpic->data, rgbpic->linesize, 0, _height, yuvpic->data, yuvpic->linesize);
+
+				if (!bCodecSupportsRGBX)
+				{
+					sws_scale(convertCtx, rgbpic->data, rgbpic->linesize, 0, _height, yuvpic->data, yuvpic->linesize);
+				}
 			}
 
-			yuvpic->pts = frameCounter++;
-			auto ret = avcodec_send_frame(_codecContext, InData ? yuvpic : nullptr);
+			AVFrame* curFrame = bCodecSupportsRGBX ? rgbpic : yuvpic;
+			if (InData && DataSize)
+			{
+				curFrame->pts = frameCounter++;
+			}
+
+			auto ret = avcodec_send_frame(_codecContext, InData ? curFrame : nullptr);
 
 			if (ret < 0) {
 				SPP_LOG(LOG_LAV, LOG_INFO, "avcodec_send_frame error: %d", ret);

@@ -351,26 +351,26 @@ button:active {
 
 	function UpdateRemoteDevices(InJSON) {
 		let newRemoteDevices = JSON.parse(InJSON);
-		console.log(InJSON);
+		//console.log(InJSON);
 				
 		if( !_.isEqual(remoteDevices, newRemoteDevices) ){
 			
-			remoteDevices = newRemoteDevices;
-			
+			remoteDevices = newRemoteDevices;			
 			document.getElementById("serverList").innerHTML = "";
 			
-			for (const newDevice of remoteDevices) {
-				console.log("new: " + newDevice)
-				let formattedText = remoteHTMLText.format( newDevice.GUID, newDevice.Name );
-				document.getElementById("serverList").innerHTML += formattedText;
+			if(remoteDevices) {
+				for (const newDevice of remoteDevices) {
+					console.log("new: " + newDevice)
+					let formattedText = remoteHTMLText.format( newDevice.GUID, newDevice.Name );
+					document.getElementById("serverList").innerHTML += formattedText;
+				}
 			}
-			
 		}
 	}
 	
 	var IDMatch = [ "CoordSignal", "StunSignal", "RemoteSignal" ];
 	function SetNetGood(InID, InGood) {
-		console.log("SetNetGood");
+		//console.log("SetNetGood");
 		let curEle = document.getElementById(IDMatch[InID]);
 		curEle.style.color = InGood == 1 ? "green" : "red";
 	}
@@ -403,7 +403,7 @@ button:active {
 	}
 		
 	function ProcessJS(FuncName, ...Args) {	  
-		console.log("ProcessJS: " + FuncName + " : " + Args.length);
+		//console.log("ProcessJS: " + FuncName + " : " + Args.length);
 		// find object
 		var fn = window[FuncName];
 
