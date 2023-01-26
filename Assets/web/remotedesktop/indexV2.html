@@ -167,9 +167,7 @@ button:active {
 <link href="../fontawesome/css/solid.css" rel="stylesheet">
 </head>
 <body>
-<div id="isLan"> Local Network Only
-  <input type="checkbox" id="CB_Lan">
-</div>
+
 <div id="page-mask" style="display:none" ></div>
 <div id="CoordinatorConfig" class="config-popup" >
   <form action="" class="form-container" name="coord">
@@ -211,6 +209,9 @@ button:active {
     </div>
     <div>Allow Input
       <input name="bAllowInput" type="checkbox">
+    </div>
+	 <div>LAN Only
+      <input name="bLANOnly" type="checkbox">
     </div>
     <br>
     <br>
@@ -272,33 +273,8 @@ button:active {
 
     </div>
   </div>
-  <div id="serverStatus" class="ListAndStatusArea" >
-    <h2>Server Status:</h2>
-    <div class="childListAndArea">
-      <div id="activeCorner"><i class="fa-solid fa-power-off" style="color:red" id="clientConnected"></i>
-        <div id="serverText" style="display: inline-block;">NO CLIENT</div>
-      </div>
-    </div>
-  </div>
-  <div id="connectionInfo" class="ListAndStatusArea" style="display: none; background-color: black;  z-index: 1;" >
-    <div style="flex: 0; ">
-      <h2>Connection: </h2>
-    </div>
-    <div class="childListAndArea" style="overflow-y: scroll;">
-      <p>Status: <span id="ConnectionStatus">Pending...</span></p>
-      <p><span id="ConnectionType">Host: </span><span id="ConnectionName">UNKNOWN</span></p>
-      <p>Outgoing Bandwidth: <span id="BandwidthOut">0 kb/s</span></p>
-      <p>Incoming Bandwidth: <span id="BandwidthIn">0 kb/s</span></p>
-      <p>Latency Options:
-        <select name="cars" id="cars">
-          <option value="volvo">Favor Speed</option>
-          <option value="saab">Split Favor</option>
-          <option value="opel">Favor Quality</option>
-        </select>
-      </p>
-      <button onclick="javascript:Disconnect();">Disconnect</button>
-    </div>
-  </div>
+ 
+ 
 </div>
 <script>	
 	
@@ -320,7 +296,8 @@ button:active {
 		"remote" :
 		{
 			"bEnabled" : "false",
-			"bAllowInput" : "false"
+			"bAllowInput" : "false",
+			"bLANOnly" : "false"
 		}
 	};
 	

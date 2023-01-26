@@ -762,7 +762,7 @@ namespace SPP
         window_config.url = StartupURL;
 
         window_config.bounds.width = 768;
-        window_config.bounds.height = 512;
+        window_config.bounds.height = 400;
 
         window_config.with_game_window = bWithGameWindow;
 

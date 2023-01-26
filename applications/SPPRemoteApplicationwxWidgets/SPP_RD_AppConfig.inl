@@ -38,10 +38,13 @@ struct RemoteAccess
 {
 	bool bEnabled = false;
 	bool bAllowInput = false;
+	bool bLANOnly = false;
 
 	bool operator == (const RemoteAccess& cmp) const
 	{
-		return bEnabled == cmp.bEnabled && bAllowInput == cmp.bAllowInput;
+		return bEnabled == cmp.bEnabled && 
+			bAllowInput == cmp.bAllowInput && 
+			bLANOnly == cmp.bLANOnly;
 	}
 };
 
@@ -79,6 +82,7 @@ SPP_AUTOREG_START
 	rttr::registration::class_<RemoteAccess>("RemoteAccess")
 		.property("bEnabled", &RemoteAccess::bEnabled)(rttr::policy::prop::as_reference_wrapper)
 		.property("bAllowInput", &RemoteAccess::bAllowInput)(rttr::policy::prop::as_reference_wrapper)
+		.property("bLANOnly", &RemoteAccess::bLANOnly)(rttr::policy::prop::as_reference_wrapper)
 		;
 }
 SPP_AUTOREG_END
