@@ -333,13 +333,9 @@ button:active {
 		};
 	}
 	
-	function ClickHost(InGUID) {
-		console.log("join: " + InGUID);
-	}
-	
 	var remoteDevices = {};
 	
-	var remoteHTMLText = `<a href="javascript:ClickHost('{0}');" id="HOST_{0}">
+	var remoteHTMLText = `<a href="javascript:InvokeNative('JoinDeviceByGUID','{0}');">
 		<i class="fa-solid fa-desktop" style="color:green"></i> {1}
 		</a>`;
 		

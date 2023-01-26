@@ -58,8 +58,6 @@ std::string GIPCMemoryID;
 std::unique_ptr< IPCMappedMemory > GIPCMem;
 const int32_t MemSize = 2 * 1024 * 1024;
 
-
-
 void HelpClick(const std::string &SubType)
 {
 	if (SubType == "GIT")
@@ -71,7 +69,6 @@ void HelpClick(const std::string &SubType)
 		ShellExecuteA(NULL, "open", "https://github.com/dsleep/SPP", NULL, NULL, SW_SHOWNORMAL);
 	}
 }
-
 
 
 template<typename... Args>
@@ -219,8 +216,10 @@ struct RemoteClient
 
 #if _DEBUG
 	static const char* REMOTE_ACCESS_APP = "applicationhostd";
+	static const char* REMOTE_VIEWER_APP = "remoteviewerd";
 #else
 	static const char* REMOTE_ACCESS_APP = "applicationhost";
+	static const char* REMOTE_VIEWER_APP = "remoteviewer";
 #endif
 
 class MainThreadApp
@@ -246,15 +245,15 @@ private:
 	std::string _ThisRUNGUID;
 
 	std::map<std::string, RemoteClient> _remoteDevices;
+	std::chrono::steady_clock::time_point _lastRemoteJoin;
 
 public:
 	MainThreadApp()
 	{
 		_ThisRUNGUID = std::generate_hex(3);
-
 		_timer = std::make_unique< TimerController >(16ms);
 		_localThreadPool = std::make_unique<ThreadPool>("MainPool", 0);
-
+		_lastRemoteJoin = std::chrono::steady_clock::now();
 		_thread.reset(new std::thread(&MainThreadApp::Run, this));
 	}
 	
@@ -267,6 +266,33 @@ public:
 		}
 		_thread.reset();
 	}
+
+	void JoinDeviceByGUID(const std::string& InGUID)
+	{
+		if (_runThreadID != std::this_thread::get_id())
+		{
+			_localThreadPool->enqueue([CpyValue = InGUID, this]()
+			{
+				JoinDeviceByGUID(CpyValue);
+			});
+			return;
+		}
+		
+		auto currentTime = std::chrono::steady_clock::now();
+
+		if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - _lastRemoteJoin).count() > 2)
+		{
+			auto FullBinPath = SPP::GRootPath + "Binaries/" + REMOTE_VIEWER_APP;
+			auto remoteViewerProc = CreatePlatformProcess(FullBinPath.c_str(), "", true, false, false);
+			if (remoteViewerProc->IsValid())
+			{
+				//
+			}
+		}
+
+		_lastRemoteJoin = currentTime;
+	}
+
 
 	void UpdateConfig(const APPConfig& InConfig)
 	{
@@ -345,9 +371,7 @@ public:
 		CloseRemoteAccess();
 
 		auto FullBinPath = SPP::GRootPath + "Binaries/" + REMOTE_ACCESS_APP;
-
 		auto remoteAccessProcess = CreatePlatformProcess(FullBinPath.c_str(), "", true, false, false);
-
 		if (remoteAccessProcess->IsValid())
 		{
 			for(int32_t Iter = 0; Iter < 20; Iter++)
@@ -532,12 +556,19 @@ void PageLoaded()
 
 }
 
+void JoinDeviceByGUID(const std::string& InGUID)
+{
+	GMainApp->JoinDeviceByGUID(InGUID);
+}
+
+
 SPP_AUTOREG_START
 {
 	using namespace rttr;
 	registration::method("UpdateConfig", &UpdateConfig)
 		.method("PageLoaded", &PageLoaded)
-		.method("HelpClick", &HelpClick);
+		.method("HelpClick", &HelpClick)
+		.method("JoinDeviceByGUID", &JoinDeviceByGUID);
 
 	rttr::registration::class_<RemoteClient>("RemoteClient")
 		.property("GUID", &RemoteClient::GUID)(rttr::policy::prop::as_reference_wrapper)
