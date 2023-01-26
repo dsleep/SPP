@@ -361,7 +361,11 @@ button:active {
 			if(remoteDevices) {
 				for (const newDevice of remoteDevices) {
 					console.log("new: " + newDevice)
-					let formattedText = remoteHTMLText.format( newDevice.GUID, newDevice.Name );
+					let deviceName = newDevice.Name
+					if (newDevice.LanAddr.length > 0 ) {
+						deviceName += "[LAN]";
+					}											
+					let formattedText = remoteHTMLText.format( newDevice.GUID, deviceName );
 					document.getElementById("serverList").innerHTML += formattedText;
 				}
 			}

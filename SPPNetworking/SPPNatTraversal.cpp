@@ -34,6 +34,7 @@ namespace SPP
 	struct UDP_SQL_CoordinatorData
 	{
 		bool IsServer = false;
+		bool bReportToServer = true;
 
 		IPv4_SocketAddress RemoteAddr;
 		std::unique_ptr< SQLLiteDatabase > DBConnection;
@@ -60,12 +61,12 @@ namespace SPP
 	{
 	private:
 		SystemClock::time_point LastSendTime;
-
 		UDP_SQL_CoordinatorData& SQLData;
+		bool _bReporToServer = true;
 
 	public:
-		SQLCoordinatorConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool IsServer, UDP_SQL_CoordinatorData& InData) : 
-			NetworkConnection(InPeer, IsServer), SQLData(InData)
+		SQLCoordinatorConnection(std::shared_ptr< Interface_PeerConnection > InPeer, bool IsServer, UDP_SQL_CoordinatorData& InData, bool bInReporToServer = true) :
+			NetworkConnection(InPeer, IsServer), SQLData(InData), _bReporToServer(bInReporToServer)
 		{
 		}
 
@@ -76,7 +77,7 @@ namespace SPP
 			NetworkConnection::Tick();
 
 			// if its not the host send who we are
-			if (!_bIsServer)
+			if (!_bIsServer && _bReporToServer)
 			{
 				if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSendTime).count() > 2)
 				{
@@ -266,7 +267,7 @@ namespace SPP
 				}
 				else
 				{
-					_server = std::make_shared<SQLCoordinatorConnection>(std::make_shared<UDPSendWrapped>(_recvSocket, RemoteAddr), false, *this);
+					_server = std::make_shared<SQLCoordinatorConnection>(std::make_shared<UDPSendWrapped>(_recvSocket, RemoteAddr), false, *this, bReportToServer);
 					_server->CreateTranscoderStack(
 						// allow reliability to UDP
 						std::make_shared< ReliabilityTranscoder >(),
@@ -279,9 +280,10 @@ namespace SPP
 		}
 	};
 
-	UDP_SQL_Coordinator::UDP_SQL_Coordinator(const IPv4_SocketAddress &InRemoteAddr) : _impl(new PlatImpl())
+	UDP_SQL_Coordinator::UDP_SQL_Coordinator(const IPv4_SocketAddress &InRemoteAddr, bool bInReportToServer) : _impl(new PlatImpl())
 	{
 		_impl->RemoteAddr = InRemoteAddr;
+		_impl->bReportToServer = bInReportToServer;
 	}
 
 	UDP_SQL_Coordinator::UDP_SQL_Coordinator(uint16_t InPort, const std::vector<TableField>& InFields) : _impl(new PlatImpl())

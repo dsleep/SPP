@@ -582,21 +582,77 @@ public:
 /// <param name="ClientRequestCommandline"></param>
 /// <param name="AppPath"></param>
 /// <param name="ipcMem"></param>
-void MainWithLanOnly(const std::string& ThisRUNGUID,
+void _mainThread(const std::string& ThisRUNGUID,
 	const std::string& SimpleAppName,
 	const std::string& AppCommandline,
 	std::string ClientRequestCommandline,
 	const std::string& AppPath,
-	IPCMappedMemory& ipcMem)
+	IPCMappedMemory& ipcMem,
+	bool bLANOnly)
 {
 	std::unique_ptr<ApplicationWindow> app = CreateApplication();
+
+	app->Initialize(128, 128, GhInstance);
+	app->CreateNotificationIcon();
+
 	std::shared_ptr<UDPSocket> broadcastSocket = std::make_shared<UDPSocket>(0, UDPSocketOptions::Broadcast);
 	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
 	std::shared_ptr< UDPSendWrapped > videoSocket;
 	std::shared_ptr< VideoConnection > videoConnection;
 
-	app->Initialize(128, 128, GhInstance);
-	app->CreateNotificationIcon();
+	std::shared_ptr<UDPJuiceSocket> juiceSocket;
+	std::unique_ptr<UDP_SQL_Coordinator> coordinator;
+
+	if (!bLANOnly)
+	{
+		juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+		coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr.c_str());
+
+		coordinator->SetPassword(GAppConfig.coord.pwd);
+		coordinator->SetKeyPair("GUID", ThisRUNGUID);
+		coordinator->SetKeyPair("APPNAME", SimpleAppName);
+		coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
+		coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+		coordinator->SetKeyPair("APPCL", AppCommandline);
+
+		coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get(), &ClientRequestCommandline](const std::string& InValue)
+		{
+			SPP_LOG(LOG_APP, LOG_INFO, "CALLBACK: %s", InValue.c_str());
+
+			if (juiceSocket->HasRemoteSDP() == false)
+			{
+				Json::Value root;
+				Json::CharReaderBuilder Builder;
+				Json::CharReader* reader = Builder.newCharReader();
+				std::string Errors;
+
+				bool parsingSuccessful = reader->parse((char*)InValue.data(), (char*)(InValue.data() + InValue.length()), &root, &Errors);
+				delete reader;
+				if (!parsingSuccessful)
+				{
+					return;
+				}
+
+				for (int32_t Iter = 0; Iter < root.size(); Iter++)
+				{
+					auto CurrentEle = root[Iter];
+
+					Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
+					Json::Value ConnectToValue = CurrentEle.get("GUIDCONNECTTO", Json::Value::nullSingleton());
+					Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
+					Json::Value APPCLValue = CurrentEle.get("APPCL", Json::Value(""));
+
+					if (!ConnectToValue.isNull() && !SDPValue.isNull() && !GUIDValue.isNull())
+					{
+						localCoord->SetKeyPair("GUIDCONNECTTO", GUIDValue.asCString());
+						ClientRequestCommandline = APPCLValue.asCString();
+						juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
+						return;
+					}
+				}
+			}
+		});
+	}
 
 	using namespace std::chrono_literals;
 
@@ -607,51 +663,33 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 
 	//IPC UPDATES
 	mainController.AddTimer(500ms, true, [&]()
+		{			
+			auto memAcces = ipcMem.Lock();
+			if (memAcces[1024])
+			{
+				mainController.Stop();
+			}
+			ipcMem.Release();			
+		});
+
+	// COORDINATOR UPDATES
+	auto LastSQLQuery = std::chrono::steady_clock::now() - std::chrono::seconds(30);
+	mainController.AddTimer(50ms, true, [&]()
 		{
+			coordinator->Update();
+			auto CurrentTime = std::chrono::steady_clock::now();
+			if (juiceSocket && juiceSocket->IsReady())
 			{
-				auto memAcces = ipcMem.Lock();
-				if (memAcces[1024])
+				coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
+
+				if (!videoConnection &&
+					std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSQLQuery).count() > 1)
 				{
-					mainController.Stop();
-				}
-				ipcMem.Release();
-			}
-
-
-			bool IsConnectedToCoord = false;
-
-			Json::Value JsonMessage;
-			JsonMessage["COORD"] = IsConnectedToCoord;
-			JsonMessage["RESOLVEDSDP"] = false;
-
-			if (videoConnection)
-			{
-				if (videoConnection->IsConnected())
-				{
-					JsonMessage["CONNSTATUS"] = 2;
-					auto& stats = videoConnection->GetStats();
-					JsonMessage["KBIN"] = stats.LastKBsIncoming;
-					JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
-					JsonMessage["CONNNAME"] = videoConnection->ToString();
-				}
-				else
-				{
-					JsonMessage["CONNSTATUS"] = 1;
+					auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
+					coordinator->SQLRequest(SQLRequest.c_str());
+					LastSQLQuery = CurrentTime;
 				}
 			}
-			else
-			{
-				JsonMessage["CONNSTATUS"] = 0;
-			}
-
-
-			Json::StreamWriterBuilder wbuilder;
-			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-
-			BinaryBlobSerializer outData;
-			outData << (uint32_t)StrMessage.length();
-			outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-			ipcMem.WriteMemory(outData.GetData(), outData.Size());
 		});
 
 	//UDP BEACON
@@ -675,21 +713,9 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 			while ((DataRecv = serverSocket->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
 			{
 				if (!videoConnection)
-				{
-					auto appCLArgs = std::str_split(AppCommandline, ';');
-
-					std::string CLToUse = appCLArgs.empty() ? AppCommandline : appCLArgs[0];
-					for (auto& appCL : appCLArgs)
-					{
-						if (ClientRequestCommandline == appCL)
-						{
-							CLToUse = appCL;
-							break;
-						}
-					}
-
+				{					
 					videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
-					videoConnection = std::make_shared< VideoConnection >(videoSocket, AppPath, CLToUse);
+					videoConnection = std::make_shared< VideoConnection >(videoSocket, "", "");
 					videoConnection->CreateTranscoderStack(
 						// allow reliability to UDP
 						std::make_shared< ReliabilityTranscoder >(),
@@ -716,6 +742,23 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 					SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped...");
 				}
 			}
+			else if (juiceSocket)
+			{
+				if (juiceSocket->HasProblem())
+				{
+					juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
+					SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
+				}
+				else if (juiceSocket->IsConnected())
+				{
+					videoConnection = std::make_shared< VideoConnection >(juiceSocket, "", "");
+					videoConnection->CreateTranscoderStack(
+						// allow reliability to UDP
+						std::make_shared< ReliabilityTranscoder >(),
+						// push on the splitter so we can ignore sizes
+						std::make_shared< MessageSplitTranscoder >());
+				}
+			}			
 
 			if (app->RunOnce() < 0)
 			{
@@ -726,197 +769,7 @@ void MainWithLanOnly(const std::string& ThisRUNGUID,
 	mainController.Run();
 }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="ThisRUNGUID"></param>
-/// <param name="SimpleAppName"></param>
-/// <param name="AppCommandline"></param>
-/// <param name="ClientRequestCommandline"></param>
-/// <param name="AppPath"></param>
-/// <param name="ipcMem"></param>
-void MainWithNatTraverasl(const std::string &ThisRUNGUID, 
-	const std::string& SimpleAppName,
-	const std::string& AppCommandline,
-	std::string ClientRequestCommandline,
-	const std::string& AppPath,
-	IPCMappedMemory &ipcMem)
-{
-	auto juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 
-	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr.c_str());
-
-	coordinator->SetPassword(GAppConfig.coord.pwd);
-	coordinator->SetKeyPair("GUID", ThisRUNGUID);
-	coordinator->SetKeyPair("APPNAME", SimpleAppName);
-	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
-	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
-	coordinator->SetKeyPair("APPCL", AppCommandline);
-
-	coordinator->SetSQLRequestCallback([&juiceSocket, localCoord = coordinator.get(), &ClientRequestCommandline](const std::string& InValue)
-	{
-		SPP_LOG(LOG_APP, LOG_INFO, "CALLBACK: %s", InValue.c_str());
-
-		if (juiceSocket->HasRemoteSDP() == false)
-		{
-			Json::Value root;
-			Json::CharReaderBuilder Builder;
-			Json::CharReader* reader = Builder.newCharReader();
-			std::string Errors;
-
-			bool parsingSuccessful = reader->parse((char*)InValue.data(), (char*)(InValue.data() + InValue.length()), &root, &Errors);
-			delete reader;
-			if (!parsingSuccessful)
-			{
-				return;
-			}
-
-			for (int32_t Iter = 0; Iter < root.size(); Iter++)
-			{
-				auto CurrentEle = root[Iter];
-
-				Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
-				Json::Value ConnectToValue = CurrentEle.get("GUIDCONNECTTO", Json::Value::nullSingleton());
-				Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
-				Json::Value APPCLValue = CurrentEle.get("APPCL", Json::Value(""));
-
-				if (!ConnectToValue.isNull() && !SDPValue.isNull() && !GUIDValue.isNull())
-				{
-					localCoord->SetKeyPair("GUIDCONNECTTO", GUIDValue.asCString());
-					ClientRequestCommandline = APPCLValue.asCString();
-					juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
-					return;
-				}
-			}
-		}
-	});
-
-	std::shared_ptr< VideoConnection > videoConnection;
-
-	using namespace std::chrono_literals;
-
-	std::vector<uint8_t> BufferRead;
-	BufferRead.resize(std::numeric_limits<uint16_t>::max());
-
-	//auto LastSentTime = std::chrono::steady_clock::now();
-	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
-
-	bool bIsRunning = true;
-	while (bIsRunning)
-	{
-		coordinator->Update();
-
-		auto CurrentTime = std::chrono::steady_clock::now();
-		if (juiceSocket->IsReady())
-		{
-			coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
-
-			if (!videoConnection &&
-				std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
-			{
-				auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
-				coordinator->SQLRequest(SQLRequest.c_str());
-				LastRequestJoins = CurrentTime;
-			}
-		}
-
-		{
-			auto memAcces = ipcMem.Lock();
-			if (memAcces[1024])
-			{
-				bIsRunning = false;
-			}
-			ipcMem.Release();
-		}
-
-		//write status
-
-		{
-			bool IsConnectedToCoord = coordinator->IsConnected();
-
-			Json::Value JsonMessage;
-			JsonMessage["COORD"] = IsConnectedToCoord;
-			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
-
-			if (videoConnection)
-			{
-				if (videoConnection->IsConnected())
-				{
-					JsonMessage["CONNSTATUS"] = 2;
-					auto& stats = videoConnection->GetStats();
-					JsonMessage["KBIN"] = stats.LastKBsIncoming;
-					JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
-					JsonMessage["CONNNAME"] = videoConnection->ToString();
-				}
-				else
-				{
-					JsonMessage["CONNSTATUS"] = 1;
-				}
-			}
-			else
-			{
-				JsonMessage["CONNSTATUS"] = 0;
-			}
-
-
-			Json::StreamWriterBuilder wbuilder;
-			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-
-			BinaryBlobSerializer outData;
-			outData << (uint32_t)StrMessage.length();
-			outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-			ipcMem.WriteMemory(outData.GetData(), outData.Size());
-		}
-
-		// if we have a connection it handles it all
-		if (videoConnection)
-		{
-			videoConnection->Tick();
-
-			if (videoConnection->IsValid() == false)
-			{
-				videoConnection.reset();
-				juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
-				SPP_LOG(LOG_APP, LOG_INFO, "Connection dropped resetting sockets");
-			}
-			else if (videoConnection->IsConnected())
-			{
-				coordinator->SetKeyPair("GUIDCONNECTTO", "");
-			}
-		}
-		else
-		{
-			if (juiceSocket->HasProblem())
-			{
-				juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
-				SPP_LOG(LOG_APP, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
-			}
-			else if (juiceSocket->IsConnected())
-			{
-				auto appCLArgs = std::str_split(AppCommandline, ';');
-
-				std::string CLToUse = appCLArgs.empty() ? AppCommandline : appCLArgs[0];
-				for (auto& appCL : appCLArgs)
-				{
-					if (ClientRequestCommandline == appCL)
-					{
-						CLToUse = appCL;
-						break;
-					}
-				}
-
-				videoConnection = std::make_shared< VideoConnection >(juiceSocket, AppPath, CLToUse);
-				videoConnection->CreateTranscoderStack(
-					// allow reliability to UDP
-					std::make_shared< ReliabilityTranscoder >(),
-					// push on the splitter so we can ignore sizes
-					std::make_shared< MessageSplitTranscoder >());
-			}
-		}
-
-		std::this_thread::sleep_for(1ms);
-	}
-}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -949,7 +802,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
 	std::string AppPath = "";// MapFindOrDefault(CCMap, "APP");
 	std::string AppCommandline = "";// MapFindOrDefault(CCMap, "CMDLINE");
-	std::string lanonlyCC = "true";// MapFindOrDefault(CCMap, "lanonly");
+	std::string lanonlyCC = "";// MapFindOrDefault(CCMap, "lanonly");
 
 	//SE_ASSERT(IPMemoryID);
 
@@ -967,24 +820,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
 
-	if (lanonlyCC.length())
-	{
-		MainWithLanOnly(ThisRUNGUID,
-			SimpleAppName,
-			AppCommandline,
-			ClientRequestCommandline,
-			AppPath,
-			ipcMem);
-	}
-	else
-	{
-		MainWithNatTraverasl(ThisRUNGUID,
-			SimpleAppName,
-			AppCommandline,
-			ClientRequestCommandline,
-			AppPath,
-			ipcMem);
-	}
-
+	_mainThread(ThisRUNGUID,
+		SimpleAppName,
+		AppCommandline,
+		ClientRequestCommandline,
+		AppPath,
+		ipcMem,
+		lanonlyCC.length() ? true : false);
+	
 	return 0;
 }

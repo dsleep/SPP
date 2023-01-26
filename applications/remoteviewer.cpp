@@ -756,26 +756,11 @@ public:
 	}
 };
 
-//template<typename T>
-//struct LocalBTEWatcher : public IBTEWatcher
-//{
-//private:
-//	T& funcAdd;
-//public:
-//	LocalBTEWatcher(T& inT) : funcAdd(inT) { }
-//	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
-//	{
-//		std::string strConv(InData, InData + DataSize);
-//		funcAdd(strConv);
-//	}
-//};
-//
-//struct DummyBTEWatcher
-//{
-//    void Update() { };
-//    void WriteData(const std::string& DeviceID, const std::string& WriteID, const void* buf, uint16_t BufferSize) {}
-//};
-
+/// <summary>
+/// 
+/// </summary>
+/// <param name="ThisRUNGUID"></param>
+/// <param name="LanAddr"></param>
 void MainWithLanOnly(const std::string& ThisRUNGUID, const std::string &LanAddr)//, IPCMappedMemory& ipcMem)
 {			
 	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
@@ -827,48 +812,18 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, const std::string &LanAddr)
 	mainController.Run();
 }
 
-void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMem)
+/// <summary>
+/// 
+/// </summary>
+/// <param name="ThisRUNGUID"></param>
+/// <param name="IncomingGUID"></param>
+void MainWithNatTraverasl(const std::string& ThisRUNGUID, const std::string &IncomingGUID)
 {
 	auto LastBTTime = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	using namespace std::chrono_literals;
 
-	//BLUTETOOTH STUFFS
-//	bool bBTEConnected = false;
-//	std::shared_ptr< SimpleJSONPeerReader > BTRFComm;
-//	//START UP RFCOMM BT
-//#if PLATFORM_WINDOWS
-//	std::shared_ptr< BlueToothSocket > listenSocket = std::make_shared<BlueToothSocket>();
-//	listenSocket->Listen();
-//#endif
-
 	std::shared_ptr< VideoConnection > videoConnection;
-
-	//START UP BTE
-//#if (PLATFORM_WINDOWS && HAS_WINRT) || PLATFORM_MAC
-//	auto sendBTDataTOManager = [&videoConnection, &LastBTTime](const std::string& InMessage)
-//	{
-//		if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
-//		{
-//			BinaryBlobSerializer thisMessage;
-//			thisMessage << (uint8_t)4;
-//			thisMessage << InMessage;
-//			videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
-//		}
-//	};
-//	//DummyBTEWatcher watcher;
-//
-//	LocalBTEWatcher oWatcher(sendBTDataTOManager);
-//	BTEWatcher watcher;
-//	watcher.WatchForData("366DEE95-85A3-41C1-A507-8C3E02342000",
-//		{
-//			{ "366DEE95-85A3-41C1-A507-8C3E02342001", &oWatcher }
-//		});
-//#else
-//
-//	DummyBTEWatcher watcher;
-//#endif
-
 
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr.c_str());
@@ -877,6 +832,7 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 	coordinator->SetKeyPair("GUID", ThisRUNGUID);
 	coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
 	coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+	coordinator->SetKeyPair("GUIDCONNECTTO", IncomingGUID);
 
 	std::vector<uint8_t> BufferRead;
 	BufferRead.resize(std::numeric_limits<uint16_t>::max());
@@ -911,18 +867,6 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 					juiceSocket->SetRemoteSDP_BASE64(SDPValue.asCString());
 					return;
 				}
-
-				Json::Value AppNameValue = CurrentEle.get("APPNAME", Json::Value::nullSingleton());
-				Json::Value AppCL = CurrentEle.get("APPCL", Json::Value(""));
-				Json::Value NameValue = CurrentEle.get("NAME", Json::Value::nullSingleton());
-				Json::Value GuidValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
-
-				Hosts[GuidValue.asCString()] = RemoteClient{
-					std::chrono::steady_clock::now(),
-					std::string(NameValue.asCString()),
-					std::string(AppNameValue.asCString()),
-					std::string(AppCL.asCString())
-				};
 			}
 		});
 
@@ -935,152 +879,6 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 			coordinator->Update();
 		});
 
-	//BT UPDATES
-//	mainController.AddTimer(16ms, true, [&]()
-//		{
-//			if (BTRFComm)
-//			{
-//				if (BTRFComm->IsValid())
-//				{
-//					LastBTTime = std::chrono::steady_clock::now();
-//					BTRFComm->Tick();
-//				}
-//				else
-//				{
-//					BTRFComm.reset();
-//				}
-//			}
-//#if PLATFORM_WINDOWS
-//			else
-//			{
-//				auto newBTConnection = listenSocket->Accept();
-//				if (newBTConnection)
-//				{
-//					BTRFComm = std::make_shared< SimpleJSONPeerReader >(newBTConnection, sendBTDataTOManager);
-//					SPP_LOG(LOG_APP, LOG_INFO, "HAS BLUETOOTH CONNECT");
-//				}
-//			}
-//#endif
-//
-//			// check on BTE
-//			watcher.Update();
-//			bBTEConnected = watcher.IsConnected();
-//
-//			if (bBTEConnected)
-//			{
-//				LastBTTime = std::chrono::steady_clock::now();
-//			}
-//		});
-
-	//IPC UPDATES
-	//mainController.AddTimer(100ms, true, [&]()
-	//	{
-	//		auto CurrentTime = std::chrono::high_resolution_clock::now();
-	//		//write status
-	//		{
-	//			Json::Value JsonMessage;
-	//			JsonMessage["COORD"] = coordinator->IsConnected();
-	//			JsonMessage["RESOLVEDSDP"] = (juiceSocket && juiceSocket->IsReady());
-	//			JsonMessage["BLUETOOTH"] = std::chrono::duration_cast<std::chrono::milliseconds>(CurrentTime - LastBTTime).count() < 1000;
-
-	//			if (!videoConnection)
-	//			{
-	//				std::string ConnectKey;
-	//				coordinator->GetLocalKeyValue("GUIDCONNECTTO", ConnectKey);
-	//				JsonMessage["CONNSTATUS"] = ConnectKey.empty() ? 0 : 1;
-	//			}
-	//			else
-	//			{
-	//				if (videoConnection->IsConnected())
-	//				{
-	//					JsonMessage["CONNSTATUS"] = 2;
-	//					auto& stats = videoConnection->GetStats();
-	//					JsonMessage["KBIN"] = stats.LastKBsIncoming;
-	//					JsonMessage["KBOUT"] = stats.LastKBsOutgoing;
-	//					JsonMessage["CONNNAME"] = videoConnection->ToString();
-	//				}
-	//				else
-	//				{
-	//					JsonMessage["CONNSTATUS"] = 1;
-	//				}
-	//			}
-
-	//			if (Hosts.empty() == false)
-	//			{
-	//				Json::Value HostValues;
-	//				for (auto& [key, value] : Hosts)
-	//				{
-	//					if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - value.LastUpdate).count() < 5)
-	//					{
-	//						auto appCLArgs = std::str_split(value.AppCL, ';');
-	//						if (appCLArgs.empty()) appCLArgs.push_back("");
-	//						for (auto& appCL : appCLArgs)
-	//						{
-	//							Json::Value SingleHost;
-	//							SingleHost["NAME"] = value.Name;
-	//							SingleHost["APPNAME"] = value.AppName;
-	//							SingleHost["APPCL"] = appCL;
-	//							SingleHost["GUID"] = key;
-	//							HostValues.append(SingleHost);
-	//						}
-	//					}
-	//				}
-	//				JsonMessage["HOSTS"] = HostValues;
-	//			}
-
-	//			Json::StreamWriterBuilder wbuilder;
-	//			std::string StrMessage = Json::writeString(wbuilder, JsonMessage);
-
-	//			// our status
-	//			{
-	//				BinaryBlobSerializer outData;
-	//				outData << (uint32_t)StrMessage.length();
-	//				outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-	//				ipcMem.WriteMemory(outData.GetData(), outData.Size());
-	//			}
-
-	//			//BinaryBlobSerializer outData;
-	//			//outData << (uint32_t)StrMessage.length();
-	//			//outData.Write(StrMessage.c_str(), StrMessage.length() + 1);
-	//			//ipcMem.WriteMemory(outData.GetData(), outData.Size());
-
-	//			// app wants to connect
-	//			auto memLock = ipcMem.Lock() + (1 * 1024 * 1024);
-
-	//			MemoryView inMem(memLock, 1 * 1024 * 1024);
-	//			uint8_t hasData = 0;
-	//			inMem >> hasData;
-
-	//			if (hasData)
-	//			{
-	//				std::string GUIDStr;
-	//				std::string AppCLStr;
-
-	//				inMem >> GUIDStr;
-	//				inMem >> AppCLStr;
-
-	//				SPP_LOG(LOG_APP, LOG_INFO, "JOIN REQUEST!!!: %s:%s", GUIDStr.c_str(), AppCLStr.c_str());
-
-	//				for (auto& [key, value] : Hosts)
-	//				{
-	//					if (key == GUIDStr)
-	//					{
-	//						if (juiceSocket->HasRemoteSDP() == false)
-	//						{
-	//							coordinator->SetKeyPair("GUIDCONNECTTO", key);
-	//							// set the string we want them to run
-	//							coordinator->SetKeyPair("APPCL", AppCLStr);
-	//						}
-	//					}
-	//				}
-
-	//				memLock[0] = 0;
-	//			}
-
-	//			ipcMem.Release();
-	//		}
-	//	});
-
 	//JUICE UPDATES
 	mainController.AddTimer(33ms, true, [&]()
 		{
@@ -1092,14 +890,8 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 				if (!videoConnection &&
 					std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastRequestJoins).count() > 1)
 				{
-					{
-						auto SQLRequest = std::string_format("SELECT GUID, NAME, APPNAME, APPCL FROM clients WHERE APPNAME != ''");
-						coordinator->SQLRequest(SQLRequest.c_str());
-					}
-					{
-						auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
-						coordinator->SQLRequest(SQLRequest.c_str());
-					}
+					auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUID = '%s'", IncomingGUID.c_str());
+					coordinator->SQLRequest(SQLRequest.c_str());					
 					LastRequestJoins = CurrentTime;
 				}
 			}
@@ -1135,17 +927,7 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 				else if (juiceSocket->IsConnected())
 				{
 					videoConnection = std::make_shared< VideoConnection >(juiceSocket);
-					//videoConnection = std::make_shared< VideoConnection >(juiceSocket, [&BTRFComm, &watcher](const void* buf, uint16_t BufferSize)
-					//	{
-					//		if (BTRFComm && BTRFComm->IsValid())
-					//		{
-					//			BTRFComm->SendMessage(buf, BufferSize);
-					//		}
-					//		watcher.WriteData(
-					//			"366DEE95-85A3-41C1-A507-8C3E02342000",
-					//			"366DEE95-85A3-41C1-A507-8C3E02342002",
-					//			buf, BufferSize);
-					//	});
+					
 					videoConnection->CreateTranscoderStack(
 						// allow reliability to UDP
 						std::make_shared< ReliabilityTranscoder >(),
@@ -1162,17 +944,6 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, IPCMappedMemory& ipcMe
 
 void SPPApp(int argc, char* argv[])
 {
-//#if PLATFORM_LINUX || PLATFORM_MAC
-//    std::thread ChildDestroy([]()
-//    {
-//        char c;
-//        while (std::cin.get(c))
-//        {
-//        }
-//        exit(0);
-//    });
-//#endif
-    
 	{
 		Json::Value jsonData;
 		SE_ASSERT(FileToJson("./remotecontrol.config.txt", jsonData));
@@ -1187,18 +958,8 @@ void SPPApp(int argc, char* argv[])
 
 	auto CCMap = std::BuildCCMap(argc, argv);
 	auto lanAddr = MapFindOrDefault(CCMap, "lanaddr");
+	auto connectionGUID = MapFindOrDefault(CCMap, "connectionID");
 
-	/*auto CCMap = std::BuildCCMap(argc, argv);
-	auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
-	auto lanonlyCC = MapFindOrDefault(CCMap, "lanonly");
-
-	SE_ASSERT(IPMemoryID);
-
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
-    
-	IPCMappedMemory ipcMem(IPMemoryID->c_str(), 2 * 1024 * 1024, false);
-
-	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());*/
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
 
 	// START OS NETWORKING
@@ -1207,18 +968,18 @@ void SPPApp(int argc, char* argv[])
 	//
 	if (lanAddr.length())
 	{
-		MainWithLanOnly(ThisRUNGUID, lanAddr);// , ipcMem);
+		MainWithLanOnly(ThisRUNGUID, lanAddr);
 	}
-	//else
-	//{
-	//	MainWithNatTraverasl(ThisRUNGUID, ipcMem);
-	//}
+	else if(connectionGUID.length())
+	{
+		MainWithNatTraverasl(ThisRUNGUID, connectionGUID);
+	}
 }
 
-int try_main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	IntializeCore(nullptr);
-    
+
 #if PLATFORM_WINDOWS
 	_CrtSetDbgFlag(0);
 #endif
@@ -1235,7 +996,7 @@ int try_main(int argc, char *argv[])
 		});
 
 	GApp->OnRun();
-    
+
 	GApp->OnExit();
 	delete GApp;
 	wxEntryCleanup();
@@ -1246,10 +1007,4 @@ int try_main(int argc, char *argv[])
 	}
 
 	return 0;
-}
-
-
-int main(int argc, char* argv[])
-{
-	return try_main(argc, argv);
 }

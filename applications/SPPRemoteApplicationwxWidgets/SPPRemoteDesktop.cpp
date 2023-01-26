@@ -286,6 +286,10 @@ public:
 				{
 					ArgString += std::string_format(" -lanaddr=%s", foundDevice->second.LanAddr.c_str());
 				}
+				else
+				{
+					ArgString += std::string_format(" -connectionID=%s", foundDevice->first.c_str());					
+				}
 
 				auto remoteViewerProc = CreatePlatformProcess(FullBinPath.c_str(), ArgString.c_str(), true, false, false);
 
@@ -343,12 +347,51 @@ public:
 
 	void CreateCoordinator()
 	{
-		_coordinator = std::make_unique<UDP_SQL_Coordinator>(IPv4_SocketAddress(GAppConfig.coord.addr.c_str()));
+		_coordinator = std::make_unique<UDP_SQL_Coordinator>(IPv4_SocketAddress(GAppConfig.coord.addr.c_str()),false);
 
 		_coordinator->SetPassword(GAppConfig.coord.pwd);
-		_coordinator->SetKeyPair("GUID", _ThisRUNGUID);
-		_coordinator->SetKeyPair("NAME", GetOSNetwork().HostName);
-		_coordinator->SetKeyPair("LASTUPDATETIME", "datetime('now')");
+
+		_coordinator->SetSQLRequestCallback([&](const std::string& InValue)
+			{
+				//SPP_LOG(LOG_RD, LOG_INFO, "CALLBACK: %s", InValue.c_str());
+
+				Json::Value root;
+				Json::CharReaderBuilder Builder;
+				Json::CharReader* reader = Builder.newCharReader();
+				std::string Errors;
+
+				bool parsingSuccessful = reader->parse((char*)InValue.data(), (char*)(InValue.data() + InValue.length()), &root, &Errors);
+				delete reader;
+				if (!parsingSuccessful)
+				{
+					return;
+				}
+
+				for (int32_t Iter = 0; Iter < root.size(); Iter++)
+				{
+					auto CurrentEle = root[Iter];
+
+					Json::Value JsonName = CurrentEle.get("NAME", Json::Value::nullSingleton());
+					Json::Value GUIDValue = CurrentEle.get("GUID", Json::Value::nullSingleton());
+					Json::Value SDPValue = CurrentEle.get("SDP", Json::Value::nullSingleton());
+					
+					if (!JsonName.isNull() &&
+						!GUIDValue.isNull() &&
+						!SDPValue.isNull())
+					{
+						std::string nameAsString = JsonName.asCString();
+						std::string guidAsString = GUIDValue.asCString();
+
+						_remoteDevices[guidAsString] = RemoteClient{
+							std::chrono::steady_clock::now(),
+							guidAsString,
+							nameAsString,
+							std::string(""),
+							std::string("")
+						};
+					}					
+				}
+			});
 	}
 
 	void SetNetGood(int8_t ID, bool bIsGood)
@@ -456,6 +499,21 @@ public:
 			UpdateRemoteDevices();
 		});
 
+		// COORDINATOR UPDATES
+		auto LastSQLQuery = std::chrono::steady_clock::now() - std::chrono::seconds(30);
+		_timer->AddTimer(50ms, true, [&]()
+		{
+			_coordinator->Update();
+			auto CurrentTime = std::chrono::steady_clock::now();
+			
+			if (std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSQLQuery).count() > 1)
+			{
+				auto SQLRequest = std::string_format("SELECT * FROM clients;");
+				_coordinator->SQLRequest(SQLRequest.c_str());
+				LastSQLQuery = CurrentTime;
+			}			
+		});
+
 		_timer->AddTimer(100ms, true, [&]()
 		{
 			IPv4_SocketAddress recvAddr;
@@ -496,14 +554,7 @@ public:
 				{
 					_juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 					SPP_LOG(LOG_RD, LOG_INFO, "Resetting juice socket from problem (error on join usually)");
-				}
-				else if (_juiceSocket->IsReady())
-				{
-					if (_coordinator)
-					{
-						_coordinator->SetKeyPair("SDP", std::string(_juiceSocket->GetSDP_BASE64()));
-					}
-				}
+				}				
 			}			
 			
 			if (_coordinator)

@@ -17,7 +17,7 @@ namespace SPP
 		std::unique_ptr<PlatImpl> _impl;
 
 	public:
-		UDP_SQL_Coordinator(const IPv4_SocketAddress& InRemoteAddr);
+		UDP_SQL_Coordinator(const IPv4_SocketAddress& InRemoteAddr, bool bInReportToServer = true);
 		UDP_SQL_Coordinator(uint16_t InPort, const std::vector<TableField>& InFields);
 		~UDP_SQL_Coordinator();
 
