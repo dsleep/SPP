@@ -34,7 +34,6 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
-#define PREVENT_INPUT 1
 
 HINSTANCE GhInstance = nullptr;
 
@@ -152,9 +151,7 @@ public:
 	{
 		//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
 
-#if PREVENT_INPUT
-		return;
-#endif
+		if (!GAppConfig.remote.bAllowInput)return;
 	
 		{
 			MemoryView DataView(Data, DataLength);
