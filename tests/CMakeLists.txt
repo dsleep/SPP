@@ -82,17 +82,17 @@ set_property(TARGET coroutineTest PROPERTY FOLDER "TESTS")
 set_property(TARGET coroutineTest PROPERTY VS_DPI_AWARE "PerMonitor")
 
 ##########
-add_executable( bluetoothTest "")
-add_dependencies( bluetoothTest SPPNetworking SPPWinRTBTE)			
-target_sources( bluetoothTest 
-	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/bluetoothTest.cpp" )		
-target_link_libraries( bluetoothTest SPPNetworking SPPWinRTBTE)
-set_target_properties( bluetoothTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_property(TARGET bluetoothTest PROPERTY FOLDER "TESTS")
-set_property(TARGET bluetoothTest PROPERTY VS_DPI_AWARE "PerMonitor")
+# add_executable( bluetoothTest "")
+# add_dependencies( bluetoothTest SPPNetworking SPPWinRTBTE)			
+# target_sources( bluetoothTest 
+	# PRIVATE 
+		# "${CMAKE_CURRENT_LIST_DIR}/bluetoothTest.cpp" )		
+# target_link_libraries( bluetoothTest SPPNetworking SPPWinRTBTE)
+# set_target_properties( bluetoothTest PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+# set_property(TARGET bluetoothTest PROPERTY FOLDER "TESTS")
+# set_property(TARGET bluetoothTest PROPERTY VS_DPI_AWARE "PerMonitor")
 
-install(TARGETS bluetoothTest DESTINATION "${SPP_ROOT}/INSTALL")
+# install(TARGETS bluetoothTest DESTINATION "${SPP_ROOT}/INSTALL")
 
 ##########
 add_executable( networkTest "")
