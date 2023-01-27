@@ -231,6 +231,18 @@ button:active {
     <button type="button" class="btn cancel" onclick="javascript:closeConfig('LanConfig',false)">Cancel</button>
   </form>
 </div>
+	
+<div id="ConnectionConfig" class="config-popup">
+    <p style="border-bottom: thin solid #646464;"><b>Connect to Remote Host</b></p>
+    <label for="remotePWD">Password</label>
+    <br>
+    <input type="text" placeholder="" name="remotePWD" required>
+    <br>
+    <br>
+    <button type="submit" class="btn" onclick="javascript:closeConfig('ConnectionConfig',true)">Accept</button>
+    <button type="button" class="btn cancel" onclick="javascript:closeConfig('ConnectionConfig',false)">Cancel</button>
+</div>
+	
 <div id="menuArea">
   <div class="dropdown">
     <button class="dropbtn">File</button>
@@ -360,19 +372,22 @@ button:active {
 		let curConfig = document.getElementById(InName);
 		
 		var configsForm = curConfig.querySelector('form');	
-		var formInputs = configsForm.querySelectorAll('input');	
-		
-		let curObject = ConfigSettings[configsForm.name];
-		for (const curEntry of formInputs) {
-			 if(curEntry.type === 'text'|| curEntry.type === 'textarea') {				 
-				 curEntry.value = curObject[curEntry.name];
-			 }
-			 if(curEntry.type === 'checkbox') {
-				 let jsonPropValue = curObject[curEntry.name].toLowerCase();
-				 curEntry.checked = (jsonPropValue == "true");
-				 curEntry.value = jsonPropValue;
-			 }
-		}
+		if(configsForm) {
+			var formInputs = configsForm.querySelectorAll('input');			
+			if (ConfigSettings.hasOwnProperty(configsForm.name)) {
+				let curObject = ConfigSettings[configsForm.name];
+				for (const curEntry of formInputs) {
+					 if(curEntry.type === 'text'|| curEntry.type === 'textarea') {				 
+						 curEntry.value = curObject[curEntry.name];
+					 }
+					 if(curEntry.type === 'checkbox') {
+						 let jsonPropValue = curObject[curEntry.name].toLowerCase();
+						 curEntry.checked = (jsonPropValue == "true");
+						 curEntry.value = jsonPropValue;
+					 }
+				}
+			}		
+		}		
 		
 		document.getElementById("page-mask").style.display = "block";
 		curConfig.style.display = "block";
