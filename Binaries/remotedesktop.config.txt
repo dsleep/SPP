@@ -11,7 +11,8 @@
 	"remote" : 
 	{
 		"bAllowInput" : "false",
-		"bEnabled" : "true"
+		"bLANOnly" : "false",
+		"pwd" : "test"
 	},
 	"stun" : 
 	{

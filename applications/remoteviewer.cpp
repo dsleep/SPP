@@ -66,6 +66,8 @@ LogEntry LOG_APP("APP");
 class MyApp;
 MyApp* GApp = nullptr;
 
+std::string GConnectionPWDFromCMD;
+
 struct RemoteClient
 {
 	std::chrono::steady_clock::time_point LastUpdate;
@@ -635,6 +637,7 @@ protected:
 public:
 	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer/*, BtSendFunc InSendBTMessage*/) : NetworkConnection(InPeer, false) //, _btSendMessage(InSendBTMessage)
 	{ 
+		SetPassword(GConnectionPWDFromCMD);
 		//app = std::make_unique< SimpleGlutApp>(this);
 		//hWnd = app->CreateOpenGLWindow("Viewer", 0, 0, 1280, 720, PFD_TYPE_RGBA, 0);
 		//hDC = GetDC(hWnd);
@@ -959,6 +962,7 @@ void SPPApp(int argc, char* argv[])
 	auto CCMap = std::BuildCCMap(argc, argv);
 	auto lanAddr = MapFindOrDefault(CCMap, "lanaddr");
 	auto connectionGUID = MapFindOrDefault(CCMap, "connectionID");
+	GConnectionPWDFromCMD = MapFindOrDefault(CCMap, "pwd");
 
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
 

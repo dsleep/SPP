@@ -261,13 +261,41 @@ public:
 		_thread.reset();
 	}
 
-	void JoinDeviceByGUID(const std::string& InGUID)
+	void StartRemoteHost()
 	{
 		if (_runThreadID != std::this_thread::get_id())
 		{
-			_localThreadPool->enqueue([CpyValue = InGUID, this]()
+			_localThreadPool->enqueue([this]()
+				{
+					StartRemoteHost();
+				});
+			return;
+		}
+
+		StartRemoteAccess();
+	}
+
+	void StopRemoteHost()
+	{
+		if (_runThreadID != std::this_thread::get_id())
+		{
+			_localThreadPool->enqueue([this]()
+				{
+					StopRemoteHost();
+				});
+			return;
+		}
+
+		CloseRemoteAccess();
+	}
+
+	void JoinDeviceByGUID(const std::string& InGUID, const std::string& InPWD)
+	{
+		if (_runThreadID != std::this_thread::get_id())
+		{
+			_localThreadPool->enqueue([CpyValue = InGUID, CpyPWD = InPWD, this]()
 			{
-				JoinDeviceByGUID(CpyValue);
+				JoinDeviceByGUID(CpyValue, CpyPWD);
 			});
 			return;
 		}
@@ -289,6 +317,11 @@ public:
 				else
 				{
 					ArgString += std::string_format(" -connectionID=%s", foundDevice->first.c_str());					
+				}
+
+				if (InPWD.length())
+				{
+					ArgString += std::string_format(" -pwd=%s", InPWD.c_str());
 				}
 
 				auto remoteViewerProc = CreatePlatformProcess(FullBinPath.c_str(), ArgString.c_str(), true, false, false);
@@ -333,15 +366,6 @@ public:
 		if (InConfig.remote != GAppConfig.remote)
 		{
 			GAppConfig.remote = InConfig.remote;
-		
-			if (GAppConfig.remote.bEnabled)
-			{
-				StartRemoteAccess();
-			}
-			else
-			{
-				CloseRemoteAccess();
-			}
 		}
 	}
 
@@ -437,12 +461,6 @@ public:
 
 	void ValidateRemoteAccess()
 	{
-		if (!GAppConfig.remote.bEnabled)
-		{
-			SetNetGood(RemoteID, false);
-			return;
-		}
-
 		auto mapIPCMem = std::make_unique< IPCMappedMemory >("SPPAPPREMOTEHOST", 2 * 1024, false);
 		if (mapIPCMem->IsValid())
 		{
@@ -623,19 +641,31 @@ void PageLoaded()
 
 }
 
-void JoinDeviceByGUID(const std::string& InGUID)
+void JoinDeviceByGUID(const std::string& InGUID, const std::string& InPWD)
 {
-	GMainApp->JoinDeviceByGUID(InGUID);
+	GMainApp->JoinDeviceByGUID(InGUID, InPWD);
 }
 
+
+void StartRemoteHost()
+{
+	GMainApp->StartRemoteHost();
+}
+
+void StopRemoteHost()
+{
+	GMainApp->StopRemoteHost();
+}
 
 SPP_AUTOREG_START
 {
 	using namespace rttr;
 	registration::method("UpdateConfig", &UpdateConfig)
-		.method("PageLoaded", &PageLoaded)
-		.method("HelpClick", &HelpClick)
-		.method("JoinDeviceByGUID", &JoinDeviceByGUID);
+	.method("PageLoaded", &PageLoaded)
+	.method("HelpClick", &HelpClick)
+	.method("JoinDeviceByGUID", &JoinDeviceByGUID)
+	.method("StartRemoteHost", &StartRemoteHost)
+	.method("StopRemoteHost", &StopRemoteHost);
 
 	rttr::registration::class_<RemoteClient>("RemoteClient")
 		.property("GUID", &RemoteClient::GUID)(rttr::policy::prop::as_reference_wrapper)

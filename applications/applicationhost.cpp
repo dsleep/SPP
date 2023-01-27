@@ -116,6 +116,9 @@ protected:
 public:
 	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer, true)
 	{
+		//set expected password
+		SetPassword(GAppConfig.remote.pwd);
+
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
 		
 		if (!InAppPath.empty())
@@ -783,9 +786,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	GetMonitorInfo(Infos);
 
 	{
-		//Json::Value JsonConfig;
-		//SE_ASSERT(FileToJson("remoteaccess.config.txt", JsonConfig));
-
 		Json::Value jsonData;
 		SE_ASSERT(FileToJson("./remoteaccess.config.txt", jsonData));
 		
@@ -796,21 +796,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	auto ThisRUNGUID = std::generate_hex(3);
 	AddDLLSearchPath("../3rdParty/libav_CUDA/bin");
 
-	std::string ClientRequestCommandline;
-
-	//auto CCMap = std::BuildCCMap(argc, argv);
-	//auto IPMemoryID = MapFindOrNull(CCMap, "MEM");
-	std::string AppPath = "";// MapFindOrDefault(CCMap, "APP");
-	std::string AppCommandline = "";// MapFindOrDefault(CCMap, "CMDLINE");
-	std::string lanonlyCC = "";// MapFindOrDefault(CCMap, "lanonly");
-
-	//SE_ASSERT(IPMemoryID);
-
-	//SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY: %s", IPMemoryID->c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "EXE PATH: %s", AppPath.c_str());
-	SPP_LOG(LOG_APP, LOG_INFO, "APP COMMAND LINE: %s", AppCommandline.c_str());
-
 	IPCMappedMemory ipcMem("SPPAPPREMOTEHOST", 2 * 1024, true);
+
+	if (!ipcMem.IsValid()) { return -1; }
 
 	SPP_LOG(LOG_APP, LOG_INFO, "IPC MEMORY VALID: %d", ipcMem.IsValid());
 	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
@@ -818,15 +806,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// START OS NETWORKING
 	GetOSNetwork();
 
-	std::string SimpleAppName = AppPath.empty() ? "Desktop" : stdfs::path(AppPath).stem().generic_string();
+	std::string SimpleAppName = "Desktop";
 
 	_mainThread(ThisRUNGUID,
 		SimpleAppName,
-		AppCommandline,
-		ClientRequestCommandline,
-		AppPath,
+		"",
+		"",
+		"",
 		ipcMem,
-		lanonlyCC.length() ? true : false);
+		GAppConfig.remote.bLANOnly);
 	
 	return 0;
 }

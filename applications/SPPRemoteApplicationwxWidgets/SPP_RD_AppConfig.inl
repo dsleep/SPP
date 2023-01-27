@@ -36,15 +36,15 @@ struct STUNConfiguration
 
 struct RemoteAccess
 {
-	bool bEnabled = false;
 	bool bAllowInput = false;
 	bool bLANOnly = false;
+	std::string pwd = "";
 
 	bool operator == (const RemoteAccess& cmp) const
 	{
-		return bEnabled == cmp.bEnabled && 
-			bAllowInput == cmp.bAllowInput && 
-			bLANOnly == cmp.bLANOnly;
+		return bAllowInput == cmp.bAllowInput && 
+			bLANOnly == cmp.bLANOnly &&
+			pwd == cmp.pwd;
 	}
 };
 
@@ -80,9 +80,9 @@ SPP_AUTOREG_START
 		;
 
 	rttr::registration::class_<RemoteAccess>("RemoteAccess")
-		.property("bEnabled", &RemoteAccess::bEnabled)(rttr::policy::prop::as_reference_wrapper)
 		.property("bAllowInput", &RemoteAccess::bAllowInput)(rttr::policy::prop::as_reference_wrapper)
 		.property("bLANOnly", &RemoteAccess::bLANOnly)(rttr::policy::prop::as_reference_wrapper)
+		.property("pwd", &RemoteAccess::pwd)(rttr::policy::prop::as_reference_wrapper)
 		;
 }
 SPP_AUTOREG_END
