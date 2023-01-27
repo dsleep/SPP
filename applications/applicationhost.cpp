@@ -673,24 +673,27 @@ void _mainThread(const std::string& ThisRUNGUID,
 		});
 
 	// COORDINATOR UPDATES
-	auto LastSQLQuery = std::chrono::steady_clock::now() - std::chrono::seconds(30);
-	mainController.AddTimer(50ms, true, [&]()
-		{
-			coordinator->Update();
-			auto CurrentTime = std::chrono::steady_clock::now();
-			if (juiceSocket && juiceSocket->IsReady())
+	if (!bLANOnly)
+	{
+		auto LastSQLQuery = std::chrono::steady_clock::now() - std::chrono::seconds(30);
+		mainController.AddTimer(50ms, true, [&]()
 			{
-				coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
-
-				if (!videoConnection &&
-					std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSQLQuery).count() > 1)
+				coordinator->Update();
+				auto CurrentTime = std::chrono::steady_clock::now();
+				if (juiceSocket && juiceSocket->IsReady())
 				{
-					auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
-					coordinator->SQLRequest(SQLRequest.c_str());
-					LastSQLQuery = CurrentTime;
+					coordinator->SetKeyPair("SDP", std::string(juiceSocket->GetSDP_BASE64()));
+
+					if (!videoConnection &&
+						std::chrono::duration_cast<std::chrono::seconds>(CurrentTime - LastSQLQuery).count() > 1)
+					{
+						auto SQLRequest = std::string_format("SELECT * FROM clients WHERE GUIDCONNECTTO = '%s'", ThisRUNGUID.c_str());
+						coordinator->SQLRequest(SQLRequest.c_str());
+						LastSQLQuery = CurrentTime;
+					}
 				}
-			}
-		});
+			});
+	}
 
 	//UDP BEACON
 	IPv4_SocketAddress broadcastAddr("255.255.255.255", GAppConfig.lan.port);
