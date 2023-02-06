@@ -375,6 +375,7 @@ namespace SPP
 		virtual GPUReferencer< class GPUTexture > _gxCreateTexture(const struct TextureAsset& TextureAsset) override;
 
 		virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) override;
+		virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, size_t InSize) override;
 
 		//
 		virtual std::shared_ptr< class RT_Texture > CreateTexture() override;

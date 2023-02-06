@@ -53,6 +53,17 @@ namespace SPP
     using _AsEigenVector3d = Eigen::Matrix< double, 1, 3, Eigen::RowMajor >;
     using _AsEigenVector4d = Eigen::Matrix< double, 1, 4, Eigen::RowMajor >;
 
+    namespace EAxis
+    {
+        enum Value
+        {
+            None = 0,
+            X = (1 << 0),
+            Y = (1 << 1),
+            Z = (1 << 2)
+        };
+    };
+
     class Vector3 : public _AsEigenVector3
     {
     public:
@@ -319,6 +330,12 @@ namespace SPP
     T roundUpToPow2(const T& InValue)
     {
         return (T)pow(2, ceil(log(InValue) / log(2)));
+    }
+
+    template<typename T>
+    T roundDownToPow2(const T& InValue)
+    {
+        return (T)pow(2, floor(log(InValue) / log(2)));
     }
 
     template<typename T>

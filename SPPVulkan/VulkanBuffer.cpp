@@ -106,6 +106,8 @@ namespace SPP
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
 		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
+
+		// for Sparse this is the page alignment as well
 		_alignment = memReqs.alignment;
 
 		if (InType != GPUBufferType::Sparse)
@@ -270,6 +272,7 @@ namespace SPP
 	{
 		return Make_GPU(VulkanBuffer, InOwner, InType, InCpuData);
 	}
+
 
 	//
 	PerFrameStagingBuffer::Chunk::Chunk(uint32_t InSize, uint8_t currentFrameIdx) : size(InSize), frameIdx(currentFrameIdx)

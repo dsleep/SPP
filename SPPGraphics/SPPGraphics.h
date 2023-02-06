@@ -252,6 +252,7 @@ namespace SPP
         virtual GPUReferencer< class GPUTexture > _gxCreateTexture(const struct TextureAsset& TextureAsset) = 0;
 
         virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData = nullptr) = 0;
+        virtual GPUReferencer< class GPUBuffer > _gxCreateBuffer(GPUBufferType InType, size_t InSize) = 0;
 
         //virtual GPUReferencer< GPUInputLayout > CreateInputLayout() = 0;
         //virtual GPUReferencer< GPUTexture > CreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData = nullptr, std::shared_ptr< ImageMeta > InMetaInfo = nullptr) = 0;

@@ -777,14 +777,21 @@ namespace SPP
 
     protected:
         GPUReferencer< GPUBuffer > _buffer;
+        GPUBufferType _type;
 
         RT_Buffer(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+        RT_Buffer(GraphicsDevice* InOwner, GPUBufferType InType) : RT_Resource(InOwner), _type(InType) {}
 
     public:
         virtual void Initialize(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
         {
             _buffer = _owner->_gxCreateBuffer(InType, InCpuData);
         }
+        virtual void Initialize(size_t BufferSize)
+        {
+            _buffer = _owner->_gxCreateBuffer(_type, BufferSize);
+        }
+
 
         GPUReferencer< GPUBuffer > GetGPUBuffer()
         {

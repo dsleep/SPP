@@ -100,8 +100,21 @@ public:
 		app->Initialize(1280, 720, hInstance);
 
 
-		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(250, 250, 64), 0.25f, 65536);
+		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(90, 30, 90), 0.1f, 65536);
 
+		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
+		//testTree.SetBox(Vector3d(0, 0, 0), Vector3(5, 5, 5), 200);
+		testTree.SetSphere(Vector3d(0, 0, 0), 3, 200);
+
+		Ray createRay(Vector3d(1, 10, 1), (Vector3(0, 0, 0) - Vector3(1, 10, 1)).normalized());
+		testTree.CastRay(createRay);
+
+		{
+			int32_t imgX, imgY;
+			std::vector<Color3> sliceData;
+			testTree.GetSlice(Vector3d(0, 0, 0), EAxis::Y, 4, imgX, imgY, sliceData);
+			SaveImageToFile("sphereslice.bmp", imgX, imgY, TextureFormat::RGB_888, (uint8_t*)sliceData.data());
+		}
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
@@ -109,10 +122,13 @@ public:
 
 		//auto SDFShader = _graphicsDevice->CreateShader();
 
-		//auto gpuCommand = RunOnRT([SDFShader]()
+		//auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
+
+		//auto gpuCommand = RunOnRT([sparseBuf]()
 		//	{
-		//		SDFShader->Initialize(EShaderType::Compute);
-		//		SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
+		//		sparseBuf->Initialize(1024 * 1024 * 1024);
+
+		//		//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 		//	});
 		//gpuCommand.wait();
 
@@ -271,7 +287,7 @@ public:
 		_gameworld->AddChild(_charCapsule);
 
 		renderableSceneShared = _gameworld->GetRenderScene();
-
+		
 		auto& cam = renderableSceneShared->GetCPUCamera();
 		cam.GetCameraPosition()[1] = 5;
 

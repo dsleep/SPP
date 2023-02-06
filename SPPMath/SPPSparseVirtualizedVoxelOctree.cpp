@@ -31,29 +31,28 @@ namespace SPP
         }
     }
   
-    enum class EValueSet
-    {
-        Set,
-        Increment,
-        Decrement
-    };
-
     struct SVVOLevel
 	{
 	private:
         size_t _maximumSize = 0;
         size_t _pageSize = 0;
-        size_t _dataTypeSize = 0;
-        int32_t _spatialCubeExtent = 0;
-        Vector3i _dimensions = {};
-        Vector3i _dimensionsPow2 = {};
-		uint8_t* _basePtr = nullptr;
-        std::vector<bool> _pages;
-        std::vector<uint16_t> _pageSum;
+        size_t _pageRatio = 0;
 
-        size_t _activePages = 0;
-        size_t _spatialDivisor = 0;
-        Vector3i _spatialExtents = {};
+        size_t _dataTypeSize = 0;
+
+        
+        Vector3i _dimensions = {0,0,0};
+        Vector3i _dimensionsPow2 = {0,0,0};
+		uint8_t* _basePtr = nullptr;
+        std::vector<bool> _pages;        
+
+        size_t _activePages = 0;                
+
+        Vector3i _vCubeVoxelDimensions = {0,0,0};
+        Vector3i _vCubeVoxelDimensionsP2 = {0,0,0};
+
+        Vector3i _vCubeCount = {0,0,0};
+        Vector3i _vCubeMask = {0,0,0};
 
         bool _bVirtualAlloc = false;
 
@@ -78,27 +77,66 @@ namespace SPP
             _dataTypeSize = DataTypeSize;            
             _maximumSize = (size_t)InDimensions[0] * (size_t)InDimensions[1] * (size_t)InDimensions[2] * DataTypeSize;
 
+            //CONFIRM DesiredPageSize is a multiple of GSystemData.PageSize ? 
+            //DesiredPageSize / GSystemData.PageSize
+            //SE_ASSERT(GSystemData.PageSize DesiredPageSize / )
+
             _pageSize = DesiredPageSize ? DesiredPageSize : GSystemData.PageSize;
+            _pageRatio = DesiredPageSize / GSystemData.PageSize;
+
+            SPP_LOG(LOG_SVVO, LOG_INFO, "SVVOLevel: max size %u", _maximumSize);
+            SPP_LOG(LOG_SVVO, LOG_INFO, " - dim: %d %d %d", InDimensions[0], InDimensions[1], InDimensions[2]);            
+            SPP_LOG(LOG_SVVO, LOG_INFO, " - system page size: %d", GSystemData.PageSize);
+            SPP_LOG(LOG_SVVO, LOG_INFO, " - desired page size: %d", _pageSize);
 
             // less than 10 pages
             if (_maximumSize < _pageSize * 10)
             {
                 _bVirtualAlloc = false;
+                _vCubeVoxelDimensions = InDimensions;
+                _vCubeVoxelDimensionsP2 = Vector3i{ powerOf2(_vCubeVoxelDimensions[0]), powerOf2(_vCubeVoxelDimensions[1]), powerOf2(_vCubeVoxelDimensions[2]) };
+                _vCubeMask = _vCubeVoxelDimensions - Vector3i{ 1,1,1 };
+                _vCubeCount = Vector3i{ 1,1,1 };
+
+                _activePages = 1;
+                _pageSize = _maximumSize;
+
                 _basePtr = (uint8_t*)SPP_MALLOC(_maximumSize);
             }
             else
             {
                 _bVirtualAlloc = true;
+
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - using virtual alloc");
+
+                // must be power of 2
+                SE_ASSERT(_pageSize == roundUpToPow2(_pageSize));
                 
-                _spatialDivisor = (size_t)std::cbrt(_pageSize / DataTypeSize);
-                _spatialCubeExtent = (int32_t)_spatialDivisor;
+                auto spatialDivisor = (int32_t)std::cbrt(_pageSize / DataTypeSize);
+                spatialDivisor = roundDownToPow2(spatialDivisor);
+                _vCubeVoxelDimensions = Vector3i{ spatialDivisor,  spatialDivisor, spatialDivisor };
 
-                _spatialExtents = (InDimensions + Vector3i(_spatialCubeExtent - 1, _spatialCubeExtent - 1, _spatialCubeExtent - 1)) / _spatialCubeExtent;
+                while (_vCubeVoxelDimensions.prod() < _pageSize)
+                {                  
+                    _vCubeVoxelDimensions[0] <<= 1;
+                }
 
-                auto TotalPages = (size_t)_spatialExtents[0] * (size_t)_spatialExtents[1] * (size_t)_spatialExtents[2];
+                SE_ASSERT(_vCubeVoxelDimensions.prod() == _pageSize);
+                _vCubeVoxelDimensionsP2 = Vector3i{ powerOf2(_vCubeVoxelDimensions[0]), powerOf2(_vCubeVoxelDimensions[1]), powerOf2(_vCubeVoxelDimensions[2]) };
+              
+                _vCubeMask = _vCubeVoxelDimensions - Vector3i{ 1,1,1 };
+                _vCubeCount = _dimensions.array() / _vCubeVoxelDimensions.array();
+
+                SE_ASSERT((_dimensions - Vector3i(_vCubeCount.array() * _vCubeVoxelDimensions.array())).isZero());
+
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - cube voxel dimensions: %d x %d x %d", _vCubeVoxelDimensions[0], _vCubeVoxelDimensions[1], _vCubeVoxelDimensions[2]);
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - total cube count: %d x %d x %d", _vCubeCount[0], _vCubeCount[1], _vCubeCount[2]);
+                
+                auto TotalPages = (size_t)_vCubeCount[0] * (size_t)_vCubeCount[1] * (size_t)_vCubeCount[2];
+
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - page count: %d", TotalPages);
                                 
                 _pages.resize(TotalPages, false);
-                _pageSum.resize(TotalPages, 0);
 
                 _maximumSize = TotalPages * _pageSize;
 
@@ -116,15 +154,30 @@ namespace SPP
             SE_ASSERT(_basePtr);
         }
 
-        size_t ValidatePage(size_t InMemOffset)
+        struct SizeInfo
         {
-            auto currentPage = InMemOffset / GSystemData.PageSize;
+            size_t ActivePages;
+            size_t AllocatePageSize;
+            size_t TotalSize;
+        };
 
-            if (!_pages[currentPage])
+        SizeInfo GetSize()
+        {
+            auto allocatedPageSize = _activePages * _pageSize;
+            auto pageArraySize = sizeof(std::vector<bool>) + (sizeof(bool) * _pages.size());
+            auto TotalSum = sizeof(SVVOLevel) + pageArraySize + allocatedPageSize;
+            return SizeInfo{ _activePages, allocatedPageSize, TotalSum };            
+        }
+
+        void ValidatePage(size_t InPage)
+        {
+            SE_ASSERT(InPage < _pages.size());
+
+            if (!_pages[InPage])
             {
                 _activePages++;
 #if PLATFORM_WINDOWS
-                auto finalAddr = _basePtr + InMemOffset;
+                auto finalAddr = _basePtr + (InPage * _pageSize);
                 auto curAddr = VirtualAlloc(
                     finalAddr,
                     _pageSize,
@@ -133,86 +186,152 @@ namespace SPP
                 );
                 SE_ASSERT(curAddr == finalAddr);
 #endif
-                _pages[currentPage] = true;
+                _pages[InPage] = true;
             }
-
-            return currentPage;
         }
 
-        template<typename T>
-        bool Setter(const Vector3i& InPosition, T InValue, EValueSet InChange)
+        struct PageIdxAndMemOffset
         {
-            SE_ASSERT(sizeof(T) == _dataTypeSize);
+            size_t pageIDX;
+            size_t memoffset;
+        };
 
-            bool bValueChaned = true;
-            bool bIsSet = true;
+        PageIdxAndMemOffset GetOffsets(const Vector3i& InPosition)
+        {           
+            // find the local voxel
+            Vector3i LocalVoxel = Vector3i{ InPosition[0] & _vCubeMask[0],
+                InPosition[1] & _vCubeMask[1],
+                InPosition[2] & _vCubeMask[2] };
+            auto localVoxelIdx = (LocalVoxel[0] +
+                LocalVoxel[1] * _vCubeVoxelDimensions[0] +
+                LocalVoxel[2] * _vCubeVoxelDimensions[0] * _vCubeVoxelDimensions[1]);
 
-            Vector3i SpatialCube = InPosition / _spatialCubeExtent;
-
-            //TODO spatial grouping!
-            auto memOffset = ( (size_t)InPosition[0] +
-                ((size_t)InPosition[1] >> _dimensionsPow2[0]) +
-                (((size_t)InPosition[2] >> _dimensionsPow2[0]) >> _dimensionsPow2[1]) ) * _dataTypeSize;
-
-            auto setValue = [&]() {
-                T& ourValue = *(T*)(_basePtr + memOffset);
-                switch (InChange)
-                {
-                case EValueSet::Set:
-                {
-                    if (ourValue == InValue) bValueChaned = false;
-                    else ourValue = InValue;
-                }
-                break;
-                case EValueSet::Increment:
-                    ourValue += InValue;
-                    break;
-                case EValueSet::Decrement:
-                    ourValue -= InValue;
-                    break;
-                }
-                bIsSet = (ourValue != 0);
-            };
-
-            if (_bVirtualAlloc)
-            {                
-                auto currentPage = ValidatePage(memOffset);
-
-                if (bValueChaned)
-                {
-                    if (bIsSet) _pageSum[currentPage]++;
-                    else _pageSum[currentPage]--;
-                }
-            }
-            // just set it no paging
-            else
+            if (!_bVirtualAlloc)
             {
-                setValue();
+                return PageIdxAndMemOffset{
+                   0, (size_t)localVoxelIdx* _dataTypeSize
+                };
             }
 
-            return bValueChaned;
+            // find which page we are on
+            Vector3i PageCubePos = Vector3i{ InPosition[0] >> _vCubeVoxelDimensionsP2[0],
+               InPosition[1] >> _vCubeVoxelDimensionsP2[1],
+               InPosition[2] >> _vCubeVoxelDimensionsP2[2] };
+            auto pageIdx = (PageCubePos[0] +
+                PageCubePos[1] * _vCubeCount[0] +
+                PageCubePos[2] * _vCubeCount[0] * _vCubeCount[1]);
+                       
+            auto memOffset = (pageIdx * _pageSize) + localVoxelIdx * _dataTypeSize;
+
+            return PageIdxAndMemOffset{
+                (size_t)pageIdx, (size_t)memOffset
+            };
         }
 
         template<typename T>
-        T Get(const Vector3i& InPosition)
+        void Inc(const Vector3i& InPosition)
         {
             SE_ASSERT(sizeof(T) == _dataTypeSize);
 
-            auto memOffset = ((size_t)InPosition[0] +
-                ((size_t)InPosition[1] >> _dimensionsPow2[0]) +
-                (((size_t)InPosition[2] >> _dimensionsPow2[0]) >> _dimensionsPow2[1])) * _dataTypeSize;
+            auto pageAndMem = GetOffsets(InPosition);
 
             if (_bVirtualAlloc)
-            {                
-                auto currentPage = memOffset / GSystemData.PageSize;
+            {
+                ValidatePage(pageAndMem.pageIDX);
+            }
 
-                if (!_pages[currentPage])
-                {
-                    return 0;
-                }
+            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
+            ourValue++;
+        }
+
+        template<typename T>
+        void And(const Vector3i& InPosition, T InValue)
+        {
+            SE_ASSERT(sizeof(T) == _dataTypeSize);
+
+            auto pageAndMem = GetOffsets(InPosition);
+
+            if (_bVirtualAlloc)
+            {
+                ValidatePage(pageAndMem.pageIDX);
+            }
+
+            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
+            ourValue &= InValue;
+        }
+
+        template<typename T>
+        void Or(const Vector3i& InPosition, T InValue)
+        {
+            SE_ASSERT(sizeof(T) == _dataTypeSize);
+
+            auto pageAndMem = GetOffsets(InPosition);
+
+            if (_bVirtualAlloc)
+            {
+                ValidatePage(pageAndMem.pageIDX);
+            }
+
+            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
+            ourValue |= InValue;
+        }
+
+        template<typename T>
+        void Dec(const Vector3i& InPosition)
+        {
+            SE_ASSERT(sizeof(T) == _dataTypeSize);
+
+            auto pageAndMem = GetOffsets(InPosition);
+
+            if (_bVirtualAlloc)
+            {
+                ValidatePage(pageAndMem.pageIDX);
+            }
+
+            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
+            ourValue--;
+        }
+
+		template<typename T>
+		bool Set(const Vector3i& InPosition, T InValue)
+		{
+            SE_ASSERT(InPosition[0] >= 0 && InPosition[1] >= 0 && InPosition[2] >= 0);
+            SE_ASSERT(InPosition[0] < _dimensions[0] && InPosition[1] < _dimensions[0] && InPosition[2] < _dimensions[0]);
+			SE_ASSERT(sizeof(T) == _dataTypeSize);
+
+			bool bValueChaned = true;
+			//bool bIsSet = true;
+
+			auto pageAndMem = GetOffsets(InPosition);
+
+			if (_bVirtualAlloc)
+			{
+				ValidatePage(pageAndMem.pageIDX);
+			}
+
+			T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
+
+			if (ourValue == InValue) bValueChaned = false;
+			else ourValue = InValue;
+
+			return bValueChaned;
+		}
+
+		template<typename T>
+		T Get(const Vector3i& InPosition)
+        {
+            SE_ASSERT(InPosition[0] >= 0 && InPosition[1] >= 0 && InPosition[2] >= 0);
+            SE_ASSERT(InPosition[0] < _dimensions[0] && InPosition[1] < _dimensions[0] && InPosition[2] < _dimensions[0]);
+            SE_ASSERT(sizeof(T) == _dataTypeSize);
+
+            auto pageAndMem = GetOffsets(InPosition);
+
+            if (_bVirtualAlloc && !_pages[pageAndMem.pageIDX] )
+            {
+                return 0;             
             }
             
-            return *(T*)(_basePtr + memOffset);            
+            return *(T*)(_basePtr + pageAndMem.memoffset);
         }
 
         SVVOLevel(SVVOLevel const&) = delete;
@@ -271,37 +390,53 @@ namespace SPP
 
     SparseVirtualizedVoxelOctree::SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize)
     {
-        Vector3i Voxels = Vector3i{ roundUpToPow2( (int32_t)std::ceilf(InExtents[0] / VoxelSize) ),
+        Vector3i VoxelCounts = Vector3i{ roundUpToPow2( (int32_t)std::ceilf(InExtents[0] / VoxelSize) ),
             roundUpToPow2((int32_t)std::ceilf(InExtents[1] / VoxelSize)) ,
-            roundUpToPow2((int32_t)std::ceilf(InExtents[2] / VoxelSize)) };
+            roundUpToPow2((int32_t)std::ceilf(InExtents[2] / VoxelSize)) } * 2;
                
-        _dimensions = Voxels;
+        _dimensions = VoxelCounts;
+        _voxelSize = VoxelSize;
+        _invVoxelSize = 1.0f / _voxelSize;
+
         _dimensionsPow2 = Vector3i{ powerOf2(_dimensions[0]),
            powerOf2(_dimensions[1]),
            powerOf2(_dimensions[2])
         };
 
-        auto maxDimensionPow2 = std::max(_dimensionsPow2[0], std::max(_dimensionsPow2[1], _dimensionsPow2[2]));
+        Vector3 ActualDimensions = _dimensions.cast<float>() * VoxelSize;
+        Vector3 Center = InCenter.cast<float>() * _invVoxelSize + (_dimensions / 2).cast<float>();
 
-        size_t MaxCombined = std::numeric_limits< uint8_t >::max();
-        _levels.resize(maxDimensionPow2 + 1);
-        for (uint32_t Iter = 0; Iter < _levels.size(); Iter++)
+        _worldToVoxels = Matrix4x4{
+            { _dimensions[0] / ActualDimensions[0], 0,					0,								0 },
+            { 0,				 _dimensions[1] / ActualDimensions[1],	0,								0 },
+            { 0,				0,					 _dimensions[2] / ActualDimensions[2],					0},
+            { Center[0], Center[1], Center[2], 1.0f}
+        };       
+
+        //auto maxDimensionPow2 = std::max(_dimensionsPow2[0], std::max(_dimensionsPow2[1], _dimensionsPow2[2]));
+
+        //size_t MaxCombined = std::numeric_limits< uint8_t >::max();
+        _levels.clear();
+        for (uint32_t Iter = 0; ; Iter++)
         {
-            _levels[Iter] = std::make_unique< SVVOLevel >();
-
-            size_t OnesShift = 0;
-            if ((_dimensions[0] >> Iter) != 0) OnesShift++;
-            if ((_dimensions[1] >> Iter) != 0) OnesShift++;
-            if ((_dimensions[2] >> Iter) != 0) OnesShift++;
-
-            Vector3i CurDimensions = Vector3i{ std::max(1, _dimensions[0] >> Iter),
-                std::max(1, _dimensions[1] >> Iter),
-                std::max(1, _dimensions[2] >> Iter) 
+            Vector3i CurDimensions = Vector3i{ _dimensions[0] >> Iter,
+                _dimensions[1] >> Iter,
+                _dimensions[2] >> Iter
             };
-            
-            _levels[Iter]->Initialize(CurDimensions, 1, DesiredPageSize);
-            MaxCombined += (MaxCombined << OnesShift);
+
+            // no longer square chunks
+            if (CurDimensions.minCoeff() == 0)
+            {
+                break;
+            }
+            auto newLevel = std::make_unique< SVVOLevel >();
+            newLevel->Initialize(CurDimensions, 1, DesiredPageSize);            
+            //MaxCombined += (MaxCombined << OnesShift);
+
+            _levels.push_back(std::move(newLevel));
         }
+
+        SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: level count %d", _levels.size());
     }
 
     SparseVirtualizedVoxelOctree::~SparseVirtualizedVoxelOctree()
@@ -309,21 +444,125 @@ namespace SPP
         
     }
 
+    void SparseVirtualizedVoxelOctree::SetBox(const Vector3d& InCenter, const Vector3& InExtents, uint8_t InValue)
+    {
+        Vector3i VoxelCenter = (ToVector4(InCenter.cast<float>()) *  _worldToVoxels).cast<int32_t>().head<3>();;
+        Vector3i VoxelExtents = (InExtents * _invVoxelSize).cast<int32_t>();
+        Vector3i StartVoxel = VoxelCenter - VoxelExtents;
+        Vector3i EndVoxel = VoxelCenter + VoxelExtents;
+        for (int32_t IterX = StartVoxel[0]; IterX < EndVoxel[0]; IterX++)
+        {
+            for (int32_t IterY = StartVoxel[1]; IterY < EndVoxel[1]; IterY++)
+            {
+                for (int32_t IterZ = StartVoxel[2]; IterZ < EndVoxel[2]; IterZ++)
+                {
+                    Set(Vector3i{ IterX,IterY,IterZ }, InValue);
+                }
+            }
+        }
+
+        for(auto &curLevel : _levels)
+        {
+            auto curLevelSize = curLevel->GetSize();
+
+            SPP_LOG(LOG_SVVO, LOG_INFO, "SIZE INFO: %u : %u : %u ", curLevelSize.ActivePages, curLevelSize.AllocatePageSize, curLevelSize.TotalSize);
+        }
+    }
+
+    void SparseVirtualizedVoxelOctree::SetSphere(const Vector3d& InCenter, float InRadius, uint8_t InValue)
+    {
+        Vector3i VoxelCenter = (ToVector4(InCenter.cast<float>()) * _worldToVoxels).cast<int32_t>().head<3>();
+        Vector3 VoxelCenterf = VoxelCenter.cast<float>();
+        float VoxelRadius = (InRadius * _invVoxelSize);
+        int32_t VoxelRadiusi = (int32_t)std::ceil(VoxelRadius);
+        Vector3i VoxelExtents = Vector3i{ VoxelRadiusi, VoxelRadiusi, VoxelRadiusi };
+        Vector3i StartVoxel = VoxelCenter - VoxelExtents;
+        Vector3i EndVoxel = VoxelCenter + VoxelExtents;
+        for (int32_t IterX = StartVoxel[0]; IterX < EndVoxel[0]; IterX++)
+        {
+            for (int32_t IterY = StartVoxel[1]; IterY < EndVoxel[1]; IterY++)
+            {
+                for (int32_t IterZ = StartVoxel[2]; IterZ < EndVoxel[2]; IterZ++)
+                {
+                    Vector3i curPos = Vector3i{ IterX,IterY,IterZ };
+                    Vector3 curPosf = curPos.cast<float>();
+                    float curDist = (curPosf - VoxelCenterf).norm();
+
+                    if (curDist < VoxelRadius)
+                    {
+                        Set(curPos, InValue);
+                    }
+                }
+            }
+        }                 
+
+        for (auto& curLevel : _levels)
+        {
+            auto curLevelSize = curLevel->GetSize();
+
+            SPP_LOG(LOG_SVVO, LOG_INFO, "SIZE INFO: %u : %u : %u ", curLevelSize.ActivePages, curLevelSize.AllocatePageSize, curLevelSize.TotalSize);
+        }
+    }
+
+    void SparseVirtualizedVoxelOctree::GetSlice(const Vector3d& InPosition, EAxis::Value InAxisIsolate, int32_t CurLevel, int32_t& oX, int32_t& oY, std::vector<Color3> &oSliceData)
+    {
+        SE_ASSERT(CurLevel >= 0 && CurLevel < _levels.size());
+        Vector3i wVoxelCenter = (ToVector4(InPosition.cast<float>()) * _worldToVoxels).cast<int32_t>().head<3>();        
+        Vector3i VoxelCenter = Vector3i{ wVoxelCenter[0] >> CurLevel, wVoxelCenter[1] >> CurLevel, wVoxelCenter[2] >> CurLevel };
+
+        oX = std::max(1, _dimensions[0] >> CurLevel);
+        oY = std::max(1, _dimensions[2] >> CurLevel);
+
+        //RGB
+        oSliceData.resize(oX * oY);
+
+        // Y Isolate
+        for (int32_t IterY = 0; IterY < oY; IterY++)
+        {
+            for (int32_t IterX = 0; IterX < oX; IterX++)
+            {
+                Vector3i posToGet = { IterX, VoxelCenter[1], IterY };
+                uint8_t PixelColor = _levels[CurLevel]->Get<uint8_t>(posToGet);
+                if (CurLevel && PixelColor)
+                {
+                    PixelColor = 200;
+                }
+                oSliceData[(IterY * oX) + IterX] = Color3{ PixelColor, PixelColor, PixelColor };
+            }
+        }
+    }
+
+
     void SparseVirtualizedVoxelOctree::Set(const Vector3i& InPos, uint8_t InValue)
     {
-        // lowest level is a value change
-        if (_levels.front()->Setter<uint8_t>(InPos, InValue, EValueSet::Set))
+        if (InPos[0] < 0 || InPos[1] < 0 || InPos[2] < 0)
         {
-            EValueSet subSet = (InValue != 0) ? EValueSet::Increment : EValueSet::Decrement;
+            return;
+        }
+        if (InPos[0] >= _dimensions[0] || InPos[1] >= _dimensions[1] || InPos[2] >= _dimensions[2])
+        {
+            return;
+        }
+        // lowest level is a value change
+        if (_levels.front()->Set<uint8_t>(InPos, InValue))
+        {
+            bool IsOr = (InValue != 0) ? true : false;
+
+            Vector3i CurPos = InPos;
 
             for (uint32_t Iter = 1; Iter < _levels.size(); Iter++)
             {
-                Vector3i CurPos = Vector3i{ std::max(1, InPos[0] >> Iter),
-                    std::max(1, InPos[1] >> Iter),
-                    std::max(1, InPos[2] >> Iter)
+                uint8_t SubIdx = (CurPos[0] & 0x01) +
+                    ((CurPos[1] & 0x01) << 1) +
+                    ((CurPos[2] & 0x01) << 2);
+                uint8_t SubIdxMsk = 1 << SubIdx;
+                CurPos = Vector3i{ CurPos[0] >> 1,
+                    CurPos[1] >> 1,
+                    CurPos[2] >> 1
                 };
 
-                _levels[Iter]->Setter<uint8_t>(CurPos, 1, subSet);
+                if(IsOr) _levels[Iter]->Or< uint8_t>(CurPos, SubIdx);
+                else _levels[Iter]->And< uint8_t>(CurPos, ~SubIdx);
             }
         }
 
@@ -335,8 +574,411 @@ namespace SPP
         return _levels.front()->Get<uint8_t>(InPos);
     }
 
+    template<typename T, typename O = T>
+    O hlslStep(const T& InValueA, const T& InValueB)
+    {
+        SE_ASSERT(InValueA.size() == InValueB.size());
+
+        O oVal = O::Zero();
+        for (int32_t Iter = 0; Iter < InValueA.size(); ++Iter)
+        {            
+            if (InValueB[Iter] >= InValueA[Iter]) oVal[Iter] = 1;
+        }
+        return oVal;
+    }
+
+    template<typename T, typename O=T>
+    O hlslSign(const T& InValue)
+    {
+        O oSign = O::Zero();
+        for (int32_t Iter = 0; Iter < InValue.size(); ++Iter)
+        {
+            const auto& curValue = InValue[Iter];
+            if (curValue > 0) oSign[Iter] = 1;
+            if (curValue < 0) oSign[Iter] = -1;
+        }
+        return oSign;
+    }
+
+    template<typename T, typename O = T>
+    O hlslFloor(const T& InValue)
+    {
+        O oVal = O::Zero();
+        for (int32_t Iter = 0; Iter < InValue.size(); ++Iter)
+        {
+            oVal[Iter] = std::floor(InValue[Iter]);
+        }
+        return oVal;
+    }
+
+    template<typename T>
+    T hlslAbs(const T& InValue)
+    {
+        T oVal;// = InValue;
+        for (int32_t Iter = 0; Iter < InValue.size(); ++Iter)
+        {
+            oVal[Iter] = std::abs(InValue[Iter]);
+        }
+        return oVal;
+    }
+
+    template<typename T>
+    T hlslFract(const T& InValue)
+    {
+        T oValue = InValue;
+        for (int32_t Iter = 0; Iter < oValue.size(); ++Iter)
+        {
+            auto& curValue = oValue[Iter];
+            curValue = curValue - int32_t(curValue);
+        }
+        return oValue;
+    }
+
+    template<typename T>
+    Vector3i hlslNegativeSign(const T& InValue)
+    {
+        Vector3i oSign = Vector3i::Zero();
+        for (int32_t Iter = 0; Iter < InValue.size(); ++Iter)
+        {
+            const auto& curValue = InValue[Iter];
+            if (curValue < 0) oSign[Iter] = 1;
+        }
+        return oSign;
+    }
+
+    // Optimized method 
+    bool rayInterSectBounds(const AxisAlignedBoundingBox<Vector3>& InBox,
+        const Ray& r,
+        Vector3& oTMin,
+        Vector3& oTMax)
+    {
+        Vector3 RayOrigin = r.GetOrigin().cast<float>();
+        Vector3 InvRayDirection = r.GetDirection();
+        Vector3i RayNegSign = hlslNegativeSign(r.GetDirection());
+        // min, max
+        Vector3 bounds[2] = { InBox.GetMin(), InBox.GetMax() };
+
+        oTMin[0] = (bounds[RayNegSign[0]].x() - RayOrigin[0]) * InvRayDirection[0];
+        oTMax[0] = (bounds[1 - RayNegSign[0]].x() - RayOrigin[0]) * InvRayDirection[0];
+        oTMin[1] = (bounds[RayNegSign[1]].y() - RayOrigin[1]) * InvRayDirection[1];
+        oTMax[1] = (bounds[1 - RayNegSign[1]].y() - RayOrigin[1]) * InvRayDirection[1];
+        if ((oTMin[0] > oTMax[1]) || (oTMin[1] > oTMax[0])) return false;
+        if (oTMin[1] > oTMin[0]) oTMin[0] = oTMin[1];
+        if (oTMax[1] < oTMax[0]) oTMax[0] = oTMax[1];
+        oTMin[2] = (bounds[RayNegSign[2]].z() - RayOrigin[2]) * InvRayDirection[2];
+        oTMax[2] = (bounds[1 - RayNegSign[2]].z() - RayOrigin[2]) * InvRayDirection[2];
+        if ((oTMin[0] > oTMax[2]) || (oTMin[2] > oTMax[0])) return false;
+        if (oTMin[2] > oTMin[0]) oTMin[0] = oTMin[2];
+        if (oTMax[2] < oTMax[0]) oTMax[0] = oTMax[2];
+
+        return true;
+    }
+
+
+    void SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay)
+    {
+        auto& rayDir = InRay.GetDirection();
+        auto& rayOrg = InRay.GetOrigin();
+
+        Vector3 rayOrgf = rayOrg.cast<float>();
+        Vector3 vRayStart = (ToVector4(rayOrgf) * _worldToVoxels).head<3>();
+
+#if 1
+        //   const int maxSteps = 100;
+        Vector3 voxel = hlslFloor(vRayStart) + Vector3(0.501f, 0.501f, 0.501f);
+        Vector3 step = hlslSign(rayDir);
+        //voxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
+        Vector3 tMax = (voxel - vRayStart).cwiseQuotient(rayDir);
+        Vector3 tDelta = hlslAbs(rayDir).cwiseInverse();
+
+        Vector3 samplePoss = voxel;
+#else
+       
+        Vector3 pos = vRayStart;
+
+       // Vector3 tMax = (voxel - ro) / rd;
+        //Vector3 tDelta = 1.0 / abs(rd);
+        
+        Vector3 ri = rayDir.cwiseInverse();
+        Vector3 rs = hlslSign(rayDir);
+        Vector3 ris = ri.cwiseProduct(rs);
+        Vector3 dis = (pos - rayOf + Vector3(0.5f,0.5f,0.5f) + rs.cwiseProduct(Vector3(0.5f,0.5f,0.5f))).cwiseProduct( ri );
+
+#endif
+
+        int32_t maxIter = 1024;
+        Vector3 dim = Vector3(0,0,0);
+        for (int i = 0; i < maxIter; ++i) 
+        {
+            if (Get(samplePoss.cast<int32_t>()))
+            {
+                //dist = dot(dis - ris, dim);
+                //norm = -dim * rs;
+                SPP_LOG(LOG_SVVO, LOG_INFO, "HIT!!!");
+                break;
+            }
+
+            //mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+            //sideDist += vec3(mask) * deltaDist;
+            //mapPos += ivec3(vec3(mask)) * rayStep;
+
+            //if (voxelHit(pos)) 
+            //{
+            //    dist = dot(dis - ris, dim);
+            //    norm = -dim * rs;
+            //    return 1.0;
+            //}
+
+            Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
+            dim = hlslStep(tMax, tMaxMins);
+            tMax += dim.cwiseProduct(tDelta);
+            samplePoss += dim.cwiseProduct(step);
+
+            SPP_LOG(LOG_SVVO, LOG_INFO, "RAY: %f %f %f", samplePoss[0], samplePoss[1], samplePoss[2]);
+        }
+
+    }
+
+    
 
 #if 0
+
+    float castRay(vec3 eye, vec3 ray, out float dist, out vec3 norm) {
+        vec3 pos = floor(eye);
+        vec3 ri = 1.0 / ray;
+        vec3 rs = sign(ray);
+        vec3 ris = ri * rs;
+        vec3 dis = (pos - eye + 0.5 + rs * 0.5) * ri;
+
+        vec3 dim = vec3(0.0);
+        for (int i = 0; i < maxIter; ++i) {
+            if (voxelHit(pos)) {
+                dist = dot(dis - ris, dim);
+                norm = -dim * rs;
+                return 1.0;
+            }
+
+            dim = step(dis, dis.yzx);
+            dim *= (1.0 - dim.zxy);
+
+            dis += dim * ris;
+            pos += dim * rs;
+        }
+
+        return 0.0;
+    }
+
+    float VoxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal, out vec3 pos, out int material)
+    {
+        const int maxSteps = 100;
+        vec3 voxel = floor(ro) + .501;
+        vec3 step = sign(rd);
+        //voxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
+        vec3 tMax = (voxel - ro) / rd;
+        vec3 tDelta = 1.0 / abs(rd);
+        vec3 hitVoxel = voxel;
+        int mat = 0;
+
+        hit = false;
+
+        float hitT = 0.0;
+        for (int i = 0; i < maxSteps; i++)
+        {
+            if (!hit)
+            {
+                float d = Scene(voxel, mat);
+                if (d <= 0.0 && !hit)
+                {
+                    hit = true;
+                    hitVoxel = voxel;
+                    material = mat;
+                    break;
+                }
+                bool c1 = tMax.x < tMax.y;
+                bool c2 = tMax.x < tMax.z;
+                bool c3 = tMax.y < tMax.z;
+                if (c1 && c2)
+                {
+                    if (!hit)
+                    {
+                        hitNormal = vec3(-step.x, 0.0, 0.0);
+                        hitT = tMax.x;
+                    }
+                    voxel.x += step.x;
+                    tMax.x += tDelta.x;
+
+                }
+                else if (c3 && !c1)
+                {
+                    if (!hit)
+                    {
+                        hitNormal = vec3(0.0, -step.y, 0.0);
+                        hitT = tMax.y;
+                    }
+                    voxel.y += step.y;
+                    tMax.y += tDelta.y;
+                }
+                else
+                {
+                    if (!hit)
+                    {
+                        hitNormal = vec3(0.0, 0.0, -step.z);
+                        hitT = tMax.z;
+                    }
+                    voxel.z += step.z;
+                    tMax.z += tDelta.z;
+                }
+            }
+        }
+        if (hit && (hitVoxel.x > 27.0 || hitVoxel.x < -27.0 || hitVoxel.z < -27.0 || hitVoxel.z > 27.0))
+        {
+            hit = false;
+            return 1000.0;
+        }
+
+        pos = ro + hitT * rd;
+        return hitT;
+    }
+
+    // Voxel ray casting algorithm from "A Fast Voxel Traversal Algorithm for Ray Tracing" 
+// by John Amanatides and Andrew Woo
+// http://www.cse.yorku.ca/~amana/research/grid.pdf
+    hit intersect(vec3 ro, vec3 rd) {
+        //Todo: find out why this is so slow
+        vec3 pos = floor(ro);
+
+        vec3 step = sign(rd);
+        vec3 tDelta = step / rd;
+
+
+        float tMaxX, tMaxY, tMaxZ;
+
+        vec3 fr = fract(ro);
+
+        tMaxX = tDelta.x * ((rd.x > 0.0) ? (1.0 - fr.x) : fr.x);
+        tMaxY = tDelta.y * ((rd.y > 0.0) ? (1.0 - fr.y) : fr.y);
+        tMaxZ = tDelta.z * ((rd.z > 0.0) ? (1.0 - fr.z) : fr.z);
+
+        vec3 norm;
+        const int maxTrace = 100;
+
+        for (int i = 0; i < maxTrace; i++) {
+            hit h = getVoxel(ivec3(pos));
+            if (h.didHit) {
+                return hit(true, lighting(norm, pos, rd, h.col));
+            }
+
+            if (tMaxX < tMaxY) {
+                if (tMaxZ < tMaxX) {
+                    tMaxZ += tDelta.z;
+                    pos.z += step.z;
+                    norm = vec3(0, 0, -step.z);
+                }
+                else {
+                    tMaxX += tDelta.x;
+                    pos.x += step.x;
+                    norm = vec3(-step.x, 0, 0);
+                }
+            }
+            else {
+                if (tMaxZ < tMaxY) {
+                    tMaxZ += tDelta.z;
+                    pos.z += step.z;
+                    norm = vec3(0, 0, -step.z);
+                }
+                else {
+                    tMaxY += tDelta.y;
+                    pos.y += step.y;
+                    norm = vec3(0, -step.y, 0);
+                }
+            }
+        }
+
+        return hit(false, vec3(0, 0, 0));
+    }
+
+
+    void mainImage(out vec4 fragColor, in vec2 fragCoord)
+    {
+        vec2 screenPos = (fragCoord.xy / iResolution.xy) * 2.0 - 1.0;
+        vec3 cameraDir = vec3(0.0, 0.0, 0.8);
+        vec3 cameraPlaneU = vec3(1.0, 0.0, 0.0);
+        vec3 cameraPlaneV = vec3(0.0, 1.0, 0.0) * iResolution.y / iResolution.x;
+        vec3 rayDir = cameraDir + screenPos.x * cameraPlaneU + screenPos.y * cameraPlaneV;
+        vec3 rayPos = vec3(0.0, 2.0 * sin(iTime * 2.7), -12.0);
+
+        rayPos.xz = rotate2d(rayPos.xz, iTime);
+        rayDir.xz = rotate2d(rayDir.xz, iTime);
+
+        ivec3 mapPos = ivec3(floor(rayPos + 0.));
+
+        vec3 deltaDist = abs(vec3(length(rayDir)) / rayDir);
+
+        ivec3 rayStep = ivec3(sign(rayDir));
+
+        vec3 sideDist = (sign(rayDir) * (vec3(mapPos) - rayPos) + (sign(rayDir) * 0.5) + 0.5) * deltaDist;
+
+        bvec3 mask;
+
+        for (int i = 0; i < MAX_RAY_STEPS; i++) {
+            if (getVoxel(mapPos)) break;
+            if (USE_BRANCHLESS_DDA) {
+                //Thanks kzy for the suggestion!
+                mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+                /*bvec3 b1 = lessThan(sideDist.xyz, sideDist.yzx);
+                bvec3 b2 = lessThanEqual(sideDist.xyz, sideDist.zxy);
+                mask.x = b1.x && b2.x;
+                mask.y = b1.y && b2.y;
+                mask.z = b1.z && b2.z;*/
+                //Would've done mask = b1 && b2 but the compiler is making me do it component wise.
+
+                //All components of mask are false except for the corresponding largest component
+                //of sideDist, which is the axis along which the ray should be incremented.			
+
+                sideDist += vec3(mask) * deltaDist;
+                mapPos += ivec3(vec3(mask)) * rayStep;
+            }
+            else {
+                if (sideDist.x < sideDist.y) {
+                    if (sideDist.x < sideDist.z) {
+                        sideDist.x += deltaDist.x;
+                        mapPos.x += rayStep.x;
+                        mask = bvec3(true, false, false);
+                    }
+                    else {
+                        sideDist.z += deltaDist.z;
+                        mapPos.z += rayStep.z;
+                        mask = bvec3(false, false, true);
+                    }
+                }
+                else {
+                    if (sideDist.y < sideDist.z) {
+                        sideDist.y += deltaDist.y;
+                        mapPos.y += rayStep.y;
+                        mask = bvec3(false, true, false);
+                    }
+                    else {
+                        sideDist.z += deltaDist.z;
+                        mapPos.z += rayStep.z;
+                        mask = bvec3(false, false, true);
+                    }
+                }
+            }
+        }
+
+        vec3 color;
+        if (mask.x) {
+            color = vec3(0.5);
+        }
+        if (mask.y) {
+            color = vec3(1.0);
+        }
+        if (mask.z) {
+            color = vec3(0.75);
+        }
+        fragColor.rgb = color;
+        //fragColor.rgb = vec3(0.1 * noiseDeriv);
+    }
 
     ////////////////////////
     // Macro defined to avoid unnecessary checks with NaNs when using std::max
@@ -394,6 +1036,7 @@ namespace SPP
         if (tZMax < tMax) tMax = tZMax;
         return (tMin < t1 && tMax > t0);
     }
+
 
     void amanatidesWooAlgorithm(const Ray& ray, const Grid3D& grid, const Vector3& t0, const Vector3& t1) noexcept
     {

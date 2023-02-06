@@ -1533,6 +1533,11 @@ namespace SPP
 		return Vulkan_CreateStaticBuffer(this, InType, InCpuData);
 	}
 
+	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, size_t InSize)
+	{
+		return Make_GPU(VulkanBuffer, this, InType, InSize, false);
+	}
+
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(const struct TextureAsset& TextureAsset)
 	{
 		return Make_GPU(VulkanTexture, this, TextureAsset);
@@ -1560,7 +1565,7 @@ namespace SPP
 	}
 	std::shared_ptr< class RT_Buffer > VulkanGraphicsDevice::CreateBuffer(GPUBufferType InType)
 	{
-		return Make_RT_Resource( RT_Buffer, this);
+		return Make_RT_Resource( RT_Buffer, this, InType);
 	}
 	
 	
