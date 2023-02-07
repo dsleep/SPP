@@ -647,7 +647,7 @@ namespace SPP
     }
 
     // Optimized method 
-    bool rayInterSectBounds(const AxisAlignedBoundingBox<Vector3>& InBox,
+    bool rayIntersectBounds(const AxisAlignedBoundingBox<Vector3>& InBox,
         const Ray& r,
         Vector3& oTMin,
         Vector3& oTMax)
@@ -683,9 +683,14 @@ namespace SPP
         Vector3 rayOrgf = rayOrg.cast<float>();
         Vector3 vRayStart = (ToVector4(rayOrgf) * _worldToVoxels).head<3>();
 
+        AxisAlignedBoundingBox<Vector3> ourBox(Vector3(0, 0, 0), _dimensions.cast<float>());
+
+        Vector3 tMin, tMax;
+        rayIntersectBounds(ourBox, InRay, tMin, tMax);
+
 #if 1
         //   const int maxSteps = 100;
-        Vector3 voxel = hlslFloor(vRayStart) + Vector3(0.501f, 0.501f, 0.501f);
+        Vector3 voxel = hlslFloor(vRayStart) + Vector3(0.5f, 0.5f, 0.5f);
         Vector3 step = hlslSign(rayDir);
         //voxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
         Vector3 tMax = (voxel - vRayStart).cwiseQuotient(rayDir);
@@ -706,28 +711,19 @@ namespace SPP
 
 #endif
 
+        float hitDistance = 0.0f;
+        Vector3 oNormal = { 0,0,0 };
         int32_t maxIter = 1024;
         Vector3 dim = Vector3(0,0,0);
         for (int i = 0; i < maxIter; ++i) 
         {
             if (Get(samplePoss.cast<int32_t>()))
             {
-                //dist = dot(dis - ris, dim);
-                //norm = -dim * rs;
+                hitDistance = (tMax - tDelta).dot(dim);
+                oNormal = -dim.cwiseProduct( step );
                 SPP_LOG(LOG_SVVO, LOG_INFO, "HIT!!!");
                 break;
             }
-
-            //mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
-            //sideDist += vec3(mask) * deltaDist;
-            //mapPos += ivec3(vec3(mask)) * rayStep;
-
-            //if (voxelHit(pos)) 
-            //{
-            //    dist = dot(dis - ris, dim);
-            //    norm = -dim * rs;
-            //    return 1.0;
-            //}
 
             Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
             dim = hlslStep(tMax, tMaxMins);
@@ -742,6 +738,50 @@ namespace SPP
     
 
 #if 0
+
+    [[no discard]] bool rayBoxIntersection(const Ray& ray, const Grid3D& grid, value_type& tMin, value_type& tMax,
+        value_type t0, value_type t1) noexcept {
+        value_type tYMin, tYMax, tZMin, tZMax;
+        const value_type x_inv_dir = 1 / ray.direction().x();
+        if (x_inv_dir >= 0) {
+            tMin = (grid.minBound().x() - ray.origin().x()) * x_inv_dir;
+            tMax = (grid.maxBound().x() - ray.origin().x()) * x_inv_dir;
+        }
+        else {
+            tMin = (grid.maxBound().x() - ray.origin().x()) * x_inv_dir;
+            tMax = (grid.minBound().x() - ray.origin().x()) * x_inv_dir;
+        }
+
+        const value_type y_inv_dir = 1 / ray.direction().y();
+        if (y_inv_dir >= 0) {
+            tYMin = (grid.minBound().y() - ray.origin().y()) * y_inv_dir;
+            tYMax = (grid.maxBound().y() - ray.origin().y()) * y_inv_dir;
+        }
+        else {
+            tYMin = (grid.maxBound().y() - ray.origin().y()) * y_inv_dir;
+            tYMax = (grid.minBound().y() - ray.origin().y()) * y_inv_dir;
+        }
+
+        if (tMin > tYMax || tYMin > tMax) return false;
+        if (tYMin > tMin) tMin = tYMin;
+        if (tYMax < tMax) tMax = tYMax;
+
+        const value_type z_inv_dir = 1 / ray.direction().z();
+        if (z_inv_dir >= 0) {
+            tZMin = (grid.minBound().z() - ray.origin().z()) * z_inv_dir;
+            tZMax = (grid.maxBound().z() - ray.origin().z()) * z_inv_dir;
+        }
+        else {
+            tZMin = (grid.maxBound().z() - ray.origin().z()) * z_inv_dir;
+            tZMax = (grid.minBound().z() - ray.origin().z()) * z_inv_dir;
+        }
+
+        if (tMin > tZMax || tZMin > tMax) return false;
+        if (tZMin > tMin) tMin = tZMin;
+        if (tZMax < tMax) tMax = tZMax;
+        return (tMin < t1&& tMax > t0);
+    }
+
 
     float castRay(vec3 eye, vec3 ray, out float dist, out vec3 norm) {
         vec3 pos = floor(eye);
