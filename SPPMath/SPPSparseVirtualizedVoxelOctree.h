@@ -24,6 +24,18 @@ namespace SPP
         std::vector < std::unique_ptr< struct SVVOLevel > > _levels;
         Matrix4x4 _worldToVoxels;
 
+        struct RayInfo
+        {
+            Vector3 rayOrg = { 0,0,0 };
+            Vector3 rayDir = { 0,0,0 };
+            Vector3 rayDirInv = { 0,0,0 };
+            Vector3 lastStep = { 0,0,0 };
+            bool bHasStepped = false;
+            uint32_t curMisses = 0;
+            uint32_t totalTests = 0;
+        };
+        bool _rayTraversal(RayInfo& InRayInfo, uint8_t InCurrentLevel, uint32_t InIterationsLeft);
+
     public:    
         SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize = 0);
         ~SparseVirtualizedVoxelOctree();
@@ -33,8 +45,19 @@ namespace SPP
 
         void Set(const Vector3i &InPos, uint8_t InValue);
         uint8_t Get(const Vector3i& InPos);
+        auto GetLevelCount() const {
+            return _levels.size();
+        }
+        uint8_t GetUnScaledAtLevel(const Vector3i& InPos, uint8_t InLevel);
 
-        void CastRay(const Ray& InRay);
+        struct VoxelHitInfo
+        {
+            Vector3 location;
+            Vector3 normal;
+            uint32_t totalChecks = 0;
+        };
+
+        bool CastRay(const Ray& InRay, VoxelHitInfo &oInfo);
       
         void GetSlice(const Vector3d& InPosition, EAxis::Value InAxisIsolate, int32_t CurLevel, int32_t &oX, int32_t& oY, std::vector<Color3> &oSliceData );
     };

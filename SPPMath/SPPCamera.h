@@ -94,11 +94,10 @@ namespace SPP
 		
 		float GetRecipTanHalfFovy() const;
 
+		void CreateRays(uint32_t Width, uint32_t Height, const std::function<void(const Ray&,uint32_t, uint32_t)> &InRayTest);
+
 		void GenerateLeftHandFoVPerspectiveMatrix(float FoV, float AspectRatio);
-
-
 		void GenerateLHInverseZPerspectiveMatrix(float FoV, float AspectRatio);
-
 		void GenerateOrthogonalMatrix(const Vector2& InSize, const Vector2& InDepthRange);
 
 		void SetupStandardCorrection();

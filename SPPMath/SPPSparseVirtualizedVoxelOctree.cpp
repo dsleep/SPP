@@ -55,6 +55,9 @@ namespace SPP
         Vector3i _vCubeMask = {0,0,0};
 
         bool _bVirtualAlloc = false;
+        bool _bTopLevel = false;
+
+        SVVOLevel* _nextLevel = nullptr;
 
 	public:
 		SVVOLevel() 
@@ -62,8 +65,10 @@ namespace SPP
             SystemInfoInit();
         }
 
-        void Initialize(const Vector3i &InDimensions, size_t DataTypeSize, size_t DesiredPageSize)
+        void Initialize(const Vector3i &InDimensions, size_t DataTypeSize, size_t DesiredPageSize, bool IsTop)
         {
+            _bTopLevel = IsTop;
+            
             // power of 2 dimensions
             SE_ASSERT(InDimensions[0] == roundUpToPow2(InDimensions[0]));
             SE_ASSERT(InDimensions[1] == roundUpToPow2(InDimensions[1]));
@@ -102,6 +107,8 @@ namespace SPP
                 _pageSize = _maximumSize;
 
                 _basePtr = (uint8_t*)SPP_MALLOC(_maximumSize);
+                memset(_basePtr, 0, _maximumSize);
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - NOT using virtual alloc");
             }
             else
             {
@@ -154,6 +161,11 @@ namespace SPP
             SE_ASSERT(_basePtr);
         }
 
+        void SetNextLevel(SVVOLevel *InNextLevel)
+        {
+            _nextLevel = InNextLevel;
+        }
+
         struct SizeInfo
         {
             size_t ActivePages;
@@ -171,6 +183,7 @@ namespace SPP
 
         void ValidatePage(size_t InPage)
         {
+            SE_ASSERT(_bVirtualAlloc);
             SE_ASSERT(InPage < _pages.size());
 
             if (!_pages[InPage])
@@ -260,6 +273,25 @@ namespace SPP
             ourValue &= InValue;
         }
 
+        struct ChildPositionAndMask
+        {
+            Vector3i childPos;
+            uint8_t maskForChild;
+        };
+
+        static inline ChildPositionAndMask GetChildPositionAndMask(const Vector3i& InPosition)
+        {
+            uint8_t SubIdx = (InPosition[0] & 0x01) +
+                ((InPosition[1] & 0x01) << 1) +
+                ((InPosition[2] & 0x01) << 2);
+            uint8_t SubIdxMsk = 1 << SubIdx;
+            Vector3i childPos = Vector3i{ InPosition[0] >> 1,
+                InPosition[1] >> 1,
+                InPosition[2] >> 1
+            };
+            return ChildPositionAndMask{ childPos, SubIdxMsk };
+        }
+
         template<typename T>
         void Or(const Vector3i& InPosition, T InValue)
         {
@@ -273,7 +305,14 @@ namespace SPP
             }
 
             T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
-            ourValue |= InValue;
+            bool bValueChanged = (!ourValue && InValue);            
+            ourValue |= InValue;         
+
+            if (bValueChanged && _nextLevel)
+            {
+                auto childInfo = GetChildPositionAndMask(InPosition);
+                _nextLevel->Or< uint8_t>(childInfo.childPos, childInfo.maskForChild);
+            }
         }
 
         template<typename T>
@@ -299,7 +338,7 @@ namespace SPP
             SE_ASSERT(InPosition[0] < _dimensions[0] && InPosition[1] < _dimensions[0] && InPosition[2] < _dimensions[0]);
 			SE_ASSERT(sizeof(T) == _dataTypeSize);
 
-			bool bValueChaned = true;
+			bool bValueChanged = true;
 			//bool bIsSet = true;
 
 			auto pageAndMem = GetOffsets(InPosition);
@@ -311,10 +350,18 @@ namespace SPP
 
 			T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
 
-			if (ourValue == InValue) bValueChaned = false;
+			if (ourValue == InValue) bValueChanged = false;
 			else ourValue = InValue;
 
-			return bValueChaned;
+            if (bValueChanged && _nextLevel)
+            {
+                bool IsOr = (InValue != 0);
+                auto childInfo = GetChildPositionAndMask(InPosition);
+                if (IsOr) _nextLevel->Or< uint8_t>(childInfo.childPos, childInfo.maskForChild);
+                else _nextLevel->And< uint8_t>(childInfo.childPos, ~childInfo.maskForChild);
+            }
+
+			return bValueChanged;
 		}
 
 		template<typename T>
@@ -417,6 +464,7 @@ namespace SPP
 
         //size_t MaxCombined = std::numeric_limits< uint8_t >::max();
         _levels.clear();
+        SVVOLevel* lastLevel = nullptr;
         for (uint32_t Iter = 0; ; Iter++)
         {
             Vector3i CurDimensions = Vector3i{ _dimensions[0] >> Iter,
@@ -429,10 +477,22 @@ namespace SPP
             {
                 break;
             }
+
+
+            SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: INIT Level %d", Iter);
+            SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: voxel size %d", 1 << Iter);
+
             auto newLevel = std::make_unique< SVVOLevel >();
-            newLevel->Initialize(CurDimensions, 1, DesiredPageSize);            
+            newLevel->Initialize(CurDimensions, 1, DesiredPageSize, (Iter == 0));
+
+            if (lastLevel)
+            {
+                lastLevel->SetNextLevel(newLevel.get());
+            }
+
             //MaxCombined += (MaxCombined << OnesShift);
 
+            lastLevel = newLevel.get();
             _levels.push_back(std::move(newLevel));
         }
 
@@ -471,7 +531,12 @@ namespace SPP
 
     void SparseVirtualizedVoxelOctree::SetSphere(const Vector3d& InCenter, float InRadius, uint8_t InValue)
     {
+        SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree::SetSphere: %f %f %f", InCenter[0], InCenter[1], InCenter[2]);
+
         Vector3i VoxelCenter = (ToVector4(InCenter.cast<float>()) * _worldToVoxels).cast<int32_t>().head<3>();
+
+        SPP_LOG(LOG_SVVO, LOG_INFO, " - VoxelCenter: %d %d %d", VoxelCenter[0], VoxelCenter[1], VoxelCenter[2]);
+
         Vector3 VoxelCenterf = VoxelCenter.cast<float>();
         float VoxelRadius = (InRadius * _invVoxelSize);
         int32_t VoxelRadiusi = (int32_t)std::ceil(VoxelRadius);
@@ -514,7 +579,7 @@ namespace SPP
         oY = std::max(1, _dimensions[2] >> CurLevel);
 
         //RGB
-        oSliceData.resize(oX * oY);
+        oSliceData.resize(oX * oY, Color3(0,0,0));
 
         // Y Isolate
         for (int32_t IterY = 0; IterY < oY; IterY++)
@@ -543,28 +608,29 @@ namespace SPP
         {
             return;
         }
+        _levels.front()->Set<uint8_t>(InPos, InValue);
         // lowest level is a value change
-        if (_levels.front()->Set<uint8_t>(InPos, InValue))
-        {
-            bool IsOr = (InValue != 0) ? true : false;
+        //if (_levels.front()->Set<uint8_t>(InPos, InValue))
+        //{
+        //    bool IsOr = (InValue != 0) ? true : false;
 
-            Vector3i CurPos = InPos;
+        //    Vector3i CurPos = InPos;
 
-            for (uint32_t Iter = 1; Iter < _levels.size(); Iter++)
-            {
-                uint8_t SubIdx = (CurPos[0] & 0x01) +
-                    ((CurPos[1] & 0x01) << 1) +
-                    ((CurPos[2] & 0x01) << 2);
-                uint8_t SubIdxMsk = 1 << SubIdx;
-                CurPos = Vector3i{ CurPos[0] >> 1,
-                    CurPos[1] >> 1,
-                    CurPos[2] >> 1
-                };
+        //    for (uint32_t Iter = 1; Iter < _levels.size(); Iter++)
+        //    {
+        //        uint8_t SubIdx = (CurPos[0] & 0x01) +
+        //            ((CurPos[1] & 0x01) << 1) +
+        //            ((CurPos[2] & 0x01) << 2);
+        //        uint8_t SubIdxMsk = 1 << SubIdx;
+        //        CurPos = Vector3i{ CurPos[0] >> 1,
+        //            CurPos[1] >> 1,
+        //            CurPos[2] >> 1
+        //        };
 
-                if(IsOr) _levels[Iter]->Or< uint8_t>(CurPos, SubIdx);
-                else _levels[Iter]->And< uint8_t>(CurPos, ~SubIdx);
-            }
-        }
+        //        if(IsOr) _levels[Iter]->Or< uint8_t>(CurPos, SubIdx);
+        //        else _levels[Iter]->And< uint8_t>(CurPos, ~SubIdx);
+        //    }
+        //}
 
         
     }
@@ -572,6 +638,18 @@ namespace SPP
     uint8_t SparseVirtualizedVoxelOctree::Get(const Vector3i& InPos)
     {
         return _levels.front()->Get<uint8_t>(InPos);
+    }
+
+    uint8_t SparseVirtualizedVoxelOctree::GetUnScaledAtLevel(const Vector3i& InPos, uint8_t InLevel)
+    {
+        SE_ASSERT(InLevel < _levels.size());
+
+        Vector3i levelPos = Vector3i{ InPos[0] >> InLevel,
+              InPos[1] >> InLevel,
+              InPos[2] >> InLevel
+        };
+
+        return _levels[InLevel]->Get<uint8_t>(levelPos);
     }
 
     template<typename T, typename O = T>
@@ -674,8 +752,116 @@ namespace SPP
         return true;
     }
 
+    bool SparseVirtualizedVoxelOctree::_rayTraversal(RayInfo& InRayInfo,
+        uint8_t InCurrentLevel, 
+        uint32_t InIterationsLeft)
+    {       
+        Vector3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
+        Vector3 HalfVoxel = VoxelSize / 2;
 
-    void SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay)
+        // get in correct voxel spacing
+        Vector3 voxel = hlslFloor<Vector3>(InRayInfo.rayOrg.cwiseQuotient(VoxelSize)).cwiseProduct(VoxelSize);
+        Vector3 step = VoxelSize.cwiseProduct(hlslSign(InRayInfo.rayDir));
+        Vector3 tMax = (voxel - InRayInfo.rayOrg + HalfVoxel + step.cwiseProduct(Vector3(0.5f, 0.5f, 0.5f))).cwiseProduct(InRayInfo.rayDirInv);
+        Vector3 tDelta = VoxelSize.cwiseProduct(hlslAbs(InRayInfo.rayDirInv));
+
+        Vector3 dim = Vector3(0, 0, 0);
+        Vector3 samplePos = voxel;
+
+        while (true)
+        {
+            if (samplePos[0] < 0 || samplePos[1] < 0 || samplePos[2] < 0)
+            {
+                return false;
+            }
+            if (samplePos[0] >= _dimensions[0] || samplePos[1] >= _dimensions[1] || samplePos[2] >= _dimensions[2])
+            {
+                return false;
+            }
+
+            InRayInfo.totalTests++;
+            InIterationsLeft--;
+
+            if (InIterationsLeft == 0)
+            {
+                return false;
+            }
+
+            bool bRecalcAndTraverse = false;
+
+            // we hit something?
+            if (GetUnScaledAtLevel(samplePos.cast<int32_t>(), InCurrentLevel))
+            {
+                InRayInfo.curMisses = 0;
+
+                if (InCurrentLevel == 0)
+                {
+                    return true;
+                }
+
+                InCurrentLevel--;
+                bRecalcAndTraverse = true;              
+            }
+            else
+            {
+                Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
+                dim = hlslStep(tMax, tMaxMins);
+                tMax += dim.cwiseProduct(tDelta);
+                InRayInfo.lastStep = dim.cwiseProduct(step);
+                samplePos += InRayInfo.lastStep;
+
+                if (samplePos[0] < 0 || samplePos[1] < 0 || samplePos[2] < 0)
+                {
+                    return false;
+                }
+                if (samplePos[0] >= _dimensions[0] || samplePos[1] >= _dimensions[1] || samplePos[2] >= _dimensions[2])
+                {
+                    return false;
+                }
+
+                InRayInfo.curMisses++;
+                InRayInfo.bHasStepped = true;
+
+                if (InCurrentLevel < _levels.size() - 1 &&
+                    InRayInfo.curMisses > 2 && 
+                    GetUnScaledAtLevel(samplePos.cast<int32_t>(), InCurrentLevel+1) == 0)
+                {
+                    bRecalcAndTraverse = true;
+                    InCurrentLevel++;
+                    //InRayInfo.bHasStepped = false;
+                } 
+            }
+            
+            if (bRecalcAndTraverse)
+            {
+                if (InRayInfo.bHasStepped)
+                {
+                    // did it step already
+                    Vector3 normal = -hlslSign(InRayInfo.lastStep);
+
+                    Vector3 VoxelCenter = samplePos + HalfVoxel;
+                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel.cwiseProduct(normal);
+
+                    float denom = normal.dot(InRayInfo.rayDir);
+                    if (denom == 0)
+                        denom = 0.0000001f;
+
+                    Vector3 p0l0 = (VoxelPlaneEdge - InRayInfo.rayOrg);
+                    float t = p0l0.dot(normal) / denom;
+
+                    float epsilon = 0.001f;
+                    InRayInfo.rayOrg = InRayInfo.rayOrg + InRayInfo.rayDir * (t + epsilon);
+                }
+
+                return _rayTraversal(InRayInfo, InCurrentLevel, InIterationsLeft);
+            }
+        }
+
+        return false;
+    }
+
+
+    bool SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
     {
         auto& rayDir = InRay.GetDirection();
         auto& rayOrg = InRay.GetOrigin();
@@ -683,56 +869,144 @@ namespace SPP
         Vector3 rayOrgf = rayOrg.cast<float>();
         Vector3 vRayStart = (ToVector4(rayOrgf) * _worldToVoxels).head<3>();
 
-        AxisAlignedBoundingBox<Vector3> ourBox(Vector3(0, 0, 0), _dimensions.cast<float>());
+        RayInfo info;
 
-        Vector3 tMin, tMax;
-        rayIntersectBounds(ourBox, InRay, tMin, tMax);
+        info.rayOrg = vRayStart;
+        info.rayDir = rayDir;
+        info.rayDirInv = rayDir.cwiseInverse();
 
-#if 1
-        //   const int maxSteps = 100;
-        Vector3 voxel = hlslFloor(vRayStart) + Vector3(0.5f, 0.5f, 0.5f);
-        Vector3 step = hlslSign(rayDir);
-        //voxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
-        Vector3 tMax = (voxel - vRayStart).cwiseQuotient(rayDir);
-        Vector3 tDelta = hlslAbs(rayDir).cwiseInverse();
-
-        Vector3 samplePoss = voxel;
-#else
-       
-        Vector3 pos = vRayStart;
-
-       // Vector3 tMax = (voxel - ro) / rd;
-        //Vector3 tDelta = 1.0 / abs(rd);
-        
-        Vector3 ri = rayDir.cwiseInverse();
-        Vector3 rs = hlslSign(rayDir);
-        Vector3 ris = ri.cwiseProduct(rs);
-        Vector3 dis = (pos - rayOf + Vector3(0.5f,0.5f,0.5f) + rs.cwiseProduct(Vector3(0.5f,0.5f,0.5f))).cwiseProduct( ri );
-
-#endif
-
-        float hitDistance = 0.0f;
-        Vector3 oNormal = { 0,0,0 };
-        int32_t maxIter = 1024;
-        Vector3 dim = Vector3(0,0,0);
-        for (int i = 0; i < maxIter; ++i) 
+        if (!isfinite(info.rayDirInv[0]))
         {
-            if (Get(samplePoss.cast<int32_t>()))
-            {
-                hitDistance = (tMax - tDelta).dot(dim);
-                oNormal = -dim.cwiseProduct( step );
-                SPP_LOG(LOG_SVVO, LOG_INFO, "HIT!!!");
-                break;
-            }
+            info.rayDirInv[0] = 100000.0f;
+        }
+        if (!isfinite(info.rayDirInv[1]))
+        {
+            info.rayDirInv[1] = 100000.0f;
+        }
+        if (!isfinite(info.rayDirInv[2]))
+        {
+            info.rayDirInv[2] = 100000.0f;
+        }
+        
 
-            Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
-            dim = hlslStep(tMax, tMaxMins);
-            tMax += dim.cwiseProduct(tDelta);
-            samplePoss += dim.cwiseProduct(step);
+        if (_rayTraversal(info, _levels.size() - 1, 1024))
+        {
+            Vector3 normal = -hlslSign(info.lastStep);
+            oInfo.normal = normal;    
 
-            SPP_LOG(LOG_SVVO, LOG_INFO, "RAY: %f %f %f", samplePoss[0], samplePoss[1], samplePoss[2]);
+            oInfo.totalChecks = info.totalTests;
+            return true;
         }
 
+        oInfo.totalChecks = info.totalTests;
+        return false;
+        ////AxisAlignedBoundingBox<Vector3> ourBox(Vector3(0, 0, 0), _dimensions.cast<float>());
+        ////Vector3 tMin, tMax;
+        ////rayIntersectBounds(ourBox, InRay, tMin, tMax);
+
+        ////Vector3 VoxelSize(1, 1, 1);
+        ////Vector3 HalfVoxel = VoxelSize / 2;
+
+        //uint8_t currentLevel = 6;
+
+        //Vector3 VoxelSize(1 << currentLevel, 1 << currentLevel, 1 << currentLevel);
+        //Vector3 HalfVoxel = VoxelSize / 2;
+
+        ////uint8_t SparseVirtualizedVoxelOctree::GetUnScaledAtLevel(const Vector3i & InPos, uint8_t InLevel)
+
+        //// fix infinity case
+        //Vector3 rayDirInv = rayDir.cwiseInverse();
+        //
+        //// get in correct voxel spacing
+        //Vector3 voxel = hlslFloor<Vector3>(vRayStart.cwiseQuotient(VoxelSize)).cwiseProduct(VoxelSize);
+        //Vector3 step = VoxelSize.cwiseProduct(hlslSign(rayDir));
+
+        ////tMax = (voxel - InRayOrg + HalfVoxel + step.*[0.5 0.5] ).*(rayDirInv);
+        //Vector3 tMax = (voxel - vRayStart + HalfVoxel + step.cwiseProduct( Vector3(0.5f,0.5f,0.5f ) ) ).cwiseQuotient(rayDir);
+
+        //Vector3 tDelta = VoxelSize.cwiseQuotient(hlslAbs(rayDir));
+
+        ////if (!isfinite(tDelta[0]))
+        ////{
+        ////    tDelta[0] = 0;
+        ////}
+        ////if (!isfinite(tDelta[1]))
+        ////{
+        ////    tDelta[1] = 0;
+        ////}
+        ////if (!isfinite(tDelta[2]))
+        ////{
+        ////    tDelta[2] = 0;
+        ////}
+
+        //SE_ASSERT(tDelta.allFinite());        
+
+        //Vector3 samplePoss = voxel;
+
+        //float hitDistance = 0.0f;
+        //Vector3 oNormal = { 0,0,0 };
+
+        //int32_t maxIter = 1024;
+        //Vector3 dim = Vector3(0,0,0);
+        //Vector3 lastDir = Vector3(0, 0, 0);
+        //bool bHasMoved = false;
+
+        //for (int i = 0; i < maxIter; ++i) 
+        //{
+        //    if (samplePoss[0] < 0 || samplePoss[1] < 0 || samplePoss[2] < 0)
+        //    {
+        //        return false;
+        //    }
+        //    if (samplePoss[0] >= _dimensions[0] || samplePoss[1] >= _dimensions[1] || samplePoss[2] >= _dimensions[2])
+        //    {
+        //        return false;
+        //    }
+
+        //    if (GetUnScaledAtLevel(samplePoss.cast<int32_t>(), currentLevel))
+        //    {
+        //        if (currentLevel == 0)
+        //        {
+        //            return true;
+        //        }
+
+        //        currentLevel--;
+
+        //        if (bHasMoved)
+        //        {
+        //            // did it step already
+        //            Vector3 normal = -hlslSign(lastDir);
+
+        //            Vector3 VoxelCenter = samplePoss + HalfVoxel;
+        //            Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel.cwiseProduct(normal);
+
+        //            Vector3 solveFor = VoxelPlaneEdge;
+        //            float planeD = -solveFor.dot(normal);
+        //            float denom = normal.dot(rayDir);
+
+        //            Vector3 p0l0 = (solveFor - vRayStart);
+        //            float t = p0l0.dot(normal) / denom;
+
+        //            float epsilon = 0.001f;
+        //            solveFor = vRayStart + rayDir * (t + epsilon);
+        //        }
+
+        //        bHasMoved = false;
+        //    }
+        //    else
+        //    {
+        //        Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
+        //        dim = hlslStep(tMax, tMaxMins);
+        //        tMax += dim.cwiseProduct(tDelta);
+        //        lastDir = dim.cwiseProduct(step);
+        //        samplePoss += lastDir;
+
+        //        bHasMoved = true;
+        //    }
+        //    //SPP_LOG(LOG_SVVO, LOG_INFO, "RAY: %f %f %f", samplePoss[0], samplePoss[1], samplePoss[2]);
+        //}
+
+
+        //return false;
     }
 
     

@@ -101,19 +101,54 @@ public:
 
 
 		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(90, 30, 90), 0.1f, 65536);
+		
+		
 
 		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
-		//testTree.SetBox(Vector3d(0, 0, 0), Vector3(5, 5, 5), 200);
-		testTree.SetSphere(Vector3d(0, 0, 0), 3, 200);
+		testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1), 200);
+		testTree.SetSphere(Vector3d(3, 0, 0), 3, 200);
 
-		Ray createRay(Vector3d(1, 10, 1), (Vector3(0, 0, 0) - Vector3(1, 10, 1)).normalized());
-		testTree.CastRay(createRay);
+		testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
+		//testTree.SetDisk(Vector3d(0, 0, 0), 3, 200);
 
+		//for(int32_t Iter = 0; Iter < 1000; Iter++)
+		{
+			SparseVirtualizedVoxelOctree::VoxelHitInfo hit;
+			Ray createRay(Vector3d(1, 10, 1), (Vector3(0, 0, 0) - Vector3(1, 10, 1)).normalized());
+			testTree.CastRay(createRay, hit);
+
+			SPP_LOG(LOG_APP, LOG_INFO, "single test: %u", hit.totalChecks);
+		}
+
+		Camera testCam;
+		testCam.Initialize(Vector3d(0, 0, 10), Vector3(0, 0, 0), 65.0f, 1.77f);
+
+		{
+			uint64_t totalTests = 0;
+			uint32_t wRay = 1365;
+			uint32_t hRay = 768;
+			std::vector<Color3> sliceData;
+			sliceData.resize(wRay * hRay, Color3(0,0,0) );
+			testCam.CreateRays(wRay, hRay, [&](const Ray& InRay, uint32_t CurX, uint32_t CurY) {
+				SparseVirtualizedVoxelOctree::VoxelHitInfo hit;
+				if (testTree.CastRay(InRay, hit))
+				{
+					sliceData[(CurY * wRay) + CurX] = ((hit.normal *0.5f + Vector3(1,1,1)) * 255.0f).cast< uint8_t >();					
+				}
+				totalTests += hit.totalChecks;
+				});
+
+			SPP_LOG(LOG_APP, LOG_INFO, "totalTests: %u avg test per pixel: %f", totalTests, (double)totalTests / ((double)wRay * (double)hRay)  );
+			SaveImageToFile("raytest.bmp", wRay, hRay, TextureFormat::RGB_888, (uint8_t*)sliceData.data());
+		}
+		
+		for(int32_t Iter = 0; Iter < testTree.GetLevelCount(); Iter++)
 		{
 			int32_t imgX, imgY;
 			std::vector<Color3> sliceData;
-			testTree.GetSlice(Vector3d(0, 0, 0), EAxis::Y, 4, imgX, imgY, sliceData);
-			SaveImageToFile("sphereslice.bmp", imgX, imgY, TextureFormat::RGB_888, (uint8_t*)sliceData.data());
+			testTree.GetSlice(Vector3d(0, 0, 0), EAxis::Y, Iter, imgX, imgY, sliceData);
+			std::string SaveString = std::string_format("sphereslice_%d.bmp", Iter);
+			SaveImageToFile(SaveString.c_str(), imgX, imgY, TextureFormat::RGB_888, (uint8_t*)sliceData.data());
 		}
 		_mainDXWindow = (HWND)app->GetOSWindow();
 

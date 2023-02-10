@@ -238,6 +238,30 @@ namespace SPP
 		_invViewProjMatrix = _viewProjMatrix.inverse();
 	}
 
+	void Camera::CreateRays(uint32_t Width, uint32_t Height, const std::function<void(const Ray&, uint32_t, uint32_t)>& InRayTest)
+	{		
+		for (uint32_t yIter = 0; yIter < Height; yIter++)
+		{
+			for (uint32_t xIter = 0; xIter < Width; xIter++)
+			{
+				Vector4 posNear = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 10.0f, 1.0f);
+				Vector4 posFar = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 100.0f, 1.0f);
+
+				Vector4 worldNear = posNear * GetInvViewProjMatrix();
+				worldNear /= worldNear[3];
+				Vector4 worldFar = posFar * GetInvViewProjMatrix();
+				worldFar /= worldFar[3];
+
+				Vector3 rayStart = worldNear.head<3>();
+				Vector3 rayEnd = worldFar.head<3>();
+				Vector3 rayDir = (rayEnd - rayStart).normalized();
+
+				Ray curRay(rayStart.cast<double>() + _cameraPosition, rayDir);
+				InRayTest(curRay, xIter, yIter);
+			}
+		}
+	}
+
 	void Camera::GenerateLeftHandFoVPerspectiveMatrix(float FoV, float AspectRatio)
 	{
 		_projectionMatrix = Matrix4x4::Identity();
