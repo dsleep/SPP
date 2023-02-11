@@ -28,7 +28,10 @@ namespace SPP
         {
             Vector3 rayOrg = { 0,0,0 };
             Vector3 rayDir = { 0,0,0 };
+            Vector3 rayDirSign = { 0,0,0 };
             Vector3 rayDirInv = { 0,0,0 };
+            Vector3 rayDirInvAbs = { 0,0,0 };
+
             Vector3 lastStep = { 0,0,0 };
             bool bHasStepped = false;
             uint32_t curMisses = 0;

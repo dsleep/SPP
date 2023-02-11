@@ -105,7 +105,7 @@ public:
 		
 
 		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
-		testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1), 200);
+		testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
 		testTree.SetSphere(Vector3d(3, 0, 0), 3, 200);
 
 		testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);

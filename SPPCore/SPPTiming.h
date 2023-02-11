@@ -72,6 +72,26 @@ namespace SPP
 		std::condition_variable _cond;
 	};
 
+	class ScopeTimer
+	{
+	private:
+		using HighResClock = std::chrono::high_resolution_clock;
+		HighResClock::time_point _StartTime;
+
+	public:
+		ScopeTimer()
+		{
+			_StartTime = HighResClock::now();
+		}
+		~ScopeTimer()
+		{
+			const auto end = HighResClock::now();
+			const auto currentCount = std::chrono::duration_cast<std::chrono::milliseconds>(end - _StartTime).count();
+			
+			//SPP_LOG(LOG_APP, LOG_INFO, "ScopeTimer::ScopeTimer %u", currentCount);
+		}
+	};
+
 	//EX:  PolledRepeatingTimer< std::chrono::milliseconds >
 	template<class Resolution>
 	class SimplePolledRepeatingTimer

@@ -679,6 +679,19 @@ namespace SPP
     }
 
     template<typename T, typename O = T>
+    O hlslEqual(const T& InValueA, const T& InValueB)
+    {
+        SE_ASSERT(InValueA.size() == InValueB.size());
+
+        O oVal = O::Zero();
+        for (int32_t Iter = 0; Iter < InValueA.size(); ++Iter)
+        {
+            if (InValueB[Iter] == InValueA[Iter]) oVal[Iter] = 1;
+        }
+        return oVal;
+    }
+
+    template<typename T, typename O = T>
     O hlslFloor(const T& InValue)
     {
         O oVal = O::Zero();
@@ -756,14 +769,15 @@ namespace SPP
         uint8_t InCurrentLevel, 
         uint32_t InIterationsLeft)
     {       
+        // moves to structs as level arrays
         Vector3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
         Vector3 HalfVoxel = VoxelSize / 2;
+        Vector3 step = VoxelSize.cwiseProduct(InRayInfo.rayDirSign);        
+        Vector3 tDelta = VoxelSize.cwiseProduct(InRayInfo.rayDirInvAbs);
 
         // get in correct voxel spacing
         Vector3 voxel = hlslFloor<Vector3>(InRayInfo.rayOrg.cwiseQuotient(VoxelSize)).cwiseProduct(VoxelSize);
-        Vector3 step = VoxelSize.cwiseProduct(hlslSign(InRayInfo.rayDir));
         Vector3 tMax = (voxel - InRayInfo.rayOrg + HalfVoxel + step.cwiseProduct(Vector3(0.5f, 0.5f, 0.5f))).cwiseProduct(InRayInfo.rayDirInv);
-        Vector3 tDelta = VoxelSize.cwiseProduct(hlslAbs(InRayInfo.rayDirInv));
 
         Vector3 dim = Vector3(0, 0, 0);
         Vector3 samplePos = voxel;
@@ -873,21 +887,15 @@ namespace SPP
 
         info.rayOrg = vRayStart;
         info.rayDir = rayDir;
-        info.rayDirInv = rayDir.cwiseInverse();
+        info.rayDirSign = hlslSign(info.rayDir);
 
-        if (!isfinite(info.rayDirInv[0]))
-        {
-            info.rayDirInv[0] = 100000.0f;
-        }
-        if (!isfinite(info.rayDirInv[1]))
-        {
-            info.rayDirInv[1] = 100000.0f;
-        }
-        if (!isfinite(info.rayDirInv[2]))
-        {
-            info.rayDirInv[2] = 100000.0f;
-        }
-        
+        float epsilon = 0.001f;
+        Vector3 ZeroEpsilon = hlslEqual(info.rayDir, Vector3(0, 0, 0)) * epsilon;
+
+        info.rayDirInv = (rayDir + ZeroEpsilon).cwiseInverse();
+        info.rayDirInvAbs = hlslAbs(info.rayDirInv);
+
+        SE_ASSERT(info.rayDirInv.allFinite());
 
         if (_rayTraversal(info, _levels.size() - 1, 1024))
         {
@@ -900,116 +908,7 @@ namespace SPP
 
         oInfo.totalChecks = info.totalTests;
         return false;
-        ////AxisAlignedBoundingBox<Vector3> ourBox(Vector3(0, 0, 0), _dimensions.cast<float>());
-        ////Vector3 tMin, tMax;
-        ////rayIntersectBounds(ourBox, InRay, tMin, tMax);
-
-        ////Vector3 VoxelSize(1, 1, 1);
-        ////Vector3 HalfVoxel = VoxelSize / 2;
-
-        //uint8_t currentLevel = 6;
-
-        //Vector3 VoxelSize(1 << currentLevel, 1 << currentLevel, 1 << currentLevel);
-        //Vector3 HalfVoxel = VoxelSize / 2;
-
-        ////uint8_t SparseVirtualizedVoxelOctree::GetUnScaledAtLevel(const Vector3i & InPos, uint8_t InLevel)
-
-        //// fix infinity case
-        //Vector3 rayDirInv = rayDir.cwiseInverse();
-        //
-        //// get in correct voxel spacing
-        //Vector3 voxel = hlslFloor<Vector3>(vRayStart.cwiseQuotient(VoxelSize)).cwiseProduct(VoxelSize);
-        //Vector3 step = VoxelSize.cwiseProduct(hlslSign(rayDir));
-
-        ////tMax = (voxel - InRayOrg + HalfVoxel + step.*[0.5 0.5] ).*(rayDirInv);
-        //Vector3 tMax = (voxel - vRayStart + HalfVoxel + step.cwiseProduct( Vector3(0.5f,0.5f,0.5f ) ) ).cwiseQuotient(rayDir);
-
-        //Vector3 tDelta = VoxelSize.cwiseQuotient(hlslAbs(rayDir));
-
-        ////if (!isfinite(tDelta[0]))
-        ////{
-        ////    tDelta[0] = 0;
-        ////}
-        ////if (!isfinite(tDelta[1]))
-        ////{
-        ////    tDelta[1] = 0;
-        ////}
-        ////if (!isfinite(tDelta[2]))
-        ////{
-        ////    tDelta[2] = 0;
-        ////}
-
-        //SE_ASSERT(tDelta.allFinite());        
-
-        //Vector3 samplePoss = voxel;
-
-        //float hitDistance = 0.0f;
-        //Vector3 oNormal = { 0,0,0 };
-
-        //int32_t maxIter = 1024;
-        //Vector3 dim = Vector3(0,0,0);
-        //Vector3 lastDir = Vector3(0, 0, 0);
-        //bool bHasMoved = false;
-
-        //for (int i = 0; i < maxIter; ++i) 
-        //{
-        //    if (samplePoss[0] < 0 || samplePoss[1] < 0 || samplePoss[2] < 0)
-        //    {
-        //        return false;
-        //    }
-        //    if (samplePoss[0] >= _dimensions[0] || samplePoss[1] >= _dimensions[1] || samplePoss[2] >= _dimensions[2])
-        //    {
-        //        return false;
-        //    }
-
-        //    if (GetUnScaledAtLevel(samplePoss.cast<int32_t>(), currentLevel))
-        //    {
-        //        if (currentLevel == 0)
-        //        {
-        //            return true;
-        //        }
-
-        //        currentLevel--;
-
-        //        if (bHasMoved)
-        //        {
-        //            // did it step already
-        //            Vector3 normal = -hlslSign(lastDir);
-
-        //            Vector3 VoxelCenter = samplePoss + HalfVoxel;
-        //            Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel.cwiseProduct(normal);
-
-        //            Vector3 solveFor = VoxelPlaneEdge;
-        //            float planeD = -solveFor.dot(normal);
-        //            float denom = normal.dot(rayDir);
-
-        //            Vector3 p0l0 = (solveFor - vRayStart);
-        //            float t = p0l0.dot(normal) / denom;
-
-        //            float epsilon = 0.001f;
-        //            solveFor = vRayStart + rayDir * (t + epsilon);
-        //        }
-
-        //        bHasMoved = false;
-        //    }
-        //    else
-        //    {
-        //        Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
-        //        dim = hlslStep(tMax, tMaxMins);
-        //        tMax += dim.cwiseProduct(tDelta);
-        //        lastDir = dim.cwiseProduct(step);
-        //        samplePoss += lastDir;
-
-        //        bHasMoved = true;
-        //    }
-        //    //SPP_LOG(LOG_SVVO, LOG_INFO, "RAY: %f %f %f", samplePoss[0], samplePoss[1], samplePoss[2]);
-        //}
-
-
-        //return false;
     }
-
-    
 
 #if 0
 
