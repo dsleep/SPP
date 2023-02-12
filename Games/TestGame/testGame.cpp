@@ -49,6 +49,7 @@
 #include "SPPAnimation.h"
 
 #include "SPPSparseVirtualizedVoxelOctree.h"
+#include "SPPTiming.h"
 
 #define MAX_LOADSTRING 100
 
@@ -129,14 +130,18 @@ public:
 			uint32_t hRay = 768;
 			std::vector<Color3> sliceData;
 			sliceData.resize(wRay * hRay, Color3(0,0,0) );
-			testCam.CreateRays(wRay, hRay, [&](const Ray& InRay, uint32_t CurX, uint32_t CurY) {
-				SparseVirtualizedVoxelOctree::VoxelHitInfo hit;
-				if (testTree.CastRay(InRay, hit))
-				{
-					sliceData[(CurY * wRay) + CurX] = ((hit.normal *0.5f + Vector3(1,1,1)) * 255.0f).cast< uint8_t >();					
-				}
-				totalTests += hit.totalChecks;
+
+			{
+				//ScopeTimer rayCastTime;
+				testCam.CreateRays(wRay, hRay, [&](const Ray& InRay, uint32_t CurX, uint32_t CurY) {
+					SparseVirtualizedVoxelOctree::VoxelHitInfo hit;
+					if (testTree.CastRay(InRay, hit))
+					{
+						sliceData[(CurY * wRay) + CurX] = ((hit.normal * 0.5f + Vector3(1, 1, 1)) * 255.0f).cast< uint8_t >();
+					}
+					totalTests += hit.totalChecks;
 				});
+			}
 
 			SPP_LOG(LOG_APP, LOG_INFO, "totalTests: %u avg test per pixel: %f", totalTests, (double)totalTests / ((double)wRay * (double)hRay)  );
 			SaveImageToFile("raytest.bmp", wRay, hRay, TextureFormat::RGB_888, (uint8_t*)sliceData.data());

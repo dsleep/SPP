@@ -88,7 +88,8 @@ namespace SPP
 			const auto end = HighResClock::now();
 			const auto currentCount = std::chrono::duration_cast<std::chrono::milliseconds>(end - _StartTime).count();
 			
-			//SPP_LOG(LOG_APP, LOG_INFO, "ScopeTimer::ScopeTimer %u", currentCount);
+			//extern LogEntry LOG_CORE;
+			//SPP_LOG(LOG_CORE, LOG_INFO, "ScopeTimer::ScopeTimer %u", currentCount);
 		}
 	};
 
