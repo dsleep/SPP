@@ -435,6 +435,8 @@ namespace SPP
         }
     };
 
+    
+
     SparseVirtualizedVoxelOctree::SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize)
     {
         Vector3i VoxelCounts = Vector3i{ roundUpToPow2( (int32_t)std::ceilf(InExtents[0] / VoxelSize) ),
@@ -477,7 +479,6 @@ namespace SPP
             {
                 break;
             }
-
 
             SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: INIT Level %d", Iter);
             SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: voxel size %d", 1 << Iter);
@@ -796,6 +797,15 @@ namespace SPP
         return true;
     }
 
+    inline Vector3 operator* (const Vector3& InValueA, const Vector3& InValueB)
+    {
+        return InValueA.cwiseProduct(InValueB);
+    }
+    inline Vector3 operator/ (const Vector3& InValueA, const Vector3& InValueB)
+    {
+        return InValueA.cwiseQuotient(InValueB);
+    }
+
     bool SparseVirtualizedVoxelOctree::_rayTraversal(RayInfo& InRayInfo,
         uint8_t InCurrentLevel, 
         uint32_t InIterationsLeft)
@@ -803,12 +813,12 @@ namespace SPP
         // moves to structs as level arrays
         Vector3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
         Vector3 HalfVoxel = VoxelSize / 2;
-        Vector3 step = VoxelSize.cwiseProduct(InRayInfo.rayDirSign);        
-        Vector3 tDelta = VoxelSize.cwiseProduct(InRayInfo.rayDirInvAbs);
+        Vector3 step = VoxelSize * InRayInfo.rayDirSign;        
+        Vector3 tDelta = VoxelSize * InRayInfo.rayDirInvAbs;
 
         // get in correct voxel spacing
-        Vector3 voxel = hlslFloor<Vector3>(InRayInfo.rayOrg.cwiseQuotient(VoxelSize)).cwiseProduct(VoxelSize);
-        Vector3 tMax = (voxel - InRayInfo.rayOrg + HalfVoxel + step.cwiseProduct(Vector3(0.5f, 0.5f, 0.5f))).cwiseProduct(InRayInfo.rayDirInv);
+        Vector3 voxel = hlslFloor<Vector3>(InRayInfo.rayOrg / VoxelSize) * VoxelSize;
+        Vector3 tMax = (voxel - InRayInfo.rayOrg + HalfVoxel + step * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(InRayInfo.rayDirInv);
 
         Vector3 dim = Vector3(0, 0, 0);
         Vector3 samplePos = voxel;
@@ -847,8 +857,8 @@ namespace SPP
             {
                 Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
                 dim = hlslStep(tMax, tMaxMins);
-                tMax += dim.cwiseProduct(tDelta);
-                InRayInfo.lastStep = dim.cwiseProduct(step);
+                tMax += dim * tDelta;
+                InRayInfo.lastStep = dim * step;
                 samplePos += InRayInfo.lastStep;
 
                 if (!ValidSample(samplePos))
@@ -877,7 +887,7 @@ namespace SPP
                     Vector3 normal = -hlslSign(InRayInfo.lastStep);
 
                     Vector3 VoxelCenter = samplePos + HalfVoxel;
-                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel.cwiseProduct(normal);
+                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel * normal;
 
                     float denom = normal.dot(InRayInfo.rayDir);
                     if (denom == 0)
