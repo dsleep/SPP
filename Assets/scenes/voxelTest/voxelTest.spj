@@ -1,0 +1,697 @@
+{
+    "empty": [],
+    "lights": [
+        {
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "energy": 1.0,
+            "name": "Sun",
+            "transform": {
+                "location": [
+                    0.0,
+                    34.1095,
+                    -0.0
+                ],
+                "rotation": [
+                    28.94,
+                    14.62,
+                    -16.39
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            "type": "SUN"
+        }
+    ],
+    "materials": [
+        {
+            "name": "Material.003",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.007",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Default OBJ",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.5925775170326233 0.30570313334465027 0.19172704219818115 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.5"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "City_07.001",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "name": "Texture_01.png.004.PNG",
+                    "uvmap": ""
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "6.25"
+                },
+                "specular": {
+                    "value": "1.0"
+                }
+            }
+        },
+        {
+            "name": "Material",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.004",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.008",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.001",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.0 0.15319301187992096 0.0035255826078355312 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.005",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "lambert1",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.5 0.5 0.5 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.0"
+                },
+                "specular": {
+                    "value": "0.0"
+                }
+            }
+        },
+        {
+            "name": "Material.006",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.009",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.1491321623325348 0.033911965787410736 0.0 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.5"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "Material.002",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "value": "0.800000011920929 0.800000011920929 0.800000011920929 1.0"
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "0.4000000059604645"
+                },
+                "specular": {
+                    "value": "0.5"
+                }
+            }
+        },
+        {
+            "name": "City_08.005",
+            "parameters": {
+                "alpha": {
+                    "value": "1.0"
+                },
+                "diffuse": {
+                    "name": "Texture_01.png.004.PNG",
+                    "uvmap": ""
+                },
+                "metallic": {
+                    "value": "0.0"
+                },
+                "normal": {
+                    "value": "0.0 0.0 0.0"
+                },
+                "roughness": {
+                    "value": "6.25"
+                },
+                "specular": {
+                    "value": "1.0"
+                }
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "materials": [
+                "Material"
+            ],
+            "mesh": "Cube",
+            "name": "Cube",
+            "transform": {
+                "location": [
+                    -100.0,
+                    0.0,
+                    -100.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.001"
+            ],
+            "mesh": "Cube.001",
+            "name": "Cube.001",
+            "transform": {
+                "location": [
+                    0.0,
+                    -10.0,
+                    -0.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    50.0,
+                    1.0,
+                    50.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.002"
+            ],
+            "mesh": "Cube.002",
+            "name": "Cube.002",
+            "transform": {
+                "location": [
+                    0.0,
+                    0.0,
+                    -100.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.003"
+            ],
+            "mesh": "Cube.003",
+            "name": "Cube.003",
+            "transform": {
+                "location": [
+                    100.0,
+                    0.0,
+                    -100.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.004"
+            ],
+            "mesh": "Cube.004",
+            "name": "Cube.004",
+            "transform": {
+                "location": [
+                    100.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.005"
+            ],
+            "mesh": "Cube.005",
+            "name": "Cube.005",
+            "transform": {
+                "location": [
+                    100.0,
+                    0.0,
+                    100.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.006"
+            ],
+            "mesh": "Cube.006",
+            "name": "Cube.006",
+            "transform": {
+                "location": [
+                    -100.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.007"
+            ],
+            "mesh": "Cube.007",
+            "name": "Cube.007",
+            "transform": {
+                "location": [
+                    0.0,
+                    0.0,
+                    100.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.008"
+            ],
+            "mesh": "Cube.008",
+            "name": "Cube.008",
+            "transform": {
+                "location": [
+                    -100.0,
+                    0.0,
+                    100.0
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    2.0,
+                    10.0,
+                    2.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Default OBJ"
+            ],
+            "mesh": "mandata",
+            "name": "mandata",
+            "transform": {
+                "location": [
+                    -5.6077,
+                    0.9891,
+                    1.0299
+                ],
+                "rotation": [
+                    -0.0,
+                    -180.0,
+                    0.0
+                ],
+                "scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        },
+        {
+            "materials": [
+                "City_07.001"
+            ],
+            "mesh": "Tree_01.001",
+            "name": "Tree_01",
+            "transform": {
+                "location": [
+                    0.0,
+                    0.9221,
+                    -9.8507
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    90.0
+                ],
+                "scale": [
+                    1.722,
+                    1.722,
+                    1.722
+                ]
+            }
+        },
+        {
+            "materials": [
+                "City_08.005"
+            ],
+            "mesh": "SuburbHouse_01",
+            "name": "SuburbHouse_01",
+            "transform": {
+                "location": [
+                    -11.0517,
+                    0.9885,
+                    -5.3126
+                ],
+                "rotation": [
+                    -0.0,
+                    -180.0,
+                    90.0
+                ],
+                "scale": [
+                    1.048,
+                    1.048,
+                    1.048
+                ]
+            }
+        },
+        {
+            "materials": [
+                "lambert1"
+            ],
+            "mesh": "barbWhole",
+            "name": "barbWhole",
+            "transform": {
+                "location": [
+                    -5.5086,
+                    0.9922,
+                    -0.4507
+                ],
+                "rotation": [
+                    -0.0,
+                    -180.0,
+                    0.0
+                ],
+                "scale": [
+                    0.01,
+                    0.01,
+                    0.01
+                ]
+            }
+        },
+        {
+            "materials": [
+                "Material.009"
+            ],
+            "mesh": "Cube.010",
+            "name": "Cube.009",
+            "transform": {
+                "location": [
+                    -5.3854,
+                    1.0453,
+                    -1.2274
+                ],
+                "rotation": [
+                    -0.0,
+                    0.0,
+                    0.0
+                ],
+                "scale": [
+                    0.025,
+                    0.025,
+                    0.025
+                ]
+            }
+        }
+    ],
+    "sdfs": []
+}

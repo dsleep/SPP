@@ -82,19 +82,19 @@ namespace SPP
 
 		PBRParam param;
 		std::string name;
-		ParamReturn type;
+		EMaterialParameterType::ENUM type;
 		std::string defaultValue;
 	};
 
 	static const std::vector<PBRParamBlock> PRBDataSet =
 	{
-		{ PBRParam::Diffuse, "diffuse", ParamReturn::float3, "vec3( 0, 1, 0 )"},
-		{ PBRParam::Opacity, "opacity", ParamReturn::float1, "1.0f" },
-		{ PBRParam::Normal, "normal", ParamReturn::float3, "vec3(0.5f, 0.5f, 1)" },
-		{ PBRParam::Specular, "specular", ParamReturn::float1, "0.5f" },
-		{ PBRParam::Metallic, "metallic", ParamReturn::float1, "0" },
-		{ PBRParam::Roughness, "roughness", ParamReturn::float1, "0.5f" },
-		{ PBRParam::Emissive, "emissive", ParamReturn::float1, "0" }
+		{ PBRParam::Diffuse, "diffuse", EMaterialParameterType::Float3, "vec3( 0, 1, 0 )"},
+		{ PBRParam::Opacity, "opacity", EMaterialParameterType::Float, "1.0f" },
+		{ PBRParam::Normal, "normal", EMaterialParameterType::Float3, "vec3(0.5f, 0.5f, 1)" },
+		{ PBRParam::Specular, "specular", EMaterialParameterType::Float, "0.5f" },
+		{ PBRParam::Metallic, "metallic", EMaterialParameterType::Float, "0" },
+		{ PBRParam::Roughness, "roughness", EMaterialParameterType::Float, "0.5f" },
+		{ PBRParam::Emissive, "emissive", EMaterialParameterType::Float, "0" }
 	};
 
 	const std::vector<VertexStream>& OP_GetVertexStreams_Deferred()
@@ -130,8 +130,8 @@ namespace SPP
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
-			_defferedPBRVoxelCompute = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
-			_defferedPBRVoxelCompute->CompileShaderFromFile("shaders/Voxel/VoxelRayMarch.glsl");
+			//_defferedPBRVoxelCompute = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			//_defferedPBRVoxelCompute->CompileShaderFromFile("shaders/Voxel/VoxelRayMarch.glsl");
 
 			_defferedPBRVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_defferedPBRVS->CompileShaderFromFile("shaders/Deferred/PBRMaterialVS.glsl");
@@ -194,9 +194,9 @@ namespace SPP
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
 		//VOXEL
-		auto voxelRMCS = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVoxelRayMarch();
-		auto voxelRMPSO = VulkanPipelineStateBuilder(_owningDevice)
-			.Set(voxelRMCS).Build();
+		//auto voxelRMCS = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVoxelRayMarch();
+		//auto voxelRMPSO = VulkanPipelineStateBuilder(_owningDevice)
+//			.Set(voxelRMCS).Build();
 
 		auto meshVSLayout = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVSLayout();
 		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
@@ -293,26 +293,57 @@ namespace SPP
 					{
 						auto& mappedParam = foundParam->second;
 
-						if (mappedParam->GetType() == EMaterialParameterType::Float)
+						if (mappedParam->GetType() >= EMaterialParameterType::Float &&
+							mappedParam->GetType() <= EMaterialParameterType::Float4)
 						{
-							auto paramValue = std::dynamic_pointer_cast<FloatParamter> (mappedParam)->Value;
-							ReplacementMap[BlockName] = std::string_format("return %f;", paramValue);
-						}
-						else if (mappedParam->GetType() == EMaterialParameterType::Float2)
-						{
-							auto paramValue = std::dynamic_pointer_cast<Float2Paramter> (mappedParam)->Value;
-							ReplacementMap[BlockName] = std::string_format("return vec2(%f,%f);", paramValue[0], paramValue[1]);
-						}
-						else if (mappedParam->GetType() == EMaterialParameterType::Float3)
-						{
-							auto paramValue = std::dynamic_pointer_cast<Float3Paramter> (mappedParam)->Value;
-							ReplacementMap[BlockName] = std::string_format("return vec3(%f,%f,%f);", paramValue[0], paramValue[1], paramValue[2]);
-						}
-						else if (mappedParam->GetType() == EMaterialParameterType::Float4)
-						{
-							auto paramValue = std::dynamic_pointer_cast<Float4Paramter> (mappedParam)->Value;
-							ReplacementMap[BlockName] = std::string_format("return vec4(%f,%f,%f,%f);", paramValue[0], paramValue[1], paramValue[2], paramValue[3]);
-						}
+							std::string stringConstSet;
+							auto curType = mappedParam->GetType();
+							switch (curType)
+							{
+							case EMaterialParameterType::Float:
+							{
+								auto paramValue = std::dynamic_pointer_cast<FloatParamter> (mappedParam)->Value;
+								stringConstSet = std::string_format("return vec4(%f,0,0,0)", paramValue);
+							}
+								break;
+							case EMaterialParameterType::Float2:
+							{
+								auto paramValue = std::dynamic_pointer_cast<Float2Paramter> (mappedParam)->Value;
+								stringConstSet = std::string_format("return vec4(%f,%f,0,0)", paramValue[0], paramValue[1]);
+							}
+								break;
+							case EMaterialParameterType::Float3:
+							{
+								auto paramValue = std::dynamic_pointer_cast<Float3Paramter> (mappedParam)->Value;
+								stringConstSet = std::string_format("return vec4(%f,%f,%f,0)", paramValue[0], paramValue[1], paramValue[2]);
+							}
+								break;
+							case EMaterialParameterType::Float4:
+							{
+								auto paramValue = std::dynamic_pointer_cast<Float4Paramter> (mappedParam)->Value;
+								stringConstSet = std::string_format("return vec4(%f,%f,%f,%f)", paramValue[0], paramValue[1], paramValue[2], paramValue[3]);
+							}
+								break;
+							}
+
+							switch (pbrParams.type)
+							{
+							case EMaterialParameterType::Float:
+								stringConstSet += ".x;";
+								break;
+							case EMaterialParameterType::Float2:
+								stringConstSet += ".xy;";
+								break;
+							case EMaterialParameterType::Float3:
+								stringConstSet += ".xyz;";
+								break;
+							case EMaterialParameterType::Float4:
+								stringConstSet += ".xyzw;";
+								break;
+							}
+
+							ReplacementMap[BlockName] = stringConstSet;
+						}						
 						else if (mappedParam->GetType() == EMaterialParameterType::Texture)
 						{
 							//texture(inImage, (vec2(pos) + vec2(0.5)) / imageSize).x;
@@ -326,16 +357,16 @@ namespace SPP
 
 							switch (pbrParams.type)
 							{
-							case ParamReturn::float1:
+							case EMaterialParameterType::Float:
 								TextureSampleString += ".x;";
 								break;
-							case ParamReturn::float2:
+							case EMaterialParameterType::Float2:
 								TextureSampleString += ".xy;";
 								break;
-							case ParamReturn::float3:
+							case EMaterialParameterType::Float3:
 								TextureSampleString += ".xyz;";
 								break;
-							case ParamReturn::float4:
+							case EMaterialParameterType::Float4:
 								TextureSampleString += ".xyzw;";
 								break;
 							}
@@ -353,7 +384,9 @@ namespace SPP
 				ReplacementMap["<<UNIFORM_BLOCK>>"] = UniformBlock;
 
 				cacheRef->_defferedPBRPS = Make_GPU(VulkanShader, owningDevice, EShaderType::Pixel);
-				cacheRef->_defferedPBRPS->CompileShaderFromTemplate("shaders/Deferred/PBRMaterialTemplatePS.glsl", ReplacementMap);
+				bool bCompiled = cacheRef->_defferedPBRPS->CompileShaderFromTemplate("shaders/Deferred/PBRMaterialTemplatePS.glsl", ReplacementMap);
+
+				SE_ASSERT(bCompiled);
 
 				owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->SetPSForParamMap(thisParamKey, cacheRef->_defferedPBRPS);
 			}

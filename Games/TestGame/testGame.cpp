@@ -100,10 +100,8 @@ public:
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
 
-
-		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(90, 30, 90), 0.1f, 65536);
-		
-		
+#if 0
+		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(90, 30, 90), 0.1f, 65536);	
 
 		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
 		testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
@@ -155,6 +153,8 @@ public:
 			std::string SaveString = std::string_format("sphereslice_%d.bmp", Iter);
 			SaveImageToFile(SaveString.c_str(), imgX, imgY, TextureFormat::RGB_888, (uint8_t*)sliceData.data());
 		}
+
+#endif
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
@@ -177,18 +177,19 @@ public:
 		InitializePhysX();
 		InitializeAnimation();
 		
-		auto value = LoadSkeleton(*AssetPath("meshes/simplehumanrigged_mocap.skj"));
-		auto value2 = LoadAnimations(*AssetPath("meshes/testhumanoid.anj"), value);
+		//auto value = LoadSkeleton(*AssetPath("meshes/simplehumanrigged_mocap.skj"));
+		//auto value2 = LoadAnimations(*AssetPath("meshes/testhumanoid.anj"), value);
 
-		auto animatorTest = AllocateObject<OAnimator>("testanim", nullptr);
+		//auto animatorTest = AllocateObject<OAnimator>("testanim", nullptr);
 
-		animatorTest->SetSkeleton(value);
-		animatorTest->AddAnimation(value2);
+		//animatorTest->SetSkeleton(value);
+		//animatorTest->AddAnimation(value2);
 
-		animatorTest->PlayAnimation("Action");
+		//animatorTest->PlayAnimation("Action");
 
 		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/visibilityTest/visibilitytest.spj"));
-		_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
+		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
+		_gameworld = LoadJsonGameScene(*AssetPath("scenes/voxelTest/voxelTest.spj"));
 		AddToRoot(_gameworld);
 
 		auto topChildren = _gameworld->GetChildren();
