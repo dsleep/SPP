@@ -719,13 +719,13 @@ namespace SPP
 
         bool operator<(const ParameterMapKey& compareKey)const
         {
-            if (ParamNames < compareKey.ParamNames)
+            if (!(ParamNames < compareKey.ParamNames))
             {
                 return Values < compareKey.Values;
             }
             else
             {
-                return false;
+                return true;
             }
         }
     };
