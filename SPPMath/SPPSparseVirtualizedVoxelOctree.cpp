@@ -652,8 +652,8 @@ namespace SPP
         return _levels[InLevel]->Get<uint8_t>(levelPos);
     }
 
-    template<typename T, typename O = T>
-    O hlslStep(const T& InValueA, const T& InValueB)
+    template<typename T, typename T2 = T, typename O = T>
+    O hlslStep(const T& InValueA, const T2& InValueB)
     {
         SE_ASSERT(InValueA.size() == InValueB.size());
 
@@ -663,6 +663,26 @@ namespace SPP
             if (InValueB[Iter] >= InValueA[Iter]) oVal[Iter] = 1;
         }
         return oVal;
+    }
+
+    template<typename T>
+    bool hlslAny(const T& InValue)
+    {       
+        for (int32_t Iter = 0; Iter < InValue.size(); ++Iter)
+        {
+            if (InValue[Iter]) return true;
+        }
+        return false;
+    }
+
+    template<typename T>
+    bool hlslAll(const T& InValue)
+    {
+        for (int32_t Iter = 0; Iter < InValue.size(); ++Iter)
+        {
+            if (!InValue[Iter]) return false;
+        }
+        return true;
     }
 
     template<typename T, typename O=T>
@@ -765,6 +785,17 @@ namespace SPP
         return true;
     }
 
+    bool SparseVirtualizedVoxelOctree::ValidSample(const Vector3& InPos) const
+    {
+        if (hlslAll(hlslStep(Vector3(0, 0, 0), InPos)) == false ||
+            hlslAny(hlslStep< Vector3i, Vector3, Vector3>(_dimensions, InPos)))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     bool SparseVirtualizedVoxelOctree::_rayTraversal(RayInfo& InRayInfo,
         uint8_t InCurrentLevel, 
         uint32_t InIterationsLeft)
@@ -784,11 +815,7 @@ namespace SPP
 
         while (true)
         {
-            if (samplePos[0] < 0 || samplePos[1] < 0 || samplePos[2] < 0)
-            {
-                return false;
-            }
-            if (samplePos[0] >= _dimensions[0] || samplePos[1] >= _dimensions[1] || samplePos[2] >= _dimensions[2])
+            if (!ValidSample(samplePos))
             {
                 return false;
             }
@@ -824,11 +851,7 @@ namespace SPP
                 InRayInfo.lastStep = dim.cwiseProduct(step);
                 samplePos += InRayInfo.lastStep;
 
-                if (samplePos[0] < 0 || samplePos[1] < 0 || samplePos[2] < 0)
-                {
-                    return false;
-                }
-                if (samplePos[0] >= _dimensions[0] || samplePos[1] >= _dimensions[1] || samplePos[2] >= _dimensions[2])
+                if (!ValidSample(samplePos))
                 {
                     return false;
                 }

@@ -38,10 +38,13 @@ namespace SPP
             uint32_t totalTests = 0;
         };
         bool _rayTraversal(RayInfo& InRayInfo, uint8_t InCurrentLevel, uint32_t InIterationsLeft);
+       
 
     public:    
         SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize = 0);
         ~SparseVirtualizedVoxelOctree();
+
+        inline bool ValidSample(const Vector3& InPos) const;
 
         void SetBox(const Vector3d& InCenter, const Vector3& InExtents, uint8_t InValue);
         void SetSphere(const Vector3d& InCenter, float InRadius, uint8_t InValue);

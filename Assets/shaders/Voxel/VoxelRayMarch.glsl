@@ -44,14 +44,69 @@ struct RayInfo
 {
 	vec3 rayOrg;
 	vec3 rayDir;
+    vec3 rayDirSign;
+    vec3 rayDirInvAbs;
     vec3 rayDirInv;
     int curMisses;
+    
+    vec3 lastStep;
+    bool bHasStepped = false;
+
 };
 
+struct PageIdxAndMemOffset
+{
+    int pageIDX;
+    int memoffset;
+};
 
-bool rayTraversal(RayInfo& InRayInfo,
-        uint8_t InCurrentLevel, 
-        uint32_t InIterationsLeft)
+PageIdxAndMemOffset GetOffsets(in vec3i InPosition)
+{           
+    // find the local voxel
+    vec3i LocalVoxel = vec3i( InPosition & vCubeMask);
+    uint localVoxelIdx = (LocalVoxel.x +
+        LocalVoxel.y * vCubeVoxelDimensions.x +
+        LocalVoxel.z * vCubeVoxelDimensions.x * _vCubeVoxelDimensions.y);
+
+    if (!_bVirtualAlloc)
+    {
+        return PageIdxAndMemOffset{
+            0, (size_t)localVoxelIdx* _dataTypeSize
+        };
+    }
+
+    // find which page we are on
+    vec3i PageCubePos = vec3i( InPosition[0] >> _vCubeVoxelDimensionsP2[0],
+        InPosition[1] >> _vCubeVoxelDimensionsP2[1],
+        InPosition[2] >> _vCubeVoxelDimensionsP2[2] );
+    uint pageIdx = (PageCubePos[0] +
+        PageCubePos[1] * _vCubeCount[0] +
+        PageCubePos[2] * _vCubeCount[0] * _vCubeCount[1]);
+                       
+    uint memOffset = (pageIdx * _pageSize) + localVoxelIdx * _dataTypeSize;
+
+    return PageIdxAndMemOffset{
+        (size_t)pageIdx, (size_t)memOffset
+    };
+}
+
+
+int GetUnScaledAtLevel(in vec3i InPos, uint InLevel)
+{
+    //SE_ASSERT(InLevel < _levels.size());
+
+    vec3i levelPos( InPos[0] >> InLevel,
+            InPos[1] >> InLevel,
+            InPos[2] >> InLevel
+    );
+
+    return 0;
+    //return _levels[InLevel]->Get<uint8_t>(levelPos);
+}
+
+bool rayTraversal(inout RayInfo InRayInfo,
+        in int InCurrentLevel, 
+        in int InIterationsLeft)
 {       
     vec3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
     vec3 HalfVoxel = VoxelSize / 2.0f;
@@ -83,7 +138,7 @@ bool rayTraversal(RayInfo& InRayInfo,
         bool bRecalcAndTraverse = false;
 
         // we hit something?
-        if (GetUnScaledAtLevel(samplePos.cast<int32_t>(), InCurrentLevel))
+        if (GetUnScaledAtLevel(vec3i(samplePos), InCurrentLevel))
         {
             InRayInfo.curMisses = 0;
 
@@ -135,7 +190,7 @@ bool rayTraversal(RayInfo& InRayInfo,
                 if (denom == 0)
                     denom = 0.0000001f;
 
-                Vector3 p0l0 = (VoxelPlaneEdge - InRayInfo.rayOrg);
+                vec3 p0l0 = (VoxelPlaneEdge - InRayInfo.rayOrg);
                 float t = p0l0.dot(normal) / denom;
 
                 float epsilon = 0.001f;
@@ -155,28 +210,21 @@ bool CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
     auto& rayDir = InRay.GetDirection();
     auto& rayOrg = InRay.GetOrigin();
 
-    Vector3 rayOrgf = rayOrg.cast<float>();
-    Vector3 vRayStart = (ToVector4(rayOrgf) * _worldToVoxels).head<3>();
+    vec3 rayOrgf = rayOrg.cast<float>();
+    vec3 vRayStart = (vec4(rayOrgf.xyz,1) * _worldToVoxels);
+
 
     RayInfo info;
 
     info.rayOrg = vRayStart;
     info.rayDir = rayDir;
-    info.rayDirInv = rayDir.cwiseInverse();
+    info.rayDirSign = hlslSign(info.rayDir);
 
-    if (!isfinite(info.rayDirInv[0]))
-    {
-        info.rayDirInv[0] = 100000.0f;
-    }
-    if (!isfinite(info.rayDirInv[1]))
-    {
-        info.rayDirInv[1] = 100000.0f;
-    }
-    if (!isfinite(info.rayDirInv[2]))
-    {
-        info.rayDirInv[2] = 100000.0f;
-    }
-        
+    float epsilon = 0.001f;
+    vec3 ZeroEpsilon = (info.rayDir == vec3(0, 0, 0)) * epsilon;
+
+    info.rayDirInv = 1.0f / (rayDir + ZeroEpsilon);
+    info.rayDirInvAbs = abs(info.rayDirInv);
 
     if (rayTraversal(info, _levels.size() - 1, 1024))
     {
