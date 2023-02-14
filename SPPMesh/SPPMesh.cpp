@@ -103,6 +103,7 @@ namespace SPP
 		bool bHasNormal = ((VertFlags & (1 << 2)) != 0);
 		bool bHasTangent = ((VertFlags & (1 << 3)) != 0);
 		bool bHasLightMapUV = ((VertFlags & (1 << 4)) != 0);
+		bool bHasVertexColors = ((VertFlags & (1 << 5)) != 0);
 
 		uint32_t VertCount = 0;
 		binaryData >> VertCount;
@@ -137,6 +138,21 @@ namespace SPP
 			binaryData >> vertex.tangent[0];
 			binaryData >> vertex.tangent[1];
 			binaryData >> vertex.tangent[2];
+
+			if (bHasVertexColors)
+			{
+				Vector4 vertColor;
+				binaryData >> vertColor[0];
+				binaryData >> vertColor[1];
+				binaryData >> vertColor[2];
+				binaryData >> vertColor[3];
+				vertex.color = {
+							(uint8_t)std::clamp<float>(vertColor[0] * 255.0f, 0.0f, 255.0f),
+							(uint8_t)std::clamp<float>(vertColor[1] * 255.0f, 0.0f, 255.0f),
+							(uint8_t)std::clamp<float>(vertColor[2] * 255.0f, 0.0f, 255.0f),
+							(uint8_t)std::clamp<float>(vertColor[3] * 255.0f, 0.0f, 255.0f)
+				};
+			}
 
 			//calc bitagent
 
