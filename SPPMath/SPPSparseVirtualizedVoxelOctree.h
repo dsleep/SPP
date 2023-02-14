@@ -8,6 +8,8 @@
 #include "SPPPrimitiveShapes.h"
 #include <iostream>
 
+#define MAX_VOXEL_LEVELS 15
+
 namespace SPP
 { 
     class SPP_MATH_API SparseVirtualizedVoxelOctree

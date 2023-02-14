@@ -609,31 +609,7 @@ namespace SPP
         {
             return;
         }
-        _levels.front()->Set<uint8_t>(InPos, InValue);
-        // lowest level is a value change
-        //if (_levels.front()->Set<uint8_t>(InPos, InValue))
-        //{
-        //    bool IsOr = (InValue != 0) ? true : false;
-
-        //    Vector3i CurPos = InPos;
-
-        //    for (uint32_t Iter = 1; Iter < _levels.size(); Iter++)
-        //    {
-        //        uint8_t SubIdx = (CurPos[0] & 0x01) +
-        //            ((CurPos[1] & 0x01) << 1) +
-        //            ((CurPos[2] & 0x01) << 2);
-        //        uint8_t SubIdxMsk = 1 << SubIdx;
-        //        CurPos = Vector3i{ CurPos[0] >> 1,
-        //            CurPos[1] >> 1,
-        //            CurPos[2] >> 1
-        //        };
-
-        //        if(IsOr) _levels[Iter]->Or< uint8_t>(CurPos, SubIdx);
-        //        else _levels[Iter]->And< uint8_t>(CurPos, ~SubIdx);
-        //    }
-        //}
-
-        
+        _levels.front()->Set<uint8_t>(InPos, InValue);        
     }
 
     uint8_t SparseVirtualizedVoxelOctree::Get(const Vector3i& InPos)
@@ -916,30 +892,126 @@ namespace SPP
         Vector3 rayOrgf = rayOrg.cast<float>();
         Vector3 vRayStart = (ToVector4(rayOrgf) * _worldToVoxels).head<3>();
 
-        RayInfo info;
+        RayInfo rayInfo;
 
-        info.rayOrg = vRayStart;
-        info.rayDir = rayDir;
-        info.rayDirSign = hlslSign(info.rayDir);
+        rayInfo.rayOrg = vRayStart;
+        rayInfo.rayDir = rayDir;
+        rayInfo.rayDirSign = hlslSign(rayInfo.rayDir);
 
         float epsilon = 0.001f;
-        Vector3 ZeroEpsilon = hlslEqual(info.rayDir, Vector3(0, 0, 0)) * epsilon;
+        Vector3 ZeroEpsilon = hlslEqual(rayInfo.rayDir, Vector3(0, 0, 0)) * epsilon;
 
-        info.rayDirInv = (rayDir + ZeroEpsilon).cwiseInverse();
-        info.rayDirInvAbs = hlslAbs(info.rayDirInv);
+        rayInfo.rayDirInv = (rayDir + ZeroEpsilon).cwiseInverse();
+        rayInfo.rayDirInvAbs = hlslAbs(rayInfo.rayDirInv);
 
-        SE_ASSERT(info.rayDirInv.allFinite());
+        SE_ASSERT(rayInfo.rayDirInv.allFinite());
+        
+        uint8_t CurrentLevel = _levels.size() - 1;
+        
+		// moves to structs as level arrays
+		Vector3 VoxelSize(1 << CurrentLevel, 1 << CurrentLevel, 1 << CurrentLevel);
+		Vector3 HalfVoxel = VoxelSize / 2;
+		Vector3 step = VoxelSize * rayInfo.rayDirSign;
+		Vector3 tDelta = VoxelSize * rayInfo.rayDirInvAbs;
 
-        if (_rayTraversal(info, _levels.size() - 1, 1024))
+		// get in correct voxel spacing
+		Vector3 voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize) * VoxelSize;
+		Vector3 tMax = (voxel - rayInfo.rayOrg + HalfVoxel + step * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
+
+		Vector3 dim = Vector3(0, 0, 0);
+		Vector3 samplePos = voxel;
+
+        oInfo.totalChecks = 0;
+
+        for (int32_t Iter = 0; Iter < 1024; Iter++)
         {
-            Vector3 normal = -hlslSign(info.lastStep);
-            oInfo.normal = normal;    
+            if (!ValidSample(samplePos))
+            {
+                return false;
+            }
 
-            oInfo.totalChecks = info.totalTests;
-            return true;
+            oInfo.totalChecks++;
+
+            bool bLevelChangeRecalc = false;
+
+            // we hit something?
+            if (GetUnScaledAtLevel(samplePos.cast<int32_t>(), CurrentLevel))
+            {
+                rayInfo.curMisses = 0;
+
+                if (CurrentLevel == 0)
+                {
+                    Vector3 normal = -hlslSign(rayInfo.lastStep);
+                    oInfo.normal = normal;
+                    return true;
+                }
+
+                CurrentLevel--;
+                bLevelChangeRecalc = true;
+            }
+            else
+            {
+                Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
+                dim = hlslStep(tMax, tMaxMins);
+                tMax += dim * tDelta;
+                rayInfo.lastStep = dim * step;
+                samplePos += rayInfo.lastStep;
+
+                if (!ValidSample(samplePos))
+                {
+                    return false;
+                }
+
+                rayInfo.curMisses++;
+                rayInfo.bHasStepped = true;
+
+                if (CurrentLevel < _levels.size() - 1 &&
+                    rayInfo.curMisses > 2 &&
+                    GetUnScaledAtLevel(samplePos.cast<int32_t>(), CurrentLevel + 1) == 0)
+                {
+                    bLevelChangeRecalc = true;
+                    CurrentLevel++;
+                    //hmmm think more about this 
+                    //InRayInfo.bHasStepped = false;
+                }
+            }
+
+            if (bLevelChangeRecalc)
+            {
+                if (rayInfo.bHasStepped)
+                {
+                    // did it step already
+                    Vector3 normal = -hlslSign(rayInfo.lastStep);
+
+                    Vector3 VoxelCenter = samplePos + HalfVoxel;
+                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel * normal;
+
+                    float denom = normal.dot(rayInfo.rayDir);
+                    if (denom == 0)
+                        denom = 0.0000001f;
+
+                    Vector3 p0l0 = (VoxelPlaneEdge - rayInfo.rayOrg);
+                    float t = p0l0.dot(normal) / denom;
+
+                    float epsilon = 0.001f;
+                    rayInfo.rayOrg = rayInfo.rayOrg + rayInfo.rayDir * (t + epsilon);
+                }
+
+                VoxelSize = Vector3(1 << CurrentLevel, 1 << CurrentLevel, 1 << CurrentLevel);
+                HalfVoxel = VoxelSize / 2;
+                step = VoxelSize * rayInfo.rayDirSign;
+                tDelta = VoxelSize * rayInfo.rayDirInvAbs;
+
+                // get in correct voxel spacing
+                voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize) * VoxelSize;
+                tMax = (voxel - rayInfo.rayOrg + HalfVoxel + step * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
+
+                dim = Vector3(0, 0, 0);
+
+                samplePos = voxel;
+            }
         }
 
-        oInfo.totalChecks = info.totalTests;
         return false;
     }
 
