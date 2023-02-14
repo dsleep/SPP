@@ -27,10 +27,19 @@ layout(push_constant) uniform block
 
 const int MAX_VOXEL_LEVELS = 12;
 
-layout(set = 1, binding = 1) readonly buffer _Voxels
+layout(set = 1, binding = 1) readonly buffer _VoxelLevels
 {
 	uint8_t voxels[];
-} Voxels[MAX_VOXEL_LEVELS];
+    ivec3 localPageMask;
+    ivec3 localPageVoxelDimensions;
+    ivec3 localPageVoxelDimensionsP2;
+    ivec3 localPageCounts;
+} VoxelLevels[MAX_VOXEL_LEVELS];
+
+layout(set = 1, binding = 2) readonly buffer _VoxelInfo
+{
+    int activeLevels;
+} VoxelInfo;
 
 layout (set = 2, binding = 0, rgba8) uniform image2D DiffuseImage;
 layout (set = 2, binding = 1, rgba8) uniform image2D SMREImage;
@@ -60,28 +69,26 @@ struct PageIdxAndMemOffset
     int memoffset;
 };
 
-PageIdxAndMemOffset GetOffsets(in vec3i InPosition)
+PageIdxAndMemOffset GetOffsets(in ivec3 InPosition, in int InLevel)
 {           
     // find the local voxel
-    vec3i LocalVoxel = vec3i( InPosition & vCubeMask);
+    ivec3 LocalVoxel = ( InPosition & VoxelLevels[InLevel].localPageMask);
     uint localVoxelIdx = (LocalVoxel.x +
-        LocalVoxel.y * vCubeVoxelDimensions.x +
-        LocalVoxel.z * vCubeVoxelDimensions.x * _vCubeVoxelDimensions.y);
+        LocalVoxel.y * VoxelLevels[InLevel].localPageVoxelDimensions.x +
+        LocalVoxel.z * VoxelLevels[InLevel].localPageVoxelDimensions.x * VoxelLevels[InLevel].localPageVoxelDimensions.y);
 
     if (!_bVirtualAlloc)
     {
         return PageIdxAndMemOffset{
-            0, (size_t)localVoxelIdx* _dataTypeSize
+            0, (size_t)localVoxelIdx // always 1 * _dataTypeSize
         };
     }
 
     // find which page we are on
-    vec3i PageCubePos = vec3i( InPosition[0] >> _vCubeVoxelDimensionsP2[0],
-        InPosition[1] >> _vCubeVoxelDimensionsP2[1],
-        InPosition[2] >> _vCubeVoxelDimensionsP2[2] );
+    ivec3 PageCubePos = InPosition >> VoxelLevels[InLevel].localPageVoxelDimensionsP2;
     uint pageIdx = (PageCubePos[0] +
-        PageCubePos[1] * _vCubeCount[0] +
-        PageCubePos[2] * _vCubeCount[0] * _vCubeCount[1]);
+        PageCubePos[1] * VoxelLevels[InLevel].localPageCounts.x +
+        PageCubePos[2] * VoxelLevels[InLevel].localPageCounts.x * VoxelLevels[InLevel].localPageCounts.y);
                        
     uint memOffset = (pageIdx * _pageSize) + localVoxelIdx * _dataTypeSize;
 
@@ -91,21 +98,16 @@ PageIdxAndMemOffset GetOffsets(in vec3i InPosition)
 }
 
 
-int GetUnScaledAtLevel(in vec3i InPos, uint InLevel)
+int GetUnScaledAtLevel(in ivec3 InPos, uint InLevel)
 {
     //SE_ASSERT(InLevel < _levels.size());
-
-    vec3i levelPos( InPos[0] >> InLevel,
-            InPos[1] >> InLevel,
-            InPos[2] >> InLevel
-    );
-
-    return 0;
-    //return _levels[InLevel]->Get<uint8_t>(levelPos);
+    ivec3 levelPos = InPos >> InLevel;
+    PageIdxAndMemOffset pageAndMem = GetOffsets(InPosition, InLevel);
+    return VoxelLevels[InLevel].voxels[pageAndMem.memoffset);
 }
 
 bool rayTraversal(inout RayInfo InRayInfo,
-        in int InCurrentLevel, 
+        in int InCurrentLevel,
         in int InIterationsLeft)
 {       
     vec3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
@@ -138,7 +140,7 @@ bool rayTraversal(inout RayInfo InRayInfo,
         bool bRecalcAndTraverse = false;
 
         // we hit something?
-        if (GetUnScaledAtLevel(vec3i(samplePos), InCurrentLevel))
+        if (GetUnScaledAtLevel(ivec3(samplePos), InCurrentLevel))
         {
             InRayInfo.curMisses = 0;
 
@@ -197,7 +199,7 @@ bool rayTraversal(inout RayInfo InRayInfo,
                 InRayInfo.rayOrg = InRayInfo.rayOrg + InRayInfo.rayDir * (t + epsilon);
             }
 
-            return _rayTraversal(InRayInfo, InCurrentLevel, InIterationsLeft);
+            return rayTraversal(InRayInfo, InCurrentLevel, InIterationsLeft);
         }
     }
 
@@ -205,14 +207,13 @@ bool rayTraversal(inout RayInfo InRayInfo,
 }
 
 
-bool CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
+bool CastRay(in Ray InRay, VoxelHitInfo& oInfo)
 {
     auto& rayDir = InRay.GetDirection();
     auto& rayOrg = InRay.GetOrigin();
 
     vec3 rayOrgf = rayOrg.cast<float>();
     vec3 vRayStart = (vec4(rayOrgf.xyz,1) * _worldToVoxels);
-
 
     RayInfo info;
 
