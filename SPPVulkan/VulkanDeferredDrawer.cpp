@@ -130,8 +130,8 @@ namespace SPP
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
 
-			//_defferedPBRVoxelCompute = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
-			//_defferedPBRVoxelCompute->CompileShaderFromFile("shaders/Voxel/VoxelRayMarch.glsl");
+			_defferedPBRVoxelCompute = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_defferedPBRVoxelCompute->CompileShaderFromFile("shaders/Voxel/VoxelRayMarchPS.glsl");
 
 			_defferedPBRVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
 			_defferedPBRVS->CompileShaderFromFile("shaders/Deferred/PBRMaterialVS.glsl");
@@ -196,7 +196,7 @@ namespace SPP
 		//VOXEL
 		//auto voxelRMCS = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVoxelRayMarch();
 		//auto voxelRMPSO = VulkanPipelineStateBuilder(_owningDevice)
-//			.Set(voxelRMCS).Build();
+		//	.Set(voxelRMCS).Build();
 
 		auto meshVSLayout = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVSLayout();
 		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);

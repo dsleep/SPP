@@ -832,7 +832,7 @@ namespace SPP
 
         oInfo.totalChecks = 0;
 
-        for (int32_t Iter = 0; Iter < 1024; Iter++)
+        for (int32_t Iter = 0; Iter < 128; Iter++)
         {
             LastLevel = CurrentLevel;
 
@@ -916,6 +916,7 @@ namespace SPP
             }
         }
 
+        SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree::CastRay: exceeded iterations");
         return false;
     }
 
