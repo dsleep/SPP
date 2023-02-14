@@ -29,16 +29,20 @@ const int MAX_VOXEL_LEVELS = 12;
 
 layout(set = 1, binding = 1) readonly buffer _VoxelLevels
 {
-	uint8_t voxels[];
+	uint8_t voxels[100];
     ivec3 localPageMask;
     ivec3 localPageVoxelDimensions;
     ivec3 localPageVoxelDimensionsP2;
     ivec3 localPageCounts;
+
+   
 } VoxelLevels[MAX_VOXEL_LEVELS];
 
 layout(set = 1, binding = 2) readonly buffer _VoxelInfo
 {
     int activeLevels;
+    uint pageSize;
+    ivec3 dimensions;
 } VoxelInfo;
 
 layout (set = 2, binding = 0, rgba8) uniform image2D DiffuseImage;
@@ -59,17 +63,16 @@ struct RayInfo
     int curMisses;
     
     vec3 lastStep;
-    bool bHasStepped = false;
-
+    bool bHasStepped;
 };
 
 struct PageIdxAndMemOffset
 {
-    int pageIDX;
-    int memoffset;
+    uint pageIDX;
+    uint memoffset;
 };
 
-PageIdxAndMemOffset GetOffsets(in ivec3 InPosition, in int InLevel)
+void GetOffsets(in ivec3 InPosition, in int InLevel, out PageIdxAndMemOffset oMem)
 {           
     // find the local voxel
     ivec3 LocalVoxel = ( InPosition & VoxelLevels[InLevel].localPageMask);
@@ -77,40 +80,33 @@ PageIdxAndMemOffset GetOffsets(in ivec3 InPosition, in int InLevel)
         LocalVoxel.y * VoxelLevels[InLevel].localPageVoxelDimensions.x +
         LocalVoxel.z * VoxelLevels[InLevel].localPageVoxelDimensions.x * VoxelLevels[InLevel].localPageVoxelDimensions.y);
 
-    if (!_bVirtualAlloc)
-    {
-        return PageIdxAndMemOffset{
-            0, (size_t)localVoxelIdx // always 1 * _dataTypeSize
-        };
-    }
-
     // find which page we are on
     ivec3 PageCubePos = InPosition >> VoxelLevels[InLevel].localPageVoxelDimensionsP2;
-    uint pageIdx = (PageCubePos[0] +
-        PageCubePos[1] * VoxelLevels[InLevel].localPageCounts.x +
-        PageCubePos[2] * VoxelLevels[InLevel].localPageCounts.x * VoxelLevels[InLevel].localPageCounts.y);
+    uint pageIdx = (PageCubePos.x +
+        PageCubePos.y * VoxelLevels[InLevel].localPageCounts.x +
+        PageCubePos.z * VoxelLevels[InLevel].localPageCounts.x * VoxelLevels[InLevel].localPageCounts.y);
                        
-    uint memOffset = (pageIdx * _pageSize) + localVoxelIdx * _dataTypeSize;
+    uint memOffset = (pageIdx * VoxelInfo.pageSize) + localVoxelIdx; // always 1 * _dataTypeSize;
 
-    return PageIdxAndMemOffset{
-        (size_t)pageIdx, (size_t)memOffset
-    };
+    oMem.pageIDX = pageIdx;
+    oMem.memoffset = memOffset;
 }
 
 
-int GetUnScaledAtLevel(in ivec3 InPos, uint InLevel)
+int GetUnScaledAtLevel(in ivec3 InPosition, int InLevel)
 {
     //SE_ASSERT(InLevel < _levels.size());
-    ivec3 levelPos = InPos >> InLevel;
-    PageIdxAndMemOffset pageAndMem = GetOffsets(InPosition, InLevel);
-    return VoxelLevels[InLevel].voxels[pageAndMem.memoffset);
+    ivec3 levelPos = InPosition >> InLevel;
+    PageIdxAndMemOffset pageAndMem;
+    GetOffsets(InPosition, InLevel, pageAndMem);
+    return VoxelLevels[InLevel].voxels[pageAndMem.memoffset];
 }
 
 bool rayTraversal(inout RayInfo InRayInfo,
         in int InCurrentLevel,
         in int InIterationsLeft)
 {       
-    vec3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
+    vec3 VoxelSize = vec3(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
     vec3 HalfVoxel = VoxelSize / 2.0f;
 
     // get in correct voxel spacing
@@ -124,12 +120,12 @@ bool rayTraversal(inout RayInfo InRayInfo,
 
     while (true)
     {
-        if (any(step(samplePos, vec3(0,0,0))) || any(step(_dimensions, samplePos)))
+        /* TODO
+        if (any(step(samplePos, vec3(0,0,0))) || any(step(VoxelInfo.dimensions, samplePos)))
         {
             return false;
-        }
+        } */
 
-        InRayInfo.totalTests++;
         InIterationsLeft--;
 
         if (InIterationsLeft == 0)
@@ -140,7 +136,7 @@ bool rayTraversal(inout RayInfo InRayInfo,
         bool bRecalcAndTraverse = false;
 
         // we hit something?
-        if (GetUnScaledAtLevel(ivec3(samplePos), InCurrentLevel))
+        if (GetUnScaledAtLevel(ivec3(samplePos), InCurrentLevel) > 0)
         {
             InRayInfo.curMisses = 0;
 
@@ -155,22 +151,24 @@ bool rayTraversal(inout RayInfo InRayInfo,
         else
         {
             vec3 tMaxMins =  min(tMax.yzx, tMax.zxy);
-            dim = step(tMax, tMaxMins);
+            //TODO 
+            //dim = step(tMax, tMaxMins);
             tMax += dim * tDelta;
             InRayInfo.lastStep = dim * step;
             samplePos += InRayInfo.lastStep;
 
-            if (any(step(samplePos, vec3(0,0,0))) || any(step(_dimensions, samplePos)))
+            /* TODO
+            if (any(step(samplePos, vec3(0,0,0))) || any(step(VoxelInfo.dimensions, samplePos)))
             {
                 return false;
-            }
+            } */
 
             InRayInfo.curMisses++;
             InRayInfo.bHasStepped = true;
 
-            if (InCurrentLevel < _levels.size() - 1 &&
+            if (InCurrentLevel < VoxelInfo.activeLevels &&
                 InRayInfo.curMisses > 2 && 
-                GetUnScaledAtLevel(samplePos.cast<int32_t>(), InCurrentLevel+1) == 0)
+                GetUnScaledAtLevel( ivec3(samplePos), InCurrentLevel+1) == 0)
             {
                 bRecalcAndTraverse = true;
                 InCurrentLevel++;
@@ -188,12 +186,12 @@ bool rayTraversal(inout RayInfo InRayInfo,
                 vec3 VoxelCenter = samplePos + HalfVoxel;
                 vec3 VoxelPlaneEdge = VoxelCenter + HalfVoxel * normal;
 
-                float denom = normal.dot(InRayInfo.rayDir);
+                float denom = dot(normal,InRayInfo.rayDir);
                 if (denom == 0)
                     denom = 0.0000001f;
 
                 vec3 p0l0 = (VoxelPlaneEdge - InRayInfo.rayOrg);
-                float t = p0l0.dot(normal) / denom;
+                float t = dot(p0l0, normal) / denom;
 
                 float epsilon = 0.001f;
                 InRayInfo.rayOrg = InRayInfo.rayOrg + InRayInfo.rayDir * (t + epsilon);
@@ -206,8 +204,8 @@ bool rayTraversal(inout RayInfo InRayInfo,
     return false;
 }
 
-
-bool CastRay(in Ray InRay, VoxelHitInfo& oInfo)
+/* TODO 
+bool CastRay(in Ray InRay, out VoxelHitInfo oInfo)
 {
     auto& rayDir = InRay.GetDirection();
     auto& rayOrg = InRay.GetOrigin();
@@ -239,13 +237,14 @@ bool CastRay(in Ray InRay, VoxelHitInfo& oInfo)
     oInfo.totalChecks = info.totalTests;
     return false;
 }
+*/
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 void main()
 {
 	uint di = gl_GlobalInvocationID.x;
 		
-	if(Voxels[0].voxels[di] != uint8_t(0))
+	if(VoxelLevels[0].voxels[di] != uint8_t(0))
 	{
 		uint test = 0;
 		test++;
