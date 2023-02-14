@@ -782,107 +782,7 @@ namespace SPP
         return InValueA.cwiseQuotient(InValueB);
     }
 
-    bool SparseVirtualizedVoxelOctree::_rayTraversal(RayInfo& InRayInfo,
-        uint8_t InCurrentLevel, 
-        uint32_t InIterationsLeft)
-    {       
-        // moves to structs as level arrays
-        Vector3 VoxelSize(1 << InCurrentLevel, 1 << InCurrentLevel, 1 << InCurrentLevel);
-        Vector3 HalfVoxel = VoxelSize / 2;
-        Vector3 step = VoxelSize * InRayInfo.rayDirSign;        
-        Vector3 tDelta = VoxelSize * InRayInfo.rayDirInvAbs;
-
-        // get in correct voxel spacing
-        Vector3 voxel = hlslFloor<Vector3>(InRayInfo.rayOrg / VoxelSize) * VoxelSize;
-        Vector3 tMax = (voxel - InRayInfo.rayOrg + HalfVoxel + step * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(InRayInfo.rayDirInv);
-
-        Vector3 dim = Vector3(0, 0, 0);
-        Vector3 samplePos = voxel;
-
-        while (true)
-        {
-            if (!ValidSample(samplePos))
-            {
-                return false;
-            }
-
-            InRayInfo.totalTests++;
-            InIterationsLeft--;
-
-            if (InIterationsLeft == 0)
-            {
-                return false;
-            }
-
-            bool bRecalcAndTraverse = false;
-
-            // we hit something?
-            if (GetUnScaledAtLevel(samplePos.cast<int32_t>(), InCurrentLevel))
-            {
-                InRayInfo.curMisses = 0;
-
-                if (InCurrentLevel == 0)
-                {
-                    return true;
-                }
-
-                InCurrentLevel--;
-                bRecalcAndTraverse = true;              
-            }
-            else
-            {
-                Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
-                dim = hlslStep(tMax, tMaxMins);
-                tMax += dim * tDelta;
-                InRayInfo.lastStep = dim * step;
-                samplePos += InRayInfo.lastStep;
-
-                if (!ValidSample(samplePos))
-                {
-                    return false;
-                }
-
-                InRayInfo.curMisses++;
-                InRayInfo.bHasStepped = true;
-
-                if (InCurrentLevel < _levels.size() - 1 &&
-                    InRayInfo.curMisses > 2 && 
-                    GetUnScaledAtLevel(samplePos.cast<int32_t>(), InCurrentLevel+1) == 0)
-                {
-                    bRecalcAndTraverse = true;
-                    InCurrentLevel++;
-                    //InRayInfo.bHasStepped = false;
-                } 
-            }
-            
-            if (bRecalcAndTraverse)
-            {
-                if (InRayInfo.bHasStepped)
-                {
-                    // did it step already
-                    Vector3 normal = -hlslSign(InRayInfo.lastStep);
-
-                    Vector3 VoxelCenter = samplePos + HalfVoxel;
-                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel * normal;
-
-                    float denom = normal.dot(InRayInfo.rayDir);
-                    if (denom == 0)
-                        denom = 0.0000001f;
-
-                    Vector3 p0l0 = (VoxelPlaneEdge - InRayInfo.rayOrg);
-                    float t = p0l0.dot(normal) / denom;
-
-                    float epsilon = 0.001f;
-                    InRayInfo.rayOrg = InRayInfo.rayOrg + InRayInfo.rayDir * (t + epsilon);
-                }
-
-                return _rayTraversal(InRayInfo, InCurrentLevel, InIterationsLeft);
-            }
-        }
-
-        return false;
-    }
-
+    
 
     bool SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
     {
@@ -907,16 +807,25 @@ namespace SPP
         SE_ASSERT(rayInfo.rayDirInv.allFinite());
         
         uint8_t CurrentLevel = _levels.size() - 1;
-        
+        uint8_t LastLevel = 0;
+
 		// moves to structs as level arrays
-		Vector3 VoxelSize(1 << CurrentLevel, 1 << CurrentLevel, 1 << CurrentLevel);
-		Vector3 HalfVoxel = VoxelSize / 2;
-		Vector3 step = VoxelSize * rayInfo.rayDirSign;
-		Vector3 tDelta = VoxelSize * rayInfo.rayDirInvAbs;
+        std::array<Vector3, MAX_VOXEL_LEVELS> VoxelSize;
+        std::array<Vector3, MAX_VOXEL_LEVELS> HalfVoxel;
+        std::array<Vector3, MAX_VOXEL_LEVELS> step;
+        std::array<Vector3, MAX_VOXEL_LEVELS> tDelta;
+
+        for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
+        {
+            VoxelSize[Iter] = Vector3(1 << Iter, 1 << Iter, 1 << Iter);
+            HalfVoxel[Iter] = VoxelSize[Iter] / 2;
+            step[Iter] = VoxelSize[Iter] * rayInfo.rayDirSign;
+            tDelta[Iter] = VoxelSize[Iter] * rayInfo.rayDirInvAbs;
+        }
 
 		// get in correct voxel spacing
-		Vector3 voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize) * VoxelSize;
-		Vector3 tMax = (voxel - rayInfo.rayOrg + HalfVoxel + step * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
+		Vector3 voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize[CurrentLevel]) * VoxelSize[CurrentLevel];
+		Vector3 tMax = (voxel - rayInfo.rayOrg + HalfVoxel[CurrentLevel] + step[CurrentLevel] * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
 
 		Vector3 dim = Vector3(0, 0, 0);
 		Vector3 samplePos = voxel;
@@ -925,6 +834,8 @@ namespace SPP
 
         for (int32_t Iter = 0; Iter < 1024; Iter++)
         {
+            LastLevel = CurrentLevel;
+
             if (!ValidSample(samplePos))
             {
                 return false;
@@ -953,8 +864,8 @@ namespace SPP
             {
                 Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
                 dim = hlslStep(tMax, tMaxMins);
-                tMax += dim * tDelta;
-                rayInfo.lastStep = dim * step;
+                tMax += dim * tDelta[CurrentLevel];
+                rayInfo.lastStep = dim * step[CurrentLevel];
                 samplePos += rayInfo.lastStep;
 
                 if (!ValidSample(samplePos))
@@ -983,8 +894,8 @@ namespace SPP
                     // did it step already
                     Vector3 normal = -hlslSign(rayInfo.lastStep);
 
-                    Vector3 VoxelCenter = samplePos + HalfVoxel;
-                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel * normal;
+                    Vector3 VoxelCenter = samplePos + HalfVoxel[LastLevel];
+                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel[LastLevel] * normal;
 
                     float denom = normal.dot(rayInfo.rayDir);
                     if (denom == 0)
@@ -997,17 +908,10 @@ namespace SPP
                     rayInfo.rayOrg = rayInfo.rayOrg + rayInfo.rayDir * (t + epsilon);
                 }
 
-                VoxelSize = Vector3(1 << CurrentLevel, 1 << CurrentLevel, 1 << CurrentLevel);
-                HalfVoxel = VoxelSize / 2;
-                step = VoxelSize * rayInfo.rayDirSign;
-                tDelta = VoxelSize * rayInfo.rayDirInvAbs;
-
-                // get in correct voxel spacing
-                voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize) * VoxelSize;
-                tMax = (voxel - rayInfo.rayOrg + HalfVoxel + step * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
+                voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize[CurrentLevel]) * VoxelSize[CurrentLevel];
+                tMax = (voxel - rayInfo.rayOrg + HalfVoxel[CurrentLevel] + step[CurrentLevel] * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
 
                 dim = Vector3(0, 0, 0);
-
                 samplePos = voxel;
             }
         }

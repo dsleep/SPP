@@ -38,9 +38,7 @@ namespace SPP
             bool bHasStepped = false;
             uint32_t curMisses = 0;
             uint32_t totalTests = 0;
-        };
-        bool _rayTraversal(RayInfo& InRayInfo, uint8_t InCurrentLevel, uint32_t InIterationsLeft);
-       
+        };      
 
     public:    
         SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize = 0);
