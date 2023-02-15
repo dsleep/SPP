@@ -110,6 +110,29 @@ namespace SPP
 		// for Sparse this is the page alignment as well
 		_alignment = memReqs.alignment;
 
+		auto bindSparseInfo = vks::initializers::bindSparseInfo();
+
+		bindSparseInfo.bufferBindCount = 1;
+		bindSparseInfo.pBufferBinds = nullptr;
+
+		//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
+
+		VkSparseMemoryBind memoryBind;
+		//VkDeviceSize               resourceOffset;
+		//VkDeviceSize               size;
+		//VkDeviceMemory             memory;
+		//VkDeviceSize               memoryOffset;
+		//VkSparseMemoryBindFlags    flags;
+
+		VkSparseBufferMemoryBindInfo bindInfo;
+		//VkBuffer                     buffer;
+		//uint32_t                     bindCount;
+		//const VkSparseMemoryBind*	   pBinds;
+
+
+		//vkQueueBindSparse 
+		//VkBindSparseInfo, VkSparseBufferMemoryBindInfo, VkSparseMemoryBind
+
 		if (InType != GPUBufferType::Sparse)
 		{
 			// Find a memory type index that fits the properties of the buffer

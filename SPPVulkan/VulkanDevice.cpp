@@ -371,6 +371,7 @@ namespace SPP
 			SPP_LOG(LOG_VULKAN, LOG_INFO, "Device [%d] : %s", i, deviceProperties.deviceName);
 			SPP_LOG(LOG_VULKAN, LOG_INFO, " - Type: %s", vks::tools::physicalDeviceTypeString(deviceProperties.deviceType).c_str());
 			SPP_LOG(LOG_VULKAN, LOG_INFO, " - API: %d.%d.%d", (deviceProperties.apiVersion >> 22), ((deviceProperties.apiVersion >> 12) & 0x3ff), (deviceProperties.apiVersion & 0xfff));
+			SPP_LOG(LOG_VULKAN, LOG_INFO, " - non residency strict: %d", deviceProperties.sparseProperties.residencyNonResidentStrict);
 		}
 		//}
 #endif
