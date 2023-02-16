@@ -795,8 +795,6 @@ namespace SPP
         return InValueA.cwiseQuotient(InValueB);
     }
 
-    
-
     bool SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
     {
         auto& rayDir = InRay.GetDirection();
@@ -822,7 +820,6 @@ namespace SPP
         uint8_t CurrentLevel = _levels.size() - 1;
         uint8_t LastLevel = 0;
 
-		// moves to structs as level arrays
         std::array<Vector3, MAX_VOXEL_LEVELS> VoxelSize;
         std::array<Vector3, MAX_VOXEL_LEVELS> HalfVoxel;
         std::array<Vector3, MAX_VOXEL_LEVELS> step;
@@ -937,10 +934,15 @@ namespace SPP
     {
         _dirtyCounter++;
     }
-    void SparseVirtualizedVoxelOctree::EndWrite()
+    void SparseVirtualizedVoxelOctree::EndWrite(const std::function<void(uint8_t, uint32_t, const void*)>& InCallback)
     {
-
-
+        for (uint8_t Iter = 0; Iter < _dirtyPages.size(); Iter++)
+        {
+            if (_dirtyPages[Iter].size())
+            {
+               // _dirtyPages[Iter]
+            }
+        }
     }
 
 #if 0
