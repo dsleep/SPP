@@ -82,6 +82,7 @@ namespace SPP
         auto GetLevelCount() const {
             return _levels.size();
         }
+        uint32_t GetLevelMaxSize(uint8_t InLevel) const;
         Vector3i GetDimensions()  const {
             return _dimensions;
         }

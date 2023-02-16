@@ -194,6 +194,11 @@ namespace SPP
             return SizeInfo{ _activePages, allocatedPageSize, TotalSum };            
         }
 
+        uint32_t GetMaxSize() const
+        {
+            return (uint32_t) _maximumSize;
+        }
+
         void ValidatePage(size_t InPage)
         {
             SE_ASSERT(_bVirtualAlloc);
@@ -853,7 +858,8 @@ namespace SPP
 
         oInfo.totalChecks = 0;
 
-        for (int32_t Iter = 0; Iter < 128; Iter++)
+        int32_t Iter = 0;
+        for (; Iter < 256; Iter++)
         {
             LastLevel = CurrentLevel;
 
@@ -937,8 +943,17 @@ namespace SPP
             }
         }
 
-        SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree::CastRay: exceeded iterations");
+        if (Iter > 128)
+        {
+            SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree::CastRay: exceeded iterations: test... %d", Iter);
+        }
+
         return false;
+    }
+
+    uint32_t SparseVirtualizedVoxelOctree::GetLevelMaxSize(uint8_t InLevel) const
+    {
+        return _levels[InLevel]->GetMaxSize();
     }
 
     void SparseVirtualizedVoxelOctree::BeginWrite()

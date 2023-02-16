@@ -51,6 +51,8 @@
 #include "SPPSparseVirtualizedVoxelOctree.h"
 #include "SPPTiming.h"
 
+#include "FastNoiseLite/FastNoiseLite.h"
+
 #define MAX_LOADSTRING 100
 
 using namespace SPP;
@@ -100,31 +102,39 @@ public:
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
 
-		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(90, 30, 90), 0.1f, 65536);	
+		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(50, 10, 50), 0.05f, 65536);	
 
 #if 1
 		testTree.BeginWrite();
 
 		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
-		testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
-		testTree.SetSphere(Vector3d(3, 0, 0), 3, 200);
+		//testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
+		//testTree.SetSphere(Vector3d(3, 0, 0), 3, 200);
 
-		testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
+		//testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
 		//testTree.SetDisk(Vector3d(0, 0, 0), 3, 200);
 
 		auto curDimensions = testTree.GetDimensions();
+
+		// Create and configure FastNoise object
+		FastNoiseLite noise;
+		noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 
 		for (int32_t IterZ = 200; IterZ < curDimensions[2] - 200; IterZ++)
 		{
 			for (int32_t IterX = 200; IterX < curDimensions[0] - 200; IterX++)
 			{
-				
+				auto noiseValue = noise.GetNoise((float)IterX, (float)IterZ) * 0.5f + 0.5f;
+
+				Vector3i SetPos(IterX, (noiseValue * 40) + (curDimensions[1] / 2 - 40), IterZ);
+
+				testTree.Set(SetPos, 200);
 			}
 		}
 
-		testTree.EndWrite([](uint8_t InLevel, uint32_t InPage, const void *InMem) {
-			SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
-		});
+		//testTree.EndWrite([](uint8_t InLevel, uint32_t InPage, const void *InMem) {
+		//	SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
+		//});
 
 		//for(int32_t Iter = 0; Iter < 1000; Iter++)
 		{
@@ -136,7 +146,7 @@ public:
 		}
 
 		Camera testCam;
-		testCam.Initialize(Vector3d(0, 0, 10), Vector3(0, 0, 0), 65.0f, 1.77f);
+		testCam.Initialize(Vector3d(0, 9, 0), Vector3(20, 0, 0), 65.0f, 1.77f);
 
 		{
 			uint64_t totalTests = 0;
@@ -180,9 +190,16 @@ public:
 
 		auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
 
-		auto gpuCommand = RunOnRT([sparseBuf]()
+		auto gpuCommand = RunOnRT([&]()
 			{
-				sparseBuf->Initialize(1024 * 1024 * 1024);
+				sparseBuf->Initialize(testTree.GetLevelMaxSize(0));
+
+				testTree.EndWrite([](uint8_t InLevel, uint32_t InPage, const void* InMem) {
+					if (InLevel == 0)
+					{
+						SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
+					}
+					});
 
 				//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 			});
