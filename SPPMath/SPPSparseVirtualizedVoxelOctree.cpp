@@ -44,7 +44,10 @@ namespace SPP
         Vector3i _dimensions = {0,0,0};
         Vector3i _dimensionsPow2 = {0,0,0};
 		uint8_t* _basePtr = nullptr;
+
         std::vector<bool> _pages;        
+
+        std::vector< uint32_t > _pageDirtyIdx;
 
         size_t _activePages = 0;                
 
@@ -57,10 +60,13 @@ namespace SPP
         bool _bVirtualAlloc = false;
         bool _bTopLevel = false;
 
+        uint8_t _levelIdx = 0;
+
         SVVOLevel* _nextLevel = nullptr;
+        SparseVirtualizedVoxelOctree* _parent = nullptr;
 
 	public:
-		SVVOLevel() 
+		SVVOLevel(SparseVirtualizedVoxelOctree* InParent, uint8_t InLevelIdx) : _parent(InParent), _levelIdx(InLevelIdx)
         {
             SystemInfoInit();
         }
@@ -106,6 +112,9 @@ namespace SPP
                 _activePages = 1;
                 _pageSize = _maximumSize;
 
+                _pages.resize(1, true);
+                _pageDirtyIdx.resize(1, 0);
+
                 _basePtr = (uint8_t*)SPP_MALLOC(_maximumSize);
                 memset(_basePtr, 0, _maximumSize);
                 SPP_LOG(LOG_SVVO, LOG_INFO, " - NOT using virtual alloc");
@@ -144,6 +153,10 @@ namespace SPP
                 SPP_LOG(LOG_SVVO, LOG_INFO, " - page count: %d", TotalPages);
                                 
                 _pages.resize(TotalPages, false);
+                _pageDirtyIdx.resize(TotalPages, 0);
+
+                //consider
+                //_pageDirtyIdx.reset(new std::atomic_uint32_t[TotalPages]);
 
                 _maximumSize = TotalPages * _pageSize;
 
@@ -205,7 +218,7 @@ namespace SPP
 
         struct PageIdxAndMemOffset
         {
-            size_t pageIDX;
+            uint32_t pageIDX;
             size_t memoffset;
         };
 
@@ -237,42 +250,10 @@ namespace SPP
             auto memOffset = (pageIdx * _pageSize) + localVoxelIdx * _dataTypeSize;
 
             return PageIdxAndMemOffset{
-                (size_t)pageIdx, (size_t)memOffset
+                (uint32_t)pageIdx, (size_t)memOffset
             };
         }
-
-        template<typename T>
-        void Inc(const Vector3i& InPosition)
-        {
-            SE_ASSERT(sizeof(T) == _dataTypeSize);
-
-            auto pageAndMem = GetOffsets(InPosition);
-
-            if (_bVirtualAlloc)
-            {
-                ValidatePage(pageAndMem.pageIDX);
-            }
-
-            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
-            ourValue++;
-        }
-
-        template<typename T>
-        void And(const Vector3i& InPosition, T InValue)
-        {
-            SE_ASSERT(sizeof(T) == _dataTypeSize);
-
-            auto pageAndMem = GetOffsets(InPosition);
-
-            if (_bVirtualAlloc)
-            {
-                ValidatePage(pageAndMem.pageIDX);
-            }
-
-            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
-            ourValue &= InValue;
-        }
-
+                
         struct ChildPositionAndMask
         {
             Vector3i childPos;
@@ -292,6 +273,43 @@ namespace SPP
             return ChildPositionAndMask{ childPos, SubIdxMsk };
         }
 
+        inline void SetPageDirty(uint32_t InPage)
+        {
+            if (_pageDirtyIdx[InPage] != _parent->GetDirtyCounter())
+            {
+                _pageDirtyIdx[InPage] = _parent->GetDirtyCounter();
+                _parent->DirtyPage(_levelIdx, InPage);
+            }
+        }
+       
+        template<typename T>
+        void And(const Vector3i& InPosition, T InValue)
+        {
+            SE_ASSERT(sizeof(T) == _dataTypeSize);
+
+            auto pageAndMem = GetOffsets(InPosition);
+
+            if (_bVirtualAlloc)
+            {
+                ValidatePage(pageAndMem.pageIDX);
+            }
+
+            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
+            bool bValueChanged = ((ourValue & InValue) != ourValue);
+            ourValue &= InValue;
+
+            if (bValueChanged)
+            {
+                SetPageDirty(pageAndMem.pageIDX);
+
+                if (_nextLevel)
+                {
+                    auto childInfo = GetChildPositionAndMask(InPosition);
+                    _nextLevel->And< uint8_t>(childInfo.childPos, ~childInfo.maskForChild);
+                }
+            }
+        }
+
         template<typename T>
         void Or(const Vector3i& InPosition, T InValue)
         {
@@ -308,28 +326,18 @@ namespace SPP
             bool bValueChanged = (!ourValue && InValue);            
             ourValue |= InValue;         
 
-            if (bValueChanged && _nextLevel)
+            if (bValueChanged)
             {
-                auto childInfo = GetChildPositionAndMask(InPosition);
-                _nextLevel->Or< uint8_t>(childInfo.childPos, childInfo.maskForChild);
+                SetPageDirty(pageAndMem.pageIDX);
+
+                if (_nextLevel)
+                {
+                    auto childInfo = GetChildPositionAndMask(InPosition);
+                    _nextLevel->Or< uint8_t>(childInfo.childPos, childInfo.maskForChild);
+                }
             }
         }
 
-        template<typename T>
-        void Dec(const Vector3i& InPosition)
-        {
-            SE_ASSERT(sizeof(T) == _dataTypeSize);
-
-            auto pageAndMem = GetOffsets(InPosition);
-
-            if (_bVirtualAlloc)
-            {
-                ValidatePage(pageAndMem.pageIDX);
-            }
-
-            T& ourValue = *(T*)(_basePtr + pageAndMem.memoffset);
-            ourValue--;
-        }
 
 		template<typename T>
 		bool Set(const Vector3i& InPosition, T InValue)
@@ -353,12 +361,17 @@ namespace SPP
 			if (ourValue == InValue) bValueChanged = false;
 			else ourValue = InValue;
 
-            if (bValueChanged && _nextLevel)
+            if (bValueChanged)
             {
-                bool IsOr = (InValue != 0);
-                auto childInfo = GetChildPositionAndMask(InPosition);
-                if (IsOr) _nextLevel->Or< uint8_t>(childInfo.childPos, childInfo.maskForChild);
-                else _nextLevel->And< uint8_t>(childInfo.childPos, ~childInfo.maskForChild);
+                SetPageDirty(pageAndMem.pageIDX);
+
+                if (_nextLevel)
+                {
+                    bool IsOr = (InValue != 0);
+                    auto childInfo = GetChildPositionAndMask(InPosition);
+                    if (IsOr) _nextLevel->Or< uint8_t>(childInfo.childPos, childInfo.maskForChild);
+                    else _nextLevel->And< uint8_t>(childInfo.childPos, ~childInfo.maskForChild);
+                }
             }
 
 			return bValueChanged;
@@ -483,7 +496,7 @@ namespace SPP
             SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: INIT Level %d", Iter);
             SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree: voxel size %d", 1 << Iter);
 
-            auto newLevel = std::make_unique< SVVOLevel >();
+            auto newLevel = std::make_unique< SVVOLevel >(this, Iter);
             newLevel->Initialize(CurDimensions, 1, DesiredPageSize, (Iter == 0));
 
             if (lastLevel)
@@ -918,6 +931,16 @@ namespace SPP
 
         SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree::CastRay: exceeded iterations");
         return false;
+    }
+
+    void SparseVirtualizedVoxelOctree::BeginWrite()
+    {
+        _dirtyCounter++;
+    }
+    void SparseVirtualizedVoxelOctree::EndWrite()
+    {
+
+
     }
 
 #if 0

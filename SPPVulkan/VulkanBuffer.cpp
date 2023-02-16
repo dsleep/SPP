@@ -102,41 +102,19 @@ namespace SPP
 		VK_CHECK_RESULT(vkCreateBuffer(GGlobalVulkanDevice, &bufferCreateInfo, nullptr, &_buffer));
 
 		// Create the memory backing up the buffer handle
-		VkMemoryRequirements memReqs;
 		VkMemoryAllocateInfo memAlloc = vks::initializers::memoryAllocateInfo();
-		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
+		vkGetBufferMemoryRequirements(GGlobalVulkanDevice, _buffer, &_memReq);
+		memAlloc.allocationSize = _memReq.size;
 
 		// for Sparse this is the page alignment as well
-		_alignment = memReqs.alignment;
+		_alignment = _memReq.alignment;
 
-		auto bindSparseInfo = vks::initializers::bindSparseInfo();
-
-		bindSparseInfo.bufferBindCount = 1;
-		bindSparseInfo.pBufferBinds = nullptr;
-
-		//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
-
-		VkSparseMemoryBind memoryBind;
-		//VkDeviceSize               resourceOffset;
-		//VkDeviceSize               size;
-		//VkDeviceMemory             memory;
-		//VkDeviceSize               memoryOffset;
-		//VkSparseMemoryBindFlags    flags;
-
-		VkSparseBufferMemoryBindInfo bindInfo;
-		//VkBuffer                     buffer;
-		//uint32_t                     bindCount;
-		//const VkSparseMemoryBind*	   pBinds;
-
-
-		//vkQueueBindSparse 
-		//VkBindSparseInfo, VkSparseBufferMemoryBindInfo, VkSparseMemoryBind
+		
 
 		if (InType != GPUBufferType::Sparse)
 		{
 			// Find a memory type index that fits the properties of the buffer
-			memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(memReqs.memoryTypeBits, _memoryPropertyFlags);
+			memAlloc.memoryTypeIndex = GGlobalVulkanGI->GetVKSVulkanDevice()->getMemoryType(_memReq.memoryTypeBits, _memoryPropertyFlags);
 			// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
 			VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
 			VK_CHECK_RESULT(vkAllocateMemory(GGlobalVulkanDevice, &memAlloc, nullptr, &_memory));
@@ -147,6 +125,49 @@ namespace SPP
 			{
 				VK_CHECK_RESULT(vkMapMemory(GGlobalVulkanDevice, _memory, 0, _size, 0, (void**)&_CPUAddr));
 			}
+		}
+		else
+		{
+			auto totalPageCount = DivRoundUp(_memReq.size, _memReq.alignment);
+			sparsePages.resize(totalPageCount);
+
+			auto bindSparseInfo = vks::initializers::bindSparseInfo();
+			
+			bindSparseInfo.bufferBindCount = 1;
+			bindSparseInfo.pBufferBinds = nullptr;
+
+			//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
+
+			VkSparseMemoryBind memoryBind;
+			//VkDeviceSize               resourceOffset;
+			//VkDeviceSize               size;
+			//VkDeviceMemory             memory;
+			//VkDeviceSize               memoryOffset;
+			//VkSparseMemoryBindFlags    flags;
+
+			VkSparseBufferMemoryBindInfo bindInfo;
+			//VkBuffer                     buffer;
+			//uint32_t                     bindCount;
+			//const VkSparseMemoryBind*	   pBinds;
+
+
+			VkBindSparseInfo spareInfo;
+			//VkStructureType                             sType;
+			//const void* pNext;
+			//uint32_t                                    waitSemaphoreCount;
+			//const VkSemaphore* pWaitSemaphores;
+			//uint32_t                                    bufferBindCount;
+			//const VkSparseBufferMemoryBindInfo* pBufferBinds;
+			//uint32_t                                    imageOpaqueBindCount;
+			//const VkSparseImageOpaqueMemoryBindInfo* pImageOpaqueBinds;
+			//uint32_t                                    imageBindCount;
+			//const VkSparseImageMemoryBindInfo* pImageBinds;
+			//uint32_t                                    signalSemaphoreCount;
+			//const VkSemaphore* pSignalSemaphores;
+
+
+			//vkQueueBindSparse 
+			//VkBindSparseInfo, VkSparseBufferMemoryBindInfo, VkSparseMemoryBind
 		}
 	}
 

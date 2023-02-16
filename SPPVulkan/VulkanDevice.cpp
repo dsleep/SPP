@@ -22,6 +22,9 @@
 
 #include "vulkan/vulkan_win32.h"
 
+#include "VulkanMemoryAllocator/vk_mem_alloc.h"
+#include "VulkanMemoryAllocator/VmaUsage.h"
+
 //IMGUI
 #include "imgui_impl_vulkan.h"
 
@@ -35,60 +38,42 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
+	static void* const CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA = (void*)(intptr_t)43564544;
 
-	void* vkAllocationFunction(
-		void* pUserData,
-		size_t                                      size,
-		size_t                                      alignment,
-		VkSystemAllocationScope                     allocationScope)
+	static void* CustomCpuAllocation(
+		void* pUserData, size_t size, size_t alignment,
+		VkSystemAllocationScope allocationScope)
 	{
-		return nullptr;
+		assert(pUserData == CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA);
+		void* const result = _aligned_malloc(size, alignment);
+		return result;
 	}
 
-	void* vkReallocationFunction(
-		void* pUserData,
-		void* pOriginal,
-		size_t                                      size,
-		size_t                                      alignment,
-		VkSystemAllocationScope                     allocationScope)
+	static void* CustomCpuReallocation(
+		void* pUserData, void* pOriginal, size_t size, size_t alignment,
+		VkSystemAllocationScope allocationScope)
 	{
-		return nullptr;
+		assert(pUserData == CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA);
+		void* const result = _aligned_realloc(pOriginal, size, alignment);
+		
+		return result;
 	}
 
-	void vkFreeFunction(
-		void* pUserData,
-		void* pMemory)
+	static void CustomCpuFree(void* pUserData, void* pMemory)
 	{
-
-	}
-
-	void vkInternalAllocationNotification(
-		void* pUserData,
-		size_t                                      size,
-		VkInternalAllocationType                    allocationType,
-		VkSystemAllocationScope                     allocationScope)
-	{
-
-	}
-
-	void vkInternalFreeNotification(
-		void* pUserData,
-		size_t                                      size,
-		VkInternalAllocationType                    allocationType,
-		VkSystemAllocationScope                     allocationScope)
-	{
-
+		assert(pUserData == CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA);
+		if (pMemory)
+		{
+			_aligned_free(pMemory);
+		}
 	}
 
 
-	VkAllocationCallbacks GAllocations =
-	{
-		.pUserData = nullptr,
-		.pfnAllocation = vkAllocationFunction,
-		.pfnReallocation = vkReallocationFunction,
-		.pfnFree = vkFreeFunction,
-		.pfnInternalAllocation = vkInternalAllocationNotification,
-		.pfnInternalFree = vkInternalFreeNotification
+	static const VkAllocationCallbacks GCustomCPUAllocations = {
+		CUSTOM_CPU_ALLOCATION_CALLBACK_USER_DATA, // pUserData
+		&CustomCpuAllocation, // pfnAllocation
+		&CustomCpuReallocation, // pfnReallocation
+		&CustomCpuFree // pfnFree
 	};
 
 	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
@@ -158,6 +143,8 @@ namespace SPP
 
 	struct VulkanGraphicsDevice::PrivImpl
 	{
+		VmaAllocator vmaAlloc;
+
 		GPUReferencer< GPUTexture > depthColor;
 		std::unique_ptr<class VulkanFramebuffer> deferredTarget;
 		std::unique_ptr<class VulkanFramebuffer> lightingComposite;
@@ -173,7 +160,7 @@ namespace SPP
 	}
 
 	VulkanGraphicsDevice::~VulkanGraphicsDevice()
-	{
+	{				
 	}
 
 	VkResult VulkanGraphicsDevice::createInstance(bool enableValidation)
@@ -447,7 +434,7 @@ namespace SPP
 			enabledDeviceExtensions, 
 			nullptr, 
 			true,
-			VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT);
+			VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT);
 
 		if (res != VK_SUCCESS) {
 			SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not create Vulkan device: %s %d", vks::tools::errorString(res), res);
@@ -458,12 +445,82 @@ namespace SPP
 		GGlobalVulkanDevice = device;
 		GGlobalVulkanGI = this;
 
+		// Create memory allocator
+		{
+			VmaAllocatorCreateInfo allocatorInfo = {};
+			
+			allocatorInfo.physicalDevice = physicalDevice;
+			allocatorInfo.device = device;
+			allocatorInfo.instance = instance;
+			allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+
+			//see what any use these have
+//			if (VK_KHR_dedicated_allocation_enabled)
+//			{
+//				outInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
+//			}
+//			if (VK_KHR_bind_memory2_enabled)
+//			{
+//				outInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT;
+//			}
+//#if !defined(VMA_MEMORY_BUDGET) || VMA_MEMORY_BUDGET == 1
+//			if (VK_EXT_memory_budget_enabled && (
+//				GetVulkanApiVersion() >= VK_API_VERSION_1_1 || VK_KHR_get_physical_device_properties2_enabled))
+//			{
+//				outInfo.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+//			}
+//#endif
+//			if (VK_AMD_device_coherent_memory_enabled)
+//			{
+//				outInfo.flags |= VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT;
+//			}
+//			if (VK_KHR_buffer_device_address_enabled)
+//			{
+//				outInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+//			}
+//#if !defined(VMA_MEMORY_PRIORITY) || VMA_MEMORY_PRIORITY == 1
+//			if (VK_EXT_memory_priority_enabled)
+//			{
+//				outInfo.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
+//			}
+//#endif
+
+			allocatorInfo.pAllocationCallbacks = &GCustomCPUAllocations;
+
+//#if VMA_DYNAMIC_VULKAN_FUNCTIONS
+//			static VmaVulkanFunctions vulkanFunctions = {};
+//			vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+//			vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+//			outInfo.pVulkanFunctions = &vulkanFunctions;
+//#endif
+
+			// Uncomment to enable recording to CSV file.
+			/*
+			static VmaRecordSettings recordSettings = {};
+			recordSettings.pFilePath = "VulkanSample.csv";
+			outInfo.pRecordSettings = &recordSettings;
+			*/
+
+			// Uncomment to enable HeapSizeLimit.
+			/*
+			static std::array<VkDeviceSize, VK_MAX_MEMORY_HEAPS> heapSizeLimit;
+			std::fill(heapSizeLimit.begin(), heapSizeLimit.end(), VK_WHOLE_SIZE);
+			heapSizeLimit[0] = 512ull * 1024 * 1024;
+			outInfo.pHeapSizeLimit = heapSizeLimit.data();
+			*/
+
+			vmaCreateAllocator(&allocatorInfo, &_impl->vmaAlloc);
+		}
+
+		
+
 		swapChain.connect(instance, physicalDevice, device);
 
 		// Get a graphics queue from the device
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.transfer, 0, &transferQueue);
 		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.compute, 0, &computeQueue);
+		vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.sparse, 0, &sparseQueue);
 
 		// Find a suitable depth format
 		VkBool32 validDepthFormat = vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
@@ -936,9 +993,13 @@ namespace SPP
 
 				_backBufferRenderPass.Reset();
 				_staticInstanceDrawInfoGPU.Reset();
+
+				vmaDestroyAllocator(_impl->vmaAlloc);
 			});
 
 		Flush();
+
+
 	}
 
 	void VulkanGraphicsDevice::ResizeBuffers(int32_t NewWidth, int32_t NewHeight)
@@ -1654,6 +1715,7 @@ namespace vks
 		{
 			vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 		}
+
 		if (logicalDevice)
 		{
 			vkDestroyDevice(logicalDevice, nullptr);
@@ -1735,7 +1797,7 @@ namespace vks
 					return i;
 				}
 			}
-		}
+		}		
 
 		// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
 		for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++)
@@ -1828,6 +1890,27 @@ namespace vks
 		{
 			// Else we use the same queue
 			queueFamilyIndices.transfer = queueFamilyIndices.graphics;
+		}
+				
+		// Dedicated sparse queue
+		if (requestedQueueTypes & VK_QUEUE_SPARSE_BINDING_BIT)
+		{
+			queueFamilyIndices.sparse = getQueueFamilyIndex(VK_QUEUE_SPARSE_BINDING_BIT);
+			if (queueFamilyIndices.sparse != queueFamilyIndices.graphics)
+			{
+				// If compute family index differs, we need an additional queue create info for the compute queue
+				VkDeviceQueueCreateInfo queueInfo{};
+				queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				queueInfo.queueFamilyIndex = queueFamilyIndices.sparse;
+				queueInfo.queueCount = 1;
+				queueInfo.pQueuePriorities = &defaultQueuePriority;
+				queueCreateInfos.push_back(queueInfo);
+			}
+		}
+		else
+		{
+			// Else we use the same queue
+			queueFamilyIndices.sparse = queueFamilyIndices.graphics;
 		}
 
 		// Create the logical device representation

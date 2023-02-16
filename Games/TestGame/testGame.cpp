@@ -100,8 +100,10 @@ public:
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
 
-#if 0
 		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(90, 30, 90), 0.1f, 65536);	
+
+#if 1
+		testTree.BeginWrite();
 
 		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
 		testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
@@ -109,6 +111,8 @@ public:
 
 		testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
 		//testTree.SetDisk(Vector3d(0, 0, 0), 3, 200);
+
+		testTree.EndWrite();
 
 		//for(int32_t Iter = 0; Iter < 1000; Iter++)
 		{
@@ -160,17 +164,17 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
-		//auto SDFShader = _graphicsDevice->CreateShader();
+		auto SDFShader = _graphicsDevice->CreateShader();
 
-		//auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
+		auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
 
-		//auto gpuCommand = RunOnRT([sparseBuf]()
-		//	{
-		//		sparseBuf->Initialize(1024 * 1024 * 1024);
+		auto gpuCommand = RunOnRT([sparseBuf]()
+			{
+				sparseBuf->Initialize(1024 * 1024 * 1024);
 
-		//		//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
-		//	});
-		//gpuCommand.wait();
+				//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
+			});
+		gpuCommand.wait();
 
 		/////////////SCENE SETUP
 

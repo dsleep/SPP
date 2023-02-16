@@ -20,6 +20,7 @@ namespace SPP
 		VkDeviceMemory _memory = VK_NULL_HANDLE;
 		VkDeviceSize _size = 0;
 		VkDeviceSize _alignment = 0;
+		VkMemoryRequirements _memReq = { 0 };
 
 		uint8_t* _CPUAddr = nullptr;
 
@@ -30,6 +31,8 @@ namespace SPP
 
 		virtual void _MakeResident() override; 
 		virtual void _MakeUnresident() override {}
+
+		std::vector<bool> sparsePages;
 
 	public:
 		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);

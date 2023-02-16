@@ -24,7 +24,8 @@ set(VULKAN_HEADER_FILES
 	"${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.h"
 	"${CMAKE_CURRENT_LIST_DIR}/VulkanResources.h"
 	"${CMAKE_CURRENT_LIST_DIR}/VulkanPipelineState.h"	
-	"${CMAKE_CURRENT_LIST_DIR}/VulkanInitializers.hpp")
+	"${CMAKE_CURRENT_LIST_DIR}/VulkanInitializers.hpp"
+)
 				
 
 target_sources(SPPVulkan
@@ -78,6 +79,10 @@ target_sources(SPPVulkan
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_reflect.h"
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_output_stream.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/spirvreflect/spirv_output_stream.h"
+
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator/vk_mem_alloc.h"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator/VmaUsage.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator/VmaUsage.h"
 		
 		"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui.cpp"		
 		"${CMAKE_CURRENT_LIST_DIR}/imgui/imgui_draw.cpp"
