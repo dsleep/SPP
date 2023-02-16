@@ -22,9 +22,6 @@
 
 #include "vulkan/vulkan_win32.h"
 
-#include "VulkanMemoryAllocator/vk_mem_alloc.h"
-#include "VulkanMemoryAllocator/VmaUsage.h"
-
 //IMGUI
 #include "imgui_impl_vulkan.h"
 
@@ -1130,6 +1127,10 @@ namespace SPP
 
 	}
 
+	VmaAllocator VulkanGraphicsDevice::GetVMAAllocator()
+	{
+		return _impl->vmaAlloc;
+	}
 
 	VkCommandBuffer& VulkanGraphicsDevice::GetCopyCommandBuffer()
 	{

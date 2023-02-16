@@ -5,6 +5,7 @@
 #include "VulkanBuffer.h"
 #include "VulkanDevice.h"
 
+#include "VulkanMemoryAllocator/vk_mem_alloc.h"
 
 namespace SPP
 {
@@ -131,44 +132,72 @@ namespace SPP
 			auto totalPageCount = DivRoundUp(_memReq.size, _memReq.alignment);
 			sparsePages.resize(totalPageCount);
 
-			auto bindSparseInfo = vks::initializers::bindSparseInfo();
 			
-			bindSparseInfo.bufferBindCount = 1;
-			bindSparseInfo.pBufferBinds = nullptr;
-
-			//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
-
-			VkSparseMemoryBind memoryBind;
-			//VkDeviceSize               resourceOffset;
-			//VkDeviceSize               size;
-			//VkDeviceMemory             memory;
-			//VkDeviceSize               memoryOffset;
-			//VkSparseMemoryBindFlags    flags;
-
-			VkSparseBufferMemoryBindInfo bindInfo;
-			//VkBuffer                     buffer;
-			//uint32_t                     bindCount;
-			//const VkSparseMemoryBind*	   pBinds;
-
-
-			VkBindSparseInfo spareInfo;
-			//VkStructureType                             sType;
-			//const void* pNext;
-			//uint32_t                                    waitSemaphoreCount;
-			//const VkSemaphore* pWaitSemaphores;
-			//uint32_t                                    bufferBindCount;
-			//const VkSparseBufferMemoryBindInfo* pBufferBinds;
-			//uint32_t                                    imageOpaqueBindCount;
-			//const VkSparseImageOpaqueMemoryBindInfo* pImageOpaqueBinds;
-			//uint32_t                                    imageBindCount;
-			//const VkSparseImageMemoryBindInfo* pImageBinds;
-			//uint32_t                                    signalSemaphoreCount;
-			//const VkSemaphore* pSignalSemaphores;
-
-
-			//vkQueueBindSparse 
-			//VkBindSparseInfo, VkSparseBufferMemoryBindInfo, VkSparseMemoryBind
 		}
+	}
+
+	void VulkanBuffer::SetSparsePageMem(PageData* InPages, uint32_t PageCount)
+	{
+		VmaAllocationCreateInfo allocCreateInfo = {};
+		allocCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+
+		std::vector<VmaAllocation> allocations;	
+		std::vector<VmaAllocationInfo> allocInfo;
+
+		VkMemoryRequirements pageMemReq;
+		vmaAllocateMemoryPages(GGlobalVulkanGI->GetVMAAllocator(), &pageMemReq, &allocCreateInfo, PageCount, allocations.data(), allocInfo.data());
+		// vmaFreeMemoryPages(g_hAllocator, m_Allocations.size(), m_Allocations.data());
+
+		//std::vector<VkSparseMemoryBind> binds{ pageCount };
+		//for (uint32_t i = 0; i < pageCount; ++i)
+		//{
+		//	binds[i] = {};
+		//	binds[i].resourceOffset = pageSize * i;
+		//	binds[i].size = pageSize;
+		//	binds[i].memory = allocInfo[i].deviceMemory;
+		//	binds[i].memoryOffset = allocInfo[i].offset;
+		//}
+
+		//
+
+		auto bindSparseInfo = vks::initializers::bindSparseInfo();
+
+		bindSparseInfo.bufferBindCount = 1;
+		bindSparseInfo.pBufferBinds = nullptr;
+
+		//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
+
+		VkSparseMemoryBind memoryBind;
+		//VkDeviceSize               resourceOffset;
+		//VkDeviceSize               size;
+		//VkDeviceMemory             memory;
+		//VkDeviceSize               memoryOffset;
+		//VkSparseMemoryBindFlags    flags;
+
+		VkSparseBufferMemoryBindInfo bindInfo;
+		//VkBuffer                     buffer;
+		//uint32_t                     bindCount;
+		//const VkSparseMemoryBind*	   pBinds;
+
+
+		VkBindSparseInfo spareInfo;
+		//VkStructureType                             sType;
+		//const void* pNext;
+		//uint32_t                                    waitSemaphoreCount;
+		//const VkSemaphore* pWaitSemaphores;
+		//uint32_t                                    bufferBindCount;
+		//const VkSparseBufferMemoryBindInfo* pBufferBinds;
+		//uint32_t                                    imageOpaqueBindCount;
+		//const VkSparseImageOpaqueMemoryBindInfo* pImageOpaqueBinds;
+		//uint32_t                                    imageBindCount;
+		//const VkSparseImageMemoryBindInfo* pImageBinds;
+		//uint32_t                                    signalSemaphoreCount;
+		//const VkSemaphore* pSignalSemaphores;
+
+
+		//vkQueueBindSparse 
+		//VkBindSparseInfo, VkSparseBufferMemoryBindInfo, VkSparseMemoryBind
 	}
 
 	void VulkanBuffer::CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize)

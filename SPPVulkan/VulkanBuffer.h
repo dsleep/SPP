@@ -40,6 +40,14 @@ namespace SPP
 
 		void CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize = 0);
 
+		struct PageData
+		{
+			const void *Data;
+			uint32_t PageIdx;
+		};
+
+		void SetSparsePageMem(PageData *InPages, uint32_t PageCount);
+
 		virtual ~VulkanBuffer();
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
 

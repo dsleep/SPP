@@ -23,6 +23,9 @@
 
 #include "VulkanPipelineState.h"
 
+#include "VulkanMemoryAllocator/vk_mem_alloc.h"
+#include "VulkanMemoryAllocator/VmaUsage.h"
+
 #include <algorithm>
 #include <assert.h>
 #include <exception>
@@ -312,6 +315,8 @@ namespace SPP
 		VkCommandBuffer& GetActiveCommandBuffer();
 
 		VkCommandBuffer& GetCopyCommandBuffer();
+
+		VmaAllocator GetVMAAllocator();
 
 		std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > >& GetPipelineStateMap();
 
