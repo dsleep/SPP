@@ -112,7 +112,19 @@ public:
 		testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
 		//testTree.SetDisk(Vector3d(0, 0, 0), 3, 200);
 
-		testTree.EndWrite();
+		auto curDimensions = testTree.GetDimensions();
+
+		for (int32_t IterZ = 200; IterZ < curDimensions[2] - 200; IterZ++)
+		{
+			for (int32_t IterX = 200; IterX < curDimensions[0] - 200; IterX++)
+			{
+				
+			}
+		}
+
+		testTree.EndWrite([](uint8_t InLevel, uint32_t InPage, const void *InMem) {
+			SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
+		});
 
 		//for(int32_t Iter = 0; Iter < 1000; Iter++)
 		{

@@ -273,6 +273,17 @@ namespace SPP
             return ChildPositionAndMask{ childPos, SubIdxMsk };
         }
 
+        const void* GetPageMemory(uint32_t InPage)
+        {
+            if (!_pages[InPage])
+            {
+                return nullptr;
+            }
+
+            auto memOffset = (InPage * _pageSize);
+            return (uint8_t*)_basePtr + memOffset;
+        }
+
         inline void SetPageDirty(uint32_t InPage)
         {
             if (_pageDirtyIdx[InPage] != _parent->GetDirtyCounter())
@@ -940,7 +951,11 @@ namespace SPP
         {
             if (_dirtyPages[Iter].size())
             {
-               // _dirtyPages[Iter]
+                for (auto curPage : _dirtyPages[Iter])
+                {
+                    InCallback(Iter, curPage, _levels[Iter]->GetPageMemory(curPage));                        
+                }
+                _dirtyPages[Iter].clear();
             }
         }
     }

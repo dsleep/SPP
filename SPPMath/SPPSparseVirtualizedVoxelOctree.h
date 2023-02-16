@@ -45,7 +45,6 @@ namespace SPP
 
         Matrix4x4 _worldToVoxels;
 
-       // std::function<void(EPageUpdate, uint32_t)> _updateCB;
 
         struct RayInfo
         {
@@ -66,7 +65,6 @@ namespace SPP
         SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize = 0);
         ~SparseVirtualizedVoxelOctree();
 
-        //void SetUpdateCallback(std::function<void(EPageUpdate, uint8_t, uint32_t, const void*)> InCallback);
 
         inline bool ValidSample(const Vector3& InPos) const;
         inline uint32_t GetDirtyCounter() const { return _dirtyCounter; }
@@ -74,7 +72,7 @@ namespace SPP
 
         // these track changes to report to callback
         void BeginWrite();
-        void EndWrite();
+        void EndWrite(const std::function<void(uint8_t, uint32_t, const void*)>& InCallback);
 
         void SetBox(const Vector3d& InCenter, const Vector3& InExtents, uint8_t InValue);
         void SetSphere(const Vector3d& InCenter, float InRadius, uint8_t InValue);
@@ -83,6 +81,9 @@ namespace SPP
         uint8_t Get(const Vector3i& InPos);
         auto GetLevelCount() const {
             return _levels.size();
+        }
+        Vector3i GetDimensions()  const {
+            return _dimensions;
         }
         uint8_t GetUnScaledAtLevel(const Vector3i& InPos, uint8_t InLevel);
 
