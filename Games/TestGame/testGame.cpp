@@ -104,15 +104,7 @@ public:
 
 		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(50, 10, 50), 0.05f, 65536);	
 
-#if 1
 		testTree.BeginWrite();
-
-		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
-		//testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
-		//testTree.SetSphere(Vector3d(3, 0, 0), 3, 200);
-
-		//testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
-		//testTree.SetDisk(Vector3d(0, 0, 0), 3, 200);
 
 		auto curDimensions = testTree.GetDimensions();
 
@@ -131,6 +123,15 @@ public:
 				testTree.Set(SetPos, 200);
 			}
 		}
+
+#if 0
+
+		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
+		//testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
+		//testTree.SetSphere(Vector3d(3, 0, 0), 3, 200);
+
+		//testTree.SetSphere(Vector3d(0, 3, 0), 3, 200);
+		//testTree.SetDisk(Vector3d(0, 0, 0), 3, 200);
 
 		//testTree.EndWrite([](uint8_t InLevel, uint32_t InPage, const void *InMem) {
 		//	SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
@@ -187,19 +188,24 @@ public:
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
 		auto SDFShader = _graphicsDevice->CreateShader();
-
 		auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
 
 		auto gpuCommand = RunOnRT([&]()
 			{
 				sparseBuf->Initialize(testTree.GetLevelMaxSize(0));
 
-				testTree.EndWrite([](uint8_t InLevel, uint32_t InPage, const void* InMem) {
+				//sparseBuf->SetSparsePageMem();
+				std::vector<BufferPageData> bufferData;
+				testTree.EndWrite([&](uint8_t InLevel, uint32_t InPage, const void* InMem) {
 					if (InLevel == 0)
 					{
+						bufferData.push_back({ InMem, InPage });
 						SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
 					}
 					});
+
+				auto gpuBuf = sparseBuf->GetGPUBuffer();
+				gpuBuf->SetSparsePageMem(bufferData.data(), bufferData.size());
 
 				//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 			});

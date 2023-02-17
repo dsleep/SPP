@@ -12,7 +12,12 @@ namespace SPP
 	extern VkDevice GGlobalVulkanDevice;
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
-	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InOwner, InType, InCpuData)
+	struct VulkanBuffer::PrivImpl
+	{
+		std::vector<VmaAllocation> allocations;
+	};
+
+	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InOwner, InType, InCpuData), _impl(new PrivImpl())
 	{ 
 		SE_ASSERT(InCpuData);
 		_size = InCpuData->GetTotalSize();
@@ -67,7 +72,7 @@ namespace SPP
 		_MakeResident();
 	}
 
-	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem) : GPUBuffer(InOwner, InType, nullptr)
+	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem) : GPUBuffer(InOwner, InType, nullptr), _impl(new PrivImpl())
 	{
 		_size = BufferSize;
 
@@ -88,7 +93,11 @@ namespace SPP
 			break;
 		}
 
-		_usageFlags |= IsCPUMem ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		_usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		if (IsCPUMem)
+		{
+			_usageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		}
 		_memoryPropertyFlags = IsCPUMem ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 		// Create the buffer handle
@@ -110,8 +119,6 @@ namespace SPP
 		// for Sparse this is the page alignment as well
 		_alignment = _memReq.alignment;
 
-		
-
 		if (InType != GPUBufferType::Sparse)
 		{
 			// Find a memory type index that fits the properties of the buffer
@@ -130,74 +137,136 @@ namespace SPP
 		else
 		{
 			auto totalPageCount = DivRoundUp(_memReq.size, _memReq.alignment);
-			sparsePages.resize(totalPageCount);
-
-			
+			_impl->allocations.resize(totalPageCount,nullptr);			
 		}
 	}
-
-	void VulkanBuffer::SetSparsePageMem(PageData* InPages, uint32_t PageCount)
+	
+	void VulkanBuffer::SetSparsePageMem(BufferPageData* InPages, uint32_t PageCount)
 	{
 		VmaAllocationCreateInfo allocCreateInfo = {};
 		allocCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
+		std::vector<uint32_t> memSync;
 
-		std::vector<VmaAllocation> allocations;	
+		struct AllocAndPage
+		{
+			uint32_t pageIdx;
+			VmaAllocation alloc;
+		};
+
+		std::vector<AllocAndPage> freeAllocations;
+		std::vector<uint32_t> newAllocations;
+
+		// link them up
+		for (uint32_t Iter = 0; Iter < PageCount; Iter++)
+		{
+			auto& curPage = InPages[Iter];
+			if ( curPage.Data )
+			{
+				// update
+				if (_impl->allocations[curPage.PageIdx] == nullptr)
+				{
+					newAllocations.push_back(curPage.PageIdx);
+				}
+				memSync.push_back(Iter);
+			}
+			else
+			{
+				SE_ASSERT(_impl->allocations[curPage.PageIdx]);
+				freeAllocations.push_back({ curPage.PageIdx, _impl->allocations[curPage.PageIdx] });
+				_impl->allocations[curPage.PageIdx] = nullptr;
+			}
+		}
+
+		//VmaAllocation_T
+		std::vector<VmaAllocation> allocations;
 		std::vector<VmaAllocationInfo> allocInfo;
 
-		VkMemoryRequirements pageMemReq;
-		vmaAllocateMemoryPages(GGlobalVulkanGI->GetVMAAllocator(), &pageMemReq, &allocCreateInfo, PageCount, allocations.data(), allocInfo.data());
-		// vmaFreeMemoryPages(g_hAllocator, m_Allocations.size(), m_Allocations.data());
+		{
+			allocations.resize(newAllocations.size(), nullptr);
+			allocInfo.resize(newAllocations.size());
 
-		//std::vector<VkSparseMemoryBind> binds{ pageCount };
-		//for (uint32_t i = 0; i < pageCount; ++i)
-		//{
-		//	binds[i] = {};
-		//	binds[i].resourceOffset = pageSize * i;
-		//	binds[i].size = pageSize;
-		//	binds[i].memory = allocInfo[i].deviceMemory;
-		//	binds[i].memoryOffset = allocInfo[i].offset;
-		//}
+			VkMemoryRequirements pageMemReq = _memReq;
+			pageMemReq.size = pageMemReq.alignment;
+			auto results = vmaAllocateMemoryPages(GGlobalVulkanGI->GetVMAAllocator(),
+				&pageMemReq,
+				&allocCreateInfo,
+				PageCount,
+				allocations.data(),
+				allocInfo.data());
+			SE_ASSERT(results == VK_SUCCESS);
+		}
 
-		//
+		auto pageSize = _memReq.alignment;
+		std::vector<VkSparseMemoryBind> binds{ newAllocations.size() + freeAllocations.size() };
+		
+		// bind the new allocations
+		for (uint32_t i = 0; i < newAllocations.size(); ++i)
+		{
+			auto pageIdx = newAllocations[i];
 
-		auto bindSparseInfo = vks::initializers::bindSparseInfo();
+			binds[i] = {};
+			binds[i].resourceOffset = pageSize * pageIdx;
+			binds[i].size = pageSize;
+			binds[i].memory = allocInfo[i].deviceMemory; 
+			binds[i].memoryOffset = allocInfo[i].offset;
 
-		bindSparseInfo.bufferBindCount = 1;
-		bindSparseInfo.pBufferBinds = nullptr;
+			SE_ASSERT(_impl->allocations[newAllocations[i]] == nullptr);
+
+			// this page is now set
+			_impl->allocations[pageIdx] = allocations[i];
+		}
+
+		// these are the frees
+		for (uint32_t i = newAllocations.size(), j = 0; i < binds.size(); ++i, ++j)
+		{
+			binds[i] = {};
+			binds[i].resourceOffset = freeAllocations[j].pageIdx * pageSize;
+			binds[i].size = pageSize;
+			binds[i].memory = VK_NULL_HANDLE;
+		}
+
+		VkSparseBufferMemoryBindInfo bindInfo;
+		bindInfo.buffer = _buffer;
+		bindInfo.bindCount = binds.size();
+		bindInfo.pBinds = binds.data();
+
+		VkBindSparseInfo spareInfo = vks::initializers::bindSparseInfo();
+		spareInfo.bufferBindCount = 1;
+		spareInfo.pBufferBinds = &bindInfo;
 
 		//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
 
-		VkSparseMemoryBind memoryBind;
-		//VkDeviceSize               resourceOffset;
-		//VkDeviceSize               size;
-		//VkDeviceMemory             memory;
-		//VkDeviceSize               memoryOffset;
-		//VkSparseMemoryBindFlags    flags;
+		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo();
+		SafeVkFence tempFence(GGlobalVulkanGI, fenceCreateInfo);
+		auto& currentFence = tempFence.Get();
+		vkResetFences(GGlobalVulkanDevice, 1, &currentFence);
+		vkQueueBindSparse(GGlobalVulkanGI->GetSparseQueue(), 1, &spareInfo, currentFence);
+		vkWaitForFences(GGlobalVulkanDevice, 1, &currentFence, VK_TRUE, UINT64_MAX);
 
-		VkSparseBufferMemoryBindInfo bindInfo;
-		//VkBuffer                     buffer;
-		//uint32_t                     bindCount;
-		//const VkSparseMemoryBind*	   pBinds;
+		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
+		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
+		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
+		auto WritableChunk = perFrameScratchBuffer.GetWritable(memSync.size() * pageSize, activeFrame);
 
-		VkBindSparseInfo spareInfo;
-		//VkStructureType                             sType;
-		//const void* pNext;
-		//uint32_t                                    waitSemaphoreCount;
-		//const VkSemaphore* pWaitSemaphores;
-		//uint32_t                                    bufferBindCount;
-		//const VkSparseBufferMemoryBindInfo* pBufferBinds;
-		//uint32_t                                    imageOpaqueBindCount;
-		//const VkSparseImageOpaqueMemoryBindInfo* pImageOpaqueBinds;
-		//uint32_t                                    imageBindCount;
-		//const VkSparseImageMemoryBindInfo* pImageBinds;
-		//uint32_t                                    signalSemaphoreCount;
-		//const VkSemaphore* pSignalSemaphores;
+		std::vector<VkBufferCopy> copyRegions{ memSync.size() };
+		for(uint32_t Iter = 0; Iter < memSync.size(); Iter++)
+		{
+			auto& curPage = InPages[memSync[Iter]];
+			SE_ASSERT(curPage.Data);
 
+			auto PageOffset = (Iter * pageSize);
+			memcpy(WritableChunk.cpuAddrWithOffset + PageOffset, curPage.Data, pageSize);
 
-		//vkQueueBindSparse 
-		//VkBindSparseInfo, VkSparseBufferMemoryBindInfo, VkSparseMemoryBind
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = WritableChunk.offsetFromBase + PageOffset;
+			copyRegion.dstOffset = PageOffset;
+			copyRegion.size = pageSize;
+			copyRegions[Iter] = copyRegion;
+		}
+
+		vkCmdCopyBuffer(cmdBuffer, WritableChunk.buffer, _buffer, copyRegions.size(), copyRegions.data());
 	}
 
 	void VulkanBuffer::CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize)

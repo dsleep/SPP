@@ -408,7 +408,11 @@ namespace SPP
         }
     };
 
-   
+    struct BufferPageData
+    {
+        const void* Data;
+        uint32_t PageIdx;
+    };
 
     class SPP_GRAPHICS_API GPUBuffer : public GPUResource
     {
@@ -446,6 +450,7 @@ namespace SPP
         }
 
         virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) { }
+        virtual void SetSparsePageMem(BufferPageData* InPages, uint32_t PageCount) { }
 
         virtual void SetLink(std::shared_ptr < ArrayResource> InLink)
         {

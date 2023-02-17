@@ -22,6 +22,9 @@
 
 #include "vulkan/vulkan_win32.h"
 
+#include "VulkanMemoryAllocator/vk_mem_alloc.h"
+#include "VulkanMemoryAllocator/VmaUsage.h"
+
 //IMGUI
 #include "imgui_impl_vulkan.h"
 
@@ -1127,7 +1130,7 @@ namespace SPP
 
 	}
 
-	VmaAllocator VulkanGraphicsDevice::GetVMAAllocator()
+	VmaAllocator_T *VulkanGraphicsDevice::GetVMAAllocator()
 	{
 		return _impl->vmaAlloc;
 	}
@@ -1491,6 +1494,10 @@ namespace SPP
 
 	VkQueue VulkanGraphicsDevice::GetTransferQueue() {
 		return transferQueue;
+	}
+
+	VkQueue VulkanGraphicsDevice::GetSparseQueue() {
+		return sparseQueue;
 	}
 
 	VkFramebuffer VulkanGraphicsDevice::GetActiveFrameBuffer()

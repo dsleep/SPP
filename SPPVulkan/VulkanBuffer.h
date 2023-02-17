@@ -16,6 +16,9 @@ namespace SPP
 	class VulkanBuffer : public GPUBuffer
 	{
 	protected:
+		struct PrivImpl;
+		std::unique_ptr<PrivImpl> _impl;
+
 		VkBuffer _buffer = VK_NULL_HANDLE;
 		VkDeviceMemory _memory = VK_NULL_HANDLE;
 		VkDeviceSize _size = 0;
@@ -32,11 +35,11 @@ namespace SPP
 		virtual void _MakeResident() override; 
 		virtual void _MakeUnresident() override {}
 
-		std::vector<bool> sparsePages;
 
 	public:
 		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem);
+		virtual ~VulkanBuffer();
 
 		void CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize = 0);
 
@@ -46,9 +49,8 @@ namespace SPP
 			uint32_t PageIdx;
 		};
 
-		void SetSparsePageMem(PageData *InPages, uint32_t PageCount);
+		virtual void SetSparsePageMem(BufferPageData* InPages, uint32_t PageCount) override;
 
-		virtual ~VulkanBuffer();
 		virtual void UpdateDirtyRegion(uint32_t Idx, uint32_t Count) override;
 
 		VkDescriptorBufferInfo GetDescriptorInfo()

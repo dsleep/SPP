@@ -23,9 +23,6 @@
 
 #include "VulkanPipelineState.h"
 
-#include "VulkanMemoryAllocator/vk_mem_alloc.h"
-#include "VulkanMemoryAllocator/VmaUsage.h"
-
 #include <algorithm>
 #include <assert.h>
 #include <exception>
@@ -36,6 +33,8 @@ namespace vks
 }
 
 #define MAX_IN_FLIGHT 3
+
+struct VmaAllocator_T;
 
 namespace SPP
 {
@@ -298,6 +297,8 @@ namespace SPP
 
 		VkQueue GetTransferQueue();
 
+		VkQueue GetSparseQueue();
+
 		auto GetStaticDrawPoolReservation()
 		{
 			return _staticInstanceDrawPoolManager->GetLease();
@@ -313,10 +314,9 @@ namespace SPP
 		uint8_t GetInFlightFrames();
 
 		VkCommandBuffer& GetActiveCommandBuffer();
-
 		VkCommandBuffer& GetCopyCommandBuffer();
 
-		VmaAllocator GetVMAAllocator();
+		VmaAllocator_T *GetVMAAllocator();
 
 		std::map< VulkanPipelineStateKey, GPUReferencer< VulkanPipelineState > >& GetPipelineStateMap();
 
