@@ -126,6 +126,25 @@ namespace SPP
 		virtual ~VgRig() { }
 	};
 
+	class SPP_GAMEENGINE_API VgSVVO : public VgEntity
+	{
+		RTTR_ENABLE(VgEntity);
+		RTTR_REGISTRATION_FRIEND
+
+	protected:
+		VgSVVO(const std::string& InName, SPPDirectory* InParent);
+
+		float _voxelSize = 1.0f;
+		std::unique_ptr< class SparseVirtualizedVoxelOctree > _SVVO;
+		std::shared_ptr<RT_RenderableSVVO> _renderableSVVO;
+
+	public:
+		virtual ~VgSVVO() { }
+
+		virtual void AddedToScene(class OScene* InScene) override;
+		virtual void RemovedFromScene() override;
+	};
+
 
 	SPP_GAMEENGINE_API uint32_t GetGameEngineVersion();
 }

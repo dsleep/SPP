@@ -4,6 +4,7 @@
 
 #include "SPPGameEngine.h"
 #include "SPPFileSystem.h"
+#include "SPPMath.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -104,6 +105,43 @@ namespace SPP
 
 	}
 
+	VgSVVO::VgSVVO(const std::string& InName, SPPDirectory* InParent) : VgEntity(InName, InParent)
+	{
+	}
+	
+	void VgSVVO::AddedToScene(class OScene* InScene)
+	{
+		VgEntity::AddedToScene(InScene);
+
+		_SVVO = std::make_unique< SparseVirtualizedVoxelOctree>(_translation, _scale, _voxelSize, 65536 );
+
+		if (!InScene) return;
+
+		auto thisRenderableScene = dynamic_cast<ORenderableScene*>(InScene);
+		SE_ASSERT(thisRenderableScene);
+
+		// not ready yet
+		if (!thisRenderableScene->GetGraphicsDevice()
+			|| !thisRenderableScene->GetRenderScene()) return;
+
+		auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+		_renderableSVVO = sceneGD->CreateRenderableSVVO();
+	}
+
+	void VgSVVO::RemovedFromScene()
+	{
+		VgEntity::RemovedFromScene();
+
+		if (_renderableSVVO)
+		{
+			RunOnRT([_renderableSVVO = this->_renderableSVVO]()
+			{
+				_renderableSVVO->RemoveFromRenderScene();
+			});
+			_renderableSVVO.reset();
+		}
+	}
+
 	uint32_t GetGameEngineVersion()
 	{
 		return 1;
@@ -150,4 +188,11 @@ RTTR_REGISTRATION
 			rttr::policy::ctor::as_raw_ptr
 			)
 		;
+
+	rttr::registration::class_<VgSVVO>("VgSVVO")
+		.constructor<const std::string&, SPPDirectory*>()
+		(
+			rttr::policy::ctor::as_raw_ptr
+			)
+		;	
 }

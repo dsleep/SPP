@@ -393,6 +393,8 @@ namespace SPP
 
 		virtual std::shared_ptr< class RT_RenderableMesh > CreateRenderableMesh() override;
 
+		virtual std::shared_ptr< class RT_RenderableSVVO > CreateRenderableSVVO() override;
+
 		//virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() override;
 
 		virtual std::shared_ptr< class RT_StaticMesh > CreateStaticMesh() override;

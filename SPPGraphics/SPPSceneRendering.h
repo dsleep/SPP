@@ -603,4 +603,26 @@ namespace SPP
 			_material = InArgs.material;
 		}
 	};
+
+	static constexpr uint8_t const rtMAX_VOXEL_LEVELS = 15;
+
+	class SPP_GRAPHICS_API RT_RenderableSVVO : public Renderable, public RT_Resource
+	{
+		CLASS_RT_RESOURCE();
+
+	protected:
+
+		std::shared_ptr<RT_Buffer> _sparseBuffer[rtMAX_VOXEL_LEVELS];
+
+		RT_RenderableSVVO(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
+
+	public:
+		
+		std::shared_ptr<RT_Buffer> GetBufferLevel(uint8_t InLevel)
+		{
+			return _sparseBuffer[InLevel];
+		}
+
+		virtual ~RT_RenderableSVVO() {}
+	};
 }

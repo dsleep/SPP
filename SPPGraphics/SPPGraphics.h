@@ -274,6 +274,8 @@ namespace SPP
         virtual std::shared_ptr< class RT_SunLight > CreateSunLight() = 0;
         virtual std::shared_ptr< class RT_PointLight > CreatePointLight() = 0;
 
+        virtual std::shared_ptr< class RT_RenderableSVVO > CreateRenderableSVVO() = 0;
+
         //virtual std::shared_ptr< class RT_RenderableMesh > CreateSkinnedMesh() = 0;
 
         //virtual std::shared_ptr< class RT_Material> GetDefaultMaterial() = 0;
