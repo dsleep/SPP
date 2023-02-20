@@ -478,6 +478,8 @@ namespace SPP
 
     SparseVirtualizedVoxelOctree::SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize)
     {
+        _pageSize = DesiredPageSize;
+
         Vector3i VoxelCounts = Vector3i{ roundUpToPow2( (int32_t)std::ceilf(InExtents[0] / VoxelSize) ),
             roundUpToPow2((int32_t)std::ceilf(InExtents[1] / VoxelSize)) ,
             roundUpToPow2((int32_t)std::ceilf(InExtents[2] / VoxelSize)) } * 2;

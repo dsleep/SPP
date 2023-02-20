@@ -8,6 +8,7 @@
 #include "SPPSceneO.h"
 #include "SPPGraphicsO.h"
 #include "SPPPhysX.h"
+#include "SPPSparseVirtualizedVoxelOctree.h"
 #include <string>
 
 #if _WIN32 && !defined(SPP_GAMEENGINE_STATIC)
@@ -154,6 +155,10 @@ namespace SPP
 			float radius;
 			uint8_t value;
 		};
+
+		void SetVoxelSize(float InVoxelSize) {
+			_voxelSize = InVoxelSize;
+		}
 
 		class SparseVirtualizedVoxelOctree *GetSVVO();
 

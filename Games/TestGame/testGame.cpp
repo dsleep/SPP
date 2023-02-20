@@ -102,7 +102,11 @@ public:
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
 
-		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(50, 10, 50), 0.05f, 65536);	
+		
+
+#if 0
+
+		SparseVirtualizedVoxelOctree testTree(Vector3d(0, 0, 0), Vector3(50, 10, 50), 0.05f, 65536);
 
 		testTree.BeginWrite();
 
@@ -123,8 +127,6 @@ public:
 				testTree.Set(SetPos, 200);
 			}
 		}
-
-#if 0
 
 		//testTree.Set(Vector3i{ 512, 512,2 }, 2);
 		//testTree.SetBox(Vector3d(0, 0, 0), Vector3(2, 2, 0.1f), 200);
@@ -187,29 +189,29 @@ public:
 		_graphicsDevice = GGI()->CreateGraphicsDevice();
 		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
-		auto SDFShader = _graphicsDevice->CreateShader();
-		auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
+		//auto SDFShader = _graphicsDevice->CreateShader();
+		//auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
 
-		auto gpuCommand = RunOnRT([&]()
-			{
-				sparseBuf->Initialize(testTree.GetLevelMaxSize(0));
+		//auto gpuCommand = RunOnRT([&]()
+		//	{
+		//		sparseBuf->Initialize(testTree.GetLevelMaxSize(0));
 
-				//sparseBuf->SetSparsePageMem();
-				std::vector<BufferPageData> bufferData;
-				testTree.EndWrite([&](uint8_t InLevel, uint32_t InPage, const void* InMem) {
-					if (InLevel == 0)
-					{
-						bufferData.push_back({ InMem, InPage });
-						SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
-					}
-					});
+		//		//sparseBuf->SetSparsePageMem();
+		//		std::vector<BufferPageData> bufferData;
+		//		testTree.EndWrite([&](uint8_t InLevel, uint32_t InPage, const void* InMem) {
+		//			if (InLevel == 0)
+		//			{
+		//				bufferData.push_back({ InMem, InPage });
+		//				SPP_LOG(LOG_APP, LOG_INFO, "update SVVO %u:%u", InLevel, InPage);
+		//			}
+		//			});
 
-				auto gpuBuf = sparseBuf->GetGPUBuffer();
-				gpuBuf->SetSparsePageMem(bufferData.data(), bufferData.size());
+		//		auto gpuBuf = sparseBuf->GetGPUBuffer();
+		//		gpuBuf->SetSparsePageMem(bufferData.data(), bufferData.size());
 
-				//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
-			});
-		gpuCommand.wait();
+		//		//SDFShader->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
+		//	});
+		//gpuCommand.wait();
 
 		/////////////SCENE SETUP
 
@@ -230,6 +232,9 @@ public:
 		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/voxelTest/voxelTest.spj"));
 		AddToRoot(_gameworld);
+
+		
+
 
 		auto topChildren = _gameworld->GetChildren();
 		Sphere totalBounds(Vector3d(0, 0, 0), 300);
@@ -356,6 +361,37 @@ public:
 #endif
 		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
 
+
+		auto GameObjectSVVO = AllocateObject<VgSVVO>("svvo", _gameworld);
+		GameObjectSVVO->GetScale() = Vector3(50, 10, 50);
+		GameObjectSVVO->SetVoxelSize(0.05f);
+
+		// figure out a better model
+		_gameworld->AddChild(GameObjectSVVO);
+
+
+		{
+			auto directSVVO = GameObjectSVVO->GetSVVO();
+			auto curDimensions = directSVVO->GetDimensions();
+
+			// Create and configure FastNoise object
+			FastNoiseLite noise;
+			noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+
+			for (int32_t IterZ = 200; IterZ < curDimensions[2] - 200; IterZ++)
+			{
+				for (int32_t IterX = 200; IterX < curDimensions[0] - 200; IterX++)
+				{
+					auto noiseValue = noise.GetNoise((float)IterX, (float)IterZ) * 0.5f + 0.5f;
+
+					Vector3i SetPos(IterX, (noiseValue * 40) + (curDimensions[1] / 2 - 40), IterZ);
+
+					directSVVO->Set(SetPos, 200);
+				}
+			}
+		}
+
+		GameObjectSVVO->FullRTUpdate();
 
 		_gameworld->GetOctree()->Report();
 

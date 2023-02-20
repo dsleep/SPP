@@ -40,6 +40,8 @@ namespace SPP
         float _invVoxelSize = 0;
         uint32_t _dirtyCounter = 0;
 
+        uint32_t _pageSize = 0;
+
         std::vector < std::unique_ptr< struct SVVOLevel > > _levels;
         std::array< std::vector< uint32_t >, MAX_VOXEL_LEVELS > _dirtyPages;
 
@@ -90,7 +92,10 @@ namespace SPP
             return _dimensions;
         }
         uint8_t GetUnScaledAtLevel(const Vector3i& InPos, uint8_t InLevel);
-
+        auto GetPageSize() const
+        {
+            return _pageSize;
+        }
         
 
         bool CastRay(const Ray& InRay, VoxelHitInfo &oInfo);

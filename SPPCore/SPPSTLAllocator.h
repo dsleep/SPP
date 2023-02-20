@@ -87,3 +87,107 @@
 //		::operator delete((void*)p);
 //	}
 //};
+
+#pragma once
+
+#include <functional>
+
+template <typename T>
+class stack_allocator 
+{
+    template<typename> friend class stack_allocator;
+
+public:
+    typedef size_t size_type;
+    typedef ptrdiff_t difference_type;
+    typedef T* pointer;
+    typedef const T* const_pointer;
+    typedef T& reference;
+    typedef const T& const_reference;
+    typedef T value_type;
+
+    template<typename T2>
+    struct rebind {
+        typedef stack_allocator<T2> other;
+    };
+
+private:
+    T* ptr;
+    size_t currentSize, maxSize;
+
+public:
+    stack_allocator() noexcept :
+        ptr(nullptr),
+        currentSize(0),
+        maxSize(0) {
+    }
+
+    stack_allocator(T* buffer, size_t size) noexcept :
+        ptr(buffer),
+        currentSize(0),
+        maxSize(size) {
+    }
+
+    template <typename T2>
+    explicit stack_allocator(const stack_allocator<T2>& other) noexcept :
+        ptr(reinterpret_cast<T*>(other.ptr)),
+        currentSize(other.currentSize),
+        maxSize(other.maxSize) {
+    }
+
+    T* allocate(size_t n, const void* hint = nullptr) {
+        T* pointer = ptr + currentSize;
+        currentSize += n;
+        return pointer;
+    }
+
+    void deallocate(T* p, size_t n) {
+        currentSize -= n;
+    }
+
+    size_t capacity() const noexcept {
+        return maxSize;
+    }
+
+    size_t max_size() const noexcept {
+        return maxSize;
+    }
+
+    T* address(T& x) const noexcept {
+        return &x;
+    }
+
+    const T* address(const T& x) const noexcept {
+        return &x;
+    }
+
+    T* buffer() const noexcept {
+        return ptr;
+    }
+
+    template <typename T2>
+    stack_allocator& operator=(const stack_allocator<T2>& alloc) {
+        return *this;
+    }
+
+    template <typename... Args>
+    void construct(T* p, Args&&... args) {
+        new (p) T(forward<Args>(args)...);
+    }
+
+    void destroy(T* p) {
+        p->~T();
+    }
+
+    template <typename T2>
+    bool operator==(const stack_allocator<T2>& other) const noexcept {
+        return ptr == other.ptr;
+    }
+
+    template <typename T2>
+    bool operator!=(const stack_allocator<T2>& other) const noexcept {
+        return ptr != other.ptr;
+    }
+};
+
+//#define init_stack_vector(Type, Name, Size) std::vector<Type, std::stack_allocator<Type>> Name((std::stack_allocator<Type>(reinterpret_cast<Type*>(alloca(Size * sizeof(Type))), Size))); Name.reserve(Size)

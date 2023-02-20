@@ -7,6 +7,7 @@
 #include "SPPMath.h"
 #include "SPPSparseVirtualizedVoxelOctree.h"
 
+#include <utility>
 SPP_OVERLOAD_ALLOCATORS
 
 namespace SPP
@@ -149,16 +150,45 @@ namespace SPP
 			});
 
 		_renderableSVVO->AddToRenderScene(thisRenderableScene->GetRenderScene());
+
+		auto levelCount = _SVVO->GetLevelCount();
 	}
 
 	void VgSVVO::FullRTUpdate()
 	{
 		auto TotalActivePages = _SVVO->GetActivePageCount();
+		auto pageSize = _SVVO->GetPageSize();
 
-		//rebuild it up
-		_SVVO->TouchAllActivePages([&](uint8_t InLevel, uint32_t InPage, const void* InMem) {
-			
+		std::vector<BufferPageData> bufferData[MAX_VOXEL_LEVELS];
+
+		uint32_t curoffset = 0;
+		auto memData = std::make_shared< std::vector<uint8_t> >();
+		memData->resize(TotalActivePages * pageSize);
+		auto TotalSize = memData->size();
+		// backup pages
+		_SVVO->TouchAllActivePages([&, directData = memData->data()](uint8_t InLevel, uint32_t InPage, const void* InMem) {
+			SE_ASSERT(curoffset < TotalSize);
+
+			memcpy(directData + curoffset, InMem, pageSize);
+			bufferData[InLevel].push_back({ directData + curoffset, InPage});
+			curoffset += pageSize;			
 		});
+		SE_ASSERT(curoffset == TotalSize);
+
+		RunOnRT([_renderableSVVO = this->_renderableSVVO, bufferData, memData]() mutable
+			{
+				auto directData = memData->data();
+				for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
+				{
+					auto& thisStoredLevel = bufferData[Iter];
+					auto& thisBufLevel = _renderableSVVO->GetBufferLevel(Iter);
+					_renderableSVVO->GetOwner()->CreateBuffer(GPUBufferType::Sparse);
+					if (thisStoredLevel.size())
+					{
+						thisBufLevel->GetGPUBuffer()->SetSparsePageMem(thisStoredLevel.data(), thisStoredLevel.size());
+					}					
+				}
+			});
 	}
 
 	void VgSVVO::RemovedFromScene()
