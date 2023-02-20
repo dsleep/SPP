@@ -5,6 +5,7 @@
 #include "SPPGameEngine.h"
 #include "SPPFileSystem.h"
 #include "SPPMath.h"
+#include "SPPSparseVirtualizedVoxelOctree.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -108,12 +109,22 @@ namespace SPP
 	VgSVVO::VgSVVO(const std::string& InName, SPPDirectory* InParent) : VgEntity(InName, InParent)
 	{
 	}
+
+	SparseVirtualizedVoxelOctree* VgSVVO::GetSVVO()
+	{
+		return _SVVO.get();
+	}
+
+	void VgSVVO::SendUpdates(UpdateMsg* InMsgs, uint32_t InMsgCount)
+	{
+
+	}
 	
 	void VgSVVO::AddedToScene(class OScene* InScene)
 	{
 		VgEntity::AddedToScene(InScene);
 
-		_SVVO = std::make_unique< SparseVirtualizedVoxelOctree>(_translation, _scale, _voxelSize, 65536 );
+		_SVVO = std::make_unique<SparseVirtualizedVoxelOctree>(_translation, _scale, _voxelSize, 65536 );
 
 		if (!InScene) return;
 
@@ -126,6 +137,28 @@ namespace SPP
 
 		auto sceneGD = thisRenderableScene->GetGraphicsDevice();
 		_renderableSVVO = sceneGD->CreateRenderableSVVO();
+
+		_bounds = Sphere(_translation, _scale.maxCoeff());
+
+		_renderableSVVO->SetArgs({
+			.position = _translation,
+			.eulerRotationYPR = _rotation,
+			.scale = _scale,
+			.bIsStatic = _bIsStatic,
+			.bounds = _bounds
+			});
+
+		_renderableSVVO->AddToRenderScene(thisRenderableScene->GetRenderScene());
+	}
+
+	void VgSVVO::FullRTUpdate()
+	{
+		auto TotalActivePages = _SVVO->GetActivePageCount();
+
+		//rebuild it up
+		_SVVO->TouchAllActivePages([&](uint8_t InLevel, uint32_t InPage, const void* InMem) {
+			
+		});
 	}
 
 	void VgSVVO::RemovedFromScene()

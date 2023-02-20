@@ -85,7 +85,8 @@ namespace SPP
 		Unknown = 0,
 		Mesh = 1,
 		Particle = 2,
-		Light = 3
+		Light = 3,
+		Voxels = 4
 	};	
 
 	class SPP_GRAPHICS_API Renderable : public IOctreeElement
@@ -612,13 +613,18 @@ namespace SPP
 
 	protected:
 
+		float _voxelSize = 1.0f;
+		Vector3i _dimensions = { 0,0,0 };
+
 		std::shared_ptr<RT_Buffer> _sparseBuffer[rtMAX_VOXEL_LEVELS];
 
 		RT_RenderableSVVO(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
 
 	public:
+
+		virtual RenderableType GetType() const override { return RenderableType::Voxels; }
 		
-		std::shared_ptr<RT_Buffer> GetBufferLevel(uint8_t InLevel)
+		std::shared_ptr<RT_Buffer> &GetBufferLevel(uint8_t InLevel)
 		{
 			return _sparseBuffer[InLevel];
 		}

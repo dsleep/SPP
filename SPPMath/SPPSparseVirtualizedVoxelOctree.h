@@ -74,6 +74,9 @@ namespace SPP
         void BeginWrite();
         void EndWrite(const std::function<void(uint8_t, uint32_t, const void*)>& InCallback);
 
+        uint32_t GetActivePageCount() const;
+        void TouchAllActivePages(const std::function<void(uint8_t, uint32_t, const void*)>& InCallback);
+
         void SetBox(const Vector3d& InCenter, const Vector3& InExtents, uint8_t InValue);
         void SetSphere(const Vector3d& InCenter, float InRadius, uint8_t InValue);
 

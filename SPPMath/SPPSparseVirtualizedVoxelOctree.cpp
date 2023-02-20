@@ -71,6 +71,16 @@ namespace SPP
             SystemInfoInit();
         }
 
+        auto& GetPageBoolArray() { return _pages; }
+        auto GetBasePtr() { return _basePtr; }
+        auto GetPageSize() const
+        {
+            return _pageSize;
+        }
+        uint32_t GetActivePageCount() const {
+            return (uint32_t) _activePages;
+        }
+
         void Initialize(const Vector3i &InDimensions, size_t DataTypeSize, size_t DesiredPageSize, bool IsTop)
         {
             _bTopLevel = IsTop;
@@ -975,6 +985,32 @@ namespace SPP
         }
     }
 
+    uint32_t SparseVirtualizedVoxelOctree::GetActivePageCount() const
+    {
+        uint32_t pageCount = 0;
+        for (uint8_t Iter = 0; Iter < _levels.size(); Iter++)
+        {
+            auto curLevel = _levels[Iter].get();
+            pageCount += curLevel->GetActivePageCount();
+        }
+        return pageCount;
+    }
+    
+    void SparseVirtualizedVoxelOctree::TouchAllActivePages(const std::function<void(uint8_t, uint32_t, const void*)>& InCallback)
+    {
+        for (uint8_t Iter = 0; Iter < _levels.size(); Iter++)
+        {
+            auto curLevel = _levels[Iter].get();
+            auto& boolArray = curLevel->GetPageBoolArray();           
+            for (uint8_t pageIter = 0; pageIter < boolArray.size(); pageIter++)
+            {
+                if(boolArray[pageIter])
+                {
+                    InCallback(Iter, pageIter, _levels[Iter]->GetPageMemory(pageIter));
+                }
+            }
+        }
+    }
 #if 0
 
     [[no discard]] bool rayBoxIntersection(const Ray& ray, const Grid3D& grid, value_type& tMin, value_type& tMax,

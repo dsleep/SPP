@@ -141,6 +141,26 @@ namespace SPP
 	public:
 		virtual ~VgSVVO() { }
 
+		enum class UpdateType
+		{
+			Set,
+			Paint
+		};
+
+		struct UpdateMsg
+		{
+			UpdateType type;
+			Vector3d location;
+			float radius;
+			uint8_t value;
+		};
+
+		class SparseVirtualizedVoxelOctree *GetSVVO();
+
+		void SendUpdates(UpdateMsg *InMsgs, uint32_t InMsgCount);
+
+		void FullRTUpdate();
+
 		virtual void AddedToScene(class OScene* InScene) override;
 		virtual void RemovedFromScene() override;
 	};
