@@ -100,9 +100,16 @@ namespace SPP
             return _pageSize;
         }
         
+        struct LevelInfo
+        {            
+            uint32_t PageSize;
+            size_t MaxSize;
+            bool bIsVirtual;
+        };
 
-        bool CastRay(const Ray& InRay, VoxelHitInfo &oInfo);
-      
+        std::vector< LevelInfo > GetLevelInfos() const;
+
+        bool CastRay(const Ray& InRay, VoxelHitInfo &oInfo);      
         void GetSlice(const Vector3d& InPosition, EAxis::Value InAxisIsolate, int32_t CurLevel, int32_t &oX, int32_t& oY, std::vector<Color3> &oSliceData );
     };
 }

@@ -111,7 +111,7 @@ namespace SPP
             SPP_LOG(LOG_SVVO, LOG_INFO, " - desired page size: %d", _pageSize);
 
             // less than 10 pages
-            if (_maximumSize < _pageSize * 10)
+            if (_maximumSize <= _pageSize)
             {
                 _bVirtualAlloc = false;
                 _vCubeVoxelDimensions = InDimensions;
@@ -427,6 +427,11 @@ namespace SPP
 
         bool IsLevelVirtual() const {
             return _bVirtualAlloc;
+        }
+
+        SparseVirtualizedVoxelOctree::LevelInfo GetLevelInfo() const
+        {
+            return { (uint32_t)_pageSize, _maximumSize, _bVirtualAlloc };
         }
 
         SVVOLevel(SVVOLevel const&) = delete;
@@ -985,6 +990,19 @@ namespace SPP
     bool SparseVirtualizedVoxelOctree::IsLevelVirtual(uint8_t InLevel) const
     {
         return _levels[InLevel]->IsLevelVirtual();
+    }
+
+    std::vector< SparseVirtualizedVoxelOctree::LevelInfo > SparseVirtualizedVoxelOctree::GetLevelInfos() const
+    {
+        std::vector< SparseVirtualizedVoxelOctree::LevelInfo > oInfos;
+        oInfos.reserve(_levels.size());
+
+        for (auto &curLevel : _levels)
+        {
+            oInfos.push_back(curLevel->GetLevelInfo());
+        }
+
+        return oInfos;
     }
 
     void SparseVirtualizedVoxelOctree::BeginWrite()

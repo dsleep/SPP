@@ -151,65 +151,64 @@ namespace SPP
 
 		_renderableSVVO->AddToRenderScene(thisRenderableScene->GetRenderScene());
 
-		auto levelCount = _SVVO->GetLevelCount();
+		auto levelInfos = _SVVO->GetLevelInfos();
 
-		for (uint32_t Iter = 0; Iter < levelCount; Iter++)
+		for (uint32_t Iter = 0; Iter < levelInfos.size(); Iter++)
 		{
 			auto &curBuffer = _renderableSVVO->GetBufferLevel(Iter);
-			curBuffer = sceneGD->CreateBuffer(
-				_SVVO->IsLevelVirtual(Iter) ? GPUBufferType::Sparse : GPUBufferType::Array);
+			curBuffer = sceneGD->CreateBuffer(levelInfos[Iter].bIsVirtual ? GPUBufferType::Sparse : GPUBufferType::Array);
 		}
-
 	}
 
 	void VgSVVO::FullRTUpdate()
 	{
 		auto TotalActivePages = _SVVO->GetActivePageCount();
-		auto pageSize = _SVVO->GetPageSize();
-
-		std::vector<uint32_t> LevelSizes;
-		std::vector<uint32_t> LevelPagesSizes;
+		
+		auto levelInfos = _SVVO->GetLevelInfos();
 		std::vector<BufferPageData> bufferData[MAX_VOXEL_LEVELS];
-
-		auto levelCount = _SVVO->GetLevelCount();
-
-		for (uint32_t Iter = 0; Iter < levelCount; Iter++)
-		{
-			LevelSizes.push_back(_SVVO->GetLevelMaxSize(Iter));
-			LevelPagesSizes.push_back(_SVVO->GetLevelPageSize(Iter));
-		}
 
 		uint32_t curoffset = 0;
 		auto memData = std::make_shared< std::vector<uint8_t> >();
-		memData->resize(TotalActivePages * pageSize);
+		// create max size possible
+		memData->resize(TotalActivePages * levelInfos.front().PageSize);
 		auto TotalSize = memData->size();
 		// backup pages
 		_SVVO->TouchAllActivePages([&, directData = memData->data()](uint8_t InLevel, uint32_t InPage, const void* InMem) {
 			SE_ASSERT(curoffset < TotalSize);
 
-			auto currentPageSize = LevelPagesSizes[InLevel];
+			auto currentPageSize = levelInfos[InLevel].PageSize;
 			memcpy(directData + curoffset, InMem, currentPageSize);
 			bufferData[InLevel].push_back({ directData + curoffset, InPage});
 			curoffset += currentPageSize;
 		});
 		
-		RunOnRT([_renderableSVVO = this->_renderableSVVO, bufferData, LevelSizes, memData]() mutable
+		RunOnRT([_renderableSVVO = this->_renderableSVVO, bufferData, levelInfos, memData]() mutable
 			{
 				auto directData = memData->data();
-				for (int32_t Iter = 0; Iter < LevelSizes.size(); Iter++)
+				for (int32_t Iter = 0; Iter < levelInfos.size(); Iter++)
 				{
 					auto& thisStoredLevel = bufferData[Iter];
 					auto& thisBufLevel = _renderableSVVO->GetBufferLevel(Iter);
-					
-					std::shared_ptr< ArrayResource > newData = std::make_shared< ArrayResource >();
-					newData->InitializeFromType(
 
-					thisBufLevel->Initialize(LevelSizes[Iter]);
-					
-					if (thisStoredLevel.size())
+					if (levelInfos[Iter].bIsVirtual)
 					{
-						thisBufLevel->GetGPUBuffer()->SetSparsePageMem(thisStoredLevel.data(), thisStoredLevel.size());
-					}					
+						SE_ASSERT(thisBufLevel->GetType() == GPUBufferType::Sparse);
+						thisBufLevel->Initialize(levelInfos[Iter].MaxSize);
+
+						if (thisStoredLevel.size())
+						{
+							thisBufLevel->GetGPUBuffer()->SetSparsePageMem(thisStoredLevel.data(), thisStoredLevel.size());
+						}
+					}
+					else
+					{
+						SE_ASSERT(thisStoredLevel.size() == 1);
+						SE_ASSERT(thisBufLevel->GetType() == GPUBufferType::Array);
+						
+						std::shared_ptr< ArrayResource > newData = std::make_shared< ArrayResource >();
+						newData->InitializeFromType<uint8_t>((uint8_t*)thisStoredLevel.front().Data, levelInfos[Iter].MaxSize);
+						thisBufLevel->Initialize(newData);
+					}				
 				}
 			});
 	}
