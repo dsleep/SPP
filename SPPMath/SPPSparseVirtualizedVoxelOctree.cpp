@@ -204,6 +204,11 @@ namespace SPP
             return SizeInfo{ _activePages, allocatedPageSize, TotalSum };            
         }
 
+        uint32_t GetLevelPageSize() const
+        {
+            return _pageSize;
+        }
+
         uint32_t GetMaxSize() const
         {
             return (uint32_t) _maximumSize;
@@ -418,6 +423,10 @@ namespace SPP
             }
             
             return *(T*)(_basePtr + pageAndMem.memoffset);
+        }
+
+        bool IsLevelVirtual() const {
+            return _bVirtualAlloc;
         }
 
         SVVOLevel(SVVOLevel const&) = delete;
@@ -963,9 +972,19 @@ namespace SPP
         return false;
     }
 
+    uint32_t SparseVirtualizedVoxelOctree::GetLevelPageSize(uint8_t InLevel) const
+    {
+        return _levels[InLevel]->GetLevelPageSize();
+    }
+
     uint32_t SparseVirtualizedVoxelOctree::GetLevelMaxSize(uint8_t InLevel) const
     {
         return _levels[InLevel]->GetMaxSize();
+    }
+
+    bool SparseVirtualizedVoxelOctree::IsLevelVirtual(uint8_t InLevel) const
+    {
+        return _levels[InLevel]->IsLevelVirtual();
     }
 
     void SparseVirtualizedVoxelOctree::BeginWrite()
@@ -1000,11 +1019,11 @@ namespace SPP
     
     void SparseVirtualizedVoxelOctree::TouchAllActivePages(const std::function<void(uint8_t, uint32_t, const void*)>& InCallback)
     {
-        for (uint8_t Iter = 0; Iter < _levels.size(); Iter++)
+        for (uint32_t Iter = 0; Iter < _levels.size(); Iter++)
         {
             auto curLevel = _levels[Iter].get();
             auto& boolArray = curLevel->GetPageBoolArray();           
-            for (uint8_t pageIter = 0; pageIter < boolArray.size(); pageIter++)
+            for (uint32_t pageIter = 0; pageIter < boolArray.size(); pageIter++)
             {
                 if(boolArray[pageIter])
                 {

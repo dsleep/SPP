@@ -32,6 +32,15 @@ namespace SPP
         }
 
         template<typename T>
+        void InitializeFromType(const T* InData, size_t Count)
+        {
+            _perElementSize = sizeof(T);
+            _elementCount = Count;
+            _data.resize(_elementCount * _perElementSize);
+            memcpy(_data.data(), InData, _data.size());
+        }
+
+        template<typename T>
         TSpan<T> GetSpan()
         {
             SE_ASSERT(_perElementSize == sizeof(T));

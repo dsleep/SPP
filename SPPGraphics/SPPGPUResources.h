@@ -796,6 +796,11 @@ namespace SPP
         {
             _buffer = _owner->_gxCreateBuffer(_type, BufferSize);
         }
+        virtual void Initialize(std::shared_ptr< ArrayResource > InCpuData)
+        {
+            _buffer = _owner->_gxCreateBuffer(_type, InCpuData);
+        }
+
 
 
         GPUReferencer< GPUBuffer > GetGPUBuffer()

@@ -152,6 +152,14 @@ namespace SPP
 		_renderableSVVO->AddToRenderScene(thisRenderableScene->GetRenderScene());
 
 		auto levelCount = _SVVO->GetLevelCount();
+
+		for (uint32_t Iter = 0; Iter < levelCount; Iter++)
+		{
+			auto &curBuffer = _renderableSVVO->GetBufferLevel(Iter);
+			curBuffer = sceneGD->CreateBuffer(
+				_SVVO->IsLevelVirtual(Iter) ? GPUBufferType::Sparse : GPUBufferType::Array);
+		}
+
 	}
 
 	void VgSVVO::FullRTUpdate()
@@ -159,7 +167,17 @@ namespace SPP
 		auto TotalActivePages = _SVVO->GetActivePageCount();
 		auto pageSize = _SVVO->GetPageSize();
 
+		std::vector<uint32_t> LevelSizes;
+		std::vector<uint32_t> LevelPagesSizes;
 		std::vector<BufferPageData> bufferData[MAX_VOXEL_LEVELS];
+
+		auto levelCount = _SVVO->GetLevelCount();
+
+		for (uint32_t Iter = 0; Iter < levelCount; Iter++)
+		{
+			LevelSizes.push_back(_SVVO->GetLevelMaxSize(Iter));
+			LevelPagesSizes.push_back(_SVVO->GetLevelPageSize(Iter));
+		}
 
 		uint32_t curoffset = 0;
 		auto memData = std::make_shared< std::vector<uint8_t> >();
@@ -169,20 +187,25 @@ namespace SPP
 		_SVVO->TouchAllActivePages([&, directData = memData->data()](uint8_t InLevel, uint32_t InPage, const void* InMem) {
 			SE_ASSERT(curoffset < TotalSize);
 
-			memcpy(directData + curoffset, InMem, pageSize);
+			auto currentPageSize = LevelPagesSizes[InLevel];
+			memcpy(directData + curoffset, InMem, currentPageSize);
 			bufferData[InLevel].push_back({ directData + curoffset, InPage});
-			curoffset += pageSize;			
+			curoffset += currentPageSize;
 		});
-		SE_ASSERT(curoffset == TotalSize);
-
-		RunOnRT([_renderableSVVO = this->_renderableSVVO, bufferData, memData]() mutable
+		
+		RunOnRT([_renderableSVVO = this->_renderableSVVO, bufferData, LevelSizes, memData]() mutable
 			{
 				auto directData = memData->data();
-				for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
+				for (int32_t Iter = 0; Iter < LevelSizes.size(); Iter++)
 				{
 					auto& thisStoredLevel = bufferData[Iter];
 					auto& thisBufLevel = _renderableSVVO->GetBufferLevel(Iter);
-					_renderableSVVO->GetOwner()->CreateBuffer(GPUBufferType::Sparse);
+					
+					std::shared_ptr< ArrayResource > newData = std::make_shared< ArrayResource >();
+					newData->InitializeFromType(
+
+					thisBufLevel->Initialize(LevelSizes[Iter]);
+					
 					if (thisStoredLevel.size())
 					{
 						thisBufLevel->GetGPUBuffer()->SetSparsePageMem(thisStoredLevel.data(), thisStoredLevel.size());
