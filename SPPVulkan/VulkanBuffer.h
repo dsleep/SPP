@@ -37,8 +37,8 @@ namespace SPP
 
 
 	public:
-		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
-		VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem);
+		VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+		VulkanBuffer(GPUBufferType InType, size_t BufferSize, bool IsCPUMem);
 		virtual ~VulkanBuffer();
 
 		void CopyTo(VkCommandBuffer cmdBuf, VulkanBuffer& DstBuf, size_t InCopySize = 0);
@@ -114,5 +114,5 @@ namespace SPP
 		void FrameCompleted(uint8_t FrameIdx);
 	};
 
-	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 }

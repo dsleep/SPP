@@ -49,21 +49,12 @@ namespace SPP
 	protected:
 		ORenderableScene(const std::string& InName, SPPDirectory* InParent);
 		std::shared_ptr<RT_RenderScene> _renderScene;
-		class GraphicsDevice* _owningDevice = nullptr;
 
 	public:
 		RT_RenderScene* GetRenderScene()
 		{
 			return _renderScene.get();
 		}
-
-		class GraphicsDevice *GetGraphicsDevice()
-		{
-			return _owningDevice;
-		}
-
-		virtual void AddToGraphicsDevice(GraphicsDevice* InGraphicsDevice);
-		virtual void RemoveFromGraphicsDevice();
 
 		virtual ~ORenderableScene();
 	};
@@ -98,7 +89,7 @@ namespace SPP
 
 		virtual ~OTexture() { }
 
-		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void InitializeGraphicsDeviceResources();
 		virtual void UinitializeGraphicsDeviceResources();
 	};
 
@@ -126,7 +117,7 @@ namespace SPP
 			return _mesh;
 		}
 
-		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void InitializeGraphicsDeviceResources();
 		virtual void UinitializeGraphicsDeviceResources();
 
 		std::shared_ptr<RT_StaticMesh> GetDeviceMesh()
@@ -169,7 +160,7 @@ namespace SPP
 			return _shader;
 		}
 
-		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void InitializeGraphicsDeviceResources();
 		virtual void UinitializeGraphicsDeviceResources();
 	};
 
@@ -400,7 +391,7 @@ namespace SPP
 		virtual bool Finalize() override { UinitializeGraphicsDeviceResources(); return true; }
 
 	public:
-		virtual void InitializeGraphicsDeviceResources(GraphicsDevice* InOwner);
+		virtual void InitializeGraphicsDeviceResources();
 		virtual void UinitializeGraphicsDeviceResources();
 
 		template<typename T>

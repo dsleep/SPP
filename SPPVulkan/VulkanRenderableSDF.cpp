@@ -25,7 +25,7 @@ namespace SPP
 	extern LogEntry LOG_VULKAN;
 
 	// lazy externs
-	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	
 	class VulkanSDF : public RT_RenderableSignedDistanceField
 	{
@@ -49,7 +49,7 @@ namespace SPP
 
 		virtual void _AddToRenderScene(class RT_RenderScene* InScene) override;
 	public:
-		VulkanSDF(GraphicsDevice* InOwner) : RT_RenderableSignedDistanceField(InOwner) {}
+		VulkanSDF() {}
 		virtual void Draw() override;
 		virtual void DrawDebug(std::vector< DebugVertex >& lines) override;
 	};
@@ -64,15 +64,15 @@ namespace SPP
 
 	public:
 		// called on render thread
-		GlobalVulkanSDFResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
+		GlobalVulkanSDFResources()
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+			auto owningDevice = GGlobalVulkanGI;
 
 			//std::dynamic_pointer_cast<RT_Vulkan_Material>
-			_CS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_CS = Make_GPU(VulkanShader, EShaderType::Compute);
 			_CS->CompileShaderFromFile("shaders/SignedDistanceFieldCompute.hlsl", "main_cs");
 
-			_PSO = VulkanPipelineStateBuilder(InOwner).Set(_CS).Build();
+			_PSO = VulkanPipelineStateBuilder().Set(_CS).Build();
 		}
 
 		auto GetPSO()
@@ -90,7 +90,7 @@ namespace SPP
 	
 	std::shared_ptr< class RT_RenderableSignedDistanceField > VulkanGraphicsDevice::CreateSignedDistanceField()
 	{
-		return std::make_shared<VulkanSDF>(this);
+		return std::make_shared<VulkanSDF>();
 	}
 
 	void VulkanSDF::_AddToRenderScene(class RT_RenderScene* InScene)
@@ -107,20 +107,20 @@ namespace SPP
 			_shapeResource = std::make_shared< ArrayResource >();
 			auto pShapes = _shapeResource->InitializeFromType<SDFShape>(_shapes.size());
 			memcpy(pShapes, _shapes.data(), _shapeResource->GetTotalSize());
-			_shapeBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Array, _shapeResource);
+			_shapeBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Array, _shapeResource);
 
 			_drawParams = std::make_shared< ArrayResource >();
 			auto pDrawParams = _drawParams->InitializeFromType< GPUDrawParams >(1);
 			pDrawParams[0].ShapeColor = Vector3(1, 0, 0);
 			pDrawParams[0].ShapeCount = _shapes.size();
-			_drawParamsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawParams);
+			_drawParamsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawParams);
 
 			_drawConstants = std::make_shared< ArrayResource >();
 			auto uniformData = _drawConstants->InitializeFromType<GPUDrawConstants>(1);
 			auto& curData = uniformData[0];
 			curData.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.Translation = _position;
-			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawConstants);
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
 			bPendingUpdate = false;
 
 			//if (_customShader)

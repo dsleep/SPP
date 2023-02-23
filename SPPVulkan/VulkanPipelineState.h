@@ -44,13 +44,11 @@ namespace SPP
 	class VulkanPipelineStateBuilder
 	{
 	private:
-		GraphicsDevice* _owner = nullptr;
-
 		struct Impl;
 		std::unique_ptr<Impl> _impl;
 
 	public:
-		VulkanPipelineStateBuilder(GraphicsDevice* InOwner);
+		VulkanPipelineStateBuilder();
 		~VulkanPipelineStateBuilder();
 
 		/// <summary>
@@ -115,7 +113,7 @@ namespace SPP
 		virtual void _MakeUnresident() override {}
 
 	public:
-		VulkanPipelineState(GraphicsDevice* InOwner);
+		VulkanPipelineState();
 		virtual ~VulkanPipelineState();
 
 		const VkPipeline& GetVkPipeline();

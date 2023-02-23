@@ -156,16 +156,14 @@ namespace SPP
     #define Make_RT_Resource(T,...) _Make_RT_Resource<T>( __LINE__, __FILE__, ##__VA_ARGS__); 
     #define CLASS_RT_RESOURCE() \
             template<typename T, typename ... Args> \
-            friend std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, class GraphicsDevice* InOwner, Args&& ... args);
+            friend std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, Args&& ... args);
 
     class SPP_GRAPHICS_API RT_Resource : public inheritable_enable_shared_from_this< RT_Resource >
     {
         CLASS_RT_RESOURCE();
 
     protected:
-        GraphicsDevice* _owner = nullptr;
-
-        RT_Resource(GraphicsDevice* InOwner) : _owner(InOwner)
+        RT_Resource()
         {
             SE_ASSERT(IsOnCPUThread());
         }
@@ -177,20 +175,12 @@ namespace SPP
             SE_ASSERT(IsMainActive());
             SE_ASSERT(IsOnGPUThread());
         }
-
-        auto GetOwner() const
-        {
-            return _owner;
-        }
     };      
   
     class SPP_GRAPHICS_API GlobalGraphicsResource
     {
-    protected:
-        class GraphicsDevice* _owner = nullptr;
-
     public:
-        GlobalGraphicsResource(class GraphicsDevice* InOwner);
+        GlobalGraphicsResource();
         virtual ~GlobalGraphicsResource();
     };
 
@@ -285,23 +275,27 @@ namespace SPP
         virtual void DrawDebugText(const Vector2i& InPosition, const char* Text, const Color3& InColor = Color3(255,255,255)) {}
     };
 
+ 
 
-    template<typename T, typename ... Args>
-    std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, class GraphicsDevice* InOwner, Args&& ... args)
-    {        
-        auto Sp = std::shared_ptr<T>(new T(InOwner, args...));
-        InOwner->PushRenderThreadResource(Sp);
-        return Sp;
-    }
 
     struct IGraphicsInterface
     {
-        virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() = 0;
+        virtual void CreateGraphicsDevice() = 0;
+        virtual void DestroyraphicsDevice() = 0;
 
-        //virtual void BeginResourceCopies() { }
-        //virtual void EndResourceCopies() { }
-
-        //virtual bool RegisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
-        //virtual bool UnregisterMeshElement(std::shared_ptr<struct MeshElement> InMeshElement) { return true; };
+        virtual GraphicsDevice* GetGraphicsDevice() = 0;
     };
+
+    // global graphics interface
+    SPP_GRAPHICS_API IGraphicsInterface* GGI();
+    SPP_GRAPHICS_API void SET_GGI(IGraphicsInterface* InGraphicsIterface);
+
+
+    template<typename T, typename ... Args>
+    std::shared_ptr<T> _Make_RT_Resource(int line, const char* file, Args&& ... args)
+    {
+        auto Sp = std::shared_ptr<T>(new T(args...));
+        GGI()->GetGraphicsDevice()->PushRenderThreadResource(Sp);
+        return Sp;
+    }
 }

@@ -33,7 +33,7 @@ namespace SPP
 		CLASS_RT_RESOURCE();
 
 	protected:
-		RT_VulkanStaticMesh(GraphicsDevice* InOwner) : RT_StaticMesh(InOwner) {}
+		RT_VulkanStaticMesh() {}
 
 	public:
 		virtual void Initialize() override;
@@ -52,7 +52,7 @@ namespace SPP
 
 		bool bPendingUpdate = false;
 
-		RT_VulkanRenderableMesh(GraphicsDevice* InOwner) : RT_RenderableMesh(InOwner) {}
+		RT_VulkanRenderableMesh() {}
 	public:
 
 		auto GetStaticDrawBufferIndex()
@@ -81,7 +81,7 @@ namespace SPP
 		CLASS_RT_RESOURCE();
 
 	protected:
-		RT_Vulkan_Material(GraphicsDevice* InOwner) : RT_Material(InOwner) {}
+		RT_Vulkan_Material() {}
 
 	public:
 		virtual ~RT_Vulkan_Material() {}

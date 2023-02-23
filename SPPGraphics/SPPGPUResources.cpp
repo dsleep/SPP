@@ -36,9 +36,34 @@ namespace SPP
 		return stringValues[(uint8_t)InValue];
 	}
 
+	//RT_Shader
+	void RT_Shader::Initialize(EShaderType InType)
+	{
+		_shader = GGI()->GetGraphicsDevice()->_gxCreateShader(InType);
+	}
+	bool RT_Shader::CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint, std::string* oErrorMsgs)
+	{
+		return _shader->CompileShaderFromFile(FileName, EntryPoint, oErrorMsgs);
+	}
+	bool RT_Shader::CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint, std::string* oErrorMsgs)
+	{
+		return _shader->CompileShaderFromString(ShaderSource, ShaderName, EntryPoint, oErrorMsgs);
+	}	
+
+	//RT_Buffer
+	void RT_Buffer::Initialize(size_t BufferSize)
+	{
+		_buffer = GGI()->GetGraphicsDevice()->_gxCreateBuffer(_type, BufferSize);
+	}
+	void RT_Buffer::Initialize(std::shared_ptr< ArrayResource > InCpuData)
+	{
+		_buffer = GGI()->GetGraphicsDevice()->_gxCreateBuffer(_type, InCpuData);
+	}
+
+	//RT_Texture
 	void RT_Texture::Initialize(const struct TextureAsset& TextureAsset)
 	{
-		_texture = _owner->_gxCreateTexture(TextureAsset);
+		_texture = GGI()->GetGraphicsDevice()->_gxCreateTexture(TextureAsset);
 	}
 	GPUReferencer< GPUTexture > RT_Texture::GetGPUTexture()
 	{
@@ -76,19 +101,26 @@ namespace SPP
 	//	}
 	//};
 
-	GPUResource::GPUResource(GraphicsDevice* InOwner) : _owner(InOwner)
+	GPUResource::GPUResource() 
 	{
 		SE_ASSERT(IsOnGPUThread());
-		_owner->PushResource(this);
+		SE_ASSERT(GGI() && GGI()->GetGraphicsDevice());
+		GGI()->GetGraphicsDevice()->PushResource(this);
 	}
 
 	GPUResource::~GPUResource()
 	{
 		SE_ASSERT(IsOnGPUThread());
-		_owner->PopResource(this);
+		GGI()->GetGraphicsDevice()->PopResource(this);
 	}
 
-	GlobalGraphicsResource::GlobalGraphicsResource(GraphicsDevice* InOwner) : _owner(InOwner)
+	void GPUResource::NoMoreReferences()
+	{
+		_dying = true;
+		GGI()->GetGraphicsDevice()->DyingResource(this);
+	}
+
+	GlobalGraphicsResource::GlobalGraphicsResource() 
 	{
 		SE_ASSERT(IsOnGPUThread());
 	}
@@ -97,13 +129,13 @@ namespace SPP
 		SE_ASSERT(IsOnGPUThread());
 	}
 
-	std::vector< std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > >& GetGlobalResourceList()
+	std::vector< std::function< GlobalGraphicsResource* (void) > >& GetGlobalResourceList()
 	{
-		static std::vector< std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > > sO;
+		static std::vector< std::function< GlobalGraphicsResource* (void) > > sO;
 		return sO;
 	}
 
-	uint32_t RegisterGlobalResource(std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > AllocResource)
+	uint32_t RegisterGlobalResource(std::function< GlobalGraphicsResource* (void) > AllocResource)
 	{
 		auto& gArray = GetGlobalResourceList();
 		uint32_t currentSize = (uint32_t)gArray.size();
@@ -132,10 +164,8 @@ namespace SPP
 	static uint32_t GHighestTextureID = 0;
 	static std::list<uint32_t> GTextureAvailIDs;
 
-	GPUTexture::GPUTexture(GraphicsDevice* InOwner,
-		int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount,
+	GPUTexture::GPUTexture(int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount,
 		TextureFormat Format) :
-		GPUResource(InOwner),
 		_width(Width), _height(Height), _format(Format), _mipLevels(MipLevelCount), _faceCount(FaceCount)
 	{		
 		if (!GTextureAvailIDs.empty())
@@ -149,8 +179,7 @@ namespace SPP
 		}
 	}
 
-	GPUTexture::GPUTexture(GraphicsDevice* InOwner, const struct TextureAsset& InTextureAsset) :
-		GPUResource(InOwner)
+	GPUTexture::GPUTexture(const struct TextureAsset& InTextureAsset)
 	{
 		_width = InTextureAsset.width;
 		_height = InTextureAsset.height;

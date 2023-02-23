@@ -46,12 +46,12 @@ namespace SPP
 
 	public:
 
-		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format);
-		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
-		VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height,
+		VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format);
+		VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo);
+		VulkanTexture(int32_t Width, int32_t Height,
 			int32_t MipLevelCount, int32_t FaceCount,
 			TextureFormat Format, VkImageUsageFlags UsageFlags, VkImageLayout InitialLayout = VK_IMAGE_LAYOUT_UNDEFINED );
-		VulkanTexture(GraphicsDevice* InOwner, const struct TextureAsset& InTextureAsset);
+		VulkanTexture(const struct TextureAsset& InTextureAsset);
 
 		std::vector< GPUReferencer< SafeVkImageView > > GetMipChainViews();
 

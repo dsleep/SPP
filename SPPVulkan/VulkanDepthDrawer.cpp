@@ -21,6 +21,9 @@ namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
 
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
 	const std::vector<VertexStream>& Depth_GetVertexStreams_SM()
 	{
 		static std::vector<VertexStream> vertexStreams;
@@ -52,28 +55,28 @@ namespace SPP
 
 	public:
 		// called on render thread
-		GlobalDepthDrawerResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
+		GlobalDepthDrawerResources()
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+			auto owningDevice = GGlobalVulkanGI;
 
 			// DEPTH CULLING
-			_depthCullingCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_depthCullingCS = Make_GPU(VulkanShader, EShaderType::Compute);
 			_depthCullingCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCull.glsl", "main");
 
 			{
 				auto& layoutSet = _depthCullingCS->GetLayoutSets();
-				_depthCullingCSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, layoutSet.front().bindings);
+				_depthCullingCSLayout = Make_GPU(SafeVkDescriptorSetLayout, layoutSet.front().bindings);
 			}
 
-			_depthCullingPSO = VulkanPipelineStateBuilder(InOwner).Set(_depthCullingCS).Build();
+			_depthCullingPSO = VulkanPipelineStateBuilder().Set(_depthCullingCS).Build();
 
 			// DEPTH PYRAMID
-			_depthPyramidCreationCS = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			_depthPyramidCreationCS = Make_GPU(VulkanShader, EShaderType::Compute);
 			_depthPyramidCreationCS->CompileShaderFromFile("shaders/Depth/DepthPyramidCompute.hlsl", "main_cs");
-			_depthPyramidPSO = VulkanPipelineStateBuilder(InOwner).Set(_depthPyramidCreationCS).Build();
+			_depthPyramidPSO = VulkanPipelineStateBuilder().Set(_depthPyramidCreationCS).Build();
 
 			auto& depthPyrCreationCS = _depthPyramidCreationCS->GetLayoutSets();
-			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, depthPyrCreationCS.front().bindings);
+			_depthPyramidCreationLayout = Make_GPU(SafeVkDescriptorSetLayout, depthPyrCreationCS.front().bindings);
 
 			/// special min mod depth sampler
 			VkSamplerCreateInfo createInfo = {};
@@ -97,16 +100,16 @@ namespace SPP
 			createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MIN;
 			createInfo.pNext = &createInfoReduction;
 
-			_depthPyramidSampler = Make_GPU(SafeVkSampler, owningDevice, createInfo);
+			_depthPyramidSampler = Make_GPU(SafeVkSampler, createInfo);
 
 			//DEPTH VS
-			_depthVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_depthVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 			_depthVS->CompileShaderFromFile("shaders/Depth/DepthDrawVS.glsl");
 
-			_SMDepthlayout = Make_GPU(VulkanInputLayout, InOwner);
+			_SMDepthlayout = Make_GPU(VulkanInputLayout);
 			_SMDepthlayout->InitializeLayout(Depth_GetVertexStreams_SM());
 
-			_SMDepthPSOInvertedZ = VulkanPipelineStateBuilder(InOwner)
+			_SMDepthPSOInvertedZ = VulkanPipelineStateBuilder()
 				.Set(owningDevice->GetDepthOnlyFrameData())
 				.Set(EBlendState::Disabled)
 				.Set(ERasterizerState::BackFaceCull)
@@ -117,7 +120,7 @@ namespace SPP
 				.Set(_depthVS)
 				.Build();
 
-			_SMDepthPSO = VulkanPipelineStateBuilder(InOwner)
+			_SMDepthPSO = VulkanPipelineStateBuilder()
 				.Set(owningDevice->GetDepthOnlyFrameData())
 				.Set(EBlendState::Disabled)
 				.Set(ERasterizerState::BackFaceCull)
@@ -189,7 +192,7 @@ namespace SPP
 
 	DepthDrawer::DepthDrawer(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
-		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+		auto _owningDevice = GGlobalVulkanGI;
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		
 		///////////////////////////////////
@@ -197,7 +200,6 @@ namespace SPP
 		///////////////////////////////////
 
 		_depthPyramidDescriptorSet = Make_GPU(SafeVkDescriptorSet, 
-			_owningDevice, 
 			_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthCSPyramidLayout()->Get(), 
 			globalSharedPool);
 
@@ -206,7 +208,7 @@ namespace SPP
 		_depthPyramidExtents = Vector2i(DeviceExtents[0] >> 1, DeviceExtents[1] >> 1);
 		_depthPyramidMips = std::max(powerOf2(_depthPyramidExtents[0]), powerOf2(_depthPyramidExtents[1]));
 
-		_depthPyramidTexture = Make_GPU(VulkanTexture, _owningDevice, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, 1, TextureFormat::R32F,
+		_depthPyramidTexture = Make_GPU(VulkanTexture, _depthPyramidExtents[0], _depthPyramidExtents[1], _depthPyramidMips, 1, TextureFormat::R32F,
 			VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 		_depthPyramidTexture->SetName("_depthPyramidTexture");
 
@@ -243,7 +245,6 @@ namespace SPP
 			}
 
 			auto descChainSet = Make_GPU(SafeVkDescriptorSet,
-				_owningDevice,
 				_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthCSPyramidLayout()->Get(),
 				globalSharedPool);
 
@@ -267,7 +268,6 @@ namespace SPP
 
 		//DEPTH CULLING AGAINST PYRAMID
 		_depthCullingDescriptorSet = Make_GPU(SafeVkDescriptorSet, 
-			_owningDevice, 
 			_owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GepthCullingCSLayout()->Get(),
 			globalSharedPool);
 
@@ -306,6 +306,7 @@ namespace SPP
 
 	void DepthDrawer::ProcessDepthPyramid()
 	{
+		auto _owningDevice = GGlobalVulkanGI;
 		auto DeviceExtents = _owningDevice->GetExtents();
 
 		auto depthDownsizeSampler = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthSampler();
@@ -372,6 +373,7 @@ namespace SPP
 
 	void DepthDrawer::RunDepthCullingAgainstPyramid()
 	{
+		auto _owningDevice = GGlobalVulkanGI;
 		auto DeviceExtents = _owningDevice->GetExtents();
 		auto depthDownsizeSampler = _owningDevice->GetGlobalResource< GlobalDepthDrawerResources >()->GetDepthSampler();
 
@@ -448,6 +450,7 @@ namespace SPP
 	/// <param name="InVulkanRenderableMesh"></param>
 	void DepthDrawer::Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh, bool InvertedZ)
 	{
+		auto _owningDevice = GGlobalVulkanGI;
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 

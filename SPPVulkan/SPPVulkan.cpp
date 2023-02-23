@@ -44,17 +44,28 @@ namespace SPP
 	
 	struct VulkanGraphicInterface : public IGraphicsInterface
 	{
+		std::unique_ptr< VulkanGraphicsDevice > graphicsDevice;
+
 		// hacky so one GGI per DLL
 		VulkanGraphicInterface()
 		{
 			SET_GGI(this);
 		}
-		
-		virtual std::shared_ptr< GraphicsDevice > CreateGraphicsDevice() override
+
+		virtual void CreateGraphicsDevice() override
 		{
-			return Vulkan_CreateGraphicsDevice();
+			graphicsDevice = std::make_unique< VulkanGraphicsDevice >();
 		}
-		
+
+		virtual void DestroyraphicsDevice() override
+		{
+			graphicsDevice.reset();
+		}
+
+		virtual GraphicsDevice* GetGraphicsDevice() override
+		{
+			return graphicsDevice.get();
+		}
 	};
 
 	static VulkanGraphicInterface staticDGI;

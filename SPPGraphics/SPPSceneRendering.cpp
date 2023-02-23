@@ -11,8 +11,8 @@
 
 namespace SPP
 {	
-	GlobalRenderableID::GlobalRenderableID(GraphicsDevice* InOwner, std::shared_ptr<class RT_RenderScene> currentScene) : 
-		GPUResource(InOwner), _scene(currentScene)
+	GlobalRenderableID::GlobalRenderableID(std::shared_ptr<class RT_RenderScene> currentScene) : 
+		_scene(currentScene)
 	{
 		_globalID = currentScene->GetGlobalRenderableID();
 	}	
@@ -45,22 +45,22 @@ namespace SPP
 		_parentScene = nullptr;
 	};
 
-	RT_StaticMesh::RT_StaticMesh(GraphicsDevice* InOwner) : RT_Resource(InOwner)
+	RT_StaticMesh::RT_StaticMesh()
 	{
-		_vertexBuffer = _owner->CreateBuffer(GPUBufferType::Vertex);
-		_indexBuffer = _owner->CreateBuffer(GPUBufferType::Index);
+		_vertexBuffer = GGI()->GetGraphicsDevice()->CreateBuffer(GPUBufferType::Vertex);
+		_indexBuffer = GGI()->GetGraphicsDevice()->CreateBuffer(GPUBufferType::Index);
 	}
 
 	void RT_StaticMesh::Initialize()
 	{
 		SE_ASSERT(IsOnGPUThread());
 		SE_ASSERT(_indexResource->GetPerElementSize() == 4);
-		_vertexBuffer->Initialize(GPUBufferType::Vertex, _vertexResource);
-		_indexBuffer->Initialize(GPUBufferType::Index, _indexResource);
+		_vertexBuffer->Initialize(_vertexResource);
+		_indexBuffer->Initialize(_indexResource);
 	}
 
 
-	RT_RenderScene::RT_RenderScene(GraphicsDevice* InOwner) : RT_Resource(InOwner)
+	RT_RenderScene::RT_RenderScene()
 	{
 		_viewCPU.Initialize(Vector3d(0, 0, 0), Vector3(0, 0, 0), 65.0f, 1.77f);
 		_octree.Initialize(Vector3d(0, 0, 0), 50000, 3);
@@ -140,7 +140,7 @@ namespace SPP
 	{
 		SE_ASSERT(IsOnGPUThread());
 
-		InRenderable->_globalID = Make_GPU(GlobalRenderableID, _owner, downcasted_shared_from_this< RT_RenderScene>());
+		InRenderable->_globalID = Make_GPU(GlobalRenderableID, downcasted_shared_from_this< RT_RenderScene>());
 		auto thisID = InRenderable->_globalID->GetID();
 
 		while (thisID >= _renderables.size())
@@ -185,16 +185,14 @@ namespace SPP
 
 	void RT_RenderScene::BeginFrame() 
 	{ 
-		SE_ASSERT(_owner);
-
-		auto dwidth = _owner->GetDeviceWidth();
-		auto dheight = _owner->GetDeviceHeight();
+		auto dwidth = GGI()->GetGraphicsDevice()->GetDeviceWidth();
+		auto dheight = GGI()->GetGraphicsDevice()->GetDeviceHeight();
 
 		if (!_offscreenUI || 
 			_offscreenUI->GetWidth() != dwidth ||
 			_offscreenUI->GetHeight() != dheight )
 		{
-			_offscreenUI = _owner->_gxCreateTexture(dwidth, dheight, TextureFormat::BGRA_8888);
+			_offscreenUI = GGI()->GetGraphicsDevice()->_gxCreateTexture(dwidth, dheight, TextureFormat::BGRA_8888);
 		}
 	};
 	void RT_RenderScene::Draw() { };

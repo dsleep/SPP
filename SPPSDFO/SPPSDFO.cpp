@@ -68,8 +68,7 @@ namespace SPP
 			SceneType.is_derived_from(rttr::type::get<ORenderableScene>()))
 		{
 			// not ready yet
-			if (!thisRenderableScene->GetGraphicsDevice()
-				|| !thisRenderableScene->GetRenderScene()) return;
+			if (!thisRenderableScene->GetRenderScene()) return;
 
 			RT_RenderableSignedDistanceField::Args sdfArgs;
 
@@ -78,7 +77,7 @@ namespace SPP
 			sdfArgs.shapes = _shapeCache;
 			sdfArgs.color = _color;
 			
-			auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+			auto sceneGD = GGI()->GetGraphicsDevice();
 			_renderableSDF = sceneGD->CreateSignedDistanceField();
 			_renderableSDF->SetSDFArgs(sdfArgs);
 			_renderableSDF->AddToRenderScene(thisRenderableScene->GetRenderScene());

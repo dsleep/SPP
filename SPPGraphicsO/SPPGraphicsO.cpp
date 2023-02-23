@@ -31,13 +31,14 @@ namespace SPP
 		return vertexStreams;
 	}
 
-	void OMesh::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
+	void OMesh::InitializeGraphicsDeviceResources()
 	{
 		if (!_renderMesh)
 		{
+			auto graphicsDevice = GGI()->GetGraphicsDevice();
 			auto firstMesh = GetMesh()->GetMeshElements().front();
 
-			_renderMesh = InOwner->CreateStaticMesh();
+			_renderMesh = graphicsDevice->CreateStaticMesh();
 
 			_renderMesh->SetMeshArgs({
 				.vertexStreams = GetVertexStreams(MeshVertex{}),
@@ -64,77 +65,22 @@ namespace SPP
 
 	ORenderableScene::ORenderableScene(const std::string& InName, SPPDirectory* InParent) : OScene(InName, InParent)
 	{
+		_renderScene = GGI()->GetGraphicsDevice()->CreateRenderScene();
+		GGI()->GetGraphicsDevice()->AddScene(_renderScene.get());
 	}
 
 	ORenderableScene::~ORenderableScene()
 	{
 		_children.clear();
 
-		if (_owningDevice)
-		{
-			if (_renderScene)
-			{
-				RemoveFromGraphicsDevice();
-			}
-		}
-	}
-
-	void ORenderableScene::AddToGraphicsDevice(GraphicsDevice *InGraphicsDevice)
-	{
-		_owningDevice = InGraphicsDevice;
-		_renderScene = InGraphicsDevice->CreateRenderScene();
-
-		std::vector<OElement*> childCopy = _children;
-		
-		// remove all children
-		for (auto& child : childCopy)
-		{
-			RemoveChild(child);
-		}
-
-		InGraphicsDevice->AddScene(_renderScene.get());
-
-		// add them back
-		for (auto& child : childCopy)
-		{
-			AddChild(child);
-		}
-
-		SE_ASSERT(childCopy.size() == _children.size());
-		// preserve order
-		_children = childCopy;
-	}
-
-	void ORenderableScene::RemoveFromGraphicsDevice()
-	{		
-		std::vector<OElement*> childCopy = _children;
-
-		// remove all children
-		for (auto& child : childCopy)
-		{
-			RemoveChild(child);
-		}
-
 		if (_renderScene)
 		{
-			RunOnRT([_owningDevice = this->_owningDevice, _renderScene = this->_renderScene]()
-				{
-					_owningDevice->RemoveScene(_renderScene.get());
-				});
+			RunOnRT([_renderScene = this->_renderScene]()
+			{
+				GGI()->GetGraphicsDevice()->RemoveScene(_renderScene.get());
+			});
 			_renderScene.reset();
-			_owningDevice = nullptr;
 		}
-
-
-		// add them back
-		for (auto& child : childCopy)
-		{
-			AddChild(child);
-		}
-
-		SE_ASSERT(childCopy.size() == _children.size());
-		// preserve order
-		_children = childCopy;
 	}
 
 	void ORenderableElement::UpdateSelection(bool IsSelected)
@@ -164,11 +110,10 @@ namespace SPP
 			_meshObj->GetMesh() &&
 			!_meshObj->GetMesh()->GetMeshElements().empty())
 		{
-			// not ready yet
-			if (!thisRenderableScene->GetGraphicsDevice() 
-				|| !thisRenderableScene->GetRenderScene()) return;
-
-			auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+			SE_ASSERT(GGI() && GGI()->GetGraphicsDevice());
+					
+			auto graphicsDevice = GGI()->GetGraphicsDevice();
+			auto curRenderScene = thisRenderableScene->GetRenderScene();
 			auto firstMesh = _meshObj->GetMesh()->GetMeshElements().front();
 						
 			auto localToWorld = GenerateLocalToWorld(true);	
@@ -198,10 +143,10 @@ namespace SPP
 
 			SE_ASSERT(_materialObj);
 
-			_meshObj->InitializeGraphicsDeviceResources(sceneGD);
-			_materialObj->InitializeGraphicsDeviceResources(sceneGD);
+			_meshObj->InitializeGraphicsDeviceResources();
+			_materialObj->InitializeGraphicsDeviceResources();
 
-			_renderableMesh = sceneGD->CreateRenderableMesh();
+			_renderableMesh = graphicsDevice->CreateRenderableMesh();
 
 			_renderableMesh->SetRenderableMeshArgs({
 				.mesh = _meshObj->GetDeviceMesh(),
@@ -269,7 +214,7 @@ namespace SPP
 		return false;
 	}
 
-	std::shared_ptr<IMaterialParameter> MatParameterToIMat(BaseMaterialParameter* InParam, GraphicsDevice* InGD)
+	std::shared_ptr<IMaterialParameter> MatParameterToIMat(BaseMaterialParameter* InParam)
 	{
 		static auto paramFloat = rttr::type::get<ConstantParamter_Float>();
 		static auto paramFloat2 = rttr::type::get<ConstantParamter_Float2>();
@@ -305,7 +250,7 @@ namespace SPP
 			auto thisTexture = castedValue->GetValue();
 			if (thisTexture)
 			{
-				thisTexture->InitializeGraphicsDeviceResources(InGD);
+				thisTexture->InitializeGraphicsDeviceResources();
 			}
 			return thisTexture->GetDeviceTexture();
 		}
@@ -313,7 +258,7 @@ namespace SPP
 		return nullptr;
 	}
 
-	void OMaterial::InitializeGraphicsDeviceResources(GraphicsDevice* InGD)
+	void OMaterial::InitializeGraphicsDeviceResources()
 	{
 		if (!_material)
 		{
@@ -321,7 +266,7 @@ namespace SPP
 
 			for (auto& [key, value] : _parameters)
 			{
-				auto imapParam = MatParameterToIMat(value.GetParam(), InGD);
+				auto imapParam = MatParameterToIMat(value.GetParam());
 				
 				if (imapParam)
 				{					
@@ -329,7 +274,8 @@ namespace SPP
 				}
 			}
 
-			_material = InGD->CreateMaterial();
+			auto graphicsDevice = GGI()->GetGraphicsDevice();
+			_material = graphicsDevice->CreateMaterial();
 			_material->SetMaterialArgs(
 				{
 					.parameterMap = parameterMap
@@ -391,11 +337,12 @@ namespace SPP
 		return false;
 	}
 
-	void OTexture::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
+	void OTexture::InitializeGraphicsDeviceResources()
 	{
 		if (!_texture)
 		{
-			_texture = InOwner->CreateTexture();
+			auto graphicsDevice = GGI()->GetGraphicsDevice();
+			_texture = graphicsDevice->CreateTexture();
 
 			RunOnRT([this]()
 				{
@@ -420,11 +367,12 @@ namespace SPP
 		_texture.reset();
 	}
 
-	void OShader::InitializeGraphicsDeviceResources(GraphicsDevice* InOwner)
+	void OShader::InitializeGraphicsDeviceResources()
 	{
 		if (!_shader)
 		{
-			_shader = InOwner->CreateShader();
+			auto graphicsDevice = GGI()->GetGraphicsDevice();
+			_shader = graphicsDevice->CreateShader();
 
 			RunOnRT([shader =_shader,
 				shaderType = _shaderType, 
@@ -454,7 +402,7 @@ namespace SPP
 
 		_bounds = Sphere(Vector3d(0,0,0), 20000000);
 
-		auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+		auto sceneGD = GGI()->GetGraphicsDevice();
 		auto renderScene = thisRenderableScene->GetRenderScene();
 		if (sceneGD && renderScene)
 		{

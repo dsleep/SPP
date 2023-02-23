@@ -201,7 +201,7 @@ namespace SPP
 		CameraCullInfo _cameraCullInfo;
 
 	public:
-		VulkanRenderScene(GraphicsDevice* InOwner);
+		VulkanRenderScene();
 		virtual ~VulkanRenderScene();
 
 		void DrawSkyBox();

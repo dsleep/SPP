@@ -25,6 +25,9 @@ namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
 
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
 	struct VulkanPipelineStateBuilder::Impl
 	{
 		VkFrameDataContainer renderPassData = {};
@@ -42,7 +45,7 @@ namespace SPP
 		std::vector< VkDynamicState > dynamicStates;
 	};
 
-	VulkanPipelineStateBuilder::VulkanPipelineStateBuilder(GraphicsDevice* InOwner) : _impl(new Impl()), _owner(InOwner)
+	VulkanPipelineStateBuilder::VulkanPipelineStateBuilder() : _impl(new Impl())
 	{
 	}
 
@@ -113,7 +116,7 @@ namespace SPP
 	
 
 
-	VulkanPipelineState::VulkanPipelineState(GraphicsDevice* InOwner) : PipelineState(InOwner)
+	VulkanPipelineState::VulkanPipelineState() 
 	{
 	}
 
@@ -177,7 +180,6 @@ namespace SPP
 	GPUReferencer<SafeVkDescriptorSet> VulkanPipelineState::CreateDescriptorSet(uint8_t Idx, VkDescriptorPool InPool) const
 	{
 		return Make_GPU(SafeVkDescriptorSet,
-			_owner,
 			_descriptorSetLayouts[Idx]->Get(),
 			InPool);
 	}
@@ -236,7 +238,7 @@ namespace SPP
 		
 		const std::vector< VkDynamicState >& InExtraStates)
 	{
-		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto owningDevice = GGlobalVulkanGI;
 		auto device = owningDevice->GetVKDevice();
 		
 		if (InVS)
@@ -273,13 +275,13 @@ namespace SPP
 				if(foundSet != _setLayoutBindings.end())
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
-					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(descriptorLayout);
 				}
 				// else create dummy
 				else
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
-					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(descriptorLayout);
 				}
 				descriptorSetLayoutsRefs[Iter] = _descriptorSetLayouts[Iter]->Get();
 			}
@@ -341,7 +343,7 @@ namespace SPP
 			pPipelineLayoutCreateInfo.pushConstantRangeCount = push_constants.size();
 			pPipelineLayoutCreateInfo.pPushConstantRanges = push_constants.data();
 
-			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(owningDevice, pPipelineLayoutCreateInfo);
+			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(pPipelineLayoutCreateInfo);
 
 			// Vulkan uses the concept of rendering pipelines to encapsulate fixed states, replacing OpenGL's complex state machine
 			// A pipeline is then stored and hashed on the GPU making pipeline changes very fast
@@ -567,7 +569,7 @@ namespace SPP
 			//VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache));
 
 			// Create rendering pipeline using the specified states
-			_pipeline = std::make_unique< SafeVkPipeline >(owningDevice, pipelineCreateInfo);
+			_pipeline = std::make_unique< SafeVkPipeline >(pipelineCreateInfo);
 			//VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, nullptr, 1, &pipelineCreateInfo, nullptr, &_pipeline));
 		}
 		else if(InCS)
@@ -591,7 +593,7 @@ namespace SPP
 				{
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(foundSet->second);
 
-					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(descriptorLayout);
 					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 				}
 				// else create dummy
@@ -600,7 +602,7 @@ namespace SPP
 					VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(nullptr, 0);
 					//VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorLayout, nullptr, &_descriptorSetLayouts[Iter]));
 
-					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(owningDevice, descriptorLayout);
+					_descriptorSetLayouts[Iter] = std::make_unique< SafeVkDescriptorSetLayout >(descriptorLayout);
 				}
 
 				descriptorSetLayoutsRefs[Iter] = _descriptorSetLayouts[Iter]->Get();
@@ -619,7 +621,7 @@ namespace SPP
 
 			//VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pPipelineLayoutCreateInfo, nullptr, &_pipelineLayout));
 
-			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(owningDevice, pPipelineLayoutCreateInfo);
+			_pipelineLayout = std::make_unique< SafeVkPipelineLayout >(pPipelineLayoutCreateInfo);
 
 			VkComputePipelineCreateInfo computePipelineCreateInfo =	vks::initializers::computePipelineCreateInfo(_pipelineLayout->Get(), 0);
 			computePipelineCreateInfo.stage =
@@ -633,7 +635,7 @@ namespace SPP
 				};
 
 			//VK_CHECK_RESULT(vkCreateComputePipelines(device, nullptr, 1, &computePipelineCreateInfo, nullptr, &_pipeline));
-			_pipeline = std::make_unique< SafeVkPipeline >(owningDevice, computePipelineCreateInfo);
+			_pipeline = std::make_unique< SafeVkPipeline >(computePipelineCreateInfo);
 		}
 		else
 		{
@@ -709,7 +711,7 @@ namespace SPP
 
 	
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(GraphicsDevice* InOwner,
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineState(
 		VkFrameDataContainer& renderPassData,
 		EBlendState InBlendState,
 		ERasterizerState InRasterizerState,
@@ -739,14 +741,14 @@ namespace SPP
 			(uintptr_t)InDS.get(),
 			(uintptr_t)InCS.get() };
 
-		auto vulkanGraphicsDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+		auto vulkanGraphicsDevice = GGlobalVulkanGI;
 		auto& PipelineStateMap = vulkanGraphicsDevice->GetPipelineStateMap();
 
 		auto findKey = PipelineStateMap.find(key);
 
 		if (findKey == PipelineStateMap.end())
 		{
-			auto newPipelineState = Make_GPU(VulkanPipelineState, InOwner);
+			auto newPipelineState = Make_GPU(VulkanPipelineState);
 			newPipelineState->Initialize(renderPassData, InBlendState, InRasterizerState, InDepthState, InTopology, InDepthOp, InLayout, InVS, InPS, InMS, InAS, InHS, InDS, InCS);
 			PipelineStateMap[key] = newPipelineState;
 			return newPipelineState;
@@ -755,7 +757,7 @@ namespace SPP
 		return findKey->second;
 	}
 
-	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(GraphicsDevice* InOwner,
+	GPUReferencer < VulkanPipelineState >  GetVulkanPipelineStateWithMap(
 		struct VkFrameDataContainer& renderPassData,
 
 		EBlendState InBlendState,
@@ -774,7 +776,7 @@ namespace SPP
 		GPUReferencer< VulkanShader > InPS = MapFindOrDefault(shaderMap, EShaderType::Pixel);
 		GPUReferencer< VulkanShader > InCS = MapFindOrDefault(shaderMap, EShaderType::Compute);
 
-		return GetVulkanPipelineState(InOwner,
+		return GetVulkanPipelineState(
 			renderPassData,
 			InBlendState,
 			InRasterizerState,
@@ -787,7 +789,7 @@ namespace SPP
 
 	GPUReferencer< VulkanPipelineState > VulkanPipelineStateBuilder::Build()
 	{
-		return GetVulkanPipelineStateWithMap(_owner,
+		return GetVulkanPipelineStateWithMap(
 			_impl->renderPassData,
 
 			_impl->blendState,

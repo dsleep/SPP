@@ -23,6 +23,8 @@ namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
 
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 	
 	const std::vector<VertexStream>& OP_GetVertexStreams_DeferredLightingShapes()
 	{
@@ -57,27 +59,27 @@ namespace SPP
 
 	public:
 		// called on render thread
-		GlobalDeferredLightingResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
+		GlobalDeferredLightingResources() 
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
 			auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
 
-			_lightShapeVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_lightShapeVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 			_lightShapeVS->CompileShaderFromFile("shaders/Deferred/LightShapeVS.glsl");
 
-			_lightFullscreenVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_lightFullscreenVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 			_lightFullscreenVS->CompileShaderFromFile("shaders/Deferred/FullScreenLightVS.glsl");
 
-			_lightSunPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_lightSunPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 			_lightSunPS->CompileShaderFromFile("shaders/Deferred/SunLightPS.glsl");
 
-			_skyCubemapPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_skyCubemapPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 			_skyCubemapPS->CompileShaderFromFile("shaders/Deferred/SkyCubePS.glsl");
 
-			_lightShapeLayout = Make_GPU(VulkanInputLayout, InOwner);
+			_lightShapeLayout = Make_GPU(VulkanInputLayout);
 			_lightShapeLayout->InitializeLayout(OP_GetVertexStreams_DeferredLightingShapes());
 
-			_psoSunLight = VulkanPipelineStateBuilder(owningDevice)
+			_psoSunLight = VulkanPipelineStateBuilder()
 				.Set(owningDevice->GetLightingCompositeRenderPass())
 				.Set(EBlendState::Disabled)
 				.Set(ERasterizerState::NoCull)
@@ -88,7 +90,7 @@ namespace SPP
 				.Set(_lightSunPS)
 				.Build();
 
-			_psoSkyCube = VulkanPipelineStateBuilder(owningDevice)
+			_psoSkyCube = VulkanPipelineStateBuilder()
 				.Set(owningDevice->GetLightingCompositeRenderPass())
 				.Set(EBlendState::Disabled)
 				.Set(ERasterizerState::NoCull)
@@ -101,7 +103,7 @@ namespace SPP
 
 			{
 				auto& vsSet = _lightShapeVS->GetLayoutSets();
-				_lightShapeVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+				_lightShapeVSLayout = Make_GPU(SafeVkDescriptorSetLayout, vsSet.front().bindings);
 			}
 
 			//
@@ -109,14 +111,13 @@ namespace SPP
 			{
 				TextureAsset loadSky;
 				loadSky.LoadFromDisk(*AssetPath("/textures/SkyTextureOverCast_Cubemap.ktx2"));
-				_skyCube = Make_GPU(VulkanTexture, owningDevice, loadSky);
+				_skyCube = Make_GPU(VulkanTexture, loadSky);
 			}
 
 			owningDevice->SubmitCopyCommands();
 			vkDeviceWaitIdle(owningDevice->GetDevice());
 
-			_skyCubePSDescSet = Make_GPU(SafeVkDescriptorSet,
-				owningDevice,
+			_skyCubePSDescSet = Make_GPU(SafeVkDescriptorSet,				
 				_psoSkyCube->GetDescriptorSetLayouts()[2]->Get(),
 				globalSharedPool);	
 
@@ -131,8 +132,8 @@ namespace SPP
 			const int32_t BRDF_LUT_Size = 256;
 			const uint32_t IrradianceMapSize = 32;
 
-			_specularBRDF_LUT = Make_GPU(VulkanTexture, InOwner, BRDF_LUT_Size, BRDF_LUT_Size, 1, 1, TextureFormat::R16G16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-			_textureIrradianceMap = Make_GPU(VulkanTexture, InOwner, IrradianceMapSize, IrradianceMapSize, 1, 6, TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			_specularBRDF_LUT = Make_GPU(VulkanTexture, BRDF_LUT_Size, BRDF_LUT_Size, 1, 1, TextureFormat::R16G16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			_textureIrradianceMap = Make_GPU(VulkanTexture, IrradianceMapSize, IrradianceMapSize, 1, 6, TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 
 			auto textureIrradianceDesc = _textureIrradianceMap->GetDescriptor();
 
@@ -143,14 +144,13 @@ namespace SPP
 				auto gQueue = owningDevice->GetGraphicsQueue(); //should be transfer
 				VkCommandBuffer immediateCommand = vksDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-				auto _csComputeIRMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+				auto _csComputeIRMap = Make_GPU(VulkanShader, EShaderType::Compute);
 				_csComputeIRMap->CompileShaderFromFile("shaders/PBRTools/irmap_cs.glsl");
 
-				auto localPSO = VulkanPipelineStateBuilder(owningDevice)
+				auto localPSO = VulkanPipelineStateBuilder()
 					.Set(_csComputeIRMap).Build();
 
 				auto csDescSet = Make_GPU(SafeVkDescriptorSet,
-					owningDevice,
 					localPSO->GetDescriptorSetLayouts()[0]->Get(),
 					globalSharedPool);
 
@@ -179,15 +179,14 @@ namespace SPP
 				auto gQueue = owningDevice->GetGraphicsQueue(); //should be transfer
 				VkCommandBuffer immediateCommand = vksDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
-				auto csGenSpecularBRDF_LUT = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+				auto csGenSpecularBRDF_LUT = Make_GPU(VulkanShader, EShaderType::Compute);
 				csGenSpecularBRDF_LUT->CompileShaderFromFile("shaders/PBRTools/spbrdf_cs.glsl");
 
-				auto psoBRDFLut = VulkanPipelineStateBuilder(owningDevice).Set(csGenSpecularBRDF_LUT).Build();
+				auto psoBRDFLut = VulkanPipelineStateBuilder().Set(csGenSpecularBRDF_LUT).Build();
 
 				auto lutDesc = _specularBRDF_LUT->GetDescriptor();
 
 				auto csBRDF_LUTDescSet = Make_GPU(SafeVkDescriptorSet,
-					owningDevice,
 					psoBRDFLut->GetDescriptorSetLayouts()[0]->Get(),
 					globalSharedPool);
 
@@ -208,7 +207,7 @@ namespace SPP
 				vksDevice->flushCommandBuffer(immediateCommand, gQueue);
 			}
 
-			auto _csFilterEnvMap = Make_GPU(VulkanShader, InOwner, EShaderType::Compute);
+			auto _csFilterEnvMap = Make_GPU(VulkanShader, EShaderType::Compute);
 			_csFilterEnvMap->CompileShaderFromFile("shaders/PBRTools/spmap_cs.glsl");
 		}
 
@@ -255,7 +254,7 @@ namespace SPP
 
 	PBRDeferredLighting::PBRDeferredLighting(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{	
-		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+		auto _owningDevice = GGlobalVulkanGI;
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 		auto sunPSO = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSunPSO();
 		auto specularBRDF_LUT = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetSpecularBRDF_LUT();
@@ -285,7 +284,6 @@ namespace SPP
 		createInfo.maxLod = 16.f;
 
 		_nearestSampler = Make_GPU(SafeVkSampler,
-			_owningDevice,
 			createInfo);
 
 		GPUReferencer< class VulkanTexture > depthTexture;
@@ -309,12 +307,10 @@ namespace SPP
 		}
 		
 		_gbufferTextureSet = Make_GPU(SafeVkDescriptorSet,
-			_owningDevice,
 			sunPSO->GetDescriptorSetLayouts()[2]->Get(),
 			globalSharedPool);
 
-		_dummySet = Make_GPU(SafeVkDescriptorSet,
-			_owningDevice,
+		_dummySet = Make_GPU(SafeVkDescriptorSet,			
 			sunPSO->GetDescriptorSetLayouts()[3]->Get(),
 			globalSharedPool);
 		_dummySet->Update({});
@@ -334,9 +330,9 @@ namespace SPP
 		////////////////////////////////////////////
 		//SHADOW DEPTH FROM LIGHT PERSPECTIVE
 		////////////////////////////////////////////
-		_shadowDepthTexture = Make_GPU(VulkanTexture, _owningDevice, 1024, 1024, 1, 1,
+		_shadowDepthTexture = Make_GPU(VulkanTexture, 1024, 1024, 1, 1,
 			TextureFormat::D32_S8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);		
-		_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(_owningDevice, 1024, 1024);
+		_shadowDepthFrameBuffer = std::make_unique< VulkanFramebuffer >(1024, 1024);
 		_shadowDepthFrameBuffer->addAttachment(
 			{
 				.texture = _shadowDepthTexture,
@@ -349,10 +345,10 @@ namespace SPP
 		////////////////////////////////////////////
 		//SHADOW ATTENUATION
 		////////////////////////////////////////////
-		_shadowAttenuationTexture = Make_GPU(VulkanTexture, _owningDevice, DeviceExtents[0], DeviceExtents[1], 1, 1,
+		_shadowAttenuationTexture = Make_GPU(VulkanTexture, DeviceExtents[0], DeviceExtents[1], 1, 1,
 			TextureFormat::R8, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 		auto shadowAttenuationDesc = _shadowAttenuationTexture->GetDescriptor();
-		_shadowAttenuation = std::make_unique< VulkanFramebuffer >(_owningDevice, DeviceExtents[0], DeviceExtents[1]);
+		_shadowAttenuation = std::make_unique< VulkanFramebuffer >(DeviceExtents[0], DeviceExtents[1]);
 		_shadowAttenuation->addAttachment(
 			{
 				.texture = _shadowAttenuationTexture,
@@ -374,11 +370,11 @@ namespace SPP
 			});
 
 		//shadow filter
-		_shadowFilterPS = Make_GPU(VulkanShader, _owningDevice, EShaderType::Pixel);
+		_shadowFilterPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 		_shadowFilterPS->CompileShaderFromFile("shaders/Shadow/ShadowFilter.glsl");
 
 		auto lightFullscreenVS = _owningDevice->GetGlobalResource< GlobalDeferredLightingResources >()->GetFullScreenVS();
-		_shadowFilterPSO = VulkanPipelineStateBuilder(_owningDevice)
+		_shadowFilterPSO = VulkanPipelineStateBuilder()
 			.Set(_shadowAttenuationRenderPass)
 			.Set(EBlendState::Disabled)
 			.Set(ERasterizerState::NoCull)
@@ -393,7 +389,6 @@ namespace SPP
 
 		// move down since it changes with size;
 		_shadowFilterDescriptorSet = Make_GPU(SafeVkDescriptorSet,
-			_owningDevice,
 			_shadowFilterPSO->GetDescriptorSetLayouts()[2]->Get(),
 			globalSharedPool);
 		auto shadowDepthDesc = _shadowDepthTexture->GetDescriptor();
@@ -423,6 +418,7 @@ namespace SPP
 
 	void PBRDeferredLighting::RenderSky()
 	{
+		auto _owningDevice = GGlobalVulkanGI;
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
@@ -453,6 +449,7 @@ namespace SPP
 
 	void PBRDeferredLighting::RenderShadow(RT_RenderableLight& InLight)
 	{
+		auto _owningDevice = GGlobalVulkanGI;
 		auto DeviceExtents = _owningDevice->GetExtents();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 		auto currentFrame = _owningDevice->GetActiveFrame();
@@ -670,6 +667,7 @@ namespace SPP
 	// TODO cleanupppp
 	void PBRDeferredLighting::Render(RT_RenderableLight& InLight)
 	{
+		auto _owningDevice = GGlobalVulkanGI;
 		auto currentFrame = _owningDevice->GetActiveFrame();
 		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 

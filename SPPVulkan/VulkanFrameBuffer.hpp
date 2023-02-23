@@ -83,9 +83,6 @@ namespace SPP
 	*/
 	class VulkanFramebuffer
 	{
-	private:
-		class GraphicsDevice* _owner = nullptr;
-
 	public:
 		struct AttachmentCreateInfo
 		{
@@ -103,7 +100,7 @@ namespace SPP
 		*
 		* @param vulkanDevice Pointer to a valid VulkanDevice
 		*/
-		VulkanFramebuffer(class GraphicsDevice* InOwner, uint32_t InWidth, uint32_t InHeight);
+		VulkanFramebuffer(uint32_t InWidth, uint32_t InHeight);
 
 		/**
 		* Destroy and free Vulkan resources used for the framebuffer and all of its attachments

@@ -41,7 +41,7 @@ namespace SPP
 	extern VulkanGraphicsDevice* GGlobalVulkanGI;
 
 	// lazy externs
-	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 
 	static Vector3d HACKS_CameraPos;
 
@@ -56,15 +56,15 @@ namespace SPP
 
 	public:
 		// called on render thread
-		GlobalVulkanRenderSceneResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
+		GlobalVulkanRenderSceneResources() 
 		{
-			_fullscreenColorVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);  
+			_fullscreenColorVS = Make_GPU(VulkanShader, EShaderType::Vertex);  
 			_fullscreenColorVS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_vs");
 
-			_fullscreenColorPS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_fullscreenColorPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 			_fullscreenColorPS->CompileShaderFromFile("shaders/fullScreenColorWrite.hlsl", "main_ps");
 
-			_fullscreenColorLayout = Make_GPU(VulkanInputLayout, InOwner);
+			_fullscreenColorLayout = Make_GPU(VulkanInputLayout);
 
 			{
 				auto& vulkanInputLayout = _fullscreenColorLayout->GetAs<VulkanInputLayout>();
@@ -72,7 +72,7 @@ namespace SPP
 			}
 
 			auto backbufferFrameData = GGlobalVulkanGI->GetBackBufferFrameData();
-			auto vulkPSO = Make_GPU(VulkanPipelineState,InOwner);
+			auto vulkPSO = Make_GPU(VulkanPipelineState);
 			_fullscreenColorPSO = vulkPSO;
 			vulkPSO->Initialize(backbufferFrameData,
 				EBlendState::Disabled,
@@ -126,25 +126,23 @@ namespace SPP
 
 	public:
 		// called on render thread
-		GlobalOpaqueDrawerResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
+		GlobalOpaqueDrawerResources() 
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
-
-			_opaqueVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
-			_opaquePS = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
-			_opaqueVSWithLightMap = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
-			_opaquePSWithLightMap = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_opaqueVS = Make_GPU(VulkanShader, EShaderType::Vertex);
+			_opaquePS = Make_GPU(VulkanShader, EShaderType::Pixel);
+			_opaqueVSWithLightMap = Make_GPU(VulkanShader, EShaderType::Vertex);
+			_opaquePSWithLightMap = Make_GPU(VulkanShader, EShaderType::Pixel);
 
 			_opaqueVS->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_vs");
 			_opaquePS->CompileShaderFromFile("shaders/SimpleTextureMesh.hlsl", "main_ps");
 			_opaqueVSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_vs");
 			_opaquePSWithLightMap->CompileShaderFromFile("shaders/SimpleTextureLightMapMesh.hlsl", "main_ps");
 
-			_SMlayout = Make_GPU(VulkanInputLayout, InOwner);
+			_SMlayout = Make_GPU(VulkanInputLayout);
 			_SMlayout->InitializeLayout(OP_GetVertexStreams_SM());
 
 			auto& vsSet = _opaqueVS->GetLayoutSets();
-			_opaqueVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+			_opaqueVSLayout = Make_GPU(SafeVkDescriptorSetLayout, vsSet.front().bindings);
 			
 		}
 
@@ -191,7 +189,7 @@ namespace SPP
 
 		if (!cacheRef->state[(uint8_t)InVertexInputType])
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InMat->GetOwner());
+			auto owningDevice = GGlobalVulkanGI;
 
 			cacheRef->state[(uint8_t)InVertexInputType] = InMat->GetPipelineState(EDrawingTopology::TriangleList,
 				GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaqueVS(),
@@ -206,7 +204,7 @@ namespace SPP
 			auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 			int32_t TextureCount = 1;
-			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, owningDevice, descSetLayouts[TEXTURE_SET_ID]->Get(), globalSharedPool);
+			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, descSetLayouts[TEXTURE_SET_ID]->Get(), globalSharedPool);
 
 			auto& parameterMap = InMat->GetParameterMap();
 			for (int32_t Iter = 0; Iter < TextureCount; Iter++)
@@ -304,17 +302,16 @@ namespace SPP
 	{
 	protected:
 		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
-		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 
 	public:
 		OpaqueDrawer(VulkanRenderScene *InScene) : _owningScene(InScene)
 		{
-			_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+			auto _owningDevice = GGlobalVulkanGI;
 			auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
 			auto meshVSLayout = GGlobalVulkanGI->GetGlobalResource< GlobalOpaqueDrawerResources>()->GetOpaqueVSLayout();
-			_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
+			_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, meshVSLayout->Get(), globalSharedPool);
 
 			auto cameraBuffer = InScene->GetCameraBuffer();
 
@@ -345,6 +342,7 @@ namespace SPP
 		// TODO cleanupppp
 		void Render(RT_VulkanRenderableMesh &InVulkanRenderableMesh)
 		{
+			auto _owningDevice = GGlobalVulkanGI;
 			auto currentFrame = _owningDevice->GetActiveFrame();
 			auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
 
@@ -430,39 +428,38 @@ namespace SPP
 	
 	
 
-	VulkanRenderScene::VulkanRenderScene(GraphicsDevice* InOwner) : RT_RenderScene(InOwner)
+	VulkanRenderScene::VulkanRenderScene()
 	{
 		//SE_ASSERT(I());
 		
-		_debugDrawer = std::make_unique< VulkanDebugDrawing >(_owner);
+		_debugDrawer = std::make_unique< VulkanDebugDrawing >();
 	}
 
 	VulkanRenderScene::~VulkanRenderScene()
 	{
-
 	}
 
 	void VulkanRenderScene::AddedToGraphicsDevice()
 	{
-		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto owningDevice = GGlobalVulkanGI;
 		auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
 
 		_debugDrawer->Initialize();
 
-		_fullscreenRayVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
+		_fullscreenRayVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
-		_fullscreenRaySDFPS = Make_GPU(VulkanShader, _owner, EShaderType::Pixel);
+		_fullscreenRaySDFPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 		_fullscreenRaySDFPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 
-		_fullscreenRayVSLayout = Make_GPU(VulkanInputLayout, _owner); 
+		_fullscreenRayVSLayout = Make_GPU(VulkanInputLayout); 
 
 		{
 			auto& vulkanInputLayout = _fullscreenRayVSLayout->GetAs<VulkanInputLayout>();
 			vulkanInputLayout.InitializeLayout(std::vector<VertexStream>());
 		}
 
-		_fullscreenRaySDFPSO = VulkanPipelineStateBuilder(_owner)
+		_fullscreenRaySDFPSO = VulkanPipelineStateBuilder()
 			.Set(owningDevice->GetColorFrameData())
 			.Set(EBlendState::Disabled)
 			.Set(ERasterizerState::NoCull)
@@ -474,11 +471,6 @@ namespace SPP
 			.Set(_fullscreenRaySDFPS)
 			.Build();
 
-
-
-		//
-		extern VulkanGraphicsDevice* GGlobalVulkanGI;
-
 		auto DeviceExtents = GGlobalVulkanGI->GetExtents();
 		auto commandBuffer = GGlobalVulkanGI->GetActiveCommandBuffer();
 		auto vulkanDevice = GGlobalVulkanGI->GetDevice();
@@ -486,20 +478,20 @@ namespace SPP
 
 		_cameraData = std::make_shared< ArrayResource >();
 		_cameraData->InitializeFromType< GPUViewConstants >(1);
-		_cameraBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _cameraData);
+		_cameraBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _cameraData);
 		
 		//static_assert(sizeof(GPURenderableCullData) % 4 == 0);
 
 		// 512k loaded prims?
 		_renderableCullData = std::make_shared< ArrayResource >();
 		_renderableCullData->InitializeFromType< GPURenderableCullData >(512*1024);
-		_renderableCullDataBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _renderableCullData);
+		_renderableCullDataBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _renderableCullData);
 		
-		_renderableVisibleGPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), false);
-		_renderableVisibleCPU = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), true);
+		_renderableVisibleGPU = Make_GPU(VulkanBuffer, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), false);
+		_renderableVisibleCPU = Make_GPU(VulkanBuffer, GPUBufferType::Simple, sizeof(uint32_t) * _renderableCullData->GetElementCount(), true);
 		
 		// common set
-		_commonVS = Make_GPU(VulkanShader, _owner, EShaderType::Vertex);
+		_commonVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 		_commonVS->CompileShaderFromFile("shaders/CommonVS.glsl");
 
 		// create common.glsl set
@@ -509,10 +501,9 @@ namespace SPP
 			{
 				curbinding.stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 			}
-			_commonVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, bindingsCopy);
+			_commonVSLayout = Make_GPU(SafeVkDescriptorSetLayout, bindingsCopy);
 
-			_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet,
-				_owner,
+			_commonDescriptorSet = Make_GPU(SafeVkDescriptorSet,				
 				_commonVSLayout->Get(),
 				globalSharedPool);
 
@@ -532,10 +523,9 @@ namespace SPP
 			{
 				curbinding.stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 			}
-			auto drawConstLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, bindingsCopy);
+			auto drawConstLayout = Make_GPU(SafeVkDescriptorSetLayout, bindingsCopy);
 
 			_drawConstDescriptorSet = Make_GPU(SafeVkDescriptorSet,
-				_owner,
 				drawConstLayout->Get(),
 				globalSharedPool);
 
@@ -602,7 +592,7 @@ namespace SPP
 
 	std::shared_ptr< class RT_RenderScene > VulkanGraphicsDevice::CreateRenderScene()
 	{
-		return std::make_shared<VulkanRenderScene>(this);
+		return std::make_shared<VulkanRenderScene>();
 	}
 
 	// only called from graphics device, hence no need to heck
@@ -679,7 +669,7 @@ namespace SPP
 
 	void VulkanRenderScene::Draw()
 	{
-		auto vulkanGD = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto vulkanGD = GGlobalVulkanGI;
 
 		auto currentFrame = vulkanGD->GetActiveFrame();
 		auto DeviceExtents = vulkanGD->GetExtents();

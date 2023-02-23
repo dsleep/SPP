@@ -60,10 +60,10 @@ namespace SPP
 
 		std::vector< ColoredLine > _transientLines;
 
-		DataImpl(class GraphicsDevice* InOwner) : _owner(InOwner)
+		DataImpl() 
 		{
-			_simpleVS = InOwner->CreateShader();
-			_simplePS = InOwner->CreateShader();
+			_simpleVS = GGlobalVulkanGI->CreateShader();
+			_simplePS = GGlobalVulkanGI->CreateShader();
 		}
 
 		// called on render thread
@@ -74,7 +74,7 @@ namespace SPP
 			_simplePS->Initialize(EShaderType::Pixel);
 			_simplePS->CompileShaderFromFile("shaders/debugLinePS.glsl");
 
-			_layout = Make_GPU(VulkanInputLayout, _owner);
+			_layout = Make_GPU(VulkanInputLayout);
 			ColoredVertex dummyVert;
 			_layout->InitializeLayout(GetVertexStreams(dummyVert));
 
@@ -83,9 +83,9 @@ namespace SPP
 
 			SE_ASSERT(vsRef && psRef);
 
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+			auto owningDevice = GGlobalVulkanGI;
 
-			_state = VulkanPipelineStateBuilder(_owner)
+			_state = VulkanPipelineStateBuilder()
 				.Set(owningDevice->GetLightingCompositeRenderPass())
 				.Set(EBlendState::Disabled)
 				.Set(ERasterizerState::NoCull)
@@ -99,9 +99,9 @@ namespace SPP
 
 			_linesResource = std::make_shared<ArrayResource>();
 			_linesResource->InitializeFromType<ColoredLine>(MAX_LINES);
-			_lineBuffer = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Vertex, _linesResource);
+			_lineBuffer = Make_GPU(VulkanBuffer, GPUBufferType::Vertex, _linesResource);
 
-			auto testB = Make_GPU(VulkanBuffer, _owner, GPUBufferType::Sparse, 1024 * 1024 * 128, false);
+			auto testB = Make_GPU(VulkanBuffer, GPUBufferType::Sparse, 1024 * 1024 * 128, false);
 		}
 
 		virtual void Shutdown()
@@ -114,9 +114,8 @@ namespace SPP
 		}
 	};
 
-	VulkanDebugDrawing::VulkanDebugDrawing(GraphicsDevice* InOwner) : _impl(new DataImpl(InOwner))
+	VulkanDebugDrawing::VulkanDebugDrawing() : _impl(new DataImpl())
 	{
-		_owner = InOwner;
 	}
 	VulkanDebugDrawing::~VulkanDebugDrawing()
 	{

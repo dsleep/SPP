@@ -71,7 +71,6 @@ class SimpleViewer
 	};
 
 private:
-	std::shared_ptr<GraphicsDevice> _graphicsDevice;
 	STDElapsedTimer _timer;
 	HWND _mainDXWindow = nullptr;
 	Vector2 _mouseDelta = Vector2(0, 0);
@@ -101,8 +100,6 @@ public:
 	{
 		app = SPP::CreateApplication();
 		app->Initialize(1280, 720, hInstance);
-
-		
 
 #if 0
 
@@ -186,8 +183,9 @@ public:
 #endif
 		_mainDXWindow = (HWND)app->GetOSWindow();
 
-		_graphicsDevice = GGI()->CreateGraphicsDevice();
-		_graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
+		GGI()->CreateGraphicsDevice();
+		auto graphicsDevice = GGI()->GetGraphicsDevice();
+		graphicsDevice->Initialize(1280, 720, app->GetOSWindow());
 
 		//auto SDFShader = _graphicsDevice->CreateShader();
 		//auto sparseBuf = _graphicsDevice->CreateBuffer(GPUBufferType::Sparse);
@@ -232,10 +230,7 @@ public:
 		//_gameworld = LoadJsonGameScene(*AssetPath("scenes/fullcity/fullcity.spj"));
 		_gameworld = LoadJsonGameScene(*AssetPath("scenes/voxelTest/voxelTest.spj"));
 		AddToRoot(_gameworld);
-
-		
-
-
+				
 		auto topChildren = _gameworld->GetChildren();
 		Sphere totalBounds(Vector3d(0, 0, 0), 300);
 
@@ -359,7 +354,7 @@ public:
 			}
 		}
 #endif
-		_gameworld->AddToGraphicsDevice(_graphicsDevice.get());
+		//_gameworld->AddToGraphicsDevice(graphicsDevice);
 
 
 		auto GameObjectSVVO = AllocateObject<VgSVVO>("svvo", _gameworld);
@@ -483,16 +478,18 @@ public:
 				return true;
 			});
 
-		_graphicsDevice->Flush();
-		_graphicsDevice->Shutdown();
-		_graphicsDevice.reset();
+		auto graphicsDevice = GGI()->GetGraphicsDevice();
+		graphicsDevice->Flush();
+		graphicsDevice->Shutdown();
+		GGI()->DestroyraphicsDevice();
 
 		app.reset();
 	}
 
 	void Update()
 	{
-		if (!_graphicsDevice) return;
+		auto graphicsDevice = GGI()->GetGraphicsDevice();
+		if (!graphicsDevice) return;
 
 		auto currentElapsedMS = _timer.getElapsedMilliseconds();
 
@@ -512,7 +509,7 @@ public:
 		int32_t WindowSizeX = rect.right - rect.left;
 		int32_t WindowSizeY = rect.bottom - rect.top;
 
-		_graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
+		graphicsDevice->ResizeBuffers(WindowSizeX, WindowSizeY);
 
 		auto& cam = renderableSceneShared->GetCPUCamera();
 
@@ -533,7 +530,7 @@ public:
 			auto Height = rect.bottom - rect.top;
 
 			// will be ignored if same
-			_graphicsDevice->ResizeBuffers(Width, Height);
+			graphicsDevice->ResizeBuffers(Width, Height);
 		}
 		
 		if (_selectionMode == ESelectionMode::Turn)
@@ -559,7 +556,7 @@ public:
 		}
 
 		//
-		this->_graphicsDevice->RunFrame();
+		graphicsDevice->RunFrame();
 	}
 
 	void KeyDown(uint8_t KeyValue)
@@ -577,10 +574,11 @@ public:
 
 	void MouseClick()
 	{
-		if (!_graphicsDevice || _startingGroups.empty()) return;
+		auto graphicsDevice = GGI()->GetGraphicsDevice();
+		if (!graphicsDevice || _startingGroups.empty()) return;
 
-		auto WindowSizeX = _graphicsDevice->GetDeviceWidth();
-		auto WindowSizeY = _graphicsDevice->GetDeviceHeight();
+		auto WindowSizeX = graphicsDevice->GetDeviceWidth();
+		auto WindowSizeY = graphicsDevice->GetDeviceHeight();
 
 		auto& cam = renderableSceneShared->GetCPUCamera();
 
@@ -695,7 +693,7 @@ public:
 
 	void OnResize(int32_t InWidth, int32_t InHeight)
 	{
-		//_graphicsDevice->ResizeBuffers(InWidth, InHeight);
+		//graphicsDevice->ResizeBuffers(InWidth, InHeight);
 	}
 };
 

@@ -19,10 +19,8 @@ namespace SPP
 		struct DataImpl;
 		std::unique_ptr<DataImpl> _impl;
 
-		class GraphicsDevice* _owner = nullptr;
-
 	public:
-		VulkanDebugDrawing(class GraphicsDevice* InOwner);
+		VulkanDebugDrawing();
 		~VulkanDebugDrawing();
 
 		void Initialize();

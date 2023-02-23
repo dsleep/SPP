@@ -11,6 +11,11 @@
 
 namespace SPP
 {
+
+
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
 	void VulkanTexture::updateDescriptor()
 	{
 		_descriptor.sampler = _sampler->Get();
@@ -26,13 +31,13 @@ namespace SPP
 		_deviceMemory.reset();
 	}
 
-	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner,
+	VulkanTexture::VulkanTexture(
 		int32_t Width,
 		int32_t Height,
 		TextureFormat Format,
 		std::shared_ptr< ArrayResource > RawData,
 		std::shared_ptr< ImageMeta > InMetaInfo)
-		: VulkanTexture(InOwner,
+		: VulkanTexture(
 			TextureAsset
 			{
 			 .orgFileName = "",
@@ -52,7 +57,7 @@ namespace SPP
 
 	void VulkanTexture::SetName(const char* InName)
 	{
-		auto VGD = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto VGD = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
 		vks::debugmarker::setImageName(VGD->GetVKDevice(), _image->Get(), InName);
 	}
 
@@ -95,11 +100,11 @@ namespace SPP
 		return VK_FORMAT_UNDEFINED;
 	}
 
-	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, const struct TextureAsset& InTextureAsset) : 
-		GPUTexture(InOwner, InTextureAsset)
+	VulkanTexture::VulkanTexture(const struct TextureAsset& InTextureAsset) : 
+		GPUTexture(InTextureAsset)
 	{
 		auto sfileName = stdfs::path(InTextureAsset.orgFileName).filename().generic_string();
-		auto VGD = dynamic_cast<VulkanGraphicsDevice*>(_owner); 
+		auto VGD = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
 		auto TotalTextureSize = InTextureAsset.GetTotalSize();
 		auto copyQueue = VGD->GetGraphicsQueue();
 		auto device = VGD->GetVKSVulkanDevice();
@@ -196,7 +201,7 @@ namespace SPP
 		bool IsCubemap = (_faceCount == 6);
 
 
-		auto VGD = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto VGD = GGlobalVulkanGI;
 		auto copyQueue = VGD->GetGraphicsQueue();
 		auto device = VGD->GetVKSVulkanDevice();
 		
@@ -238,7 +243,7 @@ namespace SPP
 			// This flag is required for cube map images
 			imageCreateInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		}
-		_image = std::make_unique< SafeVkImage >(_owner, imageCreateInfo);
+		_image = std::make_unique< SafeVkImage >(imageCreateInfo);
 
 		vks::debugmarker::setImageName(device->logicalDevice, _image->Get(), "VT_Empty");
 
@@ -249,7 +254,7 @@ namespace SPP
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex = device->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		_deviceMemory = std::make_unique< SafeVkDeviceMemory >(_owner, memAllocInfo);
+		_deviceMemory = std::make_unique< SafeVkDeviceMemory >(memAllocInfo);
 		VK_CHECK_RESULT(vkBindImageMemory(device->logicalDevice, _image->Get(), _deviceMemory->Get(), 0));
 
 		_imageByteSize = (uint32_t) memReqs.size;
@@ -268,7 +273,7 @@ namespace SPP
 		samplerCreateInfo.minLod = 0.0f;
 		samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
 		samplerCreateInfo.maxAnisotropy = 1.0f;
-		_sampler = std::make_unique< SafeVkSampler >(_owner, samplerCreateInfo);
+		_sampler = std::make_unique< SafeVkSampler >(samplerCreateInfo);
 
 		// Create _image _view
 		VkImageViewCreateInfo viewCreateInfo = {};
@@ -279,7 +284,7 @@ namespace SPP
 		viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		viewCreateInfo.subresourceRange = { viewAspectMask, 0, (uint32_t)_mipLevels, 0, (uint32_t)_faceCount };
 		viewCreateInfo.image = _image->Get();
-		_view = std::make_unique< SafeVkImageView >(_owner, viewCreateInfo);
+		_view = std::make_unique< SafeVkImageView >(viewCreateInfo);
 		// Update descriptor _image info member that can be used for setting up descriptor sets
 		updateDescriptor();
 
@@ -301,11 +306,11 @@ namespace SPP
 		VGD->SubmitCopyCommands();
 	}
 
-	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, 
+	VulkanTexture::VulkanTexture( 
 		int32_t Width, int32_t Height, 
 		int32_t MipLevelCount, int32_t FaceCount, 
 		TextureFormat Format, VkImageUsageFlags UsageFlags, VkImageLayout InitialLayout)
-		: GPUTexture(InOwner, Width, Height, MipLevelCount, FaceCount, Format)
+		: GPUTexture(Width, Height, MipLevelCount, FaceCount, Format)
 	{
 		_imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		_initialLayout = InitialLayout;
@@ -325,8 +330,8 @@ namespace SPP
 		_allocate();
 	}
 
-	VulkanTexture::VulkanTexture(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) :
-		VulkanTexture(InOwner, Width, Height, 1, 1, Format, VK_IMAGE_USAGE_SAMPLED_BIT |
+	VulkanTexture::VulkanTexture(int32_t Width, int32_t Height, TextureFormat Format) :
+		VulkanTexture(Width, Height, 1, 1, Format, VK_IMAGE_USAGE_SAMPLED_BIT |
 			VK_IMAGE_USAGE_STORAGE_BIT |
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 	{
@@ -346,7 +351,7 @@ namespace SPP
 			viewCreateInfo.subresourceRange = { _subresourceRange.aspectMask, (uint32_t)Iter, 1, 0, 1 };			
 			viewCreateInfo.image = _image->Get();
 
-			auto newView = Make_GPU(SafeVkImageView, _owner, viewCreateInfo);
+			auto newView = Make_GPU(SafeVkImageView, viewCreateInfo);
 			oViews.push_back(newView);
 		}
 
@@ -366,7 +371,7 @@ namespace SPP
 		//HACK just assumes RGBA8888
 		SE_ASSERT((Extents[0] * Extents[1] * 4) == DataSize);
 
-		auto VGD = dynamic_cast<VulkanGraphicsDevice*>(_owner);
+		auto VGD = GGlobalVulkanGI;
 		auto& perFrameScratchBuffer = VGD->GetPerFrameScratchBuffer();
 		auto& cmdBuffer = VGD->GetCopyCommandBuffer();
 		auto activeFrame = VGD->GetActiveFrame();

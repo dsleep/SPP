@@ -76,7 +76,7 @@ namespace SPP
 		&CustomCpuFree // pfnFree
 	};
 
-	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
+	extern GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData);
 	
 	VkPipelineVertexInputStateCreateInfo& VulkanInputLayout::GetVertexInputState()
 	{
@@ -562,9 +562,9 @@ namespace SPP
 	{
 		_staticInstanceDrawInfoCPU = std::make_shared< ArrayResource >();
 		_staticInstanceDrawInfoSpan = _staticInstanceDrawInfoCPU->InitializeFromType< StaticDrawParams >(250000);
-		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(this, GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
+		_staticInstanceDrawInfoGPU = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _staticInstanceDrawInfoCPU);
 
-		_staticInstanceDrawPoolManager = std::make_unique < StaticDrawPoolManager >(this, _staticInstanceDrawInfoSpan, 
+		_staticInstanceDrawPoolManager = std::make_unique < StaticDrawPoolManager >(_staticInstanceDrawInfoSpan, 
 			[this](StaticDrawPoolManager::Reservation &InLease)
 			{
 				this->_staticInstanceDrawInfoGPU->UpdateDirtyRegion(InLease.GetIndex(), 1);
@@ -622,7 +622,7 @@ namespace SPP
 
 		for (int32_t Iter = 0; Iter < swapChain.imageCount; Iter++)
 		{
-			_waitFences[Iter] = Make_GPU(SafeVkFence, this, fenceCreateInfo);
+			_waitFences[Iter] = Make_GPU(SafeVkFence, fenceCreateInfo);
 		}
 	}
 
@@ -655,19 +655,19 @@ namespace SPP
 		_impl->lightingCompositeRenderPass = {};
 		
 
-		_impl->depthColor = Make_GPU(VulkanTexture, this, width, height, TextureFormat::R32F);
+		_impl->depthColor = Make_GPU(VulkanTexture, width, height, TextureFormat::R32F);
 		_impl->depthColor->SetName("_depthColor");
 
-		auto diffuseTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1, 
+		auto diffuseTexture = Make_GPU(VulkanTexture, width, height, 1, 1, 
 			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-		auto smreTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+		auto smreTexture = Make_GPU(VulkanTexture, width, height, 1, 1,
 			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-		auto normalTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+		auto normalTexture = Make_GPU(VulkanTexture, width, height, 1, 1,
 			TextureFormat::RGBA_8888, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-		auto depthTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+		auto depthTexture = Make_GPU(VulkanTexture, width, height, 1, 1,
 			TextureFormat::D32_S8, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 	
-		_impl->deferredTarget = std::make_unique< VulkanFramebuffer >(this, width, height);
+		_impl->deferredTarget = std::make_unique< VulkanFramebuffer >(width, height);
 		_impl->deferredTarget->addAttachment(
 			{
 				.texture = diffuseTexture,
@@ -697,10 +697,10 @@ namespace SPP
 		_impl->defferedFrame = _impl->deferredTarget->createCustomRenderPass({ "Diffuse", "SpecularMetallicRoughnessEmissive", "Normal", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 		_impl->colorAndDepthFrame = _impl->deferredTarget->createCustomRenderPass({ "Diffuse", "Depth" }, VK_ATTACHMENT_LOAD_OP_CLEAR);
 
-		auto lightingCompTexture = Make_GPU(VulkanTexture, this, width, height, 1, 1,
+		auto lightingCompTexture = Make_GPU(VulkanTexture, width, height, 1, 1,
 			TextureFormat::R16G16B16A16F, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 
-		_impl->lightingComposite = std::make_unique< VulkanFramebuffer >(this, width, height);
+		_impl->lightingComposite = std::make_unique< VulkanFramebuffer >(width, height);
 		_impl->lightingComposite->addAttachment(
 			{
 				.texture = lightingCompTexture,
@@ -734,9 +734,9 @@ namespace SPP
 		// Create one command buffer for each swap chain image and reuse for rendering
 		for (int32_t Iter = 0; Iter < MAX_IN_FLIGHT; Iter++)
 		{
-			_drawCmdBuffers[Iter] = Make_GPU(SafeVkCommandBuffer, this, cmdBufAllocateInfo);
-			_copyCmdBuffers[Iter].cmdBuf = Make_GPU(SafeVkCommandBuffer, this, cmdBufAllocateInfo);
-			_copyCmdBuffers[Iter].fence = Make_GPU(SafeVkFence, this, fenceInfo);
+			_drawCmdBuffers[Iter] = Make_GPU(SafeVkCommandBuffer, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].cmdBuf = Make_GPU(SafeVkCommandBuffer, cmdBufAllocateInfo);
+			_copyCmdBuffers[Iter].fence = Make_GPU(SafeVkFence, fenceInfo);
 		}
 	}
 
@@ -810,7 +810,7 @@ namespace SPP
 		renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 		renderPassInfo.pDependencies = dependencies.data();
 
-		_backBufferRenderPass = Make_GPU(SafeVkRenderPass, this, renderPassInfo);
+		_backBufferRenderPass = Make_GPU(SafeVkRenderPass, renderPassInfo);
 	}
 
 
@@ -832,7 +832,7 @@ namespace SPP
 		for (uint32_t i = 0; i < swapChain.imageCount; i++)
 		{
 			attachments = swapChain.buffers[i].view;
-			_frameBuffers[i] = Make_GPU(SafeVkFrameBuffer, this, frameBufferCreateInfo);
+			_frameBuffers[i] = Make_GPU(SafeVkFrameBuffer, frameBufferCreateInfo);
 		}
 	}
 
@@ -934,14 +934,14 @@ namespace SPP
 						textureAccess[Iter][1] = 255;
 						textureAccess[Iter][3] = 255;
 					}
-					_defaultTexture = Make_GPU(VulkanTexture, this, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
+					_defaultTexture = Make_GPU(VulkanTexture, 128, 128, TextureFormat::RGBA_8888, textureData, nullptr);
 					_defaultTexture->SetName("_DEFAULTTEXTURE");
 				}
 
 				auto& globalList = GetGlobalResourceList();
 				for (size_t Iter = 0; Iter < globalList.size(); Iter++)
 				{
-					_globalResources[Iter].reset(globalList[Iter](this));
+					_globalResources[Iter].reset(globalList[Iter]());
 				}
 			});
 
@@ -1595,47 +1595,47 @@ namespace SPP
 
 	GPUReferencer< class GPUShader > VulkanGraphicsDevice::_gxCreateShader(EShaderType InType)
 	{
-		return Make_GPU(VulkanShader, this, InType);
+		return Make_GPU(VulkanShader, InType);
 	}
 
 	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		return Vulkan_CreateStaticBuffer(this, InType, InCpuData);
+		return Vulkan_CreateStaticBuffer( InType, InCpuData);
 	}
 
 	GPUReferencer< class GPUBuffer > VulkanGraphicsDevice::_gxCreateBuffer(GPUBufferType InType, size_t InSize)
 	{
-		return Make_GPU(VulkanBuffer, this, InType, InSize, false);
+		return Make_GPU(VulkanBuffer, InType, InSize, false);
 	}
 
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(const struct TextureAsset& TextureAsset)
 	{
-		return Make_GPU(VulkanTexture, this, TextureAsset);
+		return Make_GPU(VulkanTexture, TextureAsset);
 	}
 
 	GPUReferencer< class GPUTexture > VulkanGraphicsDevice::_gxCreateTexture(int32_t Width, int32_t Height, TextureFormat Format, std::shared_ptr< ArrayResource > RawData, std::shared_ptr< ImageMeta > InMetaInfo) 
 	{
 		if (RawData) 
 		{
-			return Make_GPU(VulkanTexture, this, Width, Height, Format, RawData, InMetaInfo);
+			return Make_GPU(VulkanTexture, Width, Height, Format, RawData, InMetaInfo);
 		}
 		else
 		{
-			return Make_GPU(VulkanTexture, this, Width, Height, Format);
+			return Make_GPU(VulkanTexture, Width, Height, Format);
 		}
 	}
 
 	std::shared_ptr< class RT_Texture > VulkanGraphicsDevice::CreateTexture()
 	{
-		return Make_RT_Resource( RT_Texture, this );
+		return Make_RT_Resource( RT_Texture );
 	}
 	std::shared_ptr< class RT_Shader > VulkanGraphicsDevice::CreateShader()
 	{
-		return Make_RT_Resource( RT_Shader, this);
+		return Make_RT_Resource( RT_Shader );
 	}
 	std::shared_ptr< class RT_Buffer > VulkanGraphicsDevice::CreateBuffer(GPUBufferType InType)
 	{
-		return Make_RT_Resource( RT_Buffer, this, InType);
+		return Make_RT_Resource( RT_Buffer, InType);
 	}
 	
 	

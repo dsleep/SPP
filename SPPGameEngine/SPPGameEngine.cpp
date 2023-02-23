@@ -133,10 +133,9 @@ namespace SPP
 		SE_ASSERT(thisRenderableScene);
 
 		// not ready yet
-		if (!thisRenderableScene->GetGraphicsDevice()
-			|| !thisRenderableScene->GetRenderScene()) return;
+		if (!thisRenderableScene->GetRenderScene()) return;
 
-		auto sceneGD = thisRenderableScene->GetGraphicsDevice();
+		auto sceneGD = GGI()->GetGraphicsDevice();
 		_renderableSVVO = sceneGD->CreateRenderableSVVO();
 
 		_bounds = Sphere(_translation, _scale.maxCoeff());

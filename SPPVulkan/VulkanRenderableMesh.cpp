@@ -32,9 +32,8 @@ namespace SPP
 	{
 		SE_ASSERT(vsShader && psShader);
 
-		auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(_owner);
-		return VulkanPipelineStateBuilder(_owner)
-			.Set(owningDevice->GetDeferredFrameData())
+		return VulkanPipelineStateBuilder()
+			.Set(GGlobalVulkanGI->GetDeferredFrameData())
 			.Set(_blendState)
 			.Set(_rasterizerState)
 			.Set(_depthState)
@@ -48,39 +47,39 @@ namespace SPP
 
 	std::shared_ptr< class RT_Material > VulkanGraphicsDevice::CreateMaterial()
 	{
-		return Make_RT_Resource(RT_Vulkan_Material, this);
+		return Make_RT_Resource(RT_Vulkan_Material);
 	}
 
 	std::shared_ptr< class RT_StaticMesh > VulkanGraphicsDevice::CreateStaticMesh()
 	{
-		return Make_RT_Resource( RT_VulkanStaticMesh, this);
+		return Make_RT_Resource( RT_VulkanStaticMesh);
 	}
 
 	std::shared_ptr< class RT_SunLight > VulkanGraphicsDevice::CreateSunLight()
 	{
-		return Make_RT_Resource(RT_SunLight, this);
+		return Make_RT_Resource(RT_SunLight);
 	}
 
 	std::shared_ptr< class RT_PointLight > VulkanGraphicsDevice::CreatePointLight()
 	{
-		return Make_RT_Resource(RT_PointLight, this);
+		return Make_RT_Resource(RT_PointLight);
 	}
 
 	std::shared_ptr< class RT_RenderableMesh > VulkanGraphicsDevice::CreateRenderableMesh()
 	{
-		return Make_RT_Resource( RT_VulkanRenderableMesh, this);
+		return Make_RT_Resource( RT_VulkanRenderableMesh);
 	}
 
 	std::shared_ptr< class RT_RenderableSVVO > VulkanGraphicsDevice::CreateRenderableSVVO()
 	{
-		return Make_RT_Resource(RT_RenderableSVVO, this);
+		return Make_RT_Resource(RT_RenderableSVVO);
 	}
 
 	void RT_VulkanStaticMesh::Initialize()
 	{
 		RT_StaticMesh::Initialize();
 
-		_layout = Make_GPU(VulkanInputLayout, _owner); 
+		_layout = Make_GPU(VulkanInputLayout); 
 		_layout->InitializeLayout(_vertexStreams);		
 	}
 
@@ -123,7 +122,7 @@ namespace SPP
 			auto& curData = uniformData[0];
 			curData.LocalToWorldScaleRotation = _cachedRotationScale;
 			curData.Translation = _position;
-			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(_owner, GPUBufferType::Simple, _drawConstants);
+			_drawConstantsBuffer = Vulkan_CreateStaticBuffer(GPUBufferType::Simple, _drawConstants);
 			bPendingUpdate = false;
 		}
 	}

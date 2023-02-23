@@ -17,7 +17,7 @@ namespace SPP
 		std::vector<VmaAllocation> allocations;
 	};
 
-	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer(InOwner, InType, InCpuData), _impl(new PrivImpl())
+	VulkanBuffer::VulkanBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUBuffer( InType, InCpuData), _impl(new PrivImpl())
 	{ 
 		SE_ASSERT(InCpuData);
 		_size = InCpuData->GetTotalSize();
@@ -72,7 +72,7 @@ namespace SPP
 		_MakeResident();
 	}
 
-	VulkanBuffer::VulkanBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t BufferSize, bool IsCPUMem) : GPUBuffer(InOwner, InType, nullptr), _impl(new PrivImpl())
+	VulkanBuffer::VulkanBuffer(GPUBufferType InType, size_t BufferSize, bool IsCPUMem) : GPUBuffer(InType, nullptr), _impl(new PrivImpl())
 	{
 		_size = BufferSize;
 
@@ -238,7 +238,7 @@ namespace SPP
 		//VkSemaphore(between submits on GPU queues) or VkFence(to wait or poll for finish on the CPU)
 
 		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo();
-		SafeVkFence tempFence(GGlobalVulkanGI, fenceCreateInfo);
+		SafeVkFence tempFence(fenceCreateInfo);
 		auto& currentFence = tempFence.Get();
 		vkResetFences(GGlobalVulkanDevice, 1, &currentFence);
 		vkQueueBindSparse(GGlobalVulkanGI->GetSparseQueue(), 1, &spareInfo, currentFence);
@@ -410,9 +410,9 @@ namespace SPP
 	}
 
 	//TODO FIX UP THESE
-	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
+	GPUReferencer< VulkanBuffer > Vulkan_CreateStaticBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
 	{
-		return Make_GPU(VulkanBuffer, InOwner, InType, InCpuData);
+		return Make_GPU(VulkanBuffer, InType, InCpuData);
 	}
 
 

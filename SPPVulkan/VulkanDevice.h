@@ -50,7 +50,7 @@ namespace SPP
 		virtual void _MakeUnresident() override {}
 
 	public:
-		VulkanInputLayout(GraphicsDevice* InOwner) : GPUInputLayout(InOwner)
+		VulkanInputLayout()
 		{
 		}
 
@@ -87,14 +87,12 @@ namespace SPP
 		std::list< Purged > _pendingPurge;
 
 		std::function< void(LM::Reservation&) > _func;
-		class VulkanGraphicsDevice* _owner = nullptr;
 		
 	public:
 
-		DeviceLeaseManager(class VulkanGraphicsDevice* InOwner,
-			IndexedData& InIndexor,
+		DeviceLeaseManager(	IndexedData& InIndexor,
 			const std::function< void(LM::Reservation&) >& InFunc) :
-			_owner(InOwner), _func(InFunc), LM(InIndexor)
+			_func(InFunc), LM(InIndexor)
 		{ }
 
 		virtual void LeaseUpdated(typename LM::Reservation& InLease) override
@@ -104,7 +102,8 @@ namespace SPP
 
 		virtual void EndLease(typename LM::Reservation& InLease) override
 		{
-			_pendingPurge.push_back({ std::move(InLease.GetBitReference()), _owner->GetCurrentFrame() });
+			auto vkGDCast = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
+			_pendingPurge.push_back({ std::move(InLease.GetBitReference()), vkGDCast->GetCurrentFrame()});
 		}
 
 		void ClearTag(uint8_t InTag)

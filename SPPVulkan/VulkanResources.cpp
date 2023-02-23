@@ -11,21 +11,21 @@
 
 namespace SPP
 {
-	SafeVkCommandBuffer::SafeVkCommandBuffer(GraphicsDevice* InOwner, const VkCommandBufferAllocateInfo& info) : GPUResource(InOwner)
-	{
-		auto vulkanDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
-		VkDevice InDevice = vulkanDevice->GetDevice();
 
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
+	SafeVkCommandBuffer::SafeVkCommandBuffer(const VkCommandBufferAllocateInfo& info) : GPUResource()
+	{
 		SE_ASSERT(_cmdBuf == nullptr);
-		_owningDevice = InDevice;
 		_owningPool = info.commandPool;
-		VK_CHECK_RESULT(vkAllocateCommandBuffers(_owningDevice, &info, &_cmdBuf));
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(GGlobalVulkanDevice, &info, &_cmdBuf));
 	}
 	SafeVkCommandBuffer::~SafeVkCommandBuffer()
 	{
 		if (_cmdBuf)
 		{
-			vkFreeCommandBuffers(_owningDevice, _owningPool, 1, &_cmdBuf);
+			vkFreeCommandBuffers(GGlobalVulkanDevice, _owningPool, 1, &_cmdBuf);
 		}
 	}
 

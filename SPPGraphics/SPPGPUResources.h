@@ -206,7 +206,6 @@ namespace SPP
     protected:
         bool _gpuResident = false;
         bool _dying = false;
-        GraphicsDevice* _owner = nullptr;
 
         int32_t _cppLine = -1;
         std::string _cppFile;
@@ -217,7 +216,7 @@ namespace SPP
         virtual void _MakeUnresident() {}
 
     public:
-        GPUResource(GraphicsDevice* InOwner);
+        GPUResource();
         virtual ~GPUResource();
 
         bool IsUsingGPUReferencer() const 
@@ -238,11 +237,7 @@ namespace SPP
 
         virtual void SetName(const char *InName) {}
 
-        virtual void NoMoreReferences()
-        {
-            _dying = true;
-            _owner->DyingResource(this);
-        }
+        virtual void NoMoreReferences();
 
         virtual const char* GetName() const {
             return "GPUResource";
@@ -296,14 +291,14 @@ namespace SPP
         {                       \
             GR##_REGISTER()     \
             {                   \
-                GR::_ID = RegisterGlobalResource([](class GraphicsDevice* InGD){ return new GR(InGD); });  \
+                GR::_ID = RegisterGlobalResource([](){ return new GR(); });  \
             }                   \
         };                      \
         GR##_REGISTER G##GR##REGISTERED;
 
-    SPP_GRAPHICS_API uint32_t RegisterGlobalResource(std::function< GlobalGraphicsResource*(class GraphicsDevice* InGD) > AllocResource);
+    SPP_GRAPHICS_API uint32_t RegisterGlobalResource(std::function< GlobalGraphicsResource*(void) > AllocResource);
     SPP_GRAPHICS_API void UnregisterGlobalResource(GlobalGraphicsResource* InResource);
-    SPP_GRAPHICS_API std::vector< std::function< GlobalGraphicsResource* (class GraphicsDevice* InGD) > >& GetGlobalResourceList();
+    SPP_GRAPHICS_API std::vector< std::function< GlobalGraphicsResource* (void) > >& GetGlobalResourceList();
     //SPP_GRAPHICS_API void MakeResidentAllGPUResources();
 
     class SPP_GRAPHICS_API GPUShader : public GPUResource
@@ -313,7 +308,7 @@ namespace SPP
         std::string _entryPoint;
 
     public:
-        GPUShader(GraphicsDevice* InOwner, EShaderType InType) : GPUResource(InOwner), _type(InType)
+        GPUShader(EShaderType InType) : _type(InType)
         {
 
         }
@@ -386,10 +381,9 @@ namespace SPP
         uint32_t _uniqueID = 0;
 
     public:
-        GPUTexture(GraphicsDevice* InOwner, 
-            int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount,
+        GPUTexture( int32_t Width, int32_t Height, int32_t MipLevelCount, int32_t FaceCount,
             TextureFormat Format );
-        GPUTexture(GraphicsDevice* InOwner, const struct TextureAsset &InTextureAsset);
+        GPUTexture( const struct TextureAsset &InTextureAsset);
         virtual ~GPUTexture();
         virtual void PushAsyncUpdate(Vector2i Start, Vector2i Extents, const void* Memory, uint32_t MemorySize) {};
 
@@ -421,9 +415,9 @@ namespace SPP
         std::shared_ptr< ArrayResource > _cpuLink;
 
     public:
-        GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType) : GPUResource(InOwner), _type(InType) {}
-        GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : GPUResource(InOwner), _type(InType), _cpuLink(InCpuData) {}
-        GPUBuffer(GraphicsDevice* InOwner, GPUBufferType InType, size_t InPerElementSize, size_t InElementCount) : GPUResource(InOwner), _type(InType) 
+        GPUBuffer(GPUBufferType InType) : _type(InType) {}
+        GPUBuffer(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData) : _type(InType), _cpuLink(InCpuData) {}
+        GPUBuffer(GPUBufferType InType, size_t InPerElementSize, size_t InElementCount) : _type(InType) 
         {
             _cpuLink = std::make_shared< ArrayResource >(InPerElementSize, InElementCount);
         }       
@@ -549,7 +543,7 @@ namespace SPP
     class SPP_GRAPHICS_API GPUInputLayout : public GPUResource
     {
     public:
-        GPUInputLayout(GraphicsDevice* InOwner) : GPUResource(InOwner)
+        GPUInputLayout() 
         {
 
         }
@@ -568,16 +562,15 @@ namespace SPP
     class SPP_GRAPHICS_API PipelineState : public GPUResource
     {
     public:
-        PipelineState(GraphicsDevice* InOwner) :
-            GPUResource(InOwner) { }
+        PipelineState() {}
         virtual ~PipelineState() { }
     };
 
     class SPP_GRAPHICS_API GPURenderTarget : public GPUTexture
     {
     public:
-        GPURenderTarget(GraphicsDevice* InOwner, int32_t Width, int32_t Height, TextureFormat Format) :
-            GPUTexture(InOwner, Width, Height, 1, 1, Format) { }
+        GPURenderTarget(int32_t Width, int32_t Height, TextureFormat Format) :
+            GPUTexture(Width, Height, 1, 1, Format) { }
         virtual ~GPURenderTarget() { }
     };
 
@@ -589,22 +582,13 @@ namespace SPP
     protected:
         GPUReferencer< GPUShader > _shader;
                
-        RT_Shader(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+        RT_Shader() {}
 
     public:       
         virtual ~RT_Shader() {}
-        virtual void Initialize(EShaderType InType)
-        {
-            _shader = _owner->_gxCreateShader(InType);
-        }
-        virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
-        {
-            return _shader->CompileShaderFromFile(FileName, EntryPoint, oErrorMsgs);
-        }
-        virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr)
-        {
-            return _shader->CompileShaderFromString(ShaderSource, ShaderName, EntryPoint, oErrorMsgs);
-        }
+        virtual void Initialize(EShaderType InType);
+        virtual bool CompileShaderFromFile(const AssetPath& FileName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr);
+        virtual bool CompileShaderFromString(const std::string& ShaderSource, const char* ShaderName, const char* EntryPoint = "main", std::string* oErrorMsgs = nullptr);
 
         GPUReferencer< GPUShader > GetGPURef()
         {
@@ -657,7 +641,7 @@ namespace SPP
     protected:
         GPUReferencer< GPUTexture > _texture;
 
-        RT_Texture(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+        RT_Texture() {}
 
     public:
         virtual ~RT_Texture() {}
@@ -748,7 +732,7 @@ namespace SPP
 
         uint32_t _updateID = 1;
 
-        RT_Material(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+        RT_Material() {}
 
     public:
         virtual ~RT_Material() {}
@@ -784,22 +768,11 @@ namespace SPP
         GPUReferencer< GPUBuffer > _buffer;
         GPUBufferType _type;
 
-        RT_Buffer(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
-        RT_Buffer(GraphicsDevice* InOwner, GPUBufferType InType) : RT_Resource(InOwner), _type(InType) {}
+        RT_Buffer(GPUBufferType InType) : _type(InType) {}
 
     public:
-        virtual void Initialize(GPUBufferType InType, std::shared_ptr< ArrayResource > InCpuData)
-        {
-            _buffer = _owner->_gxCreateBuffer(InType, InCpuData);
-        }
-        virtual void Initialize(size_t BufferSize)
-        {
-            _buffer = _owner->_gxCreateBuffer(_type, BufferSize);
-        }
-        virtual void Initialize(std::shared_ptr< ArrayResource > InCpuData)
-        {
-            _buffer = _owner->_gxCreateBuffer(_type, InCpuData);
-        }
+        virtual void Initialize(size_t BufferSize);
+        virtual void Initialize(std::shared_ptr< ArrayResource > InCpuData);
 
         auto GetType() const {
             return _type;
@@ -819,7 +792,7 @@ namespace SPP
         std::vector< GPUReferencer< GPUTexture > > _textures;
         GPUReferencer< GPUShader > _compute;
 
-        RT_ComputeDispatch(GraphicsDevice* InOwner, GPUReferencer< GPUShader> InCS) : RT_Resource(InOwner), _compute(InCS) { }
+        RT_ComputeDispatch(GPUReferencer< GPUShader> InCS) : _compute(InCS) { }
     public:
 
         void SetTextures(const std::vector< GPUReferencer<GPUTexture> > &InTextures)
@@ -848,10 +821,6 @@ namespace SPP
 
     public:
         void AddLine(Vector2 Start, Vector2 End, const Color3 InColor = Color3(255, 255, 255));
-    };   
-
-    // global graphics interface
-    SPP_GRAPHICS_API IGraphicsInterface* GGI();
-    SPP_GRAPHICS_API void SET_GGI(IGraphicsInterface *InGraphicsIterface);
+    }; 
 }
 

@@ -14,7 +14,6 @@ namespace SPP
 	protected:
 		GPUReferencer< SafeVkDescriptorSet > _depthPyramidDescriptorSet, _depthCullingDescriptorSet;
 
-		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 
 		GPUReferencer< VulkanTexture > _depthPyramidTexture;

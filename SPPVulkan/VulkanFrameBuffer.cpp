@@ -12,8 +12,10 @@
 
 namespace SPP
 {
-	VulkanFramebuffer::VulkanFramebuffer(GraphicsDevice* InOwner,
-		uint32_t InWidth, uint32_t InHeight) : _owner(InOwner), _width(InWidth), _height(InHeight)
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
+	VulkanFramebuffer::VulkanFramebuffer(uint32_t InWidth, uint32_t InHeight) : _width(InWidth), _height(InHeight)
 	{
 	}
 
@@ -236,7 +238,7 @@ namespace SPP
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
-		oData.renderPass = Make_GPU(SafeVkRenderPass, _owner, renderPassInfo);
+		oData.renderPass = Make_GPU(SafeVkRenderPass, renderPassInfo);
 
 		VkFramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -246,7 +248,7 @@ namespace SPP
 		framebufferInfo.width = _width;
 		framebufferInfo.height = _height;
 		framebufferInfo.layers = maxLayers;
-		oData.frameBuffer = Make_GPU(SafeVkFrameBuffer, _owner, framebufferInfo);
+		oData.frameBuffer = Make_GPU(SafeVkFrameBuffer, framebufferInfo);
 
 		oData.Width = _width;
 		oData.Height = _height;

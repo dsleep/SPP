@@ -20,6 +20,9 @@ namespace SPP
 {
 	extern LogEntry LOG_VULKAN;
 
+	extern VkDevice GGlobalVulkanDevice;
+	extern VulkanGraphicsDevice* GGlobalVulkanGI;
+
 	enum class ParamType
 	{
 		Texture,
@@ -126,22 +129,22 @@ namespace SPP
 
 	public:
 		// called on render thread
-		GlobalDeferredPBRResources(class GraphicsDevice* InOwner) : GlobalGraphicsResource(InOwner)
+		GlobalDeferredPBRResources() 
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
+			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
 
-			_defferedPBRVoxelCompute = Make_GPU(VulkanShader, InOwner, EShaderType::Pixel);
+			_defferedPBRVoxelCompute = Make_GPU(VulkanShader, EShaderType::Pixel);
 			_defferedPBRVoxelCompute->CompileShaderFromFile("shaders/Voxel/VoxelRayMarchPS.glsl");
 
-			_defferedPBRVS = Make_GPU(VulkanShader, InOwner, EShaderType::Vertex);
+			_defferedPBRVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 			_defferedPBRVS->CompileShaderFromFile("shaders/Deferred/PBRMaterialVS.glsl");
 
-			_deferredSMlayout = Make_GPU(VulkanInputLayout, InOwner);
+			_deferredSMlayout = Make_GPU(VulkanInputLayout);
 			_deferredSMlayout->InitializeLayout(OP_GetVertexStreams_Deferred());
 
 			{
 				auto& vsSet = _defferedPBRVS->GetLayoutSets();
-				_deferredVSLayout = Make_GPU(SafeVkDescriptorSetLayout, owningDevice, vsSet.front().bindings);
+				_deferredVSLayout = Make_GPU(SafeVkDescriptorSetLayout, vsSet.front().bindings);
 			}
 		}
 
@@ -190,7 +193,7 @@ namespace SPP
 
 	PBRDeferredDrawer::PBRDeferredDrawer(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
-		_owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InScene->GetOwner());
+		_owningDevice = GGlobalVulkanGI;
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
 
 		//VOXEL
@@ -199,7 +202,7 @@ namespace SPP
 		//	.Set(voxelRMCS).Build();
 
 		auto meshVSLayout = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVSLayout();
-		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, _owningDevice, meshVSLayout->Get(), globalSharedPool);
+		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, meshVSLayout->Get(), globalSharedPool);
 
 		auto cameraBuffer = InScene->GetCameraBuffer();
 
@@ -252,7 +255,7 @@ namespace SPP
 
 		if (!cacheRef->state[(uint8_t)InVertexInputType])
 		{
-			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(InMat->GetOwner());
+			auto owningDevice = GGlobalVulkanGI;
 			auto& paraMap = InMat->GetParameterMap();
 			auto thisParamKey = ParameterMapKey(paraMap);
 			auto foundPS = owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetPSFromParamMap(thisParamKey);
@@ -383,7 +386,7 @@ namespace SPP
 
 				ReplacementMap["<<UNIFORM_BLOCK>>"] = UniformBlock;
 
-				cacheRef->_defferedPBRPS = Make_GPU(VulkanShader, owningDevice, EShaderType::Pixel);
+				cacheRef->_defferedPBRPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 				bool bCompiled = cacheRef->_defferedPBRPS->CompileShaderFromTemplate("shaders/Deferred/PBRMaterialTemplatePS.glsl", ReplacementMap);
 
 				SE_ASSERT(bCompiled);
@@ -403,7 +406,7 @@ namespace SPP
 
 			auto globalSharedPool = owningDevice->GetPersistentDescriptorPool();
 			std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, owningDevice, descSetLayouts[TEXTURE_SET_ID]->Get(), globalSharedPool);
+			auto newTextureDescSet = Make_GPU(SafeVkDescriptorSet, descSetLayouts[TEXTURE_SET_ID]->Get(), globalSharedPool);
 
 			auto& parameterMap = InMat->GetParameterMap();
 			for (int32_t Iter = 0; Iter < texturesUsed.size(); Iter++)

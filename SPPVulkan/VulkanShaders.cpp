@@ -87,7 +87,7 @@ namespace SPP
 		return "none";
 	}
 
-	VulkanShader::VulkanShader(GraphicsDevice* InOwner, EShaderType InType) : GPUShader(InOwner,InType)
+	VulkanShader::VulkanShader(EShaderType InType) : GPUShader(InType)
 	{
 		SE_ASSERT(InType == EShaderType::Pixel || InType == EShaderType::Vertex || InType == EShaderType::Compute);
 	}

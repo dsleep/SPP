@@ -29,12 +29,11 @@ namespace SPP
 	class SafeVkCommandBuffer : public GPUResource
 	{
 	private:
-		VkDevice _owningDevice = nullptr;
 		VkCommandBuffer _cmdBuf = nullptr;
 		VkCommandPool _owningPool = nullptr;
 
 	public:
-		SafeVkCommandBuffer(GraphicsDevice* InOwner, const VkCommandBufferAllocateInfo& info);
+		SafeVkCommandBuffer(const VkCommandBufferAllocateInfo& info);
 		~SafeVkCommandBuffer();
 		VkCommandBuffer &Get()
 		{
@@ -46,17 +45,17 @@ namespace SPP
 	class SafeVkResource : public GPUResource
 	{
 	protected:
-		VkDevice _owningDevice = nullptr;
+		VkDevice _vkRef = nullptr;
 		ResourceType _resource = nullptr;
 
 	public:
-		SafeVkResource(GraphicsDevice* InOwner) : GPUResource(InOwner)
+		SafeVkResource() 
 		{
-			auto vulkanDevice = dynamic_cast<VulkanGraphicsDevice*>(InOwner);
-			_owningDevice = vulkanDevice->GetDevice();
-			SE_ASSERT(_owningDevice);
+			auto vulkanDevice = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
+			_vkRef = vulkanDevice->GetDevice();
+			SE_ASSERT(_vkRef);
 		}
-		virtual ~SafeVkResource() { _owningDevice = nullptr; }
+		virtual ~SafeVkResource() { _vkRef = nullptr; }
 		ResourceType& Get()
 		{
 			return _resource;
@@ -66,16 +65,16 @@ namespace SPP
 	class SafeVkFence : public SafeVkResource< VkFence >
 	{	
 	public:
-		SafeVkFence(GraphicsDevice* InOwner, const VkFenceCreateInfo &info) :
-			SafeVkResource< VkFence >(InOwner)
+		SafeVkFence(const VkFenceCreateInfo &info) :
+			SafeVkResource< VkFence >()
 		{
-			VK_CHECK_RESULT(vkCreateFence(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateFence(_vkRef, &info, nullptr, &_resource));
 		}
 		virtual ~SafeVkFence()
 		{
 			if (_resource)
 			{
-				vkDestroyFence(_owningDevice, _resource, nullptr);
+				vkDestroyFence(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -84,17 +83,17 @@ namespace SPP
 	class SafeVkImage : public SafeVkResource< VkImage >
 	{
 	public:
-		SafeVkImage(GraphicsDevice* InOwner, const VkImageCreateInfo& info) :
-			SafeVkResource< VkImage >(InOwner)
+		SafeVkImage(const VkImageCreateInfo& info) :
+			SafeVkResource< VkImage >()
 		{
-			VK_CHECK_RESULT(vkCreateImage(_owningDevice, &info, nullptr, &_resource));
-			vks::debugmarker::setImageName(_owningDevice, _resource, "SafeVkImage_UNSET");
+			VK_CHECK_RESULT(vkCreateImage(_vkRef, &info, nullptr, &_resource));
+			vks::debugmarker::setImageName(_vkRef, _resource, "SafeVkImage_UNSET");
 		}
 		virtual ~SafeVkImage()
 		{
 			if (_resource)
 			{
-				vkDestroyImage(_owningDevice, _resource, nullptr);
+				vkDestroyImage(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -103,20 +102,20 @@ namespace SPP
 	class SafeVkDeviceMemory : public SafeVkResource< VkDeviceMemory >
 	{
 	public:
-		SafeVkDeviceMemory(GraphicsDevice* InOwner, const VkMemoryAllocateInfo& info) :
-			SafeVkResource< VkDeviceMemory >(InOwner)
+		SafeVkDeviceMemory(const VkMemoryAllocateInfo& info) :
+			SafeVkResource< VkDeviceMemory >()
 		{
 			SE_ASSERT(_resource == nullptr);
-			VK_CHECK_RESULT(vkAllocateMemory(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkAllocateMemory(_vkRef, &info, nullptr, &_resource));
 		}
 		virtual ~SafeVkDeviceMemory()
 		{
 			if (_resource)
 			{
-				vkFreeMemory(_owningDevice, _resource, nullptr);
+				vkFreeMemory(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
-			_owningDevice = nullptr;
+			_vkRef = nullptr;
 		}
 		VkDeviceMemory& Get()
 		{
@@ -127,20 +126,19 @@ namespace SPP
 	class SafeVkImageView : public SafeVkResource< VkImageView >
 	{
 	public:
-		SafeVkImageView(GraphicsDevice* InOwner, const VkImageViewCreateInfo& info) :
-			SafeVkResource< VkImageView >(InOwner)
+		SafeVkImageView(const VkImageViewCreateInfo& info) :
+			SafeVkResource< VkImageView >()
 		{
 			SE_ASSERT(_resource == nullptr);
-			VK_CHECK_RESULT(vkCreateImageView(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateImageView(_vkRef, &info, nullptr, &_resource));
 		}
 		virtual ~SafeVkImageView()
 		{
 			if (_resource)
 			{
-				vkDestroyImageView(_owningDevice, _resource, nullptr);
+				vkDestroyImageView(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
-			_owningDevice = nullptr;
 		}
 		VkImageView& Get()
 		{
@@ -151,16 +149,16 @@ namespace SPP
 	class SafeVkFrameBuffer : public SafeVkResource< VkFramebuffer >
 	{
 	public:
-		SafeVkFrameBuffer(GraphicsDevice* InOwner, const VkFramebufferCreateInfo& info) :
-			SafeVkResource< VkFramebuffer >(InOwner)
+		SafeVkFrameBuffer(const VkFramebufferCreateInfo& info) :
+			SafeVkResource< VkFramebuffer >()
 		{
-			VK_CHECK_RESULT(vkCreateFramebuffer(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateFramebuffer(_vkRef, &info, nullptr, &_resource));
 		}
 		virtual ~SafeVkFrameBuffer()
 		{
 			if (_resource)
 			{
-				vkDestroyFramebuffer(_owningDevice, _resource, nullptr);
+				vkDestroyFramebuffer(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -169,16 +167,16 @@ namespace SPP
 	class SafeVkRenderPass : public SafeVkResource< VkRenderPass >
 	{
 	public:
-		SafeVkRenderPass(GraphicsDevice* InOwner, const VkRenderPassCreateInfo& info) :
-			SafeVkResource< VkRenderPass >(InOwner)
+		SafeVkRenderPass(const VkRenderPassCreateInfo& info) :
+			SafeVkResource< VkRenderPass >()
 		{
-			VK_CHECK_RESULT(vkCreateRenderPass(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateRenderPass(_vkRef, &info, nullptr, &_resource));
 		}
 		virtual ~SafeVkRenderPass()
 		{
 			if (_resource)
 			{
-				vkDestroyRenderPass(_owningDevice, _resource, nullptr);
+				vkDestroyRenderPass(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -187,16 +185,16 @@ namespace SPP
 	class SafeVkSampler : public SafeVkResource< VkSampler >
 	{
 	public:
-		SafeVkSampler(GraphicsDevice* InOwner, const VkSamplerCreateInfo& info) :
-			SafeVkResource< VkSampler >(InOwner)
+		SafeVkSampler(const VkSamplerCreateInfo& info) :
+			SafeVkResource< VkSampler >()
 		{
-			VK_CHECK_RESULT(vkCreateSampler(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateSampler(_vkRef, &info, nullptr, &_resource));
 		}
 		virtual ~SafeVkSampler()
 		{
 			if (_resource)
 			{
-				vkDestroySampler(_owningDevice, _resource, nullptr);
+				vkDestroySampler(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -213,23 +211,23 @@ namespace SPP
 	class SafeVkDescriptorSetLayout : public SafeVkResource< VkDescriptorSetLayout >
 	{
 	public:
-		SafeVkDescriptorSetLayout(GraphicsDevice* InOwner, const std::vector<VkDescriptorSetLayoutBinding>& bindings) :
-			SafeVkResource< VkDescriptorSetLayout >(InOwner)
+		SafeVkDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) :
+			SafeVkResource< VkDescriptorSetLayout >()
 		{
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(bindings);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_owningDevice, &descriptorLayout, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_vkRef, &descriptorLayout, nullptr, &_resource));
 		}
-		SafeVkDescriptorSetLayout(GraphicsDevice* InOwner, const VkDescriptorSetLayoutCreateInfo &Info) :
-			SafeVkResource< VkDescriptorSetLayout >(InOwner)
+		SafeVkDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo &Info) :
+			SafeVkResource< VkDescriptorSetLayout >()
 		{
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_owningDevice, &Info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_vkRef, &Info, nullptr, &_resource));
 		}
 
 		virtual ~SafeVkDescriptorSetLayout()
 		{
 			if (_resource)
 			{
-				vkDestroyDescriptorSetLayout(_owningDevice, _resource, nullptr);
+				vkDestroyDescriptorSetLayout(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -242,11 +240,11 @@ namespace SPP
 		VkDescriptorPool _usedPool = nullptr;
 
 	public:
-		SafeVkDescriptorSet(GraphicsDevice* InOwner, const VkDescriptorSetLayout& info, VkDescriptorPool InPool) :
-			SafeVkResource< VkDescriptorSet >(InOwner), _usedPool(InPool)
+		SafeVkDescriptorSet(const VkDescriptorSetLayout& info, VkDescriptorPool InPool) :
+			SafeVkResource< VkDescriptorSet >(), _usedPool(InPool)
 		{
 			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(_usedPool, &info, 1);
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(_owningDevice, &allocInfo, &_resource));
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(_vkRef, &allocInfo, &_resource));
 		}
 
 		struct UpdateDescriptor
@@ -289,7 +287,7 @@ namespace SPP
 
 				writeDescriptorSets[Iter] = writeDescriptorSet;
 			}
-			vkUpdateDescriptorSets(_owningDevice,
+			vkUpdateDescriptorSets(_vkRef,
 				static_cast<uint32_t>(writeDescriptorSets.size()),
 				writeDescriptorSets.data(), 0, nullptr);
 		}
@@ -298,7 +296,7 @@ namespace SPP
 		{
 			if (_resource)
 			{
-				vkFreeDescriptorSets(_owningDevice, _usedPool, 1, &_resource);
+				vkFreeDescriptorSets(_vkRef, _usedPool, 1, &_resource);
 				_resource = nullptr;
 			}
 		}
@@ -307,17 +305,17 @@ namespace SPP
 	class SafeVkPipelineLayout : public SafeVkResource< VkPipelineLayout >
 	{
 	public:
-		SafeVkPipelineLayout(GraphicsDevice* InOwner, const VkPipelineLayoutCreateInfo& info) :
-			SafeVkResource< VkPipelineLayout >(InOwner)
+		SafeVkPipelineLayout(const VkPipelineLayoutCreateInfo& info) :
+			SafeVkResource< VkPipelineLayout >()
 		{
-			VK_CHECK_RESULT(vkCreatePipelineLayout(_owningDevice, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreatePipelineLayout(_vkRef, &info, nullptr, &_resource));
 		}
 
 		virtual ~SafeVkPipelineLayout()
 		{
 			if (_resource)
 			{
-				vkDestroyPipelineLayout(_owningDevice, _resource, nullptr);
+				vkDestroyPipelineLayout(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}
@@ -326,23 +324,23 @@ namespace SPP
 	class SafeVkPipeline : public SafeVkResource< VkPipeline >
 	{
 	public:
-		SafeVkPipeline(GraphicsDevice* InOwner, const VkGraphicsPipelineCreateInfo& info) :
-			SafeVkResource< VkPipeline >(InOwner)
+		SafeVkPipeline(const VkGraphicsPipelineCreateInfo& info) :
+			SafeVkResource< VkPipeline >()
 		{
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(_owningDevice, nullptr, 1, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(_vkRef, nullptr, 1, &info, nullptr, &_resource));
 		}
 
-		SafeVkPipeline(GraphicsDevice* InOwner, const VkComputePipelineCreateInfo& info) :
-			SafeVkResource< VkPipeline >(InOwner)
+		SafeVkPipeline(const VkComputePipelineCreateInfo& info) :
+			SafeVkResource< VkPipeline >()
 		{
-			VK_CHECK_RESULT(vkCreateComputePipelines(_owningDevice, nullptr, 1, &info, nullptr, &_resource));
+			VK_CHECK_RESULT(vkCreateComputePipelines(_vkRef, nullptr, 1, &info, nullptr, &_resource));
 		}
 
 		virtual ~SafeVkPipeline()
 		{
 			if (_resource)
 			{
-				vkDestroyPipeline(_owningDevice, _resource, nullptr);
+				vkDestroyPipeline(_vkRef, _resource, nullptr);
 				_resource = nullptr;
 			}
 		}

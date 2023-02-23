@@ -76,7 +76,7 @@ namespace SPP
 
 	public:
 		auto GetID() const { return _globalID; }
-		GlobalRenderableID(GraphicsDevice* InOwner, std::shared_ptr<RT_RenderScene> currentScene);
+		GlobalRenderableID(std::shared_ptr<RT_RenderScene> currentScene);
 		virtual ~GlobalRenderableID();
 	};
 
@@ -272,7 +272,7 @@ namespace SPP
 
 	public:
 
-		RT_RenderScene(GraphicsDevice* InOwner);
+		RT_RenderScene();
 		virtual ~RT_RenderScene();
 
 		auto& GetOctree()
@@ -310,11 +310,6 @@ namespace SPP
 		void PushUIUpdate(const Vector2i& FullSize, const Vector2i& Start, const Vector2i& Extents, const void* Memory, uint32_t MemorySize);
 
 		virtual std::shared_ptr<RT_Material> GetDefaultMaterial() { return nullptr; }
-
-		GraphicsDevice* GetOwner() const
-		{
-			return _owner;
-		}
 
 		template<typename... T>
 		void SetColorTargets(T... args)
@@ -412,7 +407,7 @@ namespace SPP
 		Vector3 _color = { 0,0,0 };
 		GPUReferencer< GPUShader > _customShader;
 
-		RT_RenderableSignedDistanceField(GraphicsDevice* InOwner) : RT_Resource(InOwner) {}
+		RT_RenderableSignedDistanceField() {}
 	public:
 		struct Args : Renderable::Args
 		{
@@ -468,7 +463,7 @@ namespace SPP
 		std::shared_ptr<RT_Buffer> _vertexBuffer;
 		std::shared_ptr<RT_Buffer> _indexBuffer;
 
-		RT_StaticMesh(GraphicsDevice* InOwner);
+		RT_StaticMesh();
 
 	public:
 		struct Args 
@@ -522,7 +517,7 @@ namespace SPP
 
 	protected:
 		Vector3 _irradiance;
-		RT_RenderableLight(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
+		RT_RenderableLight() {}
 
 	public:
 		struct Args
@@ -549,7 +544,7 @@ namespace SPP
 		CLASS_RT_RESOURCE();
 
 	protected:
-		RT_SunLight(GraphicsDevice* InOwner) : RT_RenderableLight(InOwner) {}
+		RT_SunLight() {}
 
 	public:
 		virtual ELightType GetLightType() const { return ELightType::Sun; }
@@ -561,7 +556,7 @@ namespace SPP
 		CLASS_RT_RESOURCE();
 
 	protected:
-		RT_PointLight(GraphicsDevice* InOwner) : RT_RenderableLight(InOwner) {}
+		RT_PointLight() {}
 
 	public:
 		virtual ELightType GetLightType() const { return ELightType::Point; }
@@ -576,7 +571,7 @@ namespace SPP
 		std::shared_ptr<RT_StaticMesh> _mesh;
 		std::shared_ptr<RT_Material> _material;
 
-		RT_RenderableMesh(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
+		RT_RenderableMesh() {}
 
 	public:
 		struct Args
@@ -618,7 +613,7 @@ namespace SPP
 
 		std::shared_ptr<RT_Buffer> _sparseBuffer[rtMAX_VOXEL_LEVELS];
 
-		RT_RenderableSVVO(GraphicsDevice* InOwner) : Renderable(), RT_Resource(InOwner) {}
+		RT_RenderableSVVO() {}
 
 	public:
 
