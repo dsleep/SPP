@@ -7,6 +7,7 @@
 
 #include "SPPLogging.h"
 #include "SPPFileSystem.h"
+#include "SPPAssetCache.h"
 
 #include "spirvreflect/spirv_reflect.h"
 #include "spirvreflect/spirv_output_stream.h"
@@ -189,9 +190,94 @@ namespace SPP
 		}
 	}
 	
+	template<>
+	inline BinarySerializer& operator<< <VkPushConstantRange> (BinarySerializer& Storage, const VkPushConstantRange& Value)
+	{
+		//VkShaderStageFlags    stageFlags;
+		//uint32_t              offset;
+		//uint32_t              size;
+		Storage << Value.stageFlags;
+		Storage << Value.offset;
+		Storage << Value.size;
+		return Storage;
+	}
+	template<>
+	inline BinarySerializer& operator>> <VkPushConstantRange> (BinarySerializer& Storage, VkPushConstantRange& Value)
+	{
+		Storage >> Value.stageFlags;
+		Storage >> Value.offset;
+		Storage >> Value.size;
+		return Storage;
+	}
+
+	template<>
+	inline BinarySerializer& operator<< <VkDescriptorSetLayoutBinding> (BinarySerializer& Storage, const VkDescriptorSetLayoutBinding& Value)
+	{
+		//uint32_t              binding;
+		//VkDescriptorType      descriptorType;
+		//uint32_t              descriptorCount;
+		//VkShaderStageFlags    stageFlags;
+		//const VkSampler* pImmutableSamplers;
+		Storage << Value.binding;
+		Storage << Value.descriptorType;
+		Storage << Value.descriptorCount;
+		Storage << Value.stageFlags;
+		return Storage;
+	}
+	template<>
+	inline BinarySerializer& operator>> <VkDescriptorSetLayoutBinding> (BinarySerializer& Storage, VkDescriptorSetLayoutBinding& Value)
+	{
+		Value = VkDescriptorSetLayoutBinding{ 0 };
+		//uint32_t              binding;
+		//VkDescriptorType      descriptorType;
+		//uint32_t              descriptorCount;
+		//VkShaderStageFlags    stageFlags;
+		//const VkSampler* pImmutableSamplers;
+		Storage >> Value.binding;
+		Storage >> Value.descriptorType;
+		Storage >> Value.descriptorCount;
+		Storage >> Value.stageFlags;
+		return Storage;
+	}
+
+	template<>
+	inline BinarySerializer& operator<< <DescriptorSetLayoutData> (BinarySerializer& Storage, const DescriptorSetLayoutData& Value)
+	{
+		//uint32_t set_number;
+		//std::vector<VkDescriptorSetLayoutBinding> bindings;
+		Storage << Value.set_number;
+		Storage << Value.bindings;
+		return Storage;
+	}
+	template<>
+	inline BinarySerializer& operator>> <DescriptorSetLayoutData> (BinarySerializer& Storage, DescriptorSetLayoutData& Value)
+	{
+		Storage >> Value.set_number;
+		Storage >> Value.bindings;
+		return Storage;
+	}
 
 	bool VulkanShader::CompileShaderFromString(const std::string& ShaderSource, const AssetPath& ReferencePath, const char* EntryPoint, std::string* oErrorMsgs) 
 	{
+		std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob = GetCachedAsset(ReferencePath);
+
+		if (FoundCachedBlob)
+		{
+			BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
+
+			std::vector<uint8_t> binShaderData;
+
+			blobAsset >> binShaderData;
+
+			//VkShaderModule _shader = nullptr;
+			//std::vector<DescriptorSetLayoutData> _layoutSets;
+			//std::vector<VkPushConstantRange> _pushConstants;
+
+			blobAsset >> _layoutSets;
+			blobAsset >> _pushConstants;
+
+		}
+
 		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: ref path %s(%s)", *ReferencePath, EntryPoint);
 
 		auto fileNameExt = stdfs::path(ReferencePath.GetName()).extension().generic_string();
