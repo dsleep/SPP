@@ -364,7 +364,7 @@ public:
 		// figure out a better model
 		_gameworld->AddChild(GameObjectSVVO);
 
-
+		if(false)
 		{
 			auto directSVVO = GameObjectSVVO->GetSVVO();
 			auto curDimensions = directSVVO->GetDimensions();

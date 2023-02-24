@@ -60,5 +60,9 @@ namespace SPP
 		void EncryptData(const void *InData, size_t DataLength, std::vector<uint8_t>& oData);
 		void DecryptData(const void* InData, size_t DataLength, std::vector<uint8_t> &oData);
 	};
+
+	SPP_CRYPTO_API std::string SHA256MemHash(const void* InMem, size_t MemSize);
+
+
 }
 

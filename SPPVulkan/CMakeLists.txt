@@ -9,7 +9,8 @@ set_target_properties(SPPVulkan PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 add_dependencies(SPPVulkan 
 	SPPEngine
-	SPPGraphics )
+	SPPGraphics 
+	SPPCrypto )
 
 if(DEFINED ENV{VK_SDK_PATH})
 	set(VK_SDK_PATH $ENV{VK_SDK_PATH})
@@ -129,6 +130,7 @@ target_link_libraries(SPPVulkan
 	PUBLIC
 		SPPEngine
 		SPPGraphics	
+		SPPCrypto
 		)
 		
 target_link_libraries( SPPVulkan 

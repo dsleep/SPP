@@ -11,6 +11,7 @@
 #include "cryptopp/rsa.h"
 #include "cryptopp/hex.h"
 #include "cryptopp/randpool.h"
+#include "cryptopp/sha.h"
 
 SPP_OVERLOAD_ALLOCATORS
 
@@ -192,4 +193,22 @@ namespace SPP
 			); // StringSource
 		}
 	}
+
+	std::string SHA256MemHash(const void* InMem, size_t MemSize)
+	{
+		CryptoPP::SHA256 hash;
+		std::string digest;
+
+		hash.Update((const CryptoPP::byte*)InMem, MemSize);
+		//digest.resize(hash.DigestSize());
+		//hash.Final((CryptoPP::byte*)&digest[0]);
+		digest.resize(hash.DigestSize() / 2);
+		hash.TruncatedFinal((CryptoPP::byte*)&digest[0], digest.size());
+
+		std::string oDigest;
+		CryptoPP::HexEncoder encoder(new CryptoPP::StringSink(oDigest));
+		CryptoPP::StringSource(digest, true, new CryptoPP::Redirector(encoder));
+		return oDigest;
+	}
+	
 }

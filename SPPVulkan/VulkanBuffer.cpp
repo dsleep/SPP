@@ -93,11 +93,11 @@ namespace SPP
 			break;
 		}
 
-		_usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		if (IsCPUMem)
-		{
-			_usageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-		}
+		_usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		//if (IsCPUMem)
+		//{
+		//	_usageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		//}
 		_memoryPropertyFlags = IsCPUMem ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 		// Create the buffer handle

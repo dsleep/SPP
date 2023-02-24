@@ -14,6 +14,7 @@
 
 #include "SPPPlatformCore.h"
 #include <thread>
+#include "SPPCrypto.h"
 
 namespace SPP
 {
@@ -259,26 +260,41 @@ namespace SPP
 
 	bool VulkanShader::CompileShaderFromString(const std::string& ShaderSource, const AssetPath& ReferencePath, const char* EntryPoint, std::string* oErrorMsgs) 
 	{
-		std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob = GetCachedAsset(ReferencePath);
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: ref path %s(%s)", *ReferencePath, EntryPoint);
 
+		_entryPoint = EntryPoint;
+
+		auto sourceHash = SHA256MemHash(ShaderSource.c_str(), ShaderSource.length());
+		std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob = GetCachedAsset(ReferencePath, sourceHash + EntryPoint);
+
+		static uint32_t const ShaderCacheVersion = 2;
 		if (FoundCachedBlob)
 		{
+			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: found cache");
 			BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
 
-			std::vector<uint8_t> binShaderData;
+			uint32_t fileVersion = 0;
 
-			blobAsset >> binShaderData;
+			blobAsset >> fileVersion;
+			if (fileVersion == ShaderCacheVersion)
+			{
+				std::vector<uint8_t> binShaderData;
+				blobAsset >> binShaderData;
 
-			//VkShaderModule _shader = nullptr;
-			//std::vector<DescriptorSetLayoutData> _layoutSets;
-			//std::vector<VkPushConstantRange> _pushConstants;
+				VkShaderModuleCreateInfo moduleCreateInfo{};
+				moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+				moduleCreateInfo.codeSize = binShaderData.size();
+				moduleCreateInfo.pCode = (uint32_t*)binShaderData.data();
 
-			blobAsset >> _layoutSets;
-			blobAsset >> _pushConstants;
-
+				VkResult results = vkCreateShaderModule(GGlobalVulkanDevice, &moduleCreateInfo, NULL, &_shader);
+				if (results == VK_SUCCESS)
+				{
+					blobAsset >> _layoutSets;
+					blobAsset >> _pushConstants;
+					return true;
+				}
+			}
 		}
-
-		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: ref path %s(%s)", *ReferencePath, EntryPoint);
 
 		auto fileNameExt = stdfs::path(ReferencePath.GetName()).extension().generic_string();
 		inlineToUpper(fileNameExt);
@@ -357,7 +373,7 @@ namespace SPP
 		}
 
 		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - SUCCESS CompileShaderFromFile: %s(%s)", *ReferencePath, EntryPoint);
-		_entryPoint = EntryPoint;
+		
 
 		// reflection parsing
 		{
@@ -502,6 +518,18 @@ namespace SPP
 			}
 
 			spvReflectDestroyShaderModule(&module);
+		}
+
+		//CACHING
+		//if(true)
+		{
+			// create cache
+			BinaryBlobSerializer outCachedAsset;
+			outCachedAsset << ShaderCacheVersion;
+			outCachedAsset << FileData;
+			outCachedAsset << _layoutSets;
+			outCachedAsset << _pushConstants;
+			PutCachedAsset(ReferencePath, outCachedAsset, sourceHash + EntryPoint);
 		}
 
 		return true;
