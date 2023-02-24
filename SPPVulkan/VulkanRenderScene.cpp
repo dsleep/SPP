@@ -449,6 +449,9 @@ namespace SPP
 		_fullscreenRayVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 		_fullscreenRayVS->CompileShaderFromFile("shaders/fullScreenRayVS.hlsl", "main_vs");
 
+		_fullscreenVS = Make_GPU(VulkanShader, EShaderType::Vertex);
+		_fullscreenVS->CompileShaderFromFile("shaders/FullScreenVS.glsl");
+
 		_fullscreenRaySDFPS = Make_GPU(VulkanShader, EShaderType::Pixel);
 		_fullscreenRaySDFPS->CompileShaderFromFile("shaders/fullScreenRaySDFPS.hlsl", "main_ps");
 

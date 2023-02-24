@@ -175,7 +175,7 @@ namespace SPP
 		GPUReferencer< GPUBuffer > _debugBuffer;
 		//std::vector< DebugVertex > _lines;
 
-		GPUReferencer< GPUShader > _fullscreenRayVS;
+		GPUReferencer< GPUShader > _fullscreenRayVS, _fullscreenVS;
 		GPUReferencer< GPUShader > _fullscreenRaySDFPS, _fullscreenRaySkyBoxPS;
 
 		GPUReferencer< PipelineState > _fullscreenRaySDFPSO, _fullscreenSkyBoxPSO;
@@ -207,6 +207,11 @@ namespace SPP
 		void DrawSkyBox();
 		void WriteToFrame();
 
+		auto GetFullScreenVS()
+		{
+			return _fullscreenVS;
+		}
+
 		GPUReferencer< GPUShader > GetSDFVS()
 		{
 			return _fullscreenRayVS;
@@ -219,7 +224,7 @@ namespace SPP
 		{
 			return _fullscreenRaySDFPSO;
 		}
-		GPUReferencer< GPUInputLayout > GetRayVSLayout()
+		GPUReferencer< GPUInputLayout > GetEmpyVSLayout()
 		{
 			return _fullscreenRayVSLayout;
 		}

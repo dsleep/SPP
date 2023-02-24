@@ -13,6 +13,8 @@ namespace SPP
 	{
 	protected:
 		GPUReferencer< SafeVkDescriptorSet > _camStaticBufferDescriptorSet;
+		GPUReferencer< VulkanPipelineState > _voxelPBRPSO;
+
 		VulkanGraphicsDevice* _owningDevice = nullptr;
 		VulkanRenderScene* _owningScene = nullptr;
 

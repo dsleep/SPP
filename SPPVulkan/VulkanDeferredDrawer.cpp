@@ -121,7 +121,7 @@ namespace SPP
 		GLOBAL_RESOURCE(GlobalDeferredPBRResources)
 
 	private:
-		GPUReferencer < VulkanShader > _defferedPBRVS, _defferedPBRVoxelCompute;
+		GPUReferencer < VulkanShader > _defferedPBRVS, _defferedPBRVoxelPS;
 		GPUReferencer< GPUInputLayout > _deferredSMlayout;
 		GPUReferencer< SafeVkDescriptorSetLayout > _deferredVSLayout;
 
@@ -133,8 +133,8 @@ namespace SPP
 		{
 			auto owningDevice = dynamic_cast<VulkanGraphicsDevice*>(GGI()->GetGraphicsDevice());
 
-			_defferedPBRVoxelCompute = Make_GPU(VulkanShader, EShaderType::Pixel);
-			_defferedPBRVoxelCompute->CompileShaderFromFile("shaders/Voxel/VoxelRayMarchPS.glsl");
+			_defferedPBRVoxelPS = Make_GPU(VulkanShader, EShaderType::Pixel);
+			_defferedPBRVoxelPS->CompileShaderFromFile("shaders/Voxel/VoxelRayMarchPS.glsl");
 
 			_defferedPBRVS = Make_GPU(VulkanShader, EShaderType::Vertex);
 			_defferedPBRVS->CompileShaderFromFile("shaders/Deferred/PBRMaterialVS.glsl");
@@ -150,7 +150,7 @@ namespace SPP
 
 		auto GetVoxelRayMarch()
 		{
-			return _defferedPBRVoxelCompute;
+			return _defferedPBRVoxelPS;
 		}
 
 		auto GetVS()
@@ -227,6 +227,27 @@ namespace SPP
 		vkUpdateDescriptorSets(_owningDevice->GetDevice(),
 			static_cast<uint32_t>(writeDescriptorSets.size()),
 			writeDescriptorSets.data(), 0, nullptr);
+
+
+		//Voxel Rendering
+		auto FullScreenVoxelPBRPS = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVoxelRayMarch();
+		auto FullScreenVS = InScene->GetFullScreenVS();
+		auto FullScreenVSLayout = InScene->GetEmpyVSLayout();
+
+		auto _voxelPBRPSO = VulkanPipelineStateBuilder()
+			.Set(GGlobalVulkanGI->GetDeferredFrameData())
+			.Set(EBlendState::Disabled)
+			.Set(ERasterizerState::NoCull)
+			.Set(EDepthState::Enabled)
+			.Set(EDrawingTopology::TriangleStrip)
+			.Set(EDepthOp::Always)
+			.Set(FullScreenVSLayout)
+			.Set(FullScreenVS)
+			.Set(FullScreenVoxelPBRPS)
+			.Build();
+
+		auto& descSetLayouts = _voxelPBRPSO->GetDescriptorSetLayouts();
+		auto& descSetLayoutBindings = _voxelPBRPSO->GetDescriptorSetLayoutBindings();
 	}
 
 	struct DeferredMaterialCache : PassCache

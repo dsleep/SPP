@@ -12,7 +12,7 @@ layout(std430) buffer;
 
 #include "Common.glsl"
 // include paths based on root of shader directory
-#include "./Deferred/PBRCommon.glsl"
+//#include "./Deferred/PBRCommon.glsl"
 
 const int MAX_VOXEL_LEVELS = 15;
 
