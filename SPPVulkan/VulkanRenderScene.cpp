@@ -715,11 +715,13 @@ namespace SPP
 
 		int32_t curVisible = 0;
 		int32_t curVisibleLights = 0;
+		int32_t curVisibleVoxels = 0;
 
 		if (_renderables.size() > _visible.size())
 		{
 			_visible.resize(_renderables.size() + 1024);
 			_visiblelights.resize(_renderables.size() + 1024);
+			_visibleVoxels.resize(_renderables.size() + 1024);
 		}
 
 		_octreeVisiblity.Expand(_renderables.size());
@@ -743,6 +745,10 @@ namespace SPP
 				else if (curRenderable->GetType() == RenderableType::Light)
 				{
 					_visiblelights[curVisibleLights++] = curRenderable;
+				}
+				else if (curRenderable->GetType() == RenderableType::Voxels)
+				{
+					_visibleVoxels[curVisibleVoxels++] = curRenderable;
 				}
 								
 				_octreeVisiblity.Set(curRenderable->GetGlobalID().RawGet()->GetID(), true);
@@ -782,6 +788,11 @@ namespace SPP
 		vulkanGD->SetFrameBufferForRenderPass(defferedFrame);
 
 		vulkanGD->SetCheckpoint(commandBuffer, "OpaqueDrawing");
+
+		for (uint32_t visIter = 0; visIter < curVisibleVoxels; visIter++)
+		{
+			_deferredDrawer->RenderVoxelData(*(RT_RenderableSVVO*)_visibleVoxels[visIter]);
+		}
 
 #if 1
 

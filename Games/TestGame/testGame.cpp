@@ -356,7 +356,6 @@ public:
 #endif
 		//_gameworld->AddToGraphicsDevice(graphicsDevice);
 
-
 		auto GameObjectSVVO = AllocateObject<VgSVVO>("svvo", _gameworld);
 		GameObjectSVVO->GetScale() = Vector3(50, 10, 50);
 		GameObjectSVVO->SetVoxelSize(0.05f);

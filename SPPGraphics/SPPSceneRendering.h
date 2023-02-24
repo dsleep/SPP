@@ -253,6 +253,7 @@ namespace SPP
 
 		std::vector<Renderable*> _visible;
 		std::vector<Renderable*> _visiblelights;
+		std::vector<Renderable*> _visibleVoxels;
 
 		std::vector<Renderable*> _opaques;
 		std::vector<Renderable*> _translucents;

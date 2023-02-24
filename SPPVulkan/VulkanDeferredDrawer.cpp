@@ -436,6 +436,11 @@ namespace SPP
 		return cacheRef;
 	}
 
+	void PBRDeferredDrawer::RenderVoxelData(RT_RenderableSVVO& InVoxelData)
+	{
+
+	}
+
 	// TODO cleanupppp
 	void PBRDeferredDrawer::Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh)
 	{
