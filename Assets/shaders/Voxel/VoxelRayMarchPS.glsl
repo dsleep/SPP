@@ -21,15 +21,15 @@ layout(set = 1, binding = 1) readonly buffer _VoxelInfo
 	int activeLevels;
     uint pageSize;
     ivec3 dimensions;
-
-    vec3 VoxelSize[MAX_VOXEL_LEVELS];
-    vec3 HalfVoxel[MAX_VOXEL_LEVELS];
-    vec3 step[MAX_VOXEL_LEVELS];
-    vec3 tDelta[MAX_VOXEL_LEVELS];
 } VoxelInfo;
 
 layout(set = 1, binding = 2) readonly buffer _LevelInfo
 {
+    vec3 VoxelSize;
+    vec3 HalfVoxel;
+    vec3 step;
+    vec3 tDelta;
+
     ivec3 localPageMask;
     ivec3 localPageVoxelDimensions;
     ivec3 localPageVoxelDimensionsP2;
@@ -136,8 +136,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
     uint LastLevel = 0;
 
 	// get in correct voxel spacing
-	vec3 voxel = floor(rayInfo.rayOrg / VoxelInfo.VoxelSize[CurrentLevel]) * VoxelInfo.VoxelSize[CurrentLevel];
-	vec3 tMax = (voxel - rayInfo.rayOrg + VoxelInfo.HalfVoxel[CurrentLevel] + VoxelInfo.step[CurrentLevel] * vec3(0.5f, 0.5f, 0.5f)) * (rayInfo.rayDirInv);
+	vec3 voxel = floor(rayInfo.rayOrg / LevelInfos[CurrentLevel].VoxelSize) * LevelInfos[CurrentLevel].VoxelSize;
+	vec3 tMax = (voxel - rayInfo.rayOrg + LevelInfos[CurrentLevel].HalfVoxel + LevelInfos[CurrentLevel].step * vec3(0.5f, 0.5f, 0.5f)) * (rayInfo.rayDirInv);
 
 	vec3 dim = vec3(0, 0, 0);
 	vec3 samplePos = voxel;
@@ -176,8 +176,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
         {
             vec3 tMaxMins = min(tMax.yzx, tMax.zxy);
             dim = step(tMax, tMaxMins);
-            tMax += dim * VoxelInfo.tDelta[CurrentLevel];
-            rayInfo.lastStep = dim * VoxelInfo.step[CurrentLevel];
+            tMax += dim * LevelInfos[CurrentLevel].tDelta;
+            rayInfo.lastStep = dim * LevelInfos[CurrentLevel].step;
             samplePos += rayInfo.lastStep;
 
             if (!ValidSample(samplePos))
@@ -206,8 +206,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
                 // did it step already
                 vec3 normal = -sign(rayInfo.lastStep);
 
-                vec3 VoxelCenter = samplePos + VoxelInfo.HalfVoxel[LastLevel];
-                vec3 VoxelPlaneEdge = VoxelCenter + VoxelInfo.HalfVoxel[LastLevel] * normal;
+                vec3 VoxelCenter = samplePos + LevelInfos[LastLevel].HalfVoxel;
+                vec3 VoxelPlaneEdge = VoxelCenter + LevelInfos[LastLevel].HalfVoxel * normal;
 
                 float denom = dot(normal, rayInfo.rayDir);
                 if (denom == 0)
@@ -220,8 +220,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
                 rayInfo.rayOrg = rayInfo.rayOrg + rayInfo.rayDir * (t + epsilon);
             }
 
-            voxel = floor(rayInfo.rayOrg / VoxelInfo.VoxelSize[CurrentLevel]) * VoxelInfo.VoxelSize[CurrentLevel];
-	        tMax = (voxel - rayInfo.rayOrg + VoxelInfo.HalfVoxel[CurrentLevel] + VoxelInfo.step[CurrentLevel] * vec3(0.5f, 0.5f, 0.5f)) * (rayInfo.rayDirInv);
+            voxel = floor(rayInfo.rayOrg / LevelInfos[CurrentLevel].VoxelSize) * LevelInfos[CurrentLevel].VoxelSize;
+	        tMax = (voxel - rayInfo.rayOrg + LevelInfos[CurrentLevel].HalfVoxel + LevelInfos[CurrentLevel].step * vec3(0.5f, 0.5f, 0.5f)) * (rayInfo.rayDirInv);
 
 	        dim = vec3(0, 0, 0);
             samplePos = voxel;

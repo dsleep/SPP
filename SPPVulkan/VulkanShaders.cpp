@@ -125,14 +125,14 @@ namespace SPP
 		}
 	}
 
-	void RecursivelyLogMembers(const SpvReflectBlockVariable& Member)
+	void RecursivelyLogMembers(const SpvReflectBlockVariable& Member, const char* indent)
 	{
+		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "%s - %s : %d(%d)", indent, Member.name, Member.size, Member.offset);
+	
 		for (int32_t Iter = 0; Iter < Member.member_count; Iter++)
 		{
 			auto& CurMember = Member.members[Iter];
-			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, " - %s : %d", CurMember.name, CurMember.offset);
-
-			RecursivelyLogMembers(CurMember);
+			RecursivelyLogMembers(CurMember, indent);
 		}
 	}
 
@@ -169,7 +169,7 @@ namespace SPP
 
 			for(int32_t Iter = 0; Iter < obj.block.member_count; Iter++)			
 			{
-				RecursivelyLogMembers(obj.block.members[Iter]);
+				RecursivelyLogMembers(obj.block.members[Iter], indent);
 			}
 		}
 	}
@@ -258,6 +258,9 @@ namespace SPP
 		return Storage;
 	}
 
+	static bool const GUseShaderCached = false;
+	static uint32_t const ShaderCacheVersion = 2;
+
 	bool VulkanShader::CompileShaderFromString(const std::string& ShaderSource, const AssetPath& ReferencePath, const char* EntryPoint, std::string* oErrorMsgs) 
 	{
 		SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: ref path %s(%s)", *ReferencePath, EntryPoint);
@@ -265,33 +268,36 @@ namespace SPP
 		_entryPoint = EntryPoint;
 
 		auto sourceHash = SHA256MemHash(ShaderSource.c_str(), ShaderSource.length());
-		std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob = GetCachedAsset(ReferencePath, sourceHash + EntryPoint);
 
-		static uint32_t const ShaderCacheVersion = 2;
-		if (FoundCachedBlob)
+		if (GUseShaderCached)
 		{
-			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: found cache");
-			BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
+			std::shared_ptr<BinaryBlobSerializer> FoundCachedBlob = GetCachedAsset(ReferencePath, sourceHash + EntryPoint);
 
-			uint32_t fileVersion = 0;
-
-			blobAsset >> fileVersion;
-			if (fileVersion == ShaderCacheVersion)
+			if (FoundCachedBlob)
 			{
-				std::vector<uint8_t> binShaderData;
-				blobAsset >> binShaderData;
+				SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "CompileShaderFromString: found cache");
+				BinaryBlobSerializer& blobAsset = *FoundCachedBlob;
 
-				VkShaderModuleCreateInfo moduleCreateInfo{};
-				moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-				moduleCreateInfo.codeSize = binShaderData.size();
-				moduleCreateInfo.pCode = (uint32_t*)binShaderData.data();
+				uint32_t fileVersion = 0;
 
-				VkResult results = vkCreateShaderModule(GGlobalVulkanDevice, &moduleCreateInfo, NULL, &_shader);
-				if (results == VK_SUCCESS)
+				blobAsset >> fileVersion;
+				if (fileVersion == ShaderCacheVersion)
 				{
-					blobAsset >> _layoutSets;
-					blobAsset >> _pushConstants;
-					return true;
+					std::vector<uint8_t> binShaderData;
+					blobAsset >> binShaderData;
+
+					VkShaderModuleCreateInfo moduleCreateInfo{};
+					moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+					moduleCreateInfo.codeSize = binShaderData.size();
+					moduleCreateInfo.pCode = (uint32_t*)binShaderData.data();
+
+					VkResult results = vkCreateShaderModule(GGlobalVulkanDevice, &moduleCreateInfo, NULL, &_shader);
+					if (results == VK_SUCCESS)
+					{
+						blobAsset >> _layoutSets;
+						blobAsset >> _pushConstants;
+						return true;
+					}
 				}
 			}
 		}
@@ -377,19 +383,22 @@ namespace SPP
 
 		// reflection parsing
 		{
-			SpvReflectShaderModule module = {};
-			SpvReflectResult result = spvReflectCreateShaderModule(FileData.size(), FileData.data(), &module);
+			spv_reflect::ShaderModule spvReflSM(FileData);
+			SpvReflectResult result = spvReflSM.GetResult();
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+			SpvReflectShaderModule module = spvReflSM.GetShaderModule();
+			WriteReflection(spvReflSM, false, std::cout);
 
 			uint32_t count = 0;
 
 			// push constants
-			result = spvReflectEnumeratePushConstants(&module, &count, NULL);
+			result = spvReflectEnumeratePushConstantBlocks(&module, &count, NULL);
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
 			std::vector<SpvReflectBlockVariable*> pushConstants(count);
 
-			result = spvReflectEnumeratePushConstants(&module, &count, pushConstants.data());
+			result = spvReflectEnumeratePushConstantBlocks(&module, &count, pushConstants.data());
 			assert(result == SPV_REFLECT_RESULT_SUCCESS);
 
 			SPP_LOG(LOG_VULKANSHADER, LOG_INFO, "PUSH CONSTANTS");
@@ -466,27 +475,31 @@ namespace SPP
 				DescriptorSetLayoutData& layout = _layoutSets.emplace_back();
 				//DescriptorSetLayoutData& layout = set_layouts[i_set];
 				layout.bindings.resize(refl_set.binding_count);
-				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) {
+				for (uint32_t i_binding = 0; i_binding < refl_set.binding_count; ++i_binding) 
+				{
 					const SpvReflectDescriptorBinding& refl_binding = *(refl_set.bindings[i_binding]);
 					VkDescriptorSetLayoutBinding& layout_binding = layout.bindings[i_binding];
 					layout_binding.binding = refl_binding.binding;
 					layout_binding.descriptorType = static_cast<VkDescriptorType>(refl_binding.descriptor_type);
-
-					// we only use dynamics to keep it simple
-					if (layout_binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-					{
-						layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-					}
-					else if (layout_binding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-					{
-						layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-					}
-
+				
 					layout_binding.descriptorCount = 1;
 					for (uint32_t i_dim = 0; i_dim < refl_binding.array.dims_count; ++i_dim) {
 						layout_binding.descriptorCount *= refl_binding.array.dims[i_dim];
 					}
 					layout_binding.stageFlags = static_cast<VkShaderStageFlagBits>(module.shader_stage);
+
+					// we only use dynamics to keep it simple
+					if (layout_binding.descriptorCount == 1)
+					{
+						if (layout_binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+						{
+							layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+						}
+						else if (layout_binding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+						{
+							layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+						}
+					}
 
 					// lets make the graphics pass just share this, problems?
 					if (layout_binding.stageFlags & (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT))
@@ -521,7 +534,7 @@ namespace SPP
 		}
 
 		//CACHING
-		//if(true)
+		if (GUseShaderCached)
 		{
 			// create cache
 			BinaryBlobSerializer outCachedAsset;
