@@ -45,6 +45,14 @@ namespace SPP
             uint32_t totalChecks = 0;
         };
 
+        struct TestHistory
+        {
+            Vector3 samplePos;
+            Vector3 tMax;
+            Vector3 dim;
+            uint8_t level;
+        };
+
     private:
         Vector3i _dimensions = {};
         Vector3i _dimensionsPow2 = {};
@@ -56,6 +64,8 @@ namespace SPP
 
         std::vector < std::unique_ptr< struct SVVOLevel > > _levels;
         std::array< std::vector< uint32_t >, MAX_VOXEL_LEVELS > _dirtyPages;
+
+       
 
         Matrix4x4 _worldToVoxels;
 
@@ -69,7 +79,6 @@ namespace SPP
             Vector3 rayDirInvAbs = { 0,0,0 };
 
             Vector3 lastStep = { 0,0,0 };
-            bool bHasStepped = false;
             uint32_t curMisses = 0;
             uint32_t totalTests = 0;
         };      

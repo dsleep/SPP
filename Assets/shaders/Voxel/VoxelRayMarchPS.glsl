@@ -243,19 +243,24 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
 
 void main()
 {
-	vec3 cameraRay = normalize(Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix).xyz);		
-  
+	vec4 cameraRay = Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix);		
+    
+    cameraRay /= cameraRay.w;
+
     outDiffuse = vec4( 0,0,0, 1 );
 	outSMRE = vec4( 0,0,0, 0 );
 	outNormal = vec4( 0,0,0, 0 );
 
     VoxelHitInfo info;
-    if(CastRay(cameraRay, normalize(cameraRay), info))
+    if(CastRay(cameraRay.xyz, normalize(cameraRay.xyz), info))
     {
         outDiffuse.xyz = vec3(0.5f);
         outNormal.xyz = info.normal.xyz;
-        gl_FragDepth = 0.2f;
+        gl_FragDepth = 1.0f;
     }
-
-    gl_FragDepth = 1.0f;
+    else
+    {
+        outDiffuse.xyz = vec3(0.5f);
+        gl_FragDepth = 1.0f;
+    }
 }

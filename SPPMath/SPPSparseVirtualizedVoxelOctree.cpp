@@ -4,6 +4,7 @@
 
 #include "SPPSparseVirtualizedVoxelOctree.h"
 #include "SPPLogging.h"
+#include "SPPString.h"
 
 #if PLATFORM_WINDOWS
     #include <windows.h>
@@ -855,6 +856,10 @@ namespace SPP
         return InValueA.cwiseQuotient(InValueB);
     }
 
+    std::string ToString(const Vector3& InVec)
+    {
+        return std::string_format("%f %f %f", InVec[0], InVec[1], InVec[2]);
+    }
     bool SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
     {
         auto& rayDir = InRay.GetDirection();
@@ -902,10 +907,16 @@ namespace SPP
 
         oInfo.totalChecks = 0;
 
+        //std::vector< TestHistory > testHistory;
+
+        Vector3 samplePosWorld = rayInfo.rayOrg;
+        float rayTime = 0.0f;
         int32_t Iter = 0;
-        for (; Iter < 256; Iter++)
+        for (; Iter < 128; Iter++)
         {
             LastLevel = CurrentLevel;
+
+            //testHistory.push_back({ samplePos, dim, tMax, CurrentLevel });
 
             if (!ValidSample(samplePos))
             {
@@ -914,6 +925,7 @@ namespace SPP
 
             oInfo.totalChecks++;
 
+            bool bDidStep = false;
             bool bLevelChangeRecalc = false;
 
             // we hit something?
@@ -933,6 +945,8 @@ namespace SPP
             }
             else
             {
+                bDidStep = true;
+
                 Vector3 tMaxMins = Vector3(tMax[1], tMax[2], tMax[0]).cwiseMin(Vector3(tMax[2], tMax[0], tMax[1]));
                 dim = hlslStep(tMax, tMaxMins);
                 tMax += dim * tDelta[CurrentLevel];
@@ -945,7 +959,6 @@ namespace SPP
                 }
 
                 rayInfo.curMisses++;
-                rayInfo.bHasStepped = true;
 
                 if (CurrentLevel < _levels.size() - 1 &&
                     rayInfo.curMisses > 2 &&
@@ -953,43 +966,51 @@ namespace SPP
                 {
                     bLevelChangeRecalc = true;
                     CurrentLevel++;
-                    //hmmm think more about this 
-                    //InRayInfo.bHasStepped = false;
+                }
+            }
+
+            // if we stepped move up
+            if (bDidStep)
+            {
+                // did it step already
+                Vector3 normal = -hlslSign(rayInfo.lastStep);
+
+                Vector3 VoxelCenter = samplePos + HalfVoxel[LastLevel];
+                Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel[LastLevel] * normal;
+
+                float denom = normal.dot(rayInfo.rayDir);
+                if (denom == 0)
+                    denom = 0.0000001f;
+
+                Vector3 p0l0 = (VoxelPlaneEdge - rayInfo.rayOrg);
+                float t = p0l0.dot(normal) / denom;
+
+                if (t > rayTime)
+                {
+                    const float epsilon = 0.001f;
+                    rayTime = t + epsilon;
+                    samplePosWorld = rayInfo.rayOrg + rayInfo.rayDir * rayTime;
                 }
             }
 
             if (bLevelChangeRecalc)
             {
-                if (rayInfo.bHasStepped)
-                {
-                    // did it step already
-                    Vector3 normal = -hlslSign(rayInfo.lastStep);
-
-                    Vector3 VoxelCenter = samplePos + HalfVoxel[LastLevel];
-                    Vector3 VoxelPlaneEdge = VoxelCenter + HalfVoxel[LastLevel] * normal;
-
-                    float denom = normal.dot(rayInfo.rayDir);
-                    if (denom == 0)
-                        denom = 0.0000001f;
-
-                    Vector3 p0l0 = (VoxelPlaneEdge - rayInfo.rayOrg);
-                    float t = p0l0.dot(normal) / denom;
-
-                    float epsilon = 0.001f;
-                    rayInfo.rayOrg = rayInfo.rayOrg + rayInfo.rayDir * (t + epsilon);
-                }
-
-                voxel = hlslFloor<Vector3>(rayInfo.rayOrg / VoxelSize[CurrentLevel]) * VoxelSize[CurrentLevel];
-                tMax = (voxel - rayInfo.rayOrg + HalfVoxel[CurrentLevel] + step[CurrentLevel] * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
+                voxel = hlslFloor<Vector3>(samplePosWorld / VoxelSize[CurrentLevel]) * VoxelSize[CurrentLevel];
+                tMax = (voxel - samplePosWorld + HalfVoxel[CurrentLevel] + step[CurrentLevel] * Vector3(0.5f, 0.5f, 0.5f)).cwiseProduct(rayInfo.rayDirInv);
 
                 dim = Vector3(0, 0, 0);
                 samplePos = voxel;
             }
         }
 
-        if (Iter > 128)
+        if (Iter > 64)
         {
             SPP_LOG(LOG_SVVO, LOG_INFO, "SparseVirtualizedVoxelOctree::CastRay: exceeded iterations: test... %d", Iter);
+
+            //for (auto& curTest : testHistory)
+            //{
+            //    SPP_LOG(LOG_SVVO, LOG_INFO, " - %s %d", ToString(curTest.samplePos).c_str(), curTest.level);
+            //}
         }
 
         return false;

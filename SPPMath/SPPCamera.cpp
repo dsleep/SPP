@@ -244,8 +244,8 @@ namespace SPP
 		{
 			for (uint32_t xIter = 0; xIter < Width; xIter++)
 			{
-				Vector4 posNear = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), ((yIter / (float)Height) * 2.0f - 1.0f), 10.0f, 1.0f);
-				Vector4 posFar = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), ((yIter / (float)Height) * 2.0f - 1.0f), 100.0f, 1.0f);
+				Vector4 posNear = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 1, 1.0f);
+				Vector4 posFar = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 1 - 0.001f, 1.0f);
 
 				Vector4 worldNear = posNear * GetInvViewProjMatrix();
 				worldNear /= worldNear[3];

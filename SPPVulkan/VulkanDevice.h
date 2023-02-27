@@ -300,13 +300,9 @@ namespace SPP
 		vks::VulkanDevice* GetVKSVulkanDevice();
 
 		VkDevice GetVKDevice() const;
-
 		VkQueue GetGraphicsQueue();
-
 		VkQueue GetComputeQueue();
-
 		VkQueue GetTransferQueue();
-
 		VkQueue GetSparseQueue();
 
 		auto GetStaticDrawPoolReservation()
@@ -315,9 +311,7 @@ namespace SPP
 		}
 
 		VkFramebuffer GetActiveFrameBuffer();
-
 		VkDescriptorPool GetPerFrameResetDescriptorPool();
-
 		VkDescriptorPool GetPersistentDescriptorPool();
 
 		uint8_t GetActiveFrame();
@@ -345,11 +339,7 @@ namespace SPP
 		struct VkFrameDataContainer& GetDeferredFrameData();
 		struct VkFrameDataContainer& GetLightingCompositeRenderPass();
 		class VulkanFramebuffer* GetLightCompositeFrameBuffer();
-
-
-
 		struct VkFrameDataContainer& GetDepthOnlyFrameData();
-
 
 		uintptr_t _activeRenderPassPTR = 0;
 		uintptr_t _activeFrameBufferPTR = 0;

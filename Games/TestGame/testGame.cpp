@@ -363,7 +363,7 @@ public:
 		// figure out a better model
 		_gameworld->AddChild(GameObjectSVVO);
 
-		if(false)
+		if(true)
 		{
 			auto directSVVO = GameObjectSVVO->GetSVVO();
 			auto curDimensions = directSVVO->GetDimensions();
@@ -383,6 +383,34 @@ public:
 					directSVVO->Set(SetPos, 200);
 				}
 			}
+
+#if 1 
+			Camera testCam;
+			testCam.Initialize(Vector3d(0, 9, 0), Vector3(-20, 0, 0), 65.0f, 1.77f);
+
+			{
+				uint64_t totalTests = 0;
+				uint32_t wRay = 1365;
+				uint32_t hRay = 768;
+				std::vector<Color3> sliceData;
+				sliceData.resize(wRay * hRay, Color3(0, 0, 0));
+
+				{
+					//ScopeTimer rayCastTime;
+					testCam.CreateRays(wRay, hRay, [&](const Ray& InRay, uint32_t CurX, uint32_t CurY) {
+						SparseVirtualizedVoxelOctree::VoxelHitInfo hit;
+						if (directSVVO->CastRay(InRay, hit))
+						{
+							sliceData[(CurY * wRay) + CurX] = ((hit.normal * 0.5f + Vector3(1, 1, 1)) * 255.0f).cast< uint8_t >();
+						}
+						totalTests += hit.totalChecks;
+					});
+				}
+
+				SPP_LOG(LOG_APP, LOG_INFO, "totalTests: %u avg test per pixel: %f", totalTests, (double)totalTests / ((double)wRay * (double)hRay));
+				SaveImageToFile("raytest.bmp", wRay, hRay, TextureFormat::RGB_888, (uint8_t*)sliceData.data());
+			}
+#endif
 		}
 
 		GameObjectSVVO->FullRTUpdate();

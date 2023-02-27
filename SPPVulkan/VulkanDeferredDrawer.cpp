@@ -144,6 +144,7 @@ namespace SPP
 			_deferredSMlayout = Make_GPU(VulkanInputLayout);
 			_deferredSMlayout->InitializeLayout(OP_GetVertexStreams_Deferred());
 
+
 			{
 				auto& vsSet = _defferedPBRVS->GetLayoutSets();
 				_deferredVSLayout = Make_GPU(SafeVkDescriptorSetLayout, vsSet.front().bindings);
@@ -230,7 +231,6 @@ namespace SPP
 		//Voxel Rendering
 		auto FullScreenVoxelPBRPS = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVoxelRayMarch();
 		auto FullScreenVS = InScene->GetFullScreenVS();
-		auto FullScreenVSLayout = InScene->GetEmpyVSLayout();
 
 		_voxelPBRPSO = VulkanPipelineStateBuilder()
 			.Set(GGlobalVulkanGI->GetDeferredFrameData())
@@ -239,10 +239,12 @@ namespace SPP
 			.Set(EDepthState::Enabled)
 			.Set(EDrawingTopology::TriangleStrip)
 			.Set(EDepthOp::Always)
-			.Set(FullScreenVSLayout)
 			.Set(FullScreenVS)
 			.Set(FullScreenVoxelPBRPS)
 			.Build();
+
+
+		_emptyStorageBuffer = Make_GPU(VulkanBuffer, GPUBufferType::Array, 1, false);
 	}
 
 	struct DeferredMaterialCache : PassCache
@@ -506,14 +508,19 @@ namespace SPP
 					&voxLevelInfoDescriptorInfo));
 								
 				VkDescriptorBufferInfo sparseBuffers[MAX_VOXEL_LEVELS] = { 0 };
-				int32_t actualSet = 0;
+
 				for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
 				{
 					auto& curBuffer = InVoxelData.GetBufferLevel(Iter);
-					if (!curBuffer) break;
-					auto& sparseVkBuf = curBuffer->GetGPUBuffer()->GetAs<VulkanBuffer>();
-					sparseBuffers[Iter] = sparseVkBuf.GetDescriptorInfo();
-					actualSet++;
+					if (curBuffer)
+					{
+						auto& sparseVkBuf = curBuffer->GetGPUBuffer()->GetAs<VulkanBuffer>();
+						sparseBuffers[Iter] = sparseVkBuf.GetDescriptorInfo();
+					}
+					else
+					{
+						sparseBuffers[Iter] = _emptyStorageBuffer->GetDescriptorInfo();
+					}
 				}
 
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
@@ -521,7 +528,7 @@ namespace SPP
 					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 					2,
 					sparseBuffers,
-					actualSet));
+					MAX_VOXEL_LEVELS));
 
 				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
 					static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -530,11 +537,10 @@ namespace SPP
 		}
 
 		uint32_t uniform_offsets[] = {
-				0
+				0, 0, 0
 		};
-
 		VkDescriptorSet locaDrawSets[] = {
-			_camStaticBufferDescriptorSet->Get(),
+			_owningScene->GetCommondDescriptorSet(),
 			cacheRef->descriptorSet->Get()
 		};
 
