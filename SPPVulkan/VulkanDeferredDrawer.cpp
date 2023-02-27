@@ -15,6 +15,8 @@
 #include "SPPSceneRendering.h"
 #include "SPPMesh.h"
 #include "SPPLogging.h"
+#include "SPPSparseVirtualizedVoxelOctree.h"
+#include "VulkanRenderableSVVO.h"
 
 namespace SPP
 {
@@ -191,15 +193,11 @@ namespace SPP
 
 	REGISTER_GLOBAL_RESOURCE(GlobalDeferredPBRResources);
 
+	
 	PBRDeferredDrawer::PBRDeferredDrawer(VulkanRenderScene* InScene) : _owningScene(InScene)
 	{
 		_owningDevice = GGlobalVulkanGI;
 		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
-
-		//VOXEL
-		//auto voxelRMCS = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVoxelRayMarch();
-		//auto voxelRMPSO = VulkanPipelineStateBuilder(_owningDevice)
-		//	.Set(voxelRMCS).Build();
 
 		auto meshVSLayout = _owningDevice->GetGlobalResource<GlobalDeferredPBRResources>()->GetVSLayout();
 		_camStaticBufferDescriptorSet = Make_GPU(SafeVkDescriptorSet, meshVSLayout->Get(), globalSharedPool);
@@ -234,7 +232,7 @@ namespace SPP
 		auto FullScreenVS = InScene->GetFullScreenVS();
 		auto FullScreenVSLayout = InScene->GetEmpyVSLayout();
 
-		auto _voxelPBRPSO = VulkanPipelineStateBuilder()
+		_voxelPBRPSO = VulkanPipelineStateBuilder()
 			.Set(GGlobalVulkanGI->GetDeferredFrameData())
 			.Set(EBlendState::Disabled)
 			.Set(ERasterizerState::NoCull)
@@ -245,9 +243,6 @@ namespace SPP
 			.Set(FullScreenVS)
 			.Set(FullScreenVoxelPBRPS)
 			.Build();
-
-		auto& descSetLayouts = _voxelPBRPSO->GetDescriptorSetLayouts();
-		auto& descSetLayoutBindings = _voxelPBRPSO->GetDescriptorSetLayoutBindings();
 	}
 
 	struct DeferredMaterialCache : PassCache
@@ -457,9 +452,80 @@ namespace SPP
 		return cacheRef;
 	}
 
-	void PBRDeferredDrawer::RenderVoxelData(RT_RenderableSVVO& InVoxelData)
+	struct SVVODrawCache : PassCache
 	{
+		GPUReferencer< class SafeVkDescriptorSet > descriptorSet;
+		virtual ~SVVODrawCache() {}
+	};
 
+	void PBRDeferredDrawer::RenderVoxelData(class RT_VulkanRenderableSVVO& InVoxelData)
+	{
+		const uint8_t OPAQUE_PBR_PASS = 0;
+		const uint8_t DEFERRED_PASS = 1;
+
+		auto globalSharedPool = _owningDevice->GetPersistentDescriptorPool();
+		auto currentFrame = _owningDevice->GetActiveFrame();
+		auto commandBuffer = _owningDevice->GetActiveCommandBuffer();
+
+		auto& cached = InVoxelData.GetPassCache()[OPAQUE_PBR_PASS];
+
+		SVVODrawCache* cacheRef = nullptr;
+		if (!cached)
+		{
+			cached = std::make_unique< SVVODrawCache >();
+		}
+
+		cacheRef = dynamic_cast<SVVODrawCache*>(cached.get());
+				
+		if (!cacheRef->descriptorSet)
+		{		
+			cacheRef->descriptorSet = Make_GPU(SafeVkDescriptorSet,
+				_voxelPBRPSO->GetDescriptorSetLayouts()[1]->Get(),
+				globalSharedPool);
+
+			auto voxelBaseInfoBuf = InVoxelData.GetVoxelBaseInfo();
+			auto voxelLeveInfoBuf = InVoxelData.GetVoxelLevelInfo();
+			auto& sparseBuffers = InVoxelData.GetBuffers();
+
+			{
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
+				auto voxBaseInfoDescriptorInfo = voxelBaseInfoBuf->GetDescriptorInfo();
+				auto voxLevelInfoDescriptorInfo = voxelLeveInfoBuf->GetDescriptorInfo();
+
+				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
+					cacheRef->descriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+					0,
+					&voxBaseInfoDescriptorInfo));
+
+				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
+					cacheRef->descriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+					1,
+					&voxLevelInfoDescriptorInfo));
+
+				VkDescriptorBufferInfo sparseBuffers[MAX_VOXEL_LEVELS];
+				for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
+				{
+					auto& curBuffer = InVoxelData.GetBufferLevel(Iter);
+					auto& sparseVkBuf = curBuffer->GetGPUBuffer()->GetAs<VulkanBuffer>();
+
+					sparseBuffers[Iter] = sparseVkBuf.GetDescriptorInfo();
+				}
+
+				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
+					cacheRef->descriptorSet->Get(),
+					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+					2,
+					sparseBuffers,
+					MAX_VOXEL_LEVELS));
+
+				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
+					static_cast<uint32_t>(writeDescriptorSets.size()),
+					writeDescriptorSets.data(), 0, nullptr);
+			}
+		}
 	}
 
 	// TODO cleanupppp

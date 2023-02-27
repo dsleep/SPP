@@ -794,7 +794,7 @@ namespace SPP
 
 		for (uint32_t visIter = 0; visIter < curVisibleVoxels; visIter++)
 		{
-			_deferredDrawer->RenderVoxelData(*(RT_RenderableSVVO*)_visibleVoxels[visIter]);
+			_deferredDrawer->RenderVoxelData(*(RT_VulkanRenderableSVVO*)_visibleVoxels[visIter]);
 		}
 
 #if 1

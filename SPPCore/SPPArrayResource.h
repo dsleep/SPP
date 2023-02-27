@@ -23,7 +23,7 @@ namespace SPP
         ArrayResource(const ArrayResource &InCopy) : _perElementSize(InCopy._perElementSize), _elementCount(InCopy._elementCount), _data(InCopy._data) {}
 
         template<typename T>
-        TSpan<T> InitializeFromType(size_t Count)
+        TSpan<T> InitializeFromType(size_t Count = 1)
         {
             _perElementSize = sizeof(T);
             _elementCount = Count;
@@ -32,7 +32,7 @@ namespace SPP
         }
 
         template<typename T>
-        void InitializeFromType(const T* InData, size_t Count)
+        void InitializeFromType(const T* InData, size_t Count = 1)
         {
             _perElementSize = sizeof(T);
             _elementCount = Count;

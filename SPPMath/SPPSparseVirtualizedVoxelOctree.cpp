@@ -49,13 +49,13 @@ namespace SPP
 
         std::vector< uint32_t > _pageDirtyIdx;
 
-        size_t _activePages = 0;                
+        size_t _activePages = 0;      
 
-        Vector3i _vCubeVoxelDimensions = {0,0,0};
-        Vector3i _vCubeVoxelDimensionsP2 = {0,0,0};
+        Vector3i _localPageVoxelDimensions = {0,0,0};
+        Vector3i _localPageVoxelDimensionsP2 = {0,0,0};
 
-        Vector3i _vCubeCount = {0,0,0};
-        Vector3i _vCubeMask = {0,0,0};
+        Vector3i _localPageCounts = {0,0,0};
+        Vector3i _localPageMask = {0,0,0};
 
         bool _bVirtualAlloc = false;
         bool _bTopLevel = false;
@@ -114,10 +114,10 @@ namespace SPP
             if (_maximumSize <= _pageSize)
             {
                 _bVirtualAlloc = false;
-                _vCubeVoxelDimensions = InDimensions;
-                _vCubeVoxelDimensionsP2 = Vector3i{ powerOf2(_vCubeVoxelDimensions[0]), powerOf2(_vCubeVoxelDimensions[1]), powerOf2(_vCubeVoxelDimensions[2]) };
-                _vCubeMask = _vCubeVoxelDimensions - Vector3i{ 1,1,1 };
-                _vCubeCount = Vector3i{ 1,1,1 };
+                _localPageVoxelDimensions = InDimensions;
+                _localPageVoxelDimensionsP2 = Vector3i{ powerOf2(_localPageVoxelDimensions[0]), powerOf2(_localPageVoxelDimensions[1]), powerOf2(_localPageVoxelDimensions[2]) };
+                _localPageMask = _localPageVoxelDimensions - Vector3i{ 1,1,1 };
+                _localPageCounts = Vector3i{ 1,1,1 };
 
                 _activePages = 1;
                 _pageSize = _maximumSize;
@@ -140,25 +140,25 @@ namespace SPP
                 
                 auto spatialDivisor = (int32_t)std::cbrt(_pageSize / DataTypeSize);
                 spatialDivisor = roundDownToPow2(spatialDivisor);
-                _vCubeVoxelDimensions = Vector3i{ spatialDivisor,  spatialDivisor, spatialDivisor };
+                _localPageVoxelDimensions = Vector3i{ spatialDivisor,  spatialDivisor, spatialDivisor };
 
-                while (_vCubeVoxelDimensions.prod() < _pageSize)
+                while (_localPageVoxelDimensions.prod() < _pageSize)
                 {                  
-                    _vCubeVoxelDimensions[0] <<= 1;
+                    _localPageVoxelDimensions[0] <<= 1;
                 }
 
-                SE_ASSERT(_vCubeVoxelDimensions.prod() == _pageSize);
-                _vCubeVoxelDimensionsP2 = Vector3i{ powerOf2(_vCubeVoxelDimensions[0]), powerOf2(_vCubeVoxelDimensions[1]), powerOf2(_vCubeVoxelDimensions[2]) };
+                SE_ASSERT(_localPageVoxelDimensions.prod() == _pageSize);
+                _localPageVoxelDimensionsP2 = Vector3i{ powerOf2(_localPageVoxelDimensions[0]), powerOf2(_localPageVoxelDimensions[1]), powerOf2(_localPageVoxelDimensions[2]) };
               
-                _vCubeMask = _vCubeVoxelDimensions - Vector3i{ 1,1,1 };
-                _vCubeCount = _dimensions.array() / _vCubeVoxelDimensions.array();
+                _localPageMask = _localPageVoxelDimensions - Vector3i{ 1,1,1 };
+                _localPageCounts = _dimensions.array() / _localPageVoxelDimensions.array();
 
-                SE_ASSERT((_dimensions - Vector3i(_vCubeCount.array() * _vCubeVoxelDimensions.array())).isZero());
+                SE_ASSERT((_dimensions - Vector3i(_localPageCounts.array() * _localPageVoxelDimensions.array())).isZero());
 
-                SPP_LOG(LOG_SVVO, LOG_INFO, " - cube voxel dimensions: %d x %d x %d", _vCubeVoxelDimensions[0], _vCubeVoxelDimensions[1], _vCubeVoxelDimensions[2]);
-                SPP_LOG(LOG_SVVO, LOG_INFO, " - total cube count: %d x %d x %d", _vCubeCount[0], _vCubeCount[1], _vCubeCount[2]);
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - cube voxel dimensions: %d x %d x %d", _localPageVoxelDimensions[0], _localPageVoxelDimensions[1], _localPageVoxelDimensions[2]);
+                SPP_LOG(LOG_SVVO, LOG_INFO, " - total cube count: %d x %d x %d", _localPageCounts[0], _localPageCounts[1], _localPageCounts[2]);
                 
-                auto TotalPages = (size_t)_vCubeCount[0] * (size_t)_vCubeCount[1] * (size_t)_vCubeCount[2];
+                auto TotalPages = (size_t)_localPageCounts[0] * (size_t)_localPageCounts[1] * (size_t)_localPageCounts[2];
 
                 SPP_LOG(LOG_SVVO, LOG_INFO, " - page count: %d", TotalPages);
                                 
@@ -214,6 +214,7 @@ namespace SPP
             return (uint32_t) _maximumSize;
         }
 
+
         void ValidatePage(size_t InPage)
         {
             SE_ASSERT(_bVirtualAlloc);
@@ -245,12 +246,12 @@ namespace SPP
         PageIdxAndMemOffset GetOffsets(const Vector3i& InPosition)
         {           
             // find the local voxel
-            Vector3i LocalVoxel = Vector3i{ InPosition[0] & _vCubeMask[0],
-                InPosition[1] & _vCubeMask[1],
-                InPosition[2] & _vCubeMask[2] };
+            Vector3i LocalVoxel = Vector3i{ InPosition[0] & _localPageMask[0],
+                InPosition[1] & _localPageMask[1],
+                InPosition[2] & _localPageMask[2] };
             auto localVoxelIdx = (LocalVoxel[0] +
-                LocalVoxel[1] * _vCubeVoxelDimensions[0] +
-                LocalVoxel[2] * _vCubeVoxelDimensions[0] * _vCubeVoxelDimensions[1]);
+                LocalVoxel[1] * _localPageVoxelDimensions[0] +
+                LocalVoxel[2] * _localPageVoxelDimensions[0] * _localPageVoxelDimensions[1]);
 
             if (!_bVirtualAlloc)
             {
@@ -260,12 +261,12 @@ namespace SPP
             }
 
             // find which page we are on
-            Vector3i PageCubePos = Vector3i{ InPosition[0] >> _vCubeVoxelDimensionsP2[0],
-               InPosition[1] >> _vCubeVoxelDimensionsP2[1],
-               InPosition[2] >> _vCubeVoxelDimensionsP2[2] };
+            Vector3i PageCubePos = Vector3i{ InPosition[0] >> _localPageVoxelDimensionsP2[0],
+               InPosition[1] >> _localPageVoxelDimensionsP2[1],
+               InPosition[2] >> _localPageVoxelDimensionsP2[2] };
             auto pageIdx = (PageCubePos[0] +
-                PageCubePos[1] * _vCubeCount[0] +
-                PageCubePos[2] * _vCubeCount[0] * _vCubeCount[1]);
+                PageCubePos[1] * _localPageCounts[0] +
+                PageCubePos[2] * _localPageCounts[0] * _localPageCounts[1]);
                        
             auto memOffset = (pageIdx * _pageSize) + localVoxelIdx * _dataTypeSize;
 
@@ -433,6 +434,23 @@ namespace SPP
         {
             return { (uint32_t)_pageSize, _maximumSize, _bVirtualAlloc };
         }
+
+        SVVOLevelInfo GetFullLevelInfo() const
+        {
+            //Vector3i dimensions = { 0, 0, 0 };
+            //Vector3i dimensionsPow2 = { 0, 0, 0 };
+            //uint32_t pageSize = 0;
+            //Vector3i localPageMask = { 0, 0, 0 };
+            //Vector3i localPageVoxelDimensions = { 0, 0, 0 };
+            //Vector3i localPageVoxelDimensionsP2 = { 0, 0, 0 };
+            //Vector3i localPageCounts = { 0, 0, 0 };
+
+            return { _dimensions, _dimensionsPow2, (uint32_t) _pageSize,
+                _localPageMask, _localPageVoxelDimensions, 
+                _localPageVoxelDimensionsP2, _localPageCounts };
+        }
+
+
 
         SVVOLevel(SVVOLevel const&) = delete;
         SVVOLevel& operator=(SVVOLevel const&) = delete;
@@ -1000,6 +1018,19 @@ namespace SPP
         for (auto &curLevel : _levels)
         {
             oInfos.push_back(curLevel->GetLevelInfo());
+        }
+
+        return oInfos;
+    }
+
+    std::vector< SVVOLevelInfo > SparseVirtualizedVoxelOctree::GetFullLevelInfos() const
+    {
+        std::vector< SVVOLevelInfo > oInfos;
+        oInfos.reserve(_levels.size());
+
+        for (auto& curLevel : _levels)
+        {
+            oInfos.push_back(curLevel->GetFullLevelInfo());
         }
 
         return oInfos;

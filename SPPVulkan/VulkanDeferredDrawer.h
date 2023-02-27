@@ -23,6 +23,6 @@ namespace SPP
 
 		// TODO cleanupppp
 		void Render(RT_VulkanRenderableMesh& InVulkanRenderableMesh);
-		void RenderVoxelData(RT_RenderableSVVO& InVoxelData);
+		void RenderVoxelData(class RT_VulkanRenderableSVVO& InVoxelData);
 	};
 }

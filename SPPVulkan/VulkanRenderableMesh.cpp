@@ -70,11 +70,6 @@ namespace SPP
 		return Make_RT_Resource( RT_VulkanRenderableMesh);
 	}
 
-	std::shared_ptr< class RT_RenderableSVVO > VulkanGraphicsDevice::CreateRenderableSVVO()
-	{
-		return Make_RT_Resource(RT_RenderableSVVO);
-	}
-
 	void RT_VulkanStaticMesh::Initialize()
 	{
 		RT_StaticMesh::Initialize();

@@ -10,6 +10,7 @@
 #include "SPPCamera.h"
 #include "SPPOctree.h"
 #include "SPPBitSetArray.h"
+#include "SPPSparseVirtualizedVoxelOctree.h"
 #include <set>
 
 namespace SPP
@@ -612,14 +613,21 @@ namespace SPP
 		float _voxelSize = 1.0f;
 		Vector3i _dimensions = { 0,0,0 };
 
-		std::shared_ptr<RT_Buffer> _sparseBuffer[rtMAX_VOXEL_LEVELS];
+		std::array< std::shared_ptr<RT_Buffer>, rtMAX_VOXEL_LEVELS> _sparseBuffer;
 
 		RT_RenderableSVVO() {}
 
 	public:
 
+		virtual void SetupResources(const SparseVirtualizedVoxelOctree& InSVVO) {}
+		
 		virtual RenderableType GetType() const override { return RenderableType::Voxels; }
 		
+		auto& GetBuffers()
+		{
+			return _sparseBuffer;
+		}
+
 		std::shared_ptr<RT_Buffer> &GetBufferLevel(uint8_t InLevel)
 		{
 			return _sparseBuffer[InLevel];

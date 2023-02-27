@@ -38,7 +38,18 @@ struct VmaAllocator_T;
 
 namespace SPP
 {
-	
+	class IVulkanPassCacher
+	{
+	protected:
+		std::unique_ptr<PassCache> passCaches[5];
+
+	public:
+		auto& GetPassCache()
+		{
+			return passCaches;
+		}
+	};
+
 	class VulkanInputLayout : public GPUInputLayout
 	{
 	private:

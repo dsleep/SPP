@@ -12,6 +12,18 @@
 
 namespace SPP
 { 
+    struct SVVOLevelInfo
+    {
+        Vector3i dimensions = { 0, 0, 0 };
+        Vector3i dimensionsPow2 = { 0, 0, 0 };
+        uint32_t pageSize = 0;
+
+        Vector3i localPageMask = { 0, 0, 0 };
+        Vector3i localPageVoxelDimensions = { 0, 0, 0 };
+        Vector3i localPageVoxelDimensionsP2 = { 0, 0, 0 };
+        Vector3i localPageCounts = { 0, 0, 0 };
+    };
+
     class SPP_MATH_API SparseVirtualizedVoxelOctree
     {   
         NO_COPY_ALLOWED(SparseVirtualizedVoxelOctree);
@@ -108,6 +120,8 @@ namespace SPP
         };
 
         std::vector< LevelInfo > GetLevelInfos() const;
+
+        std::vector< SVVOLevelInfo > GetFullLevelInfos() const;
 
         bool CastRay(const Ray& InRay, VoxelHitInfo &oInfo);      
         void GetSlice(const Vector3d& InPosition, EAxis::Value InAxisIsolate, int32_t CurLevel, int32_t &oX, int32_t& oY, std::vector<Color3> &oSliceData );

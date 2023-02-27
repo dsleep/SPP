@@ -15,17 +15,7 @@
 namespace SPP
 {
 	
-	class IVulkanPassCacher
-	{
-	protected:
-		std::unique_ptr<PassCache> passCaches[5];
-
-	public:
-		auto& GetPassCache()
-		{
-			return passCaches;
-		}
-	};
+	
 
 
 	class RT_VulkanStaticMesh : public RT_StaticMesh

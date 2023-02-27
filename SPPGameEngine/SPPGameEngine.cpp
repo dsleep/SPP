@@ -154,9 +154,11 @@ namespace SPP
 
 		for (uint32_t Iter = 0; Iter < levelInfos.size(); Iter++)
 		{
-			auto &curBuffer = _renderableSVVO->GetBufferLevel(Iter);
+			auto& curBuffer = _renderableSVVO->GetBufferLevel(Iter);
 			curBuffer = sceneGD->CreateBuffer(levelInfos[Iter].bIsVirtual ? GPUBufferType::Sparse : GPUBufferType::Array);
 		}
+
+		_renderableSVVO->SetupResources(*_SVVO.get());
 	}
 
 	void VgSVVO::FullRTUpdate()
