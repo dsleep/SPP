@@ -495,23 +495,25 @@ namespace SPP
 
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
 					cacheRef->descriptorSet->Get(),
-					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 					0,
 					&voxBaseInfoDescriptorInfo));
 
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
 					cacheRef->descriptorSet->Get(),
-					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 					1,
 					&voxLevelInfoDescriptorInfo));
-
-				VkDescriptorBufferInfo sparseBuffers[MAX_VOXEL_LEVELS];
+								
+				VkDescriptorBufferInfo sparseBuffers[MAX_VOXEL_LEVELS] = { 0 };
+				int32_t actualSet = 0;
 				for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
 				{
 					auto& curBuffer = InVoxelData.GetBufferLevel(Iter);
+					if (!curBuffer) break;
 					auto& sparseVkBuf = curBuffer->GetGPUBuffer()->GetAs<VulkanBuffer>();
-
 					sparseBuffers[Iter] = sparseVkBuf.GetDescriptorInfo();
+					actualSet++;
 				}
 
 				writeDescriptorSets.push_back(vks::initializers::writeDescriptorSet(
@@ -519,13 +521,30 @@ namespace SPP
 					VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 					2,
 					sparseBuffers,
-					MAX_VOXEL_LEVELS));
+					actualSet));
 
 				vkUpdateDescriptorSets(_owningDevice->GetDevice(),
 					static_cast<uint32_t>(writeDescriptorSets.size()),
 					writeDescriptorSets.data(), 0, nullptr);
 			}
 		}
+
+		uint32_t uniform_offsets[] = {
+				0
+		};
+
+		VkDescriptorSet locaDrawSets[] = {
+			_camStaticBufferDescriptorSet->Get(),
+			cacheRef->descriptorSet->Get()
+		};
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _voxelPBRPSO->GetVkPipeline());		
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			_voxelPBRPSO->GetVkPipelineLayout(),
+			0,
+			ARRAY_SIZE(locaDrawSets), locaDrawSets,
+			ARRAY_SIZE(uniform_offsets), uniform_offsets);
+		vkCmdDraw(commandBuffer, 4, 1, 0, 0);
 	}
 
 	// TODO cleanupppp

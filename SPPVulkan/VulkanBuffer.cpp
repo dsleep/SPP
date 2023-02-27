@@ -27,6 +27,7 @@ namespace SPP
 		case GPUBufferType::Simple:
 			_usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			break;
+		case GPUBufferType::Sparse:
 		case GPUBufferType::Array:
 			_usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 			break;
@@ -93,7 +94,7 @@ namespace SPP
 			break;
 		}
 
-		_usageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		_usageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		//if (IsCPUMem)
 		//{
 		//	_usageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;

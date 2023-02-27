@@ -16,14 +16,14 @@ layout(std430) buffer;
 
 const int MAX_VOXEL_LEVELS = 15;
 
-layout(set = 1, binding = 1) readonly buffer _VoxelInfo
+layout(set = 1, binding = 0) readonly uniform _VoxelInfo
 {
 	int activeLevels;
     uint pageSize;
     ivec3 dimensions;
 } VoxelInfo;
 
-layout(set = 1, binding = 2) readonly buffer _LevelInfo
+layout(set = 1, binding = 1) readonly uniform _LevelInfo
 {
     vec3 VoxelSize[MAX_VOXEL_LEVELS];
     vec3 HalfVoxel[MAX_VOXEL_LEVELS];
@@ -33,7 +33,7 @@ layout(set = 1, binding = 2) readonly buffer _LevelInfo
     ivec3 localPageCounts[MAX_VOXEL_LEVELS];
 } LevelInfos;
 
-layout(set = 1, binding = 3) readonly buffer _LevelVoxels
+layout(set = 1, binding = 2) readonly buffer _LevelVoxels
 {
 	uint8_t voxels[];
 } LevelVoxels[MAX_VOXEL_LEVELS];
