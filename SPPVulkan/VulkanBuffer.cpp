@@ -144,6 +144,8 @@ namespace SPP
 	
 	void VulkanBuffer::SetSparsePageMem(BufferPageData* InPages, uint32_t PageCount)
 	{
+		SE_ASSERT(_type == GPUBufferType::Sparse);
+
 		VmaAllocationCreateInfo allocCreateInfo = {};
 		allocCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
@@ -206,7 +208,7 @@ namespace SPP
 		{
 			auto pageIdx = newAllocations[i];
 
-			binds[i] = {};
+			binds[i] = { 0 };
 			binds[i].resourceOffset = pageSize * pageIdx;
 			binds[i].size = pageSize;
 			binds[i].memory = allocInfo[i].deviceMemory; 
@@ -221,7 +223,7 @@ namespace SPP
 		// these are the frees
 		for (uint32_t i = newAllocations.size(), j = 0; i < binds.size(); ++i, ++j)
 		{
-			binds[i] = {};
+			binds[i] = { 0 };
 			binds[i].resourceOffset = freeAllocations[j].pageIdx * pageSize;
 			binds[i].size = pageSize;
 			binds[i].memory = VK_NULL_HANDLE;
@@ -241,9 +243,18 @@ namespace SPP
 		VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo();
 		SafeVkFence tempFence(fenceCreateInfo);
 		auto& currentFence = tempFence.Get();
-		vkResetFences(GGlobalVulkanDevice, 1, &currentFence);
-		vkQueueBindSparse(GGlobalVulkanGI->GetSparseQueue(), 1, &spareInfo, currentFence);
-		vkWaitForFences(GGlobalVulkanDevice, 1, &currentFence, VK_TRUE, UINT64_MAX);
+		{
+			auto results = vkResetFences(GGlobalVulkanDevice, 1, &currentFence);
+			SE_ASSERT(results == VK_SUCCESS);
+		}
+		{
+			auto results = vkQueueBindSparse(GGlobalVulkanGI->GetSparseQueue(), 1, &spareInfo, currentFence);
+			SE_ASSERT(results == VK_SUCCESS);
+		}
+		{
+			auto results = vkWaitForFences(GGlobalVulkanDevice, 1, &currentFence, VK_TRUE, UINT64_MAX);
+			SE_ASSERT(results == VK_SUCCESS);
+		}
 
 		auto& perFrameScratchBuffer = GGlobalVulkanGI->GetPerFrameScratchBuffer();
 		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();

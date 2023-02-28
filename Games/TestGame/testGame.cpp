@@ -358,7 +358,9 @@ public:
 
 		auto GameObjectSVVO = AllocateObject<VgSVVO>("svvo", _gameworld);
 		GameObjectSVVO->GetScale() = Vector3(50, 10, 50);
-		GameObjectSVVO->SetVoxelSize(0.05f);
+		GameObjectSVVO->SetVoxelSize(1);
+		//GameObjectSVVO->SetVoxelSize(0.05f);
+
 
 		// figure out a better model
 		_gameworld->AddChild(GameObjectSVVO);
@@ -372,19 +374,19 @@ public:
 			FastNoiseLite noise;
 			noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
 
-			for (int32_t IterZ = 200; IterZ < curDimensions[2] - 200; IterZ++)
+			for (int32_t IterZ = 0; IterZ < curDimensions[2]; IterZ++)
 			{
-				for (int32_t IterX = 200; IterX < curDimensions[0] - 200; IterX++)
+				for (int32_t IterX = 0; IterX < curDimensions[0]; IterX++)
 				{
 					auto noiseValue = noise.GetNoise((float)IterX, (float)IterZ) * 0.5f + 0.5f;
 
-					Vector3i SetPos(IterX, (noiseValue * 40) + (curDimensions[1] / 2 - 40), IterZ);
+					Vector3i SetPos(IterX, (noiseValue * 5) + (curDimensions[1] / 2 - 5), IterZ);
 
 					directSVVO->Set(SetPos, 200);
 				}
 			}
 
-#if 1 
+#if 0 
 			Camera testCam;
 			testCam.Initialize(Vector3d(0, 9, 0), Vector3(-20, 0, 0), 65.0f, 1.77f);
 
@@ -427,7 +429,7 @@ public:
 		renderableSceneShared = _gameworld->GetRenderScene();
 		
 		auto& cam = renderableSceneShared->GetCPUCamera();
-		cam.GetCameraPosition()[1] = 5;
+		cam.GetCameraPosition()[1] = 9;
 
 		std::vector<Sphere> rangeSpheres;
 		cam.GetFrustumSpheresForRanges( { 50, 150, 450 }, rangeSpheres);

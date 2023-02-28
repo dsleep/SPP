@@ -14,6 +14,18 @@
 
 namespace SPP
 {
+	struct alignas(16u) GPU_mat4x4
+	{
+		float values[16] = { 0 };
+
+		GPU_mat4x4() {}
+		GPU_mat4x4& operator =(const Matrix4x4& InValue)
+		{
+			memcpy(values, InValue.data(), sizeof(float) * 16);
+			return *this;
+		}
+	};
+
 	struct alignas(16u) GPU_vec3i
 	{
 		int32_t values[3] = { 0 };
@@ -44,12 +56,13 @@ namespace SPP
 
 	struct alignas(16u) GPU_VoxelInfo
 	{
-		int32_t  activeLevels;
+		int32_t activeLevels;
 		uint32_t pageSize;
+		GPU_mat4x4 worldToVoxel;
 		GPU_vec3i dimensions;
 	};
 
-	struct alignas(16u) GPU_LevelInfo 
+	struct alignas(16u) GPU_LevelInfo
 	{
 		GPU_vec3 VoxelSize[MAX_VOXEL_LEVELS];
 		GPU_vec3 HalfVoxel[MAX_VOXEL_LEVELS];

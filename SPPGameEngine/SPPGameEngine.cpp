@@ -183,7 +183,7 @@ namespace SPP
 			curoffset += currentPageSize;
 		});
 		
-		RunOnRT([_renderableSVVO = this->_renderableSVVO, bufferData, levelInfos, memData]() mutable
+		RunOnRTAndWait([_renderableSVVO = this->_renderableSVVO, bufferData, levelInfos, memData]() mutable
 			{
 				auto directData = memData->data();
 				for (int32_t Iter = 0; Iter < levelInfos.size(); Iter++)

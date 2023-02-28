@@ -437,7 +437,7 @@ namespace SPP
 			VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT);
 
 		if (res != VK_SUCCESS) {
-			SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not create Vulkan device: %s %d", vks::tools::errorString(res), res);
+			SPP_LOG(LOG_VULKAN, LOG_ERROR, "Could not create Vulkan device: %s %d", vks::tools::errorString(res).c_str(), res);
 			return false;
 		}
 		device = vulkanDevice->logicalDevice;

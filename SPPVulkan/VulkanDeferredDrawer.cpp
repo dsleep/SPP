@@ -487,7 +487,6 @@ namespace SPP
 
 			auto voxelBaseInfoBuf = InVoxelData.GetVoxelBaseInfo();
 			auto voxelLeveInfoBuf = InVoxelData.GetVoxelLevelInfo();
-			auto& sparseBuffers = InVoxelData.GetBuffers();
 
 			{
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;

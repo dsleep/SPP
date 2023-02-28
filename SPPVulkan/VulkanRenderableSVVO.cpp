@@ -30,11 +30,11 @@ namespace SPP
 
 
 	std::shared_ptr< class RT_RenderableSVVO > VulkanGraphicsDevice::CreateRenderableSVVO()
-	{
+	{		
 		static_assert(offsetof(GPU_VoxelInfo, activeLevels) == 0);
 		static_assert(offsetof(GPU_VoxelInfo, pageSize) == 4);
-		static_assert(offsetof(GPU_VoxelInfo, dimensions) == 16);
-
+		static_assert(offsetof(GPU_VoxelInfo, worldToVoxel) == 16);
+		static_assert(offsetof(GPU_VoxelInfo, dimensions) == 80);
 		
 		static_assert(offsetof(GPU_LevelInfo, VoxelSize) == 0);
 		static_assert(offsetof(GPU_LevelInfo, HalfVoxel) == 240);
@@ -50,8 +50,9 @@ namespace SPP
 	{
 		auto fullLevelInfos = InSVVO.GetFullLevelInfos();
 
-		_voxelBaseInfoCache.activeLevels = fullLevelInfos.size();
+		_voxelBaseInfoCache.worldToVoxel = InSVVO.GetWorldToVoxels();
 		_voxelBaseInfoCache.dimensions = fullLevelInfos.front().dimensions;
+		_voxelBaseInfoCache.activeLevels = fullLevelInfos.size();
 		_voxelBaseInfoCache.pageSize = fullLevelInfos.front().pageSize;
 						
 		for (int32_t Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)

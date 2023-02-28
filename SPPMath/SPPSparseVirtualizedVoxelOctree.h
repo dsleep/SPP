@@ -88,6 +88,10 @@ namespace SPP
         SparseVirtualizedVoxelOctree(const Vector3d& InCenter, const Vector3& InExtents, float VoxelSize, size_t DesiredPageSize = 0);
         ~SparseVirtualizedVoxelOctree();
 
+        Matrix4x4 GetWorldToVoxels() const
+        {
+            return _worldToVoxels;
+        }
 
         inline bool ValidSample(const Vector3& InPos) const;
         inline uint32_t GetDirtyCounter() const { return _dirtyCounter; }

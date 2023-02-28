@@ -6,8 +6,8 @@
 
 #extension GL_GOOGLE_include_directive: require
 
-layout(row_major) uniform;
-layout(row_major) buffer;
+//layout(row_major) uniform;
+//layout(row_major) buffer;
 layout(std430) buffer;
 
 #include "Common.glsl"
@@ -20,6 +20,7 @@ layout(set = 1, binding = 0) readonly uniform _VoxelInfo
 {
 	int activeLevels;
     uint pageSize;
+    mat4 worldToVoxel;    
     ivec3 dimensions;
 } VoxelInfo;
 
@@ -82,16 +83,32 @@ struct Stepping
 
 Stepping stepInfos[MAX_VOXEL_LEVELS];
 
+ivec3 ShiftDown(in ivec3 InValue, in ivec3 ShiftVec)
+{
+    return ivec3( InValue.x >> ShiftVec.x,
+        InValue.y >> ShiftVec.y,
+        InValue.z >> ShiftVec.z);
+}
+ivec3 ShiftDown(in ivec3 InValue, in uint ShiftValue)
+{
+    return ivec3( InValue.x >> ShiftValue,
+        InValue.y >> ShiftValue,
+        InValue.z >> ShiftValue);
+}
+
 void GetOffsets(in ivec3 InPosition, in uint InLevel, out PageIdxAndMemOffset oMem)
 {           
     // find the local voxel
-    ivec3 LocalVoxel = ( InPosition & LevelInfos.localPageMask[InLevel]);
+    ivec3 LocalVoxel = ivec3( InPosition.x & LevelInfos.localPageMask[InLevel].x,
+        InPosition.y & LevelInfos.localPageMask[InLevel].y,
+        InPosition.z & LevelInfos.localPageMask[InLevel].z);
+
     uint localVoxelIdx = (LocalVoxel.x +
         LocalVoxel.y * LevelInfos.localPageVoxelDimensions[InLevel].x +
         LocalVoxel.z * LevelInfos.localPageVoxelDimensions[InLevel].x * LevelInfos.localPageVoxelDimensions[InLevel].y);
 
     // find which page we are on
-    ivec3 PageCubePos = InPosition >> LevelInfos.localPageVoxelDimensionsP2[InLevel];
+    ivec3 PageCubePos = ShiftDown(InPosition, LevelInfos.localPageVoxelDimensionsP2[InLevel]);
     uint pageIdx = (PageCubePos.x +
         PageCubePos.y * LevelInfos.localPageCounts[InLevel].x +
         PageCubePos.z * LevelInfos.localPageCounts[InLevel].x * LevelInfos.localPageCounts[InLevel].y);
@@ -104,9 +121,9 @@ void GetOffsets(in ivec3 InPosition, in uint InLevel, out PageIdxAndMemOffset oM
 
 int GetUnScaledAtLevel(in ivec3 InPosition, uint InLevel)
 {
-    ivec3 levelPos = InPosition >> InLevel;
+    ivec3 levelPos = ShiftDown(InPosition, InLevel);
     PageIdxAndMemOffset pageAndMem;
-    GetOffsets(InPosition, InLevel, pageAndMem);
+    GetOffsets(levelPos, InLevel, pageAndMem);
     return LevelVoxels[InLevel].voxels[pageAndMem.memoffset];
 }
 
@@ -140,8 +157,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
 
     for (int Iter = 0; Iter < MAX_VOXEL_LEVELS; Iter++)
     {
-        stepInfos[Iter].step = LevelInfos.VoxelSize[CurrentLevel] * rayInfo.rayDirSign;
-        stepInfos[Iter].tDelta = LevelInfos.VoxelSize[CurrentLevel] * rayInfo.rayDirInvAbs;
+        stepInfos[Iter].step = LevelInfos.VoxelSize[Iter] * rayInfo.rayDirSign;
+        stepInfos[Iter].tDelta = LevelInfos.VoxelSize[Iter] * rayInfo.rayDirInvAbs;
     }
 
 	// get in correct voxel spacing
@@ -253,12 +270,15 @@ void main()
     
     cameraRay /= cameraRay.w;
 
+    vec4 cameraInWorld = vec4(cameraRay.xyz + vec3(ViewConstants.ViewPosition.xyz), 1);
+    vec3 cameraInVoxel = Multiply( cameraInWorld, VoxelInfo.worldToVoxel ).xyz;
+
     outDiffuse = vec4( 0,0,0, 1 );
 	outSMRE = vec4( 0,0,0, 0 );
 	outNormal = vec4( 0,0,0, 0 );
 
     VoxelHitInfo info;
-    if(CastRay(cameraRay.xyz + vec3(ViewConstants.ViewPosition.xyz), normalize(cameraRay.xyz), info))
+    if(CastRay(cameraInVoxel, normalize(cameraRay.xyz), info))
     {
         outDiffuse.xyz = vec3(0.5f);
         outNormal.xyz = info.normal.xyz;
