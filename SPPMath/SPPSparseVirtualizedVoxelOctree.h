@@ -67,7 +67,7 @@ namespace SPP
 
        
 
-        Matrix4x4 _worldToVoxels;
+        Matrix4x4 _worldToVoxels, _voxelToWorld;
 
 
         struct RayInfo
@@ -91,6 +91,11 @@ namespace SPP
         Matrix4x4 GetWorldToVoxels() const
         {
             return _worldToVoxels;
+        }
+
+        Matrix4x4 GetVoxelToWorld() const
+        {
+            return _voxelToWorld;
         }
 
         inline bool ValidSample(const Vector3& InPos) const;

@@ -534,7 +534,9 @@ namespace SPP
             { 0,				 _dimensions[1] / ActualDimensions[1],	0,								0 },
             { 0,				0,					 _dimensions[2] / ActualDimensions[2],					0},
             { Center[0], Center[1], Center[2], 1.0f}
-        };       
+        }; 
+
+        _voxelToWorld = _worldToVoxels.inverse();
 
         //auto maxDimensionPow2 = std::max(_dimensionsPow2[0], std::max(_dimensionsPow2[1], _dimensionsPow2[2]));
 

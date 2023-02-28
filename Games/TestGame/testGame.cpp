@@ -380,7 +380,7 @@ public:
 				{
 					auto noiseValue = noise.GetNoise((float)IterX, (float)IterZ) * 0.5f + 0.5f;
 
-					Vector3i SetPos(IterX, (noiseValue * 10) + (curDimensions[1] / 2 - 10), IterZ);
+					Vector3i SetPos(IterX, (noiseValue * 100) + curDimensions[1] / 2, IterZ);
 
 					directSVVO->Set(SetPos, 200);
 				}

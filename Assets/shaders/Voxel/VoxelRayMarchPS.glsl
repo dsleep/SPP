@@ -20,7 +20,8 @@ layout(set = 1, binding = 0) readonly uniform _VoxelInfo
 {
 	int activeLevels;
     uint pageSize;
-    mat4 worldToVoxel;    
+    mat4 worldToVoxel;   
+    mat4 voxelToWorld;   
     ivec3 dimensions;
 } VoxelInfo;
 
@@ -196,6 +197,16 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
             {
                 vec3 normal = -sign(rayInfo.lastStep);
                 oInfo.normal = normal;
+
+                vec3 VoxelCenter = samplePos + LevelInfos.HalfVoxel[CurrentLevel];
+                vec3 VoxelPlaneEdge = VoxelCenter + LevelInfos.HalfVoxel[CurrentLevel] * normal;
+                float denom = dot(normal, rayInfo.rayDir);
+                if (denom == 0)
+                    denom = 0.0000001f;
+                vec3 p0l0 = (VoxelPlaneEdge - rayInfo.rayOrg);
+                float t = dot(p0l0, normal) / denom;
+                oInfo.location = rayInfo.rayOrg + rayInfo.rayDir * t;
+
                 return true;
             }
 
@@ -280,13 +291,15 @@ void main()
     VoxelHitInfo info;
     if(CastRay(cameraInVoxel, normalize(cameraRay.xyz), info))
     {
-        outDiffuse.xyz = vec3(0.5f);
+        outDiffuse.xyz = vec3(0,0.8f,0);
         outNormal.xyz = info.normal.xyz;
-        gl_FragDepth = 1.0f;
+
+        vec3 worldPosition = Multiply( vec4( info.location, 1), VoxelInfo.voxelToWorld ).xyz - vec3(ViewConstants.ViewPosition);
+	    vec4 viewLocation = Multiply( vec4(worldPosition,1), ViewConstants.ViewProjectionMatrix );
+        gl_FragDepth = viewLocation.z / viewLocation.w;
     }
     else
     {
-        outDiffuse.xyz = vec3(0.5f);
-        gl_FragDepth = 0.0f;
+        discard;
     }
 }

@@ -59,6 +59,7 @@ namespace SPP
 		int32_t activeLevels;
 		uint32_t pageSize;
 		GPU_mat4x4 worldToVoxel;
+		GPU_mat4x4 voxelToWorld;		
 		GPU_vec3i dimensions;
 	};
 
