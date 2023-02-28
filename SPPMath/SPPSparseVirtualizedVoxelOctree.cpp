@@ -254,12 +254,12 @@ namespace SPP
                 LocalVoxel[1] * _localPageVoxelDimensions[0] +
                 LocalVoxel[2] * _localPageVoxelDimensions[0] * _localPageVoxelDimensions[1]);
 
-            if (!_bVirtualAlloc)
-            {
-                return PageIdxAndMemOffset{
-                   0, (size_t)localVoxelIdx* _dataTypeSize
-                };
-            }
+            //if (!_bVirtualAlloc)
+            //{
+            //    return PageIdxAndMemOffset{
+            //       0, (size_t)localVoxelIdx* _dataTypeSize
+            //    };
+            //}
 
             // find which page we are on
             Vector3i PageCubePos = Vector3i{ InPosition[0] >> _localPageVoxelDimensionsP2[0],
@@ -860,6 +860,7 @@ namespace SPP
     {
         return std::string_format("%f %f %f", InVec[0], InVec[1], InVec[2]);
     }
+
     bool SparseVirtualizedVoxelOctree::CastRay(const Ray& InRay, VoxelHitInfo& oInfo)
     {
         auto& rayDir = InRay.GetDirection();

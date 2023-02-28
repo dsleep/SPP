@@ -59,7 +59,6 @@ struct RayInfo
     int curMisses;
     
     vec3 lastStep;
-    bool bHasStepped;
 };
 
 struct PageIdxAndMemOffset
@@ -114,7 +113,7 @@ int GetUnScaledAtLevel(in ivec3 InPosition, uint InLevel)
 bool ValidSample(in vec3 InPos) 
 {
     if (all(greaterThanEqual(InPos, vec3(0.0f) )) &&
-        all(lessThan(VoxelInfo.dimensions, InPos)) )
+        all(lessThan(InPos, VoxelInfo.dimensions)) )
     {
         return true;
     }
@@ -153,7 +152,10 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
 	vec3 samplePos = voxel;
 
     oInfo.totalChecks = 0;
-
+        
+    vec3 samplePosWorld = rayInfo.rayOrg;
+    float rayTime = 0.0f;
+    
     for (int Iter = 0; Iter < 128; Iter++)
     {
         LastLevel = CurrentLevel;
@@ -165,6 +167,7 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
 
         oInfo.totalChecks++;
 
+        bool bDidStep = false;
         bool bLevelChangeRecalc = false;
 
         // we hit something?
@@ -184,6 +187,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
         }
         else
         {
+            bDidStep = true;
+
             vec3 tMaxMins = min(tMax.yzx, tMax.zxy);
             dim = step(tMax, tMaxMins);
             tMax += dim * stepInfos[CurrentLevel].tDelta;
@@ -196,7 +201,6 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
             }
 
             rayInfo.curMisses++;
-            rayInfo.bHasStepped = true;
 
             if (CurrentLevel < VoxelInfo.activeLevels - 1 &&
                 rayInfo.curMisses > 2 &&
@@ -204,34 +208,36 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
             {
                 bLevelChangeRecalc = true;
                 CurrentLevel++;
-                //hmmm think more about this 
-                //InRayInfo.bHasStepped = false;
+            }
+        }
+
+        if (bDidStep)
+        {
+            // did it step already
+            vec3 normal = -sign(rayInfo.lastStep);
+
+            vec3 VoxelCenter = samplePos + LevelInfos.HalfVoxel[LastLevel];
+            vec3 VoxelPlaneEdge = VoxelCenter + LevelInfos.HalfVoxel[LastLevel] * normal;
+
+            float denom = dot(normal, rayInfo.rayDir);
+            if (denom == 0)
+                denom = 0.0000001f;
+
+            vec3 p0l0 = (VoxelPlaneEdge - rayInfo.rayOrg);
+            float t = dot(p0l0, normal) / denom;
+
+            if (t > rayTime)
+            {
+                const float epsilon = 0.001f;
+                rayTime = t + epsilon;
+                samplePosWorld = rayInfo.rayOrg + rayInfo.rayDir * rayTime;
             }
         }
 
         if (bLevelChangeRecalc)
         {
-            if (rayInfo.bHasStepped)
-            {
-                // did it step already
-                vec3 normal = -sign(rayInfo.lastStep);
-
-                vec3 VoxelCenter = samplePos + LevelInfos.HalfVoxel[LastLevel];
-                vec3 VoxelPlaneEdge = VoxelCenter + LevelInfos.HalfVoxel[LastLevel] * normal;
-
-                float denom = dot(normal, rayInfo.rayDir);
-                if (denom == 0)
-                    denom = 0.0000001f;
-
-                vec3 p0l0 = (VoxelPlaneEdge - rayInfo.rayOrg);
-                float t = dot(p0l0, normal) / denom;
-
-                float epsilon = 0.001f;
-                rayInfo.rayOrg = rayInfo.rayOrg + rayInfo.rayDir * (t + epsilon);
-            }
-
-            voxel = floor(rayInfo.rayOrg / LevelInfos.VoxelSize[CurrentLevel]) * LevelInfos.VoxelSize[CurrentLevel];
-	        tMax = (voxel - rayInfo.rayOrg + LevelInfos.HalfVoxel[CurrentLevel] + stepInfos[CurrentLevel].step * vec3(0.5f, 0.5f, 0.5f)) * (rayInfo.rayDirInv);
+            voxel = floor(samplePosWorld / LevelInfos.VoxelSize[CurrentLevel]) * LevelInfos.VoxelSize[CurrentLevel];
+	        tMax = (voxel - samplePosWorld + LevelInfos.HalfVoxel[CurrentLevel] + stepInfos[CurrentLevel].step * vec3(0.5f, 0.5f, 0.5f)) * (rayInfo.rayDirInv);
 
 	        dim = vec3(0, 0, 0);
             samplePos = voxel;
@@ -252,7 +258,7 @@ void main()
 	outNormal = vec4( 0,0,0, 0 );
 
     VoxelHitInfo info;
-    if(CastRay(cameraRay.xyz, normalize(cameraRay.xyz), info))
+    if(CastRay(cameraRay.xyz + vec3(ViewConstants.ViewPosition.xyz), normalize(cameraRay.xyz), info))
     {
         outDiffuse.xyz = vec3(0.5f);
         outNormal.xyz = info.normal.xyz;
@@ -261,6 +267,6 @@ void main()
     else
     {
         outDiffuse.xyz = vec3(0.5f);
-        gl_FragDepth = 1.0f;
+        gl_FragDepth = 0.0f;
     }
 }

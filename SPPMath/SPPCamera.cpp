@@ -245,16 +245,16 @@ namespace SPP
 			for (uint32_t xIter = 0; xIter < Width; xIter++)
 			{
 				Vector4 posNear = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 1, 1.0f);
-				Vector4 posFar = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 1 - 0.001f, 1.0f);
+				//Vector4 posFar = Vector4(((xIter / (float)Width) * 2.0f - 1.0f), -((yIter / (float)Height) * 2.0f - 1.0f), 1 - 0.001f, 1.0f);
 
 				Vector4 worldNear = posNear * GetInvViewProjMatrix();
 				worldNear /= worldNear[3];
-				Vector4 worldFar = posFar * GetInvViewProjMatrix();
-				worldFar /= worldFar[3];
+				//Vector4 worldFar = posFar * GetInvViewProjMatrix();
+				//worldFar /= worldFar[3];
 
 				Vector3 rayStart = worldNear.head<3>();
-				Vector3 rayEnd = worldFar.head<3>();
-				Vector3 rayDir = (rayEnd - rayStart).normalized();
+				//Vector3 rayEnd = worldFar.head<3>();
+				Vector3 rayDir = worldNear.head<3>().normalized();
 
 				Ray curRay(rayStart.cast<double>() + _cameraPosition, rayDir);
 				InRayTest(curRay, xIter, yIter);
