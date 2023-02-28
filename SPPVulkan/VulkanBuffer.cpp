@@ -149,16 +149,11 @@ namespace SPP
 		VmaAllocationCreateInfo allocCreateInfo = {};
 		allocCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-		std::vector<uint32_t> memSync;
 
-		struct AllocAndPage
-		{
-			uint32_t pageIdx;
-			VmaAllocation alloc;
-		};
+		std::vector<uint32_t> bufferPageCpyIdxs;
 
-		std::vector<AllocAndPage> freeAllocations;
 		std::vector<uint32_t> newAllocations;
+		std::vector<uint32_t> freeAllocations;
 
 		// link them up
 		for (uint32_t Iter = 0; Iter < PageCount; Iter++)
@@ -171,12 +166,12 @@ namespace SPP
 				{
 					newAllocations.push_back(curPage.PageIdx);
 				}
-				memSync.push_back(Iter);
+				bufferPageCpyIdxs.push_back(Iter);
 			}
 			else
 			{
 				SE_ASSERT(_impl->allocations[curPage.PageIdx]);
-				freeAllocations.push_back({ curPage.PageIdx, _impl->allocations[curPage.PageIdx] });
+				freeAllocations.push_back(curPage.PageIdx);
 				_impl->allocations[curPage.PageIdx] = nullptr;
 			}
 		}
@@ -185,6 +180,7 @@ namespace SPP
 		std::vector<VmaAllocation> allocations;
 		std::vector<VmaAllocationInfo> allocInfo;
 
+		if(newAllocations.size())
 		{
 			allocations.resize(newAllocations.size(), nullptr);
 			allocInfo.resize(newAllocations.size());
@@ -214,7 +210,7 @@ namespace SPP
 			binds[i].memory = allocInfo[i].deviceMemory; 
 			binds[i].memoryOffset = allocInfo[i].offset;
 
-			SE_ASSERT(_impl->allocations[newAllocations[i]] == nullptr);
+			SE_ASSERT(_impl->allocations[pageIdx] == nullptr);
 
 			// this page is now set
 			_impl->allocations[pageIdx] = allocations[i];
@@ -224,7 +220,7 @@ namespace SPP
 		for (uint32_t i = newAllocations.size(), j = 0; i < binds.size(); ++i, ++j)
 		{
 			binds[i] = { 0 };
-			binds[i].resourceOffset = freeAllocations[j].pageIdx * pageSize;
+			binds[i].resourceOffset = freeAllocations[j] * pageSize;
 			binds[i].size = pageSize;
 			binds[i].memory = VK_NULL_HANDLE;
 		}
@@ -260,12 +256,12 @@ namespace SPP
 		auto& cmdBuffer = GGlobalVulkanGI->GetCopyCommandBuffer();
 		auto activeFrame = GGlobalVulkanGI->GetActiveFrame();
 
-		auto WritableChunk = perFrameScratchBuffer.GetWritable(memSync.size() * pageSize, activeFrame);
+		auto WritableChunk = perFrameScratchBuffer.GetWritable(bufferPageCpyIdxs.size() * pageSize, activeFrame);
 
-		std::vector<VkBufferCopy> copyRegions{ memSync.size() };
-		for(uint32_t Iter = 0; Iter < memSync.size(); Iter++)
+		std::vector<VkBufferCopy> copyRegions{ bufferPageCpyIdxs.size() };
+		for(uint32_t Iter = 0; Iter < bufferPageCpyIdxs.size(); Iter++)
 		{
-			auto& curPage = InPages[memSync[Iter]];
+			auto& curPage = InPages[bufferPageCpyIdxs[Iter]];
 			SE_ASSERT(curPage.Data);
 
 			auto PageOffset = (Iter * pageSize);
@@ -273,8 +269,9 @@ namespace SPP
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = WritableChunk.offsetFromBase + PageOffset;
-			copyRegion.dstOffset = PageOffset;
+			copyRegion.dstOffset = curPage.PageIdx * pageSize;
 			copyRegion.size = pageSize;
+
 			copyRegions[Iter] = copyRegion;
 		}
 

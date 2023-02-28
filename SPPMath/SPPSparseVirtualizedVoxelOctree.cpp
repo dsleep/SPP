@@ -112,7 +112,7 @@ namespace SPP
             SPP_LOG(LOG_SVVO, LOG_INFO, " - desired page size: %d", _pageSize);
 
             // less than 10 pages
-            if (true)//_maximumSize <= _pageSize)
+            if (_maximumSize <= _pageSize)
             {
                 _bVirtualAlloc = false;
                 _localPageVoxelDimensions = InDimensions;

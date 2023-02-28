@@ -358,7 +358,7 @@ public:
 
 		auto GameObjectSVVO = AllocateObject<VgSVVO>("svvo", _gameworld);
 		GameObjectSVVO->GetScale() = Vector3(50, 10, 50);
-		GameObjectSVVO->SetVoxelSize(1);
+		GameObjectSVVO->SetVoxelSize(0.05f);
 		//GameObjectSVVO->SetVoxelSize(0.05f);
 
 
@@ -380,13 +380,13 @@ public:
 				{
 					auto noiseValue = noise.GetNoise((float)IterX, (float)IterZ) * 0.5f + 0.5f;
 
-					Vector3i SetPos(IterX, (noiseValue * 5) + (curDimensions[1] / 2 - 5), IterZ);
+					Vector3i SetPos(IterX, (noiseValue * 10) + (curDimensions[1] / 2 - 10), IterZ);
 
 					directSVVO->Set(SetPos, 200);
 				}
 			}
 
-#if 0 
+#if 0
 			Camera testCam;
 			testCam.Initialize(Vector3d(0, 9, 0), Vector3(-20, 0, 0), 65.0f, 1.77f);
 
