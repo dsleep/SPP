@@ -358,16 +358,15 @@ public:
 
 		auto GameObjectSVVO = AllocateObject<VgSVVO>("svvo", _gameworld);
 		GameObjectSVVO->GetScale() = Vector3(100, 20, 100);
-		//GameObjectSVVO->SetVoxelSize(0.1f);
-		GameObjectSVVO->SetVoxelSize(5);
+		GameObjectSVVO->SetVoxelSize(0.1f);
+		//GameObjectSVVO->SetVoxelSize(1);
 
 		//GameObjectSVVO->SetVoxelSize(0.05f);
-
 
 		// figure out a better model
 		_gameworld->AddChild(GameObjectSVVO);
 
-		if (false)
+		if (true)
 		{
 			auto directSVVO = GameObjectSVVO->GetSVVO();
 			auto curDimensions = directSVVO->GetDimensions();
@@ -385,7 +384,8 @@ public:
 					{
 						SimpleRGBA* currentcolor = colorData + IterX + IterZ * curDimensions[0];
 
-						for (int32_t IterY = currentcolor->R; IterY >= 50; IterY--)
+						int32_t startY = currentcolor->R + 50;
+						for (int32_t IterY = startY, yCnt = 0; yCnt < 20; IterY--, yCnt++)
 						{
 							Vector3i SetPos(IterX, IterY, IterZ);
 							directSVVO->Set(SetPos, 200);
@@ -395,7 +395,7 @@ public:
 			}
 		}
 
-		if(true)
+		if(false)
 		{
 			auto directSVVO = GameObjectSVVO->GetSVVO();
 			auto curDimensions = directSVVO->GetDimensions();
@@ -410,9 +410,13 @@ public:
 				{
 					auto noiseValue = noise.GetNoise((float)IterX, (float)IterZ) * 0.5f + 0.5f;
 
-					Vector3i SetPos(IterX, noiseValue * curDimensions[1], IterZ);
+					int32_t startY = noiseValue * 128 + curDimensions[1] / 2 - 30;
+					for (int32_t IterY = startY, yCnt = 0; yCnt < 20; IterY--, yCnt++)
+					{
+						Vector3i SetPos(IterX, IterY, IterZ);
+						directSVVO->Set(SetPos, 200);
+					}
 
-					directSVVO->Set(SetPos, 200);
 				}
 			}
 

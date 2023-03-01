@@ -10,7 +10,7 @@
     #include <windows.h>
 #endif
 
-#define FORCE_NO_VIRTUAL 1
+#define FORCE_NO_VIRTUAL 0
 
 namespace SPP
 {

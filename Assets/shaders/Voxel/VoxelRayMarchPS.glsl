@@ -287,13 +287,13 @@ void main()
     vec3 cameraInVoxel = Multiply( cameraInWorld, VoxelInfo.worldToVoxel ).xyz;
 
     outDiffuse = vec4( 0,0,0, 1 );
-	outSMRE = vec4( 0,0,0, 0 );
+	outSMRE = vec4( 0.5f, 0, 1.0f, 0 );
 	outNormal = vec4( 0,0,0, 0 );
 
     VoxelHitInfo info;
     if(CastRay(cameraInVoxel, normalize(cameraRay.xyz), info))
     {
-        outDiffuse.xyz = vec3(0,0.8f,0);
+        outDiffuse.xyz = vec3(0,0.5f,0);
         outNormal.xyz = info.normal.xyz;
 
         vec3 worldPosition = Multiply( vec4( info.location, 1), VoxelInfo.voxelToWorld ).xyz - vec3(ViewConstants.ViewPosition);
@@ -302,6 +302,6 @@ void main()
     }
     else
     {
-        gl_FragDepth = 0;
+        discard;
     }
 }
