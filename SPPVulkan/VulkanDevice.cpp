@@ -152,6 +152,7 @@ namespace SPP
 		VkFrameDataContainer depthOnlyFrame;
 		VkFrameDataContainer colorAndDepthFrame;
 		VkFrameDataContainer defferedFrame;
+
 		VkFrameDataContainer lightingCompositeRenderPass;
 	};
 
@@ -716,7 +717,7 @@ namespace SPP
 		);
 		_impl->lightingCompositeRenderPass = _impl->lightingComposite->createCustomRenderPass(
 			{ 
-				{ "Color", VK_ATTACHMENT_LOAD_OP_CLEAR }, 
+				{ "Color", VK_ATTACHMENT_LOAD_OP_LOAD },
 				{ "Depth", VK_ATTACHMENT_LOAD_OP_LOAD }
 			} );
 	}

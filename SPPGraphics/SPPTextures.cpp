@@ -65,6 +65,51 @@ namespace SPP
 		}
 	}
 
+	bool LoadImageFromFile(const char* FilePath,
+		uint32_t& oWidth,
+		uint32_t& oHeight,
+		TextureFormat& oFormat,
+		std::vector<uint8_t> &ImageData
+	)
+	{
+		int x, y, n;
+		unsigned char* pixels = stbi_load(FilePath, &x, &y, &n, 0);
+
+		if (pixels)
+		{
+			oWidth = x;
+			oHeight = y;
+			oFormat = TextureFormat::RGBA_8888;
+
+			ImageData.resize(x * y * 4);
+
+			if (n == 4)
+			{
+				memcpy(ImageData.data(), pixels, ImageData.size());
+			}
+			else
+			{
+				SE_ASSERT(n == 3);
+				auto PixelCount = x * y;
+				for (int32_t Iter = 0; Iter < PixelCount; Iter++)
+				{
+					SimpleRGB* src = (SimpleRGB*)pixels + Iter;
+					SimpleRGBA& dst = *((SimpleRGBA*)ImageData.data() + Iter);
+
+					dst.R = src->R;
+					dst.G = src->G;
+					dst.B = src->B;
+					dst.A = 255;
+				}
+			}
+
+			stbi_image_free(pixels);
+			return true;
+		}
+
+		return false;
+	}
+
 	inline bool LoadDDSTextureDataFromFile(
 		const char* fileName,
 		std::vector<uint8_t>& ddsData,

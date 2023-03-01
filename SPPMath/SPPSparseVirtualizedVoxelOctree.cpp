@@ -10,6 +10,8 @@
     #include <windows.h>
 #endif
 
+#define FORCE_NO_VIRTUAL 1
+
 namespace SPP
 {
     LogEntry LOG_SVVO("SVVO");
@@ -112,7 +114,7 @@ namespace SPP
             SPP_LOG(LOG_SVVO, LOG_INFO, " - desired page size: %d", _pageSize);
 
             // less than 10 pages
-            if (_maximumSize <= _pageSize)
+            if (_maximumSize <= _pageSize || FORCE_NO_VIRTUAL)
             {
                 _bVirtualAlloc = false;
                 _localPageVoxelDimensions = InDimensions;

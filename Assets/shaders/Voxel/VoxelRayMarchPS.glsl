@@ -174,6 +174,8 @@ bool CastRay(in vec3 rayOrg, in vec3 rayDir, out VoxelHitInfo oInfo)
     vec3 samplePosWorld = rayInfo.rayOrg;
     float rayTime = 0.0f;
     
+    rayInfo.lastStep = rayInfo.rayDir;
+
     for (int Iter = 0; Iter < 128; Iter++)
     {
         LastLevel = CurrentLevel;
@@ -300,6 +302,6 @@ void main()
     }
     else
     {
-        discard;
+        gl_FragDepth = 0;
     }
 }

@@ -21,6 +21,6 @@ layout (location = 0) out vec4 outputColor;
 void main()
 {
 	vec3 cameraRay = normalize(Multiply(vec4(inPixelPosition.xy, 1, 1.0), ViewConstants.InvViewProjectionMatrix).xyz);		
-	outputColor = vec4(texture(samplerSky, cameraRay).rgb,1.0f);
+	outputColor = vec4(texture(samplerSky, normalize(cameraRay)).rgb,1.0f);
 }
 

@@ -26,6 +26,12 @@ namespace SPP
         const uint8_t* ImageData
     );
 
+    SPP_GRAPHICS_API bool LoadImageFromFile(const char* FilePath,
+        uint32_t& oWidth,
+        uint32_t& oHeight,
+        TextureFormat& oFormat,
+        std::vector<uint8_t>& ImageData);
+
     SPP_GRAPHICS_API bool GenerateMipMapCompressedTexture(const char* InPath, const char* OutPath, bool bHasAlpha=false);
 
 
