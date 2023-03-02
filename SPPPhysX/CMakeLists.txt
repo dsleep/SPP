@@ -16,6 +16,9 @@ target_sources(SPPPhysX
 	PRIVATE
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPhysX.h"
 		"${CMAKE_CURRENT_LIST_DIR}/SPPPhysX.cpp" 
+
+		"${CMAKE_CURRENT_LIST_DIR}/SPPPhysXSVVO.h"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPPhysXSVVO.cpp" 
 		)
 
 target_include_directories(SPPPhysX 
@@ -31,12 +34,11 @@ target_link_libraries(SPPPhysX
 		
 target_include_directories(SPPPhysX 
 	PRIVATE  			
-		"${THIRD_PARTY}/PhysX1.4/PhysX/include"
-		"${THIRD_PARTY}/PhysX1.4/PxShared/include" )
+		"${THIRD_PARTY}/PhysX/include" )
 		
 target_link_directories(SPPPhysX 
 	PRIVATE
-		"${THIRD_PARTY}/PhysX1.4/PhysX/bin/win.x86_64.vc143.md" )
+		"${THIRD_PARTY}/PhysX/bin/win.x86_64.vc143.md" )
 		
 list(APPEND 
 		PhysxDependencies 

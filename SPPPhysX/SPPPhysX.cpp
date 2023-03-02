@@ -707,9 +707,9 @@ namespace SPP
 	void InitializePhysX()
 	{
 #if _DEBUG
-		AddDLLSearchPath("../3rdParty/PhysX1.4/PhysX/bin/win.x86_64.vc143.md/debug");
+		AddDLLSearchPath("../3rdParty/PhysX/bin/win.x86_64.vc143.md/debug");
 #else
-		AddDLLSearchPath("../3rdParty/PhysX1.4/PhysX/bin/win.x86_64.vc143.md/release");
+		AddDLLSearchPath("../3rdParty/PhysX/bin/win.x86_64.vc143.md/release");
 #endif
 
 		gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
@@ -1036,8 +1036,8 @@ namespace SPP
 				const PxType actorType = actor->getConcreteType();
 				if (actorType == PxConcreteType::eRIGID_DYNAMIC || 
 					actorType == PxConcreteType::eRIGID_STATIC || 
-					actorType == PxConcreteType::eARTICULATION_LINK || 
-					actorType == PxConcreteType::eARTICULATION_JOINT)
+					actorType == PxConcreteType::eARTICULATION_LINK /*|| 
+					actorType == PxConcreteType::eARTICULATION_JOINT*/)
 				{
 					PxRigidActor* rigidActor = static_cast<PxRigidActor*>(actor);
 
