@@ -29,10 +29,9 @@ namespace SPP
 	class PhysXPrimitiveSVVO : public PhysicsPrimitive, public PxCustomGeometry::Callbacks, public PxUserAllocated
 	{
 	protected:
-		PxRigidActor* _pxActor = nullptr;
 
 	public:
-		PhysXPrimitiveSVVO(PxRigidActor* InActor) : PhysicsPrimitive(InActor)
+		PhysXPrimitiveSVVO(PxRigidActor* InActor)
 		{
 
 		}
