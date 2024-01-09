@@ -31,19 +31,21 @@ message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
 add_subdirectory("SPPRemoteApplicationwxWidgets")
 
 ##########
-add_executable( applicationhost "")
-add_dependencies( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture)			
-target_sources( applicationhost 
-	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/applicationhost.cpp" )		
-target_link_libraries( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture )
-set_target_properties( applicationhost PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_property(TARGET applicationhost PROPERTY FOLDER "APPLICATIONS")
-set_property(TARGET applicationhost PROPERTY VS_DPI_AWARE "PerMonitor")
+if(HAS_SPPVideo_CUDA)
+	add_executable( applicationhost "")
+	add_dependencies( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture)			
+	target_sources( applicationhost 
+		PRIVATE 
+			"${CMAKE_CURRENT_LIST_DIR}/applicationhost.cpp" )		
+	target_link_libraries( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture )
+	set_target_properties( applicationhost PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	set_property(TARGET applicationhost PROPERTY FOLDER "APPLICATIONS")
+	set_property(TARGET applicationhost PROPERTY VS_DPI_AWARE "PerMonitor")
 
-set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo_CUDA.dll" )
-set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo_CUDA.dll" )
-set_target_properties(applicationhost PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideo_CUDAd.dll" )
+	set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPVideo_CUDA.dll" )
+	set_target_properties(applicationhost PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPVideo_CUDA.dll" )
+	set_target_properties(applicationhost PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPVideo_CUDAd.dll" )
+endif()
 
 ####################
 # windows only event app test
