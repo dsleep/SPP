@@ -28,9 +28,11 @@ target_compile_options( SPPWinRTBTE
 	PRIVATE 
 		"/await"
 		"/ZW"
-		"/AI\"C:/Program Files (x86)/Windows Kits/10/UnionMetadata/10.0.19041.0\""
-		"/AI\"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.29.30133/lib/x86/store/references\""
+		"/AI\"C:/Program Files (x86)/Windows Kits/10/UnionMetadata/10.0.22621.0\""
+		"/AI\"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.37.32822/lib/x86/store/references\""
 	)
+
+
 
 # set_source_files_properties(SPPWinRTBTE.cpp PROPERTIES COMPILE_FLAGS "/await" )
 # set_source_files_properties(SPPWinRTBTE.cpp PROPERTIES COMPILE_FLAGS "/ZW" )

@@ -28,6 +28,7 @@
 #include <sstream> 
 #include <iomanip>
 #include <set>
+#include <mutex>
 
 SPP_OVERLOAD_ALLOCATORS
 
