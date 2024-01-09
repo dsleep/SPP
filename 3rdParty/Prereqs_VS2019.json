@@ -67,7 +67,7 @@
 		},
 		{
 			"Path": "rttr",
-			"Version": 2,
+			"Version": 3,
 			"BinCopy": [ "bin/*.dll" ]
 		},
 		{

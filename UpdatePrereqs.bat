@@ -35,9 +35,7 @@ IF ERRORLEVEL 1 (
 
 python -m ensurepip --default-pip
 python -m pip install --upgrade pip
-python -m pip install requests-aws
-python -m pip install requests
-python -m pip install py7zr
+python -m pip install -r python_requirements.txt
 
 python ./PythonUtils/Validate3rdParty.py
 
