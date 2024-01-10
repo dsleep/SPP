@@ -59,8 +59,6 @@ install(TARGETS SPPVideo DESTINATION "${SPP_ROOT}/INSTALL")
 
 if(USE_CUDA)
 
-set(HAS_SPPVideo_CUDA ON)
-
 ############################################################
 #CUDA
 ############################################################

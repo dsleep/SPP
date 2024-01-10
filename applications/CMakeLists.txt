@@ -31,7 +31,7 @@ message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
 add_subdirectory("SPPRemoteApplicationwxWidgets")
 
 ##########
-if(HAS_SPPVideo_CUDA)
+if(USE_CUDA)
 	add_executable( applicationhost "")
 	add_dependencies( applicationhost SPPNetworking SPPVideo_CUDA SPPCapture)			
 	target_sources( applicationhost 
