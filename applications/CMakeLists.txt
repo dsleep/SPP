@@ -95,10 +95,11 @@ add_subdirectory("SPPSDFCreator")
 message( STATUS "Adding Application: SPPAssetManagement" )
 add_subdirectory("SPPAssetManagement")
 
+endif()
+
+
 message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
 add_subdirectory("SPPRemoteApplicationwxWidgets")
-
-endif()
 
 ##########
 add_executable( applicationhost WIN32 "")
