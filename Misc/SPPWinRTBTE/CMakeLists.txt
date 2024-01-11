@@ -34,7 +34,7 @@ target_compile_options( SPPWinRTBTE
 		"/await"
 		"/ZW"
 		"/AI\"C:/Program Files (x86)/Windows Kits/10/UnionMetadata/10.0.22621.0\""
-		"/AI\"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.37.32822/lib/x86/store/references\""
+		"/AI\"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.38.33130/lib/x86/store/references\""
 	)
 
 
