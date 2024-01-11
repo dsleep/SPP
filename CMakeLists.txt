@@ -75,17 +75,18 @@ else()
 	set(USE_CEF OFF CACHE BOOL "Use CEF 3rd Party")
 endif()
 
-set(USE_GRAPHICS ON CACHE BOOL "Use SPP Graphics projects")
+set(USE_GRAPHICS OFF CACHE BOOL "Use SPP Graphics projects")
 set(USE_DX12 OFF CACHE BOOL "Use DX12")
 set(USE_OPENGL OFF CACHE BOOL "Use OpenGL")
-set(USE_VULKAN ON CACHE BOOL "Use Vulkan")
-set(INCLUE_WEBSERVER ON CACHE BOOL "Include a webserver")
+set(USE_VULKAN OFF CACHE BOOL "Use Vulkan")
+set(INCLUE_WEBSERVER OFF CACHE BOOL "Include a webserver")
 set(USE_CRYPTOCPP ON CACHE BOOL "Include lib Cryptopp")
 set(USE_CRYPTOCPP_NETCONN ON CACHE BOOL "Use Cryptopp in networking")
 set(USE_CUDA OFF CACHE BOOL "Use CUDA when applicable")
 set(USE_OBJECTS ON CACHE BOOL "Use Objects (includes GC, RTTR, ...)")
 set(USE_WINRT OFF CACHE BOOL "Use C++/WinRt")
 set(USE_LIBDATACHANNEL OFF CACHE BOOL "Use libdatachannel")
+set(USE_GAMEENGINE OFF CACHE BOOL "Build as game engine")
 
 if(OS_WINDOWS)
 	set(WIN_SDK_REG "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\Windows\\v10.0")
@@ -177,12 +178,16 @@ list(APPEND SPPProjects
 if(OS_WINDOWS)
 	list(APPEND SPPProjects			
 				"SPPCapture" 
-				"SPPVideo"
+				"SPPVideo" )
+				
+	if(USE_GAMEENGINE)
+		list(APPEND SPPProjects	
 				"SPPPhysX"
 				"SPPXAudio2"
 				"SPPGameEngine"
 				"SPPAnimation"
-				"SPPVoxel" )
+				"SPPVoxel" )	
+	endif()
 				
 	if(INCLUE_WEBSERVER)
 		list(APPEND SPPProjects
@@ -248,7 +253,7 @@ message( STATUS "SPP GDI LIST: ${SPPGDI}" )
 
 list(APPEND SPPProjects "applications" ) 
 
-if(OS_WINDOWS)
+if(OS_WINDOWS AND USE_GAMEENGINE)
 	list(APPEND SPPProjects "tests" "assets" ) 
 
 	list(APPEND SPPProjects "Games/TestGame" ) 

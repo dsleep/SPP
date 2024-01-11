@@ -83,6 +83,9 @@ install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL")
 
 if(OS_WINDOWS)
 
+
+if(USE_GAMEENGINE)
+
 message( STATUS "Adding Application: SPPSDFSimpleEditor" )
 add_subdirectory("SPPSDFSimpleEditor")
 
@@ -94,6 +97,8 @@ add_subdirectory("SPPAssetManagement")
 
 message( STATUS "Adding Application: SPPRemoteApplicationwxWidgets" )
 add_subdirectory("SPPRemoteApplicationwxWidgets")
+
+endif()
 
 ##########
 add_executable( applicationhost WIN32 "")
