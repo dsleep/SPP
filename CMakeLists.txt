@@ -156,11 +156,11 @@ include_directories( "${THIRD_PARTY}" )
 list(APPEND 
 		SPPProjects 
 			"SPPCore" 
-			"SPPCoroutines" 
+			# "SPPCoroutines" 
 			"SPPDatabase" 
 			"SPPNetworking" 
 			"SPPMath"	
-			"SPPPython"
+			# "SPPPython"
 			 )
 
 if(USE_CRYPTOCPP)
