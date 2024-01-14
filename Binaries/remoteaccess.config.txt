@@ -1,0 +1,22 @@
+{
+	"coord" : 
+	{
+		"addr" : "127.0.0.1:12021",
+		"pwd" : "test"
+	},
+	"lan" : 
+	{
+		"port" : "12030"
+	},
+	"remote" : 
+	{
+		"bAllowInput" : "false",
+		"bLANOnly" : "false",
+		"pwd" : "test"
+	},
+	"stun" : 
+	{
+		"addr" : "stun.l.google.com",
+		"port" : "19302"
+	}
+}
