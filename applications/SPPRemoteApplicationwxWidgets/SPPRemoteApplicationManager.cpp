@@ -415,7 +415,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		ourApp->CallOnInit();
 
 #if _DEBUG
-		CreateChildProcess("SPPRemoteApplicationControllerd", "", true);
+		CreateChildProcess("SPPRemoteApplicationServerd", "", true);
 		CreateChildProcess("simpleconnectioncoordinatord", "", true);
 #endif
 
