@@ -11,7 +11,7 @@ add_executable( SPPRemoteApplication WIN32 "")
 add_dependencies( SPPRemoteApplication SPPCore SPPReflection )
 target_sources( SPPRemoteApplication 
 	PRIVATE 
-	    "${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationManager.cpp"					
+	    "${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplication.cpp"					
 		"${SPP_ROOT}/SPPEngine/Win32/sppbasicresource.rc" )		
 target_link_libraries( SPPRemoteApplication 
 	 PRIVATE
@@ -66,7 +66,7 @@ endif()
 add_dependencies( SPPRemoteApplicationServer SPPCore SPPReflection remoteviewer )
 target_sources( SPPRemoteApplicationServer 
 	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationController.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationServer.cpp"
 		"${SPP_ROOT}/SPPEngine/Win32/sppbasicresource.rc"
 	)		
 target_link_libraries( SPPRemoteApplicationServer 
