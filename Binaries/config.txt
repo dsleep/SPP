@@ -1,7 +1,7 @@
 {
-	"STUN_URL" : "stun.l.google.com",
-	"STUN_PORT" : 19302,
-	"COORDINATOR_IP" : "127.0.0.1:12021",
-	"COORDINATOR_PASSWORD" : "test",
-	"PASSWORD" : "test"
+        "STUN_URL" : "stun.l.google.com",
+        "STUN_PORT" : 19302,
+        "COORDINATOR_IP" : "10.245.86.41:12022",
+        "COORDINATOR_PASSWORD" : "UFTIPS",
+        "PASSWORD" : "UFTIPS"
 }
