@@ -53,4 +53,6 @@ namespace std
 	SPP_CORE_API std::string trim(const std::string& s);
 
 	SPP_CORE_API std::map<std::string, std::string> BuildCCMap(int argc, char* argv[]);
+
+	SPP_CORE_API std::map<std::string, std::string> BuildCCMap(const std::string &InCL);
 }

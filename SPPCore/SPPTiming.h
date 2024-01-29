@@ -5,7 +5,7 @@
 #pragma once
 
 #include "SPPCore.h"
-
+#include "SPPLogging.h"
 #include <sstream>
 #include <chrono>
 #include <condition_variable>
@@ -77,19 +77,16 @@ namespace SPP
 	private:
 		using HighResClock = std::chrono::high_resolution_clock;
 		HighResClock::time_point _StartTime;
-
+		LogEntry& logRef;
 	public:
-		ScopeTimer()
+		ScopeTimer(LogEntry& InLog) : logRef(InLog)
 		{
 			_StartTime = HighResClock::now();
 		}
 		~ScopeTimer()
 		{
-			const auto end = HighResClock::now();
-			const auto currentCount = std::chrono::duration_cast<std::chrono::milliseconds>(end - _StartTime).count();
-			
-			//extern LogEntry LOG_CORE;
-			//SPP_LOG(LOG_CORE, LOG_INFO, "ScopeTimer::ScopeTimer %u", currentCount);
+			const auto currentCount = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now() - _StartTime).count();	
+			SPP_LOG(logRef, LOG_INFO, "ScopeTimer %ums", currentCount);
 		}
 	};
 

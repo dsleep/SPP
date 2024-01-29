@@ -48,7 +48,7 @@ namespace SPP
 	class SPP_CORE_API ThreadPool : public std::enable_shared_from_this<ThreadPool>
 	{
 	public:		
-		ThreadPool(const std::string &dInName, uint8_t threads);		
+		ThreadPool(const std::string &dInName, uint8_t threads, bool bInWaitForTrigger = false);		
 
 		template<class F, class... Args>
 		auto enqueue(F&& f, Args&&... args)->std::future< typename std::invoke_result_t<F,Args...> >
@@ -71,33 +71,69 @@ namespace SPP
 
 				tasks.emplace([task]() { (*task)(); });
 			}
-			condition.notify_one();
+			if (!bWaitForTrigger)
+			{
+				condition.notify_one();
+			}
 			return res;
 		}
 
-		size_t TaskCount()
-		{
-			std::unique_lock<std::mutex> lock(queue_mutex);
-			return tasks.size();
-		}
+		size_t TaskCount();
 		
-		~ThreadPool()
-		{
-			{
-				std::unique_lock<std::mutex> lock(queue_mutex);
-				stop = true;
-			}
-			condition.notify_all();
-			for (std::thread &worker : workers)
-				worker.join();
-		}
+		~ThreadPool();
+
+		bool IsRunning();
 
 		//runs all tasks just once
 		void RunOnce();
 
+		//
+		void RunAll();
+
 		size_t WorkerCount() const
 		{
 			return workers.size();
+		}
+
+		template <typename TIter, class F>
+		void parallel_for(TIter beg, TIter end, F&& f)
+		{
+			auto len = end - beg;
+			if (len < threadCount)
+			{
+				for (uint32_t Iter = 0; Iter < len; Iter++)
+				{
+					TIter curEle = beg + Iter;
+					f(curEle);
+				}
+			}
+
+			auto batch_size = (len + (threadCount-1)) / threadCount;
+
+			std::list<std::future<void>> futures;
+
+			for (uint32_t Iter = 0; Iter < threadCount; Iter++)
+			{
+				auto startIdx = (Iter * batch_size);
+				if (startIdx >= len)
+				{
+					break;
+				}
+				auto curStart = beg + startIdx;
+				auto curEnd = beg + std::min( ((Iter+1) * batch_size), len );
+
+				futures.push_back(enqueue([curStart, curEnd, f]() {
+						for (auto Iter = curStart; Iter < curEnd; Iter++)
+						{
+							f(Iter);
+						}
+					}));
+			}
+
+			for (auto& curFuture : futures)
+			{
+				curFuture.wait();
+			}
 		}
 
 	private:
@@ -109,6 +145,11 @@ namespace SPP
 		std::mutex queue_mutex;
 		std::condition_variable condition;
 		bool stop;
+
+		uint8_t threadCount;
+		//
+		bool bRunning;
+		bool bWaitForTrigger;
 	};
 
 	inline float TimeSince(const std::chrono::high_resolution_clock::time_point& InTime)

@@ -41,27 +41,153 @@ namespace SPP
 		}
 	};
 
-	class SPP_CORE_API BitSetArray
+	template <int A, int B>
+	struct get_power
+	{
+		static const int value = A * get_power<A, B - 1>::value;
+	};
+	template <int A>
+	struct get_power<A, 0>
+	{
+		static const int value = 1;
+	};
+
+	template <int A>
+	struct get_power_of_two
+	{
+		static const int value = 1 + get_power_of_two<A / 2>::value;
+	};
+	template <>
+	struct get_power_of_two<1>
+	{
+		static const int value = 0;
+	};
+	template <>
+	struct get_power_of_two<0>
+	{
+		static const int value = 0;
+	};
+
+	template<typename StorageType = uint32_t>
+	class BitSetArray
 	{
 		NO_COPY_ALLOWED(BitSetArray);
 
 	private:
+
+		size_t _numBits = 0;
 		size_t _numBytes = 0;
-		uint8_t* bitData = nullptr;
+		size_t _arrayCount = 0;
+				
+		StorageType* _data = nullptr;
+
+		static constexpr size_t const StorageTypeBitCount = sizeof(StorageType) * 8;
+		static constexpr size_t const StorageAllBits = ~StorageType(0);
+		static constexpr size_t const StorageBitCountPow2 = get_power_of_two< StorageTypeBitCount >::value;
 
 	public:
 		BitSetArray() {}
-		BitSetArray(size_t DesiredSize);	
+		BitSetArray(size_t InBitCount)
+		{
+			Initialize(InBitCount);
+		}
 
-		void Expand(size_t NewSize);
-		void Clear();
+		void Initialize(size_t InBitCount)
+		{
+			FreeData();
 
-		void Set(size_t Index, bool bValue);
-		bool Get(size_t Index);
+			_numBits = InBitCount;
+			_arrayCount = ((InBitCount + StorageTypeBitCount - 1) >> 3) / sizeof(StorageType);
+			_numBytes = _arrayCount * sizeof(StorageType);
+
+			SE_ASSERT((_numBytes * 8) >= _numBits);
+			_data = (StorageType*)malloc(_numBytes);
+			SE_ASSERT(_data);
+			ClearBits();
+		}
+
+		auto GetNumBytes() const
+		{
+			return _numBytes;
+		}
+
+		auto GetNumBits() const
+		{
+			return _numBits;
+		}
+
+		auto GetArray() const
+		{
+			return _data;
+		}
+
+		void ClearBits()
+		{
+			memset(_data, 0, _numBytes);
+		}
+
+		void FreeData()
+		{
+			if (_data)
+			{
+				free(_data);
+				_data = nullptr;
+			}
+		}
+
+		void Expand(size_t NewBitSize)
+		{
+			if (NewBitSize > _numBits)
+			{
+				Initialize(NewBitSize);
+			}
+		}
+
+		void Set(size_t Index, bool bValue)
+		{
+			SE_ASSERT(Index < _numBits);
+
+			StorageType bitMask = 1 << (Index & (StorageTypeBitCount - 1));
+			size_t storageIndex = Index >> StorageBitCountPow2;
+
+			SE_ASSERT(storageIndex < _arrayCount);
+			if (bValue)
+			{
+				_data[storageIndex] |= bitMask;
+			}
+			else
+			{
+				_data[storageIndex] &= ~bitMask;
+			}
+		}
+
+		bool Get(size_t Index)
+		{
+			SE_ASSERT(Index < _numBits);
+			StorageType bitMask = 1 << (Index & (StorageTypeBitCount - 1));
+			StorageType storageIndex = Index >> StorageBitCountPow2;
+
+			SE_ASSERT(storageIndex < _arrayCount);
+			return (_data[storageIndex] & bitMask) != 0;
+		}
 		
-		BitReference GetFirstFree();
+		BitReference GetFirstFree()
+		{
+			for (size_t Iter = 0; Iter < _numBits; Iter++)
+			{
+				if (!Get(Iter))
+				{
+					return BitReference((uint8_t*)_data + (Iter >> 3), Iter);
+				}
+			}
 
-		~BitSetArray();
+			return BitReference(nullptr, 0);
+		}
+
+		~BitSetArray()
+		{
+			FreeData();
+		}
 	};
 
 
@@ -70,7 +196,7 @@ namespace SPP
 	{
 	protected:
 		IndexedData& _leasor;
-		std::unique_ptr<BitSetArray> _bitArray;
+		std::unique_ptr< BitSetArray<uint32_t> > _bitArray;
 
 	public:
 		class Reservation 
@@ -130,7 +256,7 @@ namespace SPP
 
 		LeaseManager(IndexedData& InIndexor) : _leasor(InIndexor) 
 		{
-			_bitArray = std::make_unique< BitSetArray >(_leasor.size());
+			_bitArray = std::make_unique< BitSetArray<uint32_t> >(_leasor.size());
 		}
 
 		std::shared_ptr<Reservation> GetLease()

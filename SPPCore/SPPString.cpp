@@ -138,14 +138,13 @@ namespace std
 		return rtrim(ltrim(s));
 	}
 
-	std::map<std::string, std::string> BuildCCMap(int argc, char* argv[])
+	std::map<std::string, std::string> BuildCCMap(const std::vector<std::string> &InCL)
 	{
 		std::map<std::string, std::string> oMap;
 
-		for (int ArgIter = 0; ArgIter < argc; ArgIter++)
+		for (int ArgIter = 0; ArgIter < InCL.size(); ArgIter++)
 		{
-			std::string curArg = argv[ArgIter];
-
+			auto& curArg = InCL[ArgIter];
 			auto trimmed = trim(curArg);
 
 			if (trimmed.length() > 1 && trimmed[0] == '-')
@@ -168,5 +167,22 @@ namespace std
 		}
 
 		return oMap;
+	}
+
+	std::map<std::string, std::string> BuildCCMap(int argc, char* argv[])
+	{
+		std::vector<std::string> strVec;
+		for (int ArgIter = 0; ArgIter < argc; ArgIter++)
+		{
+			std::string curArg = argv[ArgIter];
+			strVec.push_back(curArg);
+		}
+		return BuildCCMap(strVec);
+	}
+
+	std::map<std::string, std::string> BuildCCMap(const std::string& InCL)
+	{
+		auto strVec = str_split(InCL, ' ');
+		return BuildCCMap(strVec);
 	}
 }

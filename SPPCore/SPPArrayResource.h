@@ -40,6 +40,15 @@ namespace SPP
             memcpy(_data.data(), InData, _data.size());
         }
 
+        void InitializeFromInfo(size_t InElementSize, size_t Count)
+        {
+            _perElementSize = InElementSize;
+            _elementCount = Count;
+            _data.clear();
+            // 0 it out
+            _data.resize(_elementCount * _perElementSize, 0);
+        }
+        
         template<typename T>
         TSpan<T> GetSpan()
         {

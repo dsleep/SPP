@@ -20,12 +20,103 @@
 #include <sstream>
 #include <map>
 
+#include "SPPProfiler.h"
+
 #include "Windows.h"
 #include "sysinfoapi.h"
+#include "commdlg.h"
 
 namespace SPP
 {
 	SPP_CORE_API LogEntry LOG_WIN32CORE("WIN32CORE");
+
+	LONG GetDWORDRegKey(HKEY hKey, const std::string& strValueName, DWORD& nValue)
+	{
+		DWORD dwBufferSize(sizeof(DWORD));
+		DWORD nResult(0);
+		LONG nError = ::RegQueryValueExA(hKey,
+			strValueName.c_str(),
+			0,
+			NULL,
+			reinterpret_cast<LPBYTE>(&nResult),
+			&dwBufferSize);
+		if (ERROR_SUCCESS == nError)
+		{
+			nValue = nResult;
+		}
+		return nError;
+	}
+
+	uint32_t ProcSpeedRead()
+	{
+		DWORD BufSize = sizeof(BYTE);
+		DWORD dwMHz = 0;
+		HKEY hKey;
+
+		// open the key where the proc speed is hidden:
+		auto lError = RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+			"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+			0,
+			KEY_READ,
+			&hKey);
+
+		if (lError == ERROR_SUCCESS)
+		{
+			GetDWORDRegKey(hKey, "~MHz", dwMHz);
+		}
+
+		return dwMHz;
+	}
+
+	const ComputerInfo &GetComputerInfo()
+	{
+		static bool bHasValue = false;
+		static ComputerInfo sO;
+
+		if (!bHasValue)
+		{
+			MEMORYSTATUSEX statex;
+			statex.dwLength = sizeof(statex);
+			GlobalMemoryStatusEx(&statex);
+			auto RamAmmount = statex.ullTotalPhys / (1024 * 1024);
+
+			SYSTEM_INFO info;
+			GetSystemInfo(&info);
+
+
+			DWORD buffer_size = 0;
+			GetLogicalProcessorInformation(0, &buffer_size);
+
+			uint32_t PhysCoreCount = 0;
+			{
+				DWORD dwNum = buffer_size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+				SE_ASSERT(buffer_size == (dwNum * sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION)));
+				std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer;
+				buffer.resize(dwNum);
+				GetLogicalProcessorInformation(buffer.data(), &buffer_size);
+				
+				for (auto& curCPU : buffer)
+				{
+					if (curCPU.Relationship == RelationProcessorCore)
+					{
+						PhysCoreCount++;
+					}
+				}
+			}
+
+			sO = {
+				.CPU_SpeedInMHz = ProcSpeedRead(),
+				.CPU_LogicalCores = std::thread::hardware_concurrency(),
+				.CPU_PhysicalCores = PhysCoreCount,
+				.RAM_PageSize = info.dwPageSize,
+				.RAM_InMBs = (uint32_t)(statex.ullTotalPhys / (1024 * 1024))
+			};
+
+			bHasValue = true;
+		}
+
+		return sO;
+	}
 
 	std::string GetProcessName()
 	{
@@ -37,15 +128,6 @@ namespace SPP
 	void SetThreadName(const char* InName)
 	{
 		SetThreadDescription(GetCurrentThread(), std::utf8_to_wstring(InName).c_str());
-	}
-
-	PlatformInfo GetPlatformInfo()	
-	{
-		SYSTEM_INFO info = { 0 };
-		GetSystemInfo( &info );
-
-		PlatformInfo oInfo = { info.dwPageSize, info.dwNumberOfProcessors };
-		return oInfo;
 	}
 
 	BOOL CALLBACK MyInfoEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
@@ -486,7 +568,179 @@ namespace SPP
 
 	void AddDLLSearchPath(const char* InPath)
 	{
-		SetDllDirectoryA(InPath);
+		static bool bDirectoriesSet = false;
+		if (!bDirectoriesSet)
+		{
+			SE_ASSERT(SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+				LOAD_LIBRARY_SEARCH_DEFAULT_DIRS |
+				LOAD_LIBRARY_SEARCH_SYSTEM32 |
+				LOAD_LIBRARY_SEARCH_USER_DIRS) != 0);
+			bDirectoriesSet = true;
+		}
+
+		char path[MAX_PATH] = { 0 };
+
+		DWORD result = GetModuleFileNameA(nullptr, path, MAX_PATH);
+
+		stdfs::path BinaryPath = path;
+
+		std::string PathAsString = stdfs::absolute(BinaryPath / "../" / InPath).make_preferred().generic_string();
+
+		auto wstring = std::utf8_to_wstring(PathAsString);
+		SE_ASSERT(AddDllDirectory(wstring.c_str()) != 0);
+	}
+
+	void inline_forward_replace(std::string& iopath) {
+		std::replace(iopath.begin(), iopath.end(), '/', '\\');
+	}
+
+	std::string FileOpenDialog(const std::string &StartingPath, const std::vector<std::string>& Exts)
+	{
+		char szFilter[MAX_PATH];
+		ZeroMemory(szFilter, MAX_PATH);
+
+		auto filterIdx = szFilter;
+
+		strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), "All (*.*)");
+		filterIdx += 10;
+		strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), "*.*");
+		filterIdx += 4;
+
+		// must be in pairs
+		SE_ASSERT((Exts.size() % 2) == 0);
+		for (auto& curExt : Exts)
+		{
+			strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), curExt.c_str());
+			filterIdx += curExt.size() + 1;
+		}
+
+		// terminate it
+		strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), "\0\0");
+
+		auto fullPath = stdfs::path(StartingPath).make_preferred();
+
+		std::string InitialDirectory;
+
+		char szFile[MAX_PATH];
+		ZeroMemory(szFile, MAX_PATH);
+
+		if (!fullPath.empty())
+		{
+			if (fullPath.has_filename() && fullPath.has_extension())
+			{
+				strcpy_s(szFile, MAX_PATH, fullPath.filename().generic_string().c_str());
+
+				InitialDirectory = fullPath.parent_path().generic_string();
+			}
+			else
+			{
+				InitialDirectory = fullPath.generic_string();
+			}
+		}
+
+		inline_forward_replace(InitialDirectory);
+
+		OPENFILENAMEA ofn;       // common dialog box structure
+		// Initialize OPENFILENAME
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = nullptr;
+		ofn.lpstrFile = szFile;
+		ofn.nMaxFile = MAX_PATH;
+		ofn.lpstrFilter = szFilter;
+		ofn.nFilterIndex = 0;
+		ofn.lpstrFileTitle = NULL;
+		ofn.nMaxFileTitle = 0;
+		ofn.lpstrInitialDir = InitialDirectory.empty() ? nullptr : InitialDirectory.c_str();
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+		if (GetOpenFileNameA(&ofn))
+		{
+			// The file was loaded successfully.
+			return szFile;
+		}
+		else
+		{
+			// The file was not loaded successfully.
+			return "";
+		}
+	}
+
+	std::string FileSaveDialog(const std::string& StartingPath, const std::vector<std::string> &Exts)
+	{
+		char szFilter[MAX_PATH];
+		ZeroMemory(szFilter, MAX_PATH);
+
+		auto filterIdx = szFilter;
+
+		strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), "All (*.*)");
+		filterIdx += 10;
+		strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), "*.*");
+		filterIdx += 4;
+
+		// must be in pairs
+		SE_ASSERT((Exts.size() % 2) == 0);
+		for (auto& curExt : Exts)
+		{
+			strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), curExt.c_str());
+			filterIdx += curExt.size() + 1;
+		}
+
+		// terminate it
+		strcpy_s(filterIdx, MAX_PATH - (filterIdx - szFilter), "\0\0");
+
+		auto fullPath = stdfs::path(StartingPath).make_preferred();
+
+		std::string InitialDirectory;
+
+		char szFile[MAX_PATH];
+		ZeroMemory(szFile, MAX_PATH);
+
+		if (!fullPath.empty())
+		{
+			if (fullPath.has_filename() && fullPath.has_extension())
+			{
+				strcpy_s(szFile, MAX_PATH, fullPath.filename().generic_string().c_str());
+
+				InitialDirectory = fullPath.parent_path().generic_string();
+			}
+			else
+			{
+				InitialDirectory = fullPath.generic_string();
+			}
+		}
+
+		inline_forward_replace(InitialDirectory);
+
+		OPENFILENAMEA ofn;       // common dialog box structure
+		// Initialize OPENFILENAME
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = nullptr;
+		ofn.lpstrFile = szFile;
+		ofn.nMaxFile = MAX_PATH;
+		ofn.lpstrFilter = szFilter;
+		ofn.nFilterIndex = 0;
+		ofn.lpstrFileTitle = NULL;
+		ofn.nMaxFileTitle = 0;
+		ofn.lpstrInitialDir = InitialDirectory.empty() ? nullptr : InitialDirectory.c_str();
+		ofn.Flags = OFN_PATHMUSTEXIST;
+
+		if (GetSaveFileNameA(&ofn))
+		{
+			// The file was loaded successfully.
+			return szFile;
+		}
+		else
+		{
+			// The file was not loaded successfully.
+			return "";
+		}
+	}
+
+	bool IsRemoteDesktop()
+	{
+		return GetSystemMetrics(SM_REMOTESESSION);
 	}
 }
 
@@ -504,3 +758,4 @@ void C_CloseChild(uint32_t processID)
 {
 	return SPP::CloseChild(processID);
 }
+

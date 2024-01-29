@@ -8,8 +8,8 @@
 #include <string>
 #include <map>
 #include <memory>
-#include <algorithm>
 #include <vector>
+#include <algorithm>
 
 namespace SPP
 {

@@ -12,13 +12,19 @@
 	
 namespace SPP
 {
-	struct PlatformInfo
+	struct SPP_CORE_API ComputerInfo
 	{
-		uint32_t PageSize;
-		uint32_t ProcessorCount;
+		uint32_t CPU_SpeedInMHz;
+		uint32_t CPU_LogicalCores;
+		uint32_t CPU_PhysicalCores;
+
+		uint32_t RAM_PageSize;
+		uint32_t RAM_InMBs;
 	};
 
-	struct MonitorInfo
+	SPP_CORE_API const ComputerInfo& GetComputerInfo();
+
+	struct SPP_CORE_API MonitorInfo
 	{
 		std::string Name;
 
@@ -32,7 +38,6 @@ namespace SPP
 
 	SPP_CORE_API void SetThreadName(const char *InName);
 
-	SPP_CORE_API PlatformInfo GetPlatformInfo();
 	SPP_CORE_API uint32_t CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible = true);
 	SPP_CORE_API bool IsChildRunning(uint32_t processID);
 	SPP_CORE_API void CloseChild(uint32_t processID);
@@ -43,6 +48,8 @@ namespace SPP
 	SPP_CORE_API void AddDLLSearchPath(const char* InPath);
 
 	SPP_CORE_API void GetMonitorInfo(std::vector<MonitorInfo> &oInfos);
+
+	SPP_CORE_API bool IsRemoteDesktop();
 
 	class PlatformProcess
 	{
@@ -65,8 +72,12 @@ namespace SPP
 	};
 
 	SPP_CORE_API std::shared_ptr< PlatformProcess> CreatePlatformProcess(const char* ProcessPath, const char* Commandline = nullptr, bool bStartVisible = false, bool bInPutToString = false, bool bAsChildProcess = true);
+
+	SPP_CORE_API std::string FileOpenDialog(const std::string& StartingPath, const std::vector<std::string>& Exts);
+	SPP_CORE_API std::string FileSaveDialog(const std::string& StartingPath, const std::vector<std::string>& Exts);
 }
 
 extern "C" SPP_CORE_API uint32_t C_CreateChildProcess(const char* ProcessPath, const char* Commandline, bool bStartVisible);
 extern "C" SPP_CORE_API bool C_IsChildRunning(uint32_t processID);
 extern "C" SPP_CORE_API void C_CloseChild(uint32_t processID);
+

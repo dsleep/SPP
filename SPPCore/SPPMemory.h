@@ -21,6 +21,25 @@ namespace SPP
 {
 	extern SPP_CORE_API LogEntry LOG_MEM;
 
+	struct SPP_CORE_API MemoryChunk
+	{
+		void* data = nullptr;
+		size_t size = 0;
+
+		MemoryChunk()
+		{
+
+		}
+		MemoryChunk(void* InData, size_t InSize) : data(InData), size(InSize)
+		{
+
+		}
+
+		virtual ~MemoryChunk() {
+
+		}
+	};
+
 	class SPP_CORE_API IPCMappedMemory
 	{
 		NO_COPY_ALLOWED(IPCMappedMemory);

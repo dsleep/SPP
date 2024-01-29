@@ -35,6 +35,8 @@ namespace SPP
     static std::string GBinaryPath;
     static std::string GResourcePath;
 	static std::string GLogPath;
+	static std::string GProfilingPath;
+	static std::string GConfigPath;
 
 	static bool GIsMainActive = false;
 
@@ -68,9 +70,32 @@ namespace SPP
 	{
 		return GLogPath.c_str();
 	}
+	const char* GetProfilingPath()
+	{
+		return GProfilingPath.c_str();
+	}
+	const char* GetConfigPath()
+	{
+		return GConfigPath.c_str();
+	}
+
+	void ErrorOccurred(const char* InStr, int32_t Line, const char* InFile)
+	{
+		SPP_LOG(LOG_CORE, LOG_ERROR, "ErrorOccurred: (%s) : %s - Line: %d", InStr, InFile, Line);
+	}
+
 	SPP_CORE_API std::unique_ptr<class ThreadPool> CPUThreaPool;
 
 	static SystemClock::time_point appStarted;
+
+	std::string GetTimeStampTag()
+	{
+		char buffer[128] = { 0 };
+		auto timeTApp = std::chrono::system_clock::to_time_t(appStarted);
+		auto appLT = localtime(&timeTApp);
+		strftime(buffer, ARRAY_SIZE(buffer), "_%Y-%m-%d@%H-%M", appLT);
+		return std::string(buffer);
+	}
 
 	double TimeSinceAppStarted()
 	{
@@ -119,6 +144,12 @@ namespace SPP
 		SE_ASSERT(CPUThread != std::thread::id());
 		auto currentThreadID = std::this_thread::get_id();
 		return (CPUThread == currentThreadID);
+	}
+
+	void MakeCPUThread()
+	{
+		SE_ASSERT(CPUThread != std::thread::id());
+		CPUThread = std::this_thread::get_id();
 	}
 
 	MainWatch::MainWatch()
@@ -177,7 +208,7 @@ namespace SPP
 
 		// Display the contents of the SYSTEM_INFO structure. 
 
-		SPP_LOG(LOG_CORE, LOG_INFO, "Hardware information: ");
+		SPP_LOG(LOG_CORE, LOG_INFO, "Windows Hardware information: ");
 		SPP_LOG(LOG_CORE, LOG_INFO, "  OEM ID: %u", siSysInfo.dwOemId);
 		SPP_LOG(LOG_CORE, LOG_INFO, "  Number of processors: %u",siSysInfo.dwNumberOfProcessors);
 		SPP_LOG(LOG_CORE, LOG_INFO, "  Page size: %u", siSysInfo.dwPageSize);
@@ -185,6 +216,10 @@ namespace SPP
 		SPP_LOG(LOG_CORE, LOG_INFO, "  Minimum application address: %lx",siSysInfo.lpMinimumApplicationAddress);
 		SPP_LOG(LOG_CORE, LOG_INFO, "  Maximum application address: %lx",siSysInfo.lpMaximumApplicationAddress);
 		SPP_LOG(LOG_CORE, LOG_INFO, "  Active processor mask: %u",siSysInfo.dwActiveProcessorMask);
+		
+		SPP_LOG(LOG_CORE, LOG_INFO, "Is Remote Desktop Connection: %u", IsRemoteDesktop());
+
+		
 
 #else
         GBinaryPath = stdfs::current_path().generic_string();
@@ -192,7 +227,18 @@ namespace SPP
 
         auto LoggingDirectory =   (stdfs::path(GBinaryPath) / "../Logging").lexically_normal();
         stdfs::create_directories(LoggingDirectory);
-        
+
+		auto ProfilingDirectory = (stdfs::path(GBinaryPath) / "../Profiling").lexically_normal();
+		stdfs::create_directories(ProfilingDirectory);
+		GProfilingPath = ProfilingDirectory.generic_string();
+
+		auto CacheDirectory = (stdfs::path(GBinaryPath) / "../Assets/CACHE").lexically_normal();
+		stdfs::create_directories(CacheDirectory);
+
+		auto ConfigDirectory = (stdfs::path(GBinaryPath) / "../Configs").lexically_normal();
+		stdfs::create_directories(ConfigDirectory);
+		GConfigPath = ConfigDirectory.generic_string();
+
 		std::string buffer(128, '\0');
 		auto timeTApp = std::chrono::system_clock::to_time_t(appStarted);
 		auto appLT = localtime(&timeTApp);
@@ -213,15 +259,20 @@ namespace SPP
 		//delete old logs
 		CleanupOldLogs(LoggingDirectory);
 				
-		unsigned int nthreads = std::max<uint32_t>( std::thread::hardware_concurrency(), 2);
+		unsigned int nthreads = std::clamp<uint32_t>( std::thread::hardware_concurrency(), 2, 16);
 
 		CPUThreaPool = std::make_unique< ThreadPool >("CPUWorkers", nthreads - 1);
 		CPUThread = std::this_thread::get_id();
 
-		auto Info = GetPlatformInfo();
+		auto PCBasicInfo = GetComputerInfo();
 
-		SPP_LOG(LOG_CORE, LOG_INFO, " - core count %u", nthreads);
-		SPP_LOG(LOG_CORE, LOG_INFO, " - page size %u", Info.PageSize);
+		SPP_LOG(LOG_CORE, LOG_INFO, "Engine Critical Information: ");
+		SPP_LOG(LOG_CORE, LOG_INFO, " - logical core count %u", PCBasicInfo.CPU_LogicalCores);
+		SPP_LOG(LOG_CORE, LOG_INFO, " - physical core count %u", PCBasicInfo.CPU_PhysicalCores);
+		SPP_LOG(LOG_CORE, LOG_INFO, " - core speed %u MHz", PCBasicInfo.CPU_SpeedInMHz);
+
+		SPP_LOG(LOG_CORE, LOG_INFO, " - RAM %u MB", PCBasicInfo.RAM_InMBs);
+		SPP_LOG(LOG_CORE, LOG_INFO, " - page size %u", PCBasicInfo.RAM_PageSize);
 
 		srand((unsigned int)time(NULL));
 	}

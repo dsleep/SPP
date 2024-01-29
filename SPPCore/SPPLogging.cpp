@@ -111,12 +111,16 @@ namespace SPP
 
 		strncat(finalBuffer, buffer, LOGBUFFERSIZE);
 
-		// LOG SPECIAL?
-		printf("%s\n", finalBuffer);
-
 #if _WIN32
+		if (GetConsoleWindow() != nullptr)
+		{
+			printf("%s\n", finalBuffer);
+		}
+				
 		OutputDebugStringA(finalBuffer);
 		OutputDebugStringA("\n");
+#else
+		printf("%s\n", finalBuffer);
 #endif
 	}
 

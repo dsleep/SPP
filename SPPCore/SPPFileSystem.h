@@ -35,4 +35,10 @@ namespace SPP
 		
 	SPP_CORE_API bool LoadFileToString(const char* FileName, std::string& oFileString);
 	SPP_CORE_API bool WriteStringToFile(const char* FileName, const std::string& oFileString);
+
+	SPP_CORE_API std::vector<stdfs::path> GetAllFilesInDirectory(const char* InPath);
+	
+
+
+
 }

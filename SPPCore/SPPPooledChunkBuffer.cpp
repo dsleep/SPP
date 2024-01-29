@@ -6,18 +6,15 @@
 
 namespace SPP
 {
-	PooledChunkBuffer::_chunk::_chunk(void* DataLocation, uint32_t InSize) : size(InSize), data(DataLocation)
+	PooledChunkBuffer::ReusableChunk::ReusableChunk(void* DataLocation, 
+		size_t InSize, 
+		size_t InTotalSize,
+		PooledChunkBuffer* Parent) : MemoryChunk(DataLocation, InSize), _totaSize(InTotalSize), _parent(Parent)
 	{
-
-
-	};
-	PooledChunkBuffer::Chunk::Chunk(void* DataLocation, uint32_t InSize, PooledChunkBuffer* Parent) : _chunk(DataLocation, InSize), _parent(Parent)
-	{
-
 	}
-	PooledChunkBuffer::Chunk::~Chunk()
+	PooledChunkBuffer::ReusableChunk::~ReusableChunk()
 	{
-		_parent->GiveMemory(data, size);
+		_parent->GiveMemory(data, _totaSize);
 	}
 	PooledChunkBuffer::PooledChunkBuffer() { }
 	PooledChunkBuffer::~PooledChunkBuffer()
@@ -29,7 +26,7 @@ namespace SPP
 		_chunkPool.clear();
 	}
 
-	std::shared_ptr<PooledChunkBuffer::Chunk> PooledChunkBuffer::GetChunk(uint32_t DesiredSize)
+	std::shared_ptr<MemoryChunk> PooledChunkBuffer::GetChunk(size_t DesiredSize)
 	{
 		SE_ASSERT(DesiredSize > 0);
 
@@ -39,26 +36,31 @@ namespace SPP
 			for (auto it = _chunkPool.begin(); it != _chunkPool.end(); ++it)
 			{
 				auto currentChunk = *it;
-				if (currentChunk.size >= DesiredSize)
+				if (currentChunk.size >= DesiredSize) // check for < half or something? TODO
 				{
 					// move to chunks
 					_chunkPool.erase(it);
-					return std::make_shared<Chunk>(currentChunk.data, currentChunk.size, this);
+					return std::make_shared<ReusableChunk>(currentChunk.data,
+						DesiredSize, // set its size to the requested amount
+						currentChunk.size, // also remember original size
+						this);
 				}
 			}
-
 		}
 
-		DesiredSize = ((DesiredSize / 1024) + 1) * 1024;
+		auto KBPaddedSize = ((DesiredSize / 1024) + 1) * 1024;
 
-		void* newData = malloc(DesiredSize);
-		auto newChunk = std::make_shared<Chunk>(newData, DesiredSize, this);
+		void* newData = malloc(KBPaddedSize);
+		auto newChunk = std::make_shared<ReusableChunk>(newData, 
+			DesiredSize, 
+			KBPaddedSize,
+			this);
 		return newChunk;
 	}
 
-	void PooledChunkBuffer::GiveMemory(void* data, uint32_t size)
+	void PooledChunkBuffer::GiveMemory(void* data, size_t size)
 	{
 		std::unique_lock<std::mutex> lock(_chunkMutex);
-		_chunkPool.push_back(PooledChunkBuffer::_chunk(data, size));
+		_chunkPool.push_back(MemoryChunk(data, size));
 	}
 }

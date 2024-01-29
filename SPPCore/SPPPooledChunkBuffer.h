@@ -5,44 +5,42 @@
 #pragma once
 
 #include "SPPCore.h"
+#include "SPPMemory.h"
 
 #include <mutex>
 #include <list>
 
 namespace SPP
 {
+
 	class SPP_CORE_API PooledChunkBuffer
 	{
 	private:
-		struct _chunk
-		{
-			const uint32_t size = 0;
-			void* const data = nullptr;
-
-			_chunk(void* DataLocation, uint32_t InSize);
-		};
-
-		std::mutex _chunkMutex;
-		std::list< _chunk > _chunkPool;
-
-	public:
-
-		class Chunk : public _chunk
+		class ReusableChunk : public MemoryChunk
 		{
 		private:
 			PooledChunkBuffer* const _parent = nullptr;
+			size_t _totaSize = 0;
 
 		public:
-			Chunk(void* DataLocation, uint32_t InSize, PooledChunkBuffer* Parent);
-			~Chunk();
+			auto ActualSize() const
+			{
+				return _totaSize;
+			}
+			ReusableChunk(void* DataLocation, size_t InSize, size_t TotalSize, PooledChunkBuffer* Parent);
+			virtual ~ReusableChunk();
 		};
 
+		std::mutex _chunkMutex;
+		std::list< MemoryChunk > _chunkPool;
+
+	public:
 		PooledChunkBuffer();
 		~PooledChunkBuffer();
 
-		std::shared_ptr<Chunk> GetChunk(uint32_t DesiredSize);
+		std::shared_ptr<MemoryChunk> GetChunk(size_t DesiredSize);
 
-		void GiveMemory(void* data, uint32_t size);
+		void GiveMemory(void* data, size_t size);
 	};
 
 }

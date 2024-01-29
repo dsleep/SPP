@@ -80,6 +80,7 @@ namespace SPP
         }
     };
 
+
     template< typename T>
     class Referencer
     {
@@ -96,7 +97,15 @@ namespace SPP
             _file.clear();
         }
 
-        void decRef()
+        virtual void incRef() 
+        {
+            if (obj)
+            {
+                obj->incRefCnt();
+            }
+        }
+
+        virtual void decRef()
         {
             if (obj && obj->decRefCnt() == 0)
             {
@@ -108,17 +117,11 @@ namespace SPP
         Referencer() {} 
         Referencer(T* InObj) : obj(InObj)
         {
-            if (obj)
-            {
-                obj->incRefCnt();
-            }
+            incRef();
         }
         Referencer(int line, const char* file, T* InObj) : _line(line), _file(file), obj(InObj)
         {
-            if (obj)
-            {
-                obj->incRefCnt();
-            }
+            incRef();
         }
 
         template<typename K = T>
@@ -137,10 +140,7 @@ namespace SPP
             _line = orig.GetLine();
             _file = orig.GetFile();
 
-            if (obj)
-            {
-                obj->incRefCnt();
-            }
+            incRef();
         }
 
         Referencer(const Referencer<T>& orig)
@@ -148,10 +148,7 @@ namespace SPP
             obj = orig.RawGet();
             _line = orig.GetLine();
             _file = orig.GetFile();
-            if (obj)
-            {
-                obj->incRefCnt();
-            }
+            incRef();
         }
 
         template<typename K = T>
@@ -162,10 +159,7 @@ namespace SPP
             obj = dynamic_cast<T*>( orig.RawGet() );
             _line = orig.GetLine();
             _file = orig.GetFile();
-            if (obj)
-            {
-                obj->incRefCnt();
-            }
+            incRef();
         }
 
         T& operator* ()
@@ -211,10 +205,13 @@ namespace SPP
 			{
 				return *this;
 			}
-			if (right.obj)
-			{
-				right.obj->incRefCnt();
-			}
+
+            auto& rightCast = const_cast<Referencer<T>&>(right);
+            rightCast.incRef();
+			//if (right.obj)
+			//{
+			//	right.obj->incRefCnt();
+			//}
 			decRef();
 			obj = right.obj;
             _line = right._line;

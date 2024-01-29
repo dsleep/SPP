@@ -31,6 +31,7 @@
 
 #include "SPPPlatformCore.h"
 #include "SPPString.h"
+#include "SPPProfiler.h"
 
 // Windows Header Files
 #if _WIN32
@@ -39,13 +40,15 @@
 
 namespace SPP
 {
-	ThreadPool::ThreadPool(const std::string& InName, uint8_t threads) : stop(false)
+	ThreadPool::ThreadPool(const std::string& InName, uint8_t threads, bool bInWaitForTrigger) : threadCount(threads), stop(false), bWaitForTrigger(bInWaitForTrigger), bRunning(!bInWaitForTrigger)
 	{
 		for (size_t i = 0; i < threads; ++i)
 			workers.emplace_back(
 				[this, InName, i]
 				{
-					SetThreadName(std::string_format("%s_%d", InName.c_str(), i).c_str());
+					std::string threadName = std::string_format("%s_%d", InName.c_str(), i);
+					SetThreadName(threadName.c_str());
+					ProfilerThreadRegister regThread(threadName.c_str());
 					for (;;)
 					{
 						std::function<void()> task;
@@ -53,15 +56,25 @@ namespace SPP
 						{
 							std::unique_lock<std::mutex> lock(this->queue_mutex);
 							this->condition.wait(lock,
-								[this] { return this->stop || !this->tasks.empty(); });
+								[this] 
+								{
+									return (this->stop) || (bRunning && !this->tasks.empty());
+								});
 							if (this->stop && this->tasks.empty())
-								return;
+								return;							
 													   
 							task = std::move(this->tasks.front());
 							this->tasks.pop();
+
+							// we got the last task for the trigger
+							if (this->bWaitForTrigger && this->tasks.empty())
+							{
+								bRunning = false;
+							}
 						}
 
 						{
+							P_SCOPE("TASK");
 							task();
 						}
 					}
@@ -85,6 +98,39 @@ namespace SPP
 			currenttasks.pop();
 		}
 	}	
+
+	void ThreadPool::RunAll()
+	{
+		{
+			std::unique_lock<std::mutex> lock(this->queue_mutex);
+			bRunning = true;
+		}
+		condition.notify_all();
+	}
+
+	bool ThreadPool::IsRunning()
+	{
+		std::unique_lock<std::mutex> lock(this->queue_mutex);
+		return bRunning;
+	}
+
+
+	size_t ThreadPool::TaskCount()
+	{
+		std::unique_lock<std::mutex> lock(queue_mutex);
+		return tasks.size();
+	}
+
+	ThreadPool::~ThreadPool()
+	{
+		{
+			std::unique_lock<std::mutex> lock(queue_mutex);
+			stop = true;
+		}
+		condition.notify_all();
+		for (std::thread& worker : workers)
+			worker.join();
+	}
 
 #if _WIN32
 	uint32_t GetCurrentThreadID()

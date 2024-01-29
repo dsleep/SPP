@@ -54,7 +54,7 @@ namespace SPP
     #define SE_CRASH_BREAK *reinterpret_cast<int32_t*>(3) = 0xDEAD;
 
 #define SE_SYNCHRONIZED(M)  if (std::unique_lock<std::mutex> lck(M); lck.owns_lock())
-#define SE_ASSERT(x) { if(!(x)) { SE_CRASH_BREAK } } 
+#define SE_ASSERT(x) { if(!(x)) { SPP::ErrorOccurred(#x, __LINE__, __FILE__); SE_CRASH_BREAK; } } 
 
 	static constexpr uint8_t const THREAD_CPU = 0;
 	static constexpr uint8_t const THREAD_IO = 1;
@@ -64,6 +64,8 @@ namespace SPP
 	SPP_CORE_API void IntializeCore(const char* Commandline);
 
 	SPP_CORE_API bool IsOnCPUThread();
+
+	SPP_CORE_API void MakeCPUThread();
 	
 	struct SPP_CORE_API MainWatch
 	{
@@ -80,10 +82,16 @@ namespace SPP
 	SPP_CORE_API void* SPP_MALLOC(std::size_t size);
 	SPP_CORE_API void SPP_FREE(void* ptr);
 
+	SPP_CORE_API void ErrorOccurred(const char *InStr, int32_t Line, const char *InFile);
+
     SPP_CORE_API const char* GetBinaryDirectory();
     SPP_CORE_API const char* GetResourceDirectory();
 
 	SPP_CORE_API const char* GetLogPath();
+	SPP_CORE_API const char* GetProfilingPath();
+	SPP_CORE_API const char* GetConfigPath();
+
+	SPP_CORE_API std::string GetTimeStampTag();
 
 	SPP_CORE_API const char* GetGitHash();
 	SPP_CORE_API const char* GetGitTag();
@@ -97,9 +105,10 @@ namespace SPP_CAT(spp_auto_reg_namespace_, __LINE__)								\
 {																					\
     struct RegStruct																\
     {                                                                               \
-        RegStruct()
+        RegStruct() {
 
 #define SPP_AUTOREG_END		\
+		} \
 	};						\
 	const static RegStruct _reg;			\
 }

@@ -81,4 +81,14 @@ namespace SPP
 		return false;
 	}
 
+	std::vector<stdfs::path> GetAllFilesInDirectory(const char* InPath)
+	{
+		std::vector<stdfs::path> oPath;
+		std::filesystem::path directoryPath(InPath);
+		for (const auto& file : std::filesystem::directory_iterator(directoryPath)) {
+			oPath.push_back(file.path());
+		}
+		return oPath;
+	}
+
 }
