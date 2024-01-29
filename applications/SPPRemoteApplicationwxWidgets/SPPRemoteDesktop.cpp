@@ -918,6 +918,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// initialize our SPP core (logging, exceptions, ....)
 	SPP::IntializeCore(std::wstring_to_utf8(lpCmdLine).c_str());
 
+	AddDLLSearchPath("../3rdParty/cef/Release");
+
 #if PLATFORM_WINDOWS
 	_CrtSetDbgFlag(0);
 #endif

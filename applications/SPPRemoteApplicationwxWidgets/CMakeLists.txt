@@ -29,26 +29,33 @@ install(TARGETS SPPRemoteApplication DESTINATION "${SPP_ROOT}/INSTALL")
 ###################################################
 ## SPPRemoteDesktop
 ###################################################
-# add_executable( SPPRemoteDesktop WIN32 "")
-# add_dependencies( SPPRemoteDesktop SPPCore SPPNetworking SPPReflection SPPCEFUserInterface )
-# target_sources( SPPRemoteDesktop 
-# 	PRIVATE 
-# 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteDesktop.cpp"					
-# 		"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
-# target_link_libraries( SPPRemoteDesktop 
-# 	PRIVATE
-# 		SPPCore
-#         SPPNetworking
-# 		SPPReflection
-#         SPPCEFUserInterface
-# 	)
-# set_target_properties( SPPRemoteDesktop PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-# set_property(TARGET SPPRemoteDesktop PROPERTY FOLDER "APPLICATIONS")
-# #set_property(TARGET SPPRemoteDesktop PROPERTY VS_DPI_AWARE "PerMonitor")
-# 
-# TargetWxWidgetsSetup( SPPRemoteDesktop )
-# 
-# install(TARGETS SPPRemoteDesktop DESTINATION "${SPP_ROOT}/INSTALL")
+add_executable( SPPRemoteDesktop WIN32 "")
+add_dependencies( SPPRemoteDesktop SPPCore SPPNetworking SPPReflection SPPCEFUserInterface )
+target_sources( SPPRemoteDesktop 
+	PRIVATE 
+		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteDesktop.cpp"					
+		"${SPP_ROOT}/SPPCEF/cefclient/resources/win/cefclient.rc" )		
+target_link_libraries( SPPRemoteDesktop 
+	PRIVATE
+		SPPCore
+        SPPNetworking
+		SPPReflection
+        SPPCEFUserInterface
+	)
+set_target_properties( SPPRemoteDesktop PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET SPPRemoteDesktop PROPERTY FOLDER "APPLICATIONS")
+#set_property(TARGET SPPRemoteDesktop PROPERTY VS_DPI_AWARE "PerMonitor")
+
+TargetWxWidgetsSetup( SPPRemoteDesktop )
+
+if(OS_WINDOWS)
+    set_target_properties(SPPRemoteDesktop PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPCEFUserInterface.dll" )
+    set_target_properties(SPPRemoteDesktop PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPCEFUserInterface.dll" )
+    set_target_properties(SPPRemoteDesktop PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPCEFUserInterfaced.dll" )
+endif() 
+
+
+install(TARGETS SPPRemoteDesktop DESTINATION "${SPP_ROOT}/INSTALL")
 
 
 endif()
