@@ -83,4 +83,10 @@ add_executable( CEFProcess
 add_dependencies( CEFProcess SPPCEFUserInterface )
 target_link_libraries( CEFProcess SPPCEFUserInterface )
 
+if(OS_WINDOWS)
+    set_target_properties(CEFProcess PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/DELAYLOAD:SPPCEFUserInterface.dll" )
+    set_target_properties(CEFProcess PROPERTIES LINK_FLAGS_RELEASE "/DELAYLOAD:SPPCEFUserInterface.dll" )
+    set_target_properties(CEFProcess PROPERTIES LINK_FLAGS_DEBUG "/DELAYLOAD:SPPCEFUserInterfaced.dll" )
+endif() 
+
 ADD_WINDOWS_MANIFEST("${CMAKE_CURRENT_SOURCE_DIR}/cefclient/resources/win" "CEFProcess" "exe")
