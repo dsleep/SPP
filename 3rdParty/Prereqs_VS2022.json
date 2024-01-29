@@ -105,6 +105,14 @@
 		{
 			"Path": "PolyVox",
 			"Version": 1
+		},
+		{
+			"Path": "easy_profiler",
+			"Version": 1
+		},
+		{
+			"Path": "zlib",
+			"Version": 1
 		}
 	]
 }

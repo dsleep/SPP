@@ -204,8 +204,7 @@ endif()
 
 if(USE_OBJECTS)
 	list(APPEND SPPProjects								
-			"SPPReflection"
-			"SPPObject")
+			"SPPReflection")
 endif()
 			
 if(OS_WINDOWS)

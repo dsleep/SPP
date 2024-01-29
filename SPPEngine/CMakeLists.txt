@@ -5,7 +5,7 @@ add_library(SPPEngine SHARED "")
 
 set_target_properties(SPPEngine PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
-add_dependencies( SPPEngine SPPCore SPPObject SPPMath )
+add_dependencies( SPPEngine SPPCore SPPMath )
 
 
 # will need define to not create empty dll export
@@ -53,7 +53,6 @@ target_link_directories(SPPEngine
 target_link_libraries( SPPEngine 
 	PUBLIC
 		SPPCore 
-		SPPObject
 		SPPMath
 		)
 
