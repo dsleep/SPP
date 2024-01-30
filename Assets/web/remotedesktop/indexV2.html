@@ -163,6 +163,7 @@ h3 {
 	border: none;
 	box-shadow: 0px 0.5px 1px rgba(0, 0, 0, 0.1), inset 0px 0.5px 0.5px rgba(255, 255, 255, 0.5), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.12);
 	background: #363636;
+	display:none;
 }
 	
 .configButtons  {
@@ -282,6 +283,12 @@ button:disabled {
     <button class="dropbtn menuButtons">File</button>
     <div class="dropdown-content"> <a href="javascript:ButtonClick('Exit');">Exit</a> </div>
   </div>
+  
+  <div class="dropdown">
+    <button class="dropbtn menuButtons">View</button>
+    <div class="dropdown-content"> <a href="javascript:ToggleRemoteHosting();">Show Remote Hosting</a> </div>
+  </div>
+  
   <div class="dropdown">
     <button class="dropbtn menuButtons">Help</button>
     <div class="dropdown-content"> <a href="javascript:window.InvokeNative('HelpClick','GIT');">GIT Repository</a> <a href="javascript:window.InvokeNative('HelpClick','About');">About</a> </div>
@@ -298,11 +305,17 @@ button:disabled {
       <div><i class="fa-solid fa-power-off" style="color:red" id="StunSignal"></i> STUN</div>
       </button>
 		
+		<!-- 
 		 <button id="lanBtn"  class="configButtons">
-      <div>Lan Broadcasting</div>
-      </button>
+		<div>Lan Broadcasting</div>
+		</button>
+		-->
 		
-		<div class="configButtonsGroup">
+		 <button id="bluetoothBtn"  class="configButtons">
+		 <div><i class="fa-solid fa-power-off" style="color:red" id="BTSignal"></i> Blue Tooth Device</div>
+		</button>
+		
+		<div class="configButtonsGroup" id="hostingButtonsGroup">
       		<button id="remoteBtn"  class="configButtons"  >
       		<div><i class="fa-solid fa-power-off" style="color:red" id="RemoteSignal"></i> Remote Control</div>
 			 </button>
@@ -387,6 +400,14 @@ button:disabled {
 	function remoteHostStop() {
 		console.log("stop");
 		window.InvokeNative("StopRemoteHost");
+	}
+	
+	function ToggleRemoteHosting() {
+	
+		if( document.getElementById("hostingButtonsGroup").style.display != "block" )
+			document.getElementById("hostingButtonsGroup").style.display = "block";
+		else 
+			document.getElementById("hostingButtonsGroup").style.display = "none";
 	}
 	
 	function connectionSubmit(InAccept) {
@@ -551,9 +572,10 @@ button:disabled {
 	document.getElementById("remoteBtn").addEventListener("click",  function() {
 		openConfig("RemoteControlConfig");
 	} );
-	document.getElementById("lanBtn").addEventListener("click",  function() {
-		openConfig("LanConfig");
-	} );
+	
+	//document.getElementById("lanBtn").addEventListener("click",  function() {
+	//	openConfig("LanConfig");
+	//} );
 	
 	
 	document.getElementById("coordBtn").addEventListener("click", function() {

@@ -249,6 +249,10 @@ public:
 		_localThreadPool = std::make_unique<ThreadPool>("MainPool", 0);
 		_lastRemoteJoin = std::chrono::steady_clock::now();
 		_thread.reset(new std::thread(&MainThreadApp::Run, this));
+
+#if _DEBUG
+		CreateChildProcess("simpleconnectioncoordinatord", "", true);
+#endif
 	}
 	
 	void Shutdown()
@@ -639,6 +643,8 @@ void PageLoaded()
 	// startup main app
 	GMainApp = std::make_unique< MainThreadApp >();
 
+
+
 }
 
 void JoinDeviceByGUID(const std::string& InGUID, const std::string& InPWD)
@@ -740,13 +746,6 @@ void HostThread(bool bLanOnly)
 #endif
 		ArgString.c_str(),
 		true);
-
-#if _DEBUG
-	if (!bLanOnly)
-	{
-		CreateChildProcess("simpleconnectioncoordinatord", "", true);
-	}
-#endif
 
 	while (true)
 	{
