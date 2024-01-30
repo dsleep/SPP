@@ -4,15 +4,15 @@
 
 
 #include "SPPCore.h"
+#include "SPPReflection.h"
+#include "SPPFileSystem.h"
+#include "SPPPlatformCore.h"
 #include "SPPString.h"
 #include "SPPMemory.h"
+
 #include "SPPSerialization.h"
 #include "SPPJsonUtils.h"
 #include "SPPLogging.h"
-#include "SPPFileSystem.h"
-
-
-#include "SPPPlatformCore.h"
 
 #include <thread>  
 
@@ -21,24 +21,23 @@ SPP_OVERLOAD_ALLOCATORS
 using namespace SPP;
 using namespace std::chrono_literals;
 
-#if PLATFORM_WINDOWS
-    #include <wx/msw/msvcrt.h>
-#endif
-
+#include <wx/msw/msvcrt.h>
 #include <wx/wx.h>
 #include <wx/filedlg.h>
 
-uint32_t GProcessID = 0;
-std::string GIPMemoryID;
-std::unique_ptr< std::thread > GWorkerThread;
-std::unique_ptr< IPCMappedMemory > GIPCMem;
-const int32_t MemSize = 2 * 1024 * 1024;
-
 enum
 {
-	BTN_Connect = wxID_HIGHEST + 1, // declares an id which will be used to call our button
-	BTN_Disconnect,
-	LB_ServerList
+	TEXT_AppPath = wxID_HIGHEST + 1, // declares an id which will be used to call our button
+	TEXT_Args,
+	MENU_New,
+	MENU_Open,
+	MENU_Close,
+	MENU_Save,
+	MENU_SaveAs,
+	MENU_Quit,
+	BTN_SelectPath,
+	BTN_Start,
+	BTN_Stop
 };
 
 class MyFrame;
@@ -56,54 +55,35 @@ public:
 	}
 };
 
-struct HostFromCoord
-{
-	std::string NAME;
-	std::string APPNAME;
-	std::string APPCL;
-	std::string GUID;
-};
-
-inline bool operator==(const HostFromCoord& InA, const HostFromCoord& InB) noexcept
-{
-	return InA.NAME == InB.NAME &&
-		InA.APPNAME == InB.APPNAME &&
-		InA.APPCL == InB.APPCL &&
-		InA.GUID == InB.GUID;
-}
-
 class MyFrame : public wxFrame
 {
 public:
 	MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
-		
-private:
-	wxListBox* _serverList = nullptr;
-	std::vector< HostFromCoord> _hostList;
-
-	wxStaticText* _WorkerStatus = nullptr;
-	wxStaticText* _BTStatus = nullptr;
-	wxStaticText* _ConnectionStatus = nullptr;
-	wxStaticText* _CoordStatus = nullptr;
-	wxStaticText* _StunStatus = nullptr;
-
-	wxTextCtrl* _passwordTB = nullptr;
-
-	wxButton* _startButton = nullptr;
-	void OnButton_Connect(wxCommandEvent& event);
-	void OnButton_Disconnect(wxCommandEvent& event);
+	wxTextCtrl* MainEditBox = nullptr;
+	wxTextCtrl* ArgsEditBox = nullptr;
+	wxBoxSizer* MainSizer = nullptr;
 
 	bool _bWorker = false;
 	bool _bCoord = false;
 	bool _bStun = false;
 	uint8_t _connectStatus = 0;
-	bool _bBT = false;
+
+	void UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN);
+
+private:
+	void OnHello(wxCommandEvent& event);
+	void OnExit(wxCommandEvent& event);
+	void OnAbout(wxCommandEvent& event);
+	void OnClose(wxCloseEvent& event);
+
+
+	void OnButton_SelectPath(wxCommandEvent& event);
+	void OnButton_Start(wxCommandEvent& event);
+	void OnButton_Stop(wxCommandEvent& event);
+
+	void SaveSettings();
 
 	wxDECLARE_EVENT_TABLE();
-
-public:
-	void UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN, bool BT);
-	void SetHosts(const std::vector< HostFromCoord >& InHosts);
 };
 enum
 {
@@ -111,170 +91,226 @@ enum
 };
 
 wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
-EVT_BUTTON(BTN_Connect, MyFrame::OnButton_Connect)
-EVT_BUTTON(BTN_Disconnect, MyFrame::OnButton_Disconnect)
-
+//EVT_MENU(ID_Hello, MyFrame::OnHello)
+//EVT_MENU(wxID_EXIT, MyFrame::OnExit)
+//EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
+EVT_CLOSE(MyFrame::OnClose)
+EVT_BUTTON(BTN_SelectPath, MyFrame::OnButton_SelectPath)
+EVT_BUTTON(BTN_Start, MyFrame::OnButton_Start)
+EVT_BUTTON(BTN_Stop, MyFrame::OnButton_Stop)
 wxEND_EVENT_TABLE()
+//wxIMPLEMENT_APP(MyApp);
 IMPLEMENT_APP_NO_MAIN(MyApp);
 
 bool MyApp::OnInit()
 {
-	_frame = new MyFrame("Remote Application Controller", wxPoint(50, 50), wxSize(640, 256));
+	_frame = new MyFrame("Remote Application Manager", wxPoint(50, 50), wxSize(512, 256));
 	_frame->Show(true);
 	return true;
 }
 
+struct AppConfig
+{
+	RTTR_ENABLE()
+
+public:
+	AppConfig()
+	{
+
+	}
+
+	AppConfig(std::string InApplicationPath, std::string InApplicationArguments) :
+		ApplicationPath(InApplicationPath),
+		ApplicationArguments(InApplicationArguments)
+	{
+	}
+
+	std::string ApplicationPath;
+	std::string ApplicationArguments;
+};
+
+RTTR_REGISTRATION
+{
+	rttr::registration::class_<AppConfig>("AppConfig")
+		.constructor()
+			(
+				rttr::policy::ctor::as_raw_ptr
+			)
+		.property("ApplicationPath", &AppConfig::ApplicationPath)(rttr::policy::prop::as_reference_wrapper)
+		.property("ApplicationArguments", &AppConfig::ApplicationArguments)(rttr::policy::prop::as_reference_wrapper)
+	;
+}
+
+//SPP_REFLECTION_API void PODToJSON(const rttr::instance& inValue, Json::Value& JsonRoot);
+//SPP_REFLECTION_API void JSONToPOD(rttr::instance& inValue, const Json::Value& JsonRoot);
+
 MyFrame::MyFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxFrame(NULL, wxID_ANY, title, pos, size)
 {
-#if PLATFORM_WINDOWS
 	SetIcon(wxICON(sppapp));
-#endif
+
+	//wxMenu* menuFile = new wxMenu;
+	//menuFile->Append(ID_Hello, "&Hello...\tCtrl-H", "Help string shown in status bar for this menu item");
+	//menuFile->AppendSeparator();
+	//menuFile->Append(wxID_EXIT);
+	//wxMenu* menuHelp = new wxMenu;
+	//menuHelp->Append(wxID_ABOUT);
+	//wxMenuBar* menuBar = new wxMenuBar;
+	//menuBar->Append(menuFile, "&File");
+	//menuBar->Append(menuHelp, "&Help");
+	//SetMenuBar(menuBar);
 	CreateStatusBar();
-		
-	auto StatusString = std::string_format("TIPS Remote Application Controller : V%s(%s)", SPP::GetGitTag(), SPP::GetGitHash() );
-	SetStatusText(StatusString.c_str());
+	SetStatusText("Worker not started...");
 
-	auto vertSizer = new wxBoxSizer(wxVERTICAL);	
+	MainSizer = new wxBoxSizer(wxVERTICAL);	
 
-	auto staticText = new wxStaticText(this, wxID_ANY, "Select Procedure from Available Servers:");
+	auto staticText = new wxStaticText(this, wxID_ANY, "Application Path:");
+	auto pathSizer = new wxBoxSizer(wxHORIZONTAL);	
+	auto pathButton = new wxButton(this, BTN_SelectPath, "...", wxDefaultPosition, wxSize(25,25), 0); 
+
+	MainEditBox = new wxTextCtrl(this, TEXT_AppPath, "", wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, wxTextCtrlNameStr);
+	pathSizer->Add(MainEditBox, 1, wxEXPAND);
+	pathSizer->Add(pathButton);
 	
-	
-	wxArrayString strings;
+	MainSizer->Add(staticText, 0, wxALL, 5);
+	MainSizer->Add(pathSizer, 0, wxEXPAND | wxALL, 5);
 
-	// Create a ListBox with Single-selection list.
-	_serverList = new wxListBox(this, LB_ServerList, wxDefaultPosition, wxDefaultSize, strings, wxLB_SINGLE);
+	auto staticText2 = new wxStaticText(this, wxID_ANY, "Additional Arguments (';' as a delimiter for unique RAC entries):");
+	ArgsEditBox = new wxTextCtrl(this, TEXT_Args, "", wxDefaultPosition, wxDefaultSize, 0, wxDefaultValidator, wxTextCtrlNameStr);
 
-	vertSizer->Add(staticText, 0, wxLEFT | wxTOP, 5);
-	vertSizer->Add(_serverList, 0, wxEXPAND | wxALL, 5);
-
-	//TODO
-	//auto staticText2 = new wxStaticText(this, wxID_ANY, "Password:");
-	//vertSizer->Add(staticText2, 0, wxLEFT, 5);
-	//
-	//_passwordTB = new wxTextCtrl(this, wxID_ANY,
-	//	L"",
-	//	wxDefaultPosition, 
-	//	wxDefaultSize, 
-	//	wxTE_PASSWORD);
-
-	//vertSizer->Add(_passwordTB, 0, wxEXPAND | wxALL, 5);
-
-	vertSizer->SetSizeHints(this);
+	MainSizer->Add(staticText2, 0, wxALL, 5);
+	MainSizer->Add(ArgsEditBox, 0, wxEXPAND | wxALL, 5);
 
 	auto buttonSizer = new wxBoxSizer(wxHORIZONTAL);
-	_startButton = new wxButton(this, BTN_Connect, "Connect", wxDefaultPosition, wxDefaultSize, 0);
-	auto stopButton = new wxButton(this, BTN_Disconnect, "Disconnect", wxDefaultPosition, wxDefaultSize, 0);
+	auto startButton = new wxButton(this, BTN_Start, "START", wxDefaultPosition, wxDefaultSize, 0); 
+	auto stopButton = new wxButton(this, BTN_Stop, "STOP", wxDefaultPosition, wxDefaultSize, 0); 
 
-	buttonSizer->Add(_startButton);
-	buttonSizer->Add(stopButton, 0, wxLEFT, 5);
-	buttonSizer->SetSizeHints(this);
-		
-	vertSizer->Add(buttonSizer,0, wxALL, 5);
+	buttonSizer->Add(startButton);
+	buttonSizer->Add(stopButton);
 
-	_WorkerStatus = new wxStaticText(this, wxID_ANY, "Worker: NOT OK");
-	_WorkerStatus->SetForegroundColour(wxColour("#ff0000"));
-	_BTStatus = new wxStaticText(this, wxID_ANY, "BT: NOT OK");
-	_BTStatus->SetForegroundColour(wxColour("#ff0000"));
-	_ConnectionStatus = new wxStaticText(this, wxID_ANY, "Connection: NOT OK");
-	_ConnectionStatus->SetForegroundColour(wxColour("#ff0000"));
-	_CoordStatus = new wxStaticText(this, wxID_ANY, "Coordinator: NOT OK");
-	_CoordStatus->SetForegroundColour(wxColour("#ff0000"));
-	_StunStatus = new wxStaticText(this, wxID_ANY, "STUN: NOT OK");
-	_StunStatus->SetForegroundColour(wxColour("#ff0000"));
+	MainSizer->Add(buttonSizer, 0, wxALL, 5);
 
-	vertSizer->Add(_WorkerStatus, 0, wxALL, 5);
-	vertSizer->Add(_BTStatus, 0, wxALL, 5);
-	vertSizer->Add(_ConnectionStatus, 0, wxALL, 5);
-	vertSizer->Add(_CoordStatus, 0, wxALL, 5);
-	vertSizer->Add(_StunStatus, 0, wxALL, 5);
+	MainSizer->SetMinSize(512, 100);
 
-	vertSizer->SetMinSize(640, 100);
 
-	SetSizerAndFit(vertSizer);
+	//
+	AppConfig appConfig;
+	Json::Value jsonData;
+	if (FileToJson("./RAMSettings.txt", jsonData))
+	{
+		//TODO FIXME
+		//JSONToPOD(std::ref(appConfig), jsonData);
+
+		MainEditBox->SetValue(appConfig.ApplicationPath.c_str());
+		ArgsEditBox->SetValue(appConfig.ApplicationArguments.c_str());
+	}
+
+	SetSizerAndFit(MainSizer);
 }
 
-void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN, bool BT)
+void MyFrame::OnButton_SelectPath(wxCommandEvent& event)
+{
+	wxFileDialog openFileDialog(this, _("Select exe file"), "", "",	"EXE files (*.exe)|*.exe", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+	if(openFileDialog.ShowModal() == wxID_CANCEL)
+		return;     // the user changed idea...
+
+	auto filePath = openFileDialog.GetPath();
+	MainEditBox->SetLabelText(filePath);
+}
+
+void MyFrame::OnClose(wxCloseEvent& event)
+{
+	SaveSettings();
+	Destroy();
+}
+
+void MyFrame::OnExit(wxCommandEvent& event)
+{
+	SaveSettings();
+	Close(true);
+}
+
+void MyFrame::SaveSettings()
+{
+	AppConfig appConfig( 
+		(std::string)MainEditBox->GetValue().mb_str(),
+		(std::string)ArgsEditBox->GetValue().mb_str() );
+
+	Json::Value jsonData;
+	//TODO FIXME
+	//PODToJSON(std::ref(appConfig), jsonData);
+	JsonToFile("./RAMSettings.txt", jsonData);	
+}
+
+void MyFrame::OnAbout(wxCommandEvent& event)
+{
+	wxMessageBox("This is a wxWidgets' Hello world sample", "About Hello World", wxOK | wxICON_INFORMATION);
+}
+
+void MyFrame::OnHello(wxCommandEvent& event)
+{
+	wxLogMessage("Hello world from wxWidgets!");
+}
+
+void MyFrame::UpdateStatus(uint8_t ConnectionStatus, bool Worker, bool Coordinator, bool STUN)
 {
 	bool bDoUpdate = false;
 
 	if (Worker != _bWorker)
 	{
 		_bWorker = Worker;
-		_WorkerStatus->SetLabelText(_bWorker ? "Worker: OK" : "Worker: NOT OK");
-		_WorkerStatus->SetForegroundColour(_bWorker ? wxColour("#00ff00") : wxColour("#ff0000") );
+		bDoUpdate = true;
 	}
 	if (Coordinator != _bCoord)
 	{
 		_bCoord = Coordinator;
-		_CoordStatus->SetLabelText(_bCoord ? "Coordinator: OK" : "Coordinator: NOT OK");
-		_CoordStatus->SetForegroundColour(_bCoord ? wxColour("#00ff00") : wxColour("#ff0000"));
+		bDoUpdate = true;
 	}
 	if (STUN != _bStun)
 	{
 		_bStun = STUN;
-		_StunStatus->SetLabelText(_bStun ? "STUN: OK" : "STUN: NOT OK");
-		_StunStatus->SetForegroundColour(_bStun ? wxColour("#00ff00") : wxColour("#ff0000"));
+		bDoUpdate = true;
 	}
 	if (ConnectionStatus != _connectStatus)
 	{
 		_connectStatus = ConnectionStatus;
-		_ConnectionStatus->SetLabelText(_connectStatus ? "Connection: OK" : "Connection: NOT OK");
-		_ConnectionStatus->SetForegroundColour(_connectStatus ? wxColour("#00ff00") : wxColour("#ff0000"));
+		bDoUpdate = true;
 	}
-	if (BT != _bBT)
+	if (bDoUpdate)
 	{
-		_bBT = BT;
-		_BTStatus->SetLabelText(_bBT ? "BT: OK" : "BT: NOT OK");
-		_BTStatus->SetForegroundColour(_bBT ? wxColour("#00ff00") : wxColour("#ff0000"));
-	}
+		std::string ArgString = std::string_format("Worker: %s, Coordinator: %s, STUN: %s, Connection: %s",
+			_bWorker ? "GOOD" : "BAD",
+			_bCoord ? "GOOD" : "NOT CONNECTED",
+			_bStun ? "GOOD" : "NOT CONNECTED",
+			_connectStatus ? "GOOD" : "NOT CONNECTED");
 
-	//update status for the button "Connect"
-	if(_bWorker && _bCoord && _bStun && _serverList->GetSelection() >= 0 && _startButton->GetLabel()!="Connecting...")
-		_startButton->Enable(true);
-	else
-		_startButton->Enable(false);
+		SetStatusText(ArgString.c_str());
+	}
 }
 
-void MyFrame::SetHosts(const std::vector< HostFromCoord >& InHosts)
+uint32_t GProcessID = 0;
+std::string GIPMemoryID;
+std::unique_ptr< std::thread > GWorkerThread;
+
+void WorkerThread(const std::string &AppPath, const std::string &Args)
 {
-	if (_hostList == InHosts) return;
-		
-	_serverList->Clear();
-	wxArrayString strings;
-	for (auto& curHost : InHosts)
-	{
-		stdfs::path pathString(curHost.APPCL.c_str());
-		std::string APPCL = curHost.APPCL;
-		if (pathString.has_filename())
-		{
-			APPCL = pathString.filename().generic_string();
-		}
+	GIPMemoryID = std::generate_hex(3);
+	const int32_t MemSize = 1 * 1024 * 1024;
+	IPCMappedMemory ipcMem(GIPMemoryID.c_str(), MemSize, true);
 
-		std::string ArgString = std::string_format("(%s):%s=%s",
-			curHost.NAME.c_str(),
-			curHost.APPNAME.c_str(),
-			APPCL.c_str());
+	std::string ArgString = std::string_format("-MEM=%s -APP=\"%s\" -CMDLINE=\"%s\"",
+		GIPMemoryID.c_str(),
+		AppPath.c_str(),
+		Args.c_str());
 
-		strings.push_back(ArgString.c_str());
-	}
-	_serverList->Append(strings);	
-	_hostList = InHosts;
-}
-
-
-void ClientWorkerThread()
-{
-	std::string ArgString = std::string_format("-MEM=%s",
-		GIPMemoryID.c_str());
-
-    #if _DEBUG
-        GProcessID = CreateChildProcess("remoteviewerd",
-    #else
-        GProcessID = CreateChildProcess("remoteviewer",
-    #endif
-
-		ArgString.c_str(),false);
+#if _DEBUG
+	GProcessID = CreateChildProcess("applicationhostd",
+#else
+	GProcessID = CreateChildProcess("applicationhost",
+#endif
+		ArgString.c_str(),
+		false);
 
 	while (true)
 	{
@@ -287,14 +323,14 @@ void ClientWorkerThread()
 			{
 				appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance]()
 					{
-						appInstance->GetFrame()->UpdateStatus(0, false, false, false, false);
+						appInstance->GetFrame()->UpdateStatus(0, false, false, false);
 					});
 			}
 			break;
 		}
 		else
 		{
-			auto memAccess = GIPCMem->Lock();
+			auto memAccess = ipcMem.Lock();
 
 			MemoryView inMem(memAccess, MemSize);
 			uint32_t dataSize = 0;
@@ -307,43 +343,18 @@ void ClientWorkerThread()
 				{
 					auto hasCoord = outRoot["COORD"].asUInt();
 					auto resolvedStun = outRoot["RESOLVEDSDP"].asUInt();
-					auto btConn = outRoot["BLUETOOTH"].asUInt();
-					
 					auto conncetionStatus = outRoot["CONNSTATUS"].asUInt();
-										
+
 					auto appInstance = (MyApp*)wxApp::GetInstance();
-					appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun, btConn]()
+					appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, conncetionStatus, hasCoord, resolvedStun]()
 						{
-							appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun, btConn);
+							appInstance->GetFrame()->UpdateStatus(conncetionStatus, true, hasCoord, resolvedStun);
 						});
-					
-
-					Json::Value hostList = outRoot.get("HOSTS", Json::Value::nullSingleton());
-					if (!hostList.isNull() && hostList.isArray())
-					{
-						std::vector< HostFromCoord > hosts;
-						for (int32_t Iter = 0; Iter < hostList.size(); Iter++)
-						{
-							auto currentHost = hostList[Iter];
-
-							hosts.push_back({
-								currentHost["NAME"].asCString(),
-								currentHost["APPNAME"].asCString(),
-								currentHost["APPCL"].asCString(),
-								currentHost["GUID"].asCString() });
-						}
-
-						auto appInstance = (MyApp*)wxApp::GetInstance();
-						appInstance->GetTopWindow()->GetEventHandler()->CallAfter([appInstance, hosts]()
-							{
-								appInstance->GetFrame()->SetHosts(hosts);
-							});
-					}
 				}
-			}		
+			}
 
 			*(uint32_t*)memAccess = 0;
-			GIPCMem->Release();
+			ipcMem.Release();
 			std::this_thread::sleep_for(250ms);
 		}
 	}
@@ -362,69 +373,61 @@ void StopThread()
 	}
 }
 
-void MyFrame::OnButton_Connect(wxCommandEvent& event)
+void MyFrame::OnButton_Start(wxCommandEvent& event)
 {
-	auto selection = _serverList->GetSelection();
-	if (selection >= 0 && selection < _hostList.size())
-	{
-		_startButton->SetLabel("Connecting...");
-		_startButton->Enable(false);
+	StopThread();
 
-		uint8_t hasData = ~(uint8_t)0;
+	auto appString = std::string(MainEditBox->GetValue().mb_str());
+	auto argString = std::string(ArgsEditBox->GetValue().mb_str());
 
-		BinaryBlobSerializer outData;
-		outData << hasData;
-		outData << _hostList[selection].GUID;
-		outData << _hostList[selection].APPCL;
-		GIPCMem->WriteMemory(outData.GetData(), outData.Size(), 1 * 1024 * 1024);
-	}
-
+	GWorkerThread.reset(new std::thread(WorkerThread, appString, argString));
 }
 
-void MyFrame::OnButton_Disconnect(wxCommandEvent& event)
+void MyFrame::OnButton_Stop(wxCommandEvent& event)
 {
-	exit(0);
+	StopThread();
 }
 
-#if PLATFORM_WINDOWS
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
-#else
-    int main(int argc, char *argv[])
-#endif
 {
 	IntializeCore(nullptr);
 
-	GIPMemoryID = std::generate_hex(3);	
-	GIPCMem.reset(new IPCMappedMemory(GIPMemoryID.c_str(), MemSize, true));
-
-#if PLATFORM_WINDOWS
+#if 1
 	_CrtSetDbgFlag(0);
+#else
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetBreakAlloc(9554);
+	_CrtSetBreakAlloc(9553);
+	_CrtSetBreakAlloc(9552);
 #endif
-		
-	auto ourApp = new MyApp();
-	// MyWxApp derives from wxApp
-	wxApp::SetInstance(ourApp);
-#if PLATFORM_WINDOWS
-	int argc = 0;
-	char** argv = nullptr;
+
+	{
+
+		auto ourApp = new MyApp();
+		// MyWxApp derives from wxApp
+		wxApp::SetInstance(ourApp);
+		int argc = 0;
+		char** argv = nullptr;
+		wxEntryStart(argc, argv);
+		ourApp->CallOnInit();
+
+#if _DEBUG
+		CreateChildProcess("SPPRemoteApplicationServerd", "", true);
+		CreateChildProcess("simpleconnectioncoordinatord", "", true);
 #endif
-	wxEntryStart(argc, argv);
-	ourApp->CallOnInit();
 
-	// start thread
-	GWorkerThread.reset(new std::thread(ClientWorkerThread));
+		ourApp->OnRun();
 
-	ourApp->OnRun();
+		StopThread();
 
-	StopThread();
+		ourApp->OnExit();
 
-	ourApp->OnExit();	
-	
-	delete ourApp;
-	wxEntryCleanup();
+		delete ourApp;
+		wxEntryCleanup();
+	}
 
 	return 0;
 }
