@@ -5,26 +5,26 @@ project(SPPApplicationsGroup_API VERSION 1.0.0 LANGUAGES CXX)
 if(OS_WINDOWS)
 
 ###################################################
-## SPPRemoteApplication
+## SPPRemoteApplicationServer
 ###################################################
-add_executable( SPPRemoteApplication WIN32 "")
-add_dependencies( SPPRemoteApplication SPPCore SPPReflection )
-target_sources( SPPRemoteApplication 
+add_executable( SPPRemoteApplicationServer WIN32 "")
+add_dependencies( SPPRemoteApplicationServer SPPCore SPPReflection )
+target_sources( SPPRemoteApplicationServer 
 	PRIVATE 
-	    "${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplication.cpp"					
+	    "${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationServer.cpp"					
 		"${SPP_ROOT}/SPPEngine/Win32/sppbasicresource.rc" )		
-target_link_libraries( SPPRemoteApplication 
+target_link_libraries( SPPRemoteApplicationServer 
 	 PRIVATE
 		SPPCore
 		SPPReflection
 	)
-set_target_properties( SPPRemoteApplication PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_property(TARGET SPPRemoteApplication PROPERTY FOLDER "APPLICATIONS")
-set_property(TARGET SPPRemoteApplication PROPERTY VS_DPI_AWARE "PerMonitor")
+set_target_properties( SPPRemoteApplicationServer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET SPPRemoteApplicationServer PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET SPPRemoteApplicationServer PROPERTY VS_DPI_AWARE "PerMonitor")
 
-TargetWxWidgetsSetup( SPPRemoteApplication )
+TargetWxWidgetsSetup( SPPRemoteApplicationServer )
 
-install(TARGETS SPPRemoteApplication DESTINATION "${SPP_ROOT}/INSTALL")
+install(TARGETS SPPRemoteApplicationServer DESTINATION "${SPP_ROOT}/INSTALL")
 
 ###################################################
 ## SPPRemoteDesktop
@@ -61,38 +61,38 @@ install(TARGETS SPPRemoteDesktop DESTINATION "${SPP_ROOT}/INSTALL")
 endif()
 
 # ###################################################
-# ## SPPRemoteApplicationServer
+# ## SPPRemoteApplicationClient
 # ###################################################
 
 if(OS_WINDOWS)
-    add_executable( SPPRemoteApplicationServer WIN32 "")
+    add_executable( SPPRemoteApplicationClient WIN32 "")
 else()
-    add_executable( SPPRemoteApplicationServer "")
+    add_executable( SPPRemoteApplicationClient "")
 endif()
 
-add_dependencies( SPPRemoteApplicationServer SPPCore SPPReflection remoteviewer )
-target_sources( SPPRemoteApplicationServer 
+add_dependencies( SPPRemoteApplicationClient SPPCore SPPReflection remoteviewer )
+target_sources( SPPRemoteApplicationClient 
 	PRIVATE 
-		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationServer.cpp"
+		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteApplicationClient.cpp"
 		"${SPP_ROOT}/SPPEngine/Win32/sppbasicresource.rc"
 	)		
-target_link_libraries( SPPRemoteApplicationServer 
+target_link_libraries( SPPRemoteApplicationClient 
 	PRIVATE
 		SPPCore
 		SPPReflection
 	)
-set_target_properties( SPPRemoteApplicationServer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-set_property(TARGET SPPRemoteApplicationServer PROPERTY FOLDER "APPLICATIONS")
-set_property(TARGET SPPRemoteApplicationServer PROPERTY VS_DPI_AWARE "PerMonitor")
+set_target_properties( SPPRemoteApplicationClient PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+set_property(TARGET SPPRemoteApplicationClient PROPERTY FOLDER "APPLICATIONS")
+set_property(TARGET SPPRemoteApplicationClient PROPERTY VS_DPI_AWARE "PerMonitor")
 
-TargetWxWidgetsSetup( SPPRemoteApplicationServer )
+TargetWxWidgetsSetup( SPPRemoteApplicationClient )
 
 if(OS_MAC)
 
-    set(APP_NAME "SPPRemoteApplicationServer" )
-    set(APP_BUNDLE_IDENTIFIER "tech.sleepingrobot.SPPRemoteApplicationServer" )
+    set(APP_NAME "SPPRemoteApplicationClient" )
+    set(APP_BUNDLE_IDENTIFIER "tech.sleepingrobot.SPPRemoteApplicationClient" )
 
-    set_target_properties(SPPRemoteApplicationServer PROPERTIES
+    set_target_properties(SPPRemoteApplicationClient PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${SPP_ROOT}/Misc/Mac/Info.plist.in"
         MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
@@ -113,24 +113,24 @@ if(OS_MAC)
         RESOURCE "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"
 #        XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME YES
     )
-    target_sources( SPPRemoteApplicationServer
+    target_sources( SPPRemoteApplicationClient
         PRIVATE
             "${SPP_ROOT}/Misc/Mac/MainAppWindow.xib"  )
             
-    add_custom_command(TARGET SPPRemoteApplicationServer POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:remoteviewer> ${SPP_ROOT}/Binaries/SPPRemoteApplicationServer.app/Contents/MacOS
+    add_custom_command(TARGET SPPRemoteApplicationClient POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:remoteviewer> ${SPP_ROOT}/Binaries/SPPRemoteApplicationClient.app/Contents/MacOS
         COMMENT "Copied RemoteViewer Into RAC"
         )
         
-    add_custom_command(TARGET SPPRemoteApplicationServer POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${SPP_ROOT}/Binaries/config.txt ${SPP_ROOT}/Binaries/SPPRemoteApplicationServer.app/Contents/Resources
+    add_custom_command(TARGET SPPRemoteApplicationClient POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${SPP_ROOT}/Binaries/config.txt ${SPP_ROOT}/Binaries/SPPRemoteApplicationClient.app/Contents/Resources
         COMMENT "Copied RemoteViewer Into RAC"
         )
         
-    install(TARGETS SPPRemoteApplicationServer DESTINATION "${SPP_ROOT}/INSTALL")
-    install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationServer.app/Contents/Resources")
+    install(TARGETS SPPRemoteApplicationClient DESTINATION "${SPP_ROOT}/INSTALL")
+    install(FILES "${SPP_ROOT}/Binaries/config.txt" DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationClient.app/Contents/Resources")
             
-    install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationServer.app/Contents/MacOS")
+    install(TARGETS remoteviewer DESTINATION "${SPP_ROOT}/INSTALL/SPPRemoteApplicationClient.app/Contents/MacOS")
 
     install(CODE "set(SPP_ROOT \"${SPP_ROOT}\")")
     install(CODE "set(THIRD_PARTY \"${THIRD_PARTY}\")")
@@ -156,7 +156,7 @@ if(OS_MAC)
             
     install(CODE [[
         include(BundleUtilities)
-        fixup_bundle("${CMAKE_INSTALL_PREFIX}/SPPRemoteApplicationServer.app" "" "${LIB_DIRS}")
+        fixup_bundle("${CMAKE_INSTALL_PREFIX}/SPPRemoteApplicationClient.app" "" "${LIB_DIRS}")
     ]] COMPONENT Runtime)
     
 if(false)
@@ -193,7 +193,7 @@ endif()
 
 if(OS_WINDOWS)
 
-install(TARGETS SPPRemoteApplicationServer DESTINATION "${SPP_ROOT}/INSTALL")
+install(TARGETS SPPRemoteApplicationClient DESTINATION "${SPP_ROOT}/INSTALL")
 
 install(DIRECTORY "${THIRD_PARTY}/wxWidgets/lib/vc_x64_dll/" #trailing / matters to flatten it
 	DESTINATION "${SPP_ROOT}/INSTALL"
