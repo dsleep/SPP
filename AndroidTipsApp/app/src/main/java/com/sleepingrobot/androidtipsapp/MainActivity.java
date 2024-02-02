@@ -1,11 +1,17 @@
 package com.sleepingrobot.androidtipsapp;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.*;
+import androidx.core.app.ActivityCompat;
 
 import android.os.Bundle;
 
+
+
+import android.content.pm.*;
 import android.widget.TextView;
 import android.widget.Spinner;
+import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.Button;
 import java.util.ArrayList;
@@ -14,6 +20,7 @@ import android.widget.ArrayAdapter;
 import android.os.Bundle;
 import android.util.Log;
 import java.io.*;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
@@ -37,14 +44,58 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private TextView tv = null;
 
+    public void checkPermission(String permission, int requestCode)
+    {
+        // Checking if permission is not granted
+        if (ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_DENIED) {
+            ActivityCompat.requestPermissions(this, new String[] { permission }, requestCode);
+        }
+        else
+        {
+            createScene();
+        //    Toast.makeText(this, "Permission already granted", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    createScene();
+
+                }  else {
+                    // Explain to the user that the feature is unavailable because
+                    // the feature requires a permission that the user has denied.
+                    // At the same time, respect the user's decision. Don't link to
+                    // system settings in an effort to convince the user to change
+                    // their decision.
+                }
+                return;
+        }
+        // Other 'case' lines to check for other
+        // permissions this app might request.
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_main);
-
         Log.d(TAG, "AndroidBTTest");
 
+        //setContentView(R.layout.activity_main);
+        checkPermission("android.permission.BLUETOOTH_CONNECT", 1);
+
+
+
+    }
+
+    private void createScene()
+    {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         /* Create a TextView and set its text to "Hello world" */
