@@ -42,6 +42,10 @@
 #include "SPPNetworkMessenger.h"
 #include "SPPNatTraversal.h"
 
+#if PLATFORM_WINDOWS && HAS_WINRT
+	#include "SPPWinRTBTE.h"
+#endif
+
 SPP_OVERLOAD_ALLOCATORS
 
 using namespace std::chrono_literals;
@@ -216,7 +220,10 @@ struct RemoteClient
 	static const char* REMOTE_VIEWER_APP = "remoteviewer";
 #endif
 
-class MainThreadApp
+
+std::unique_ptr< ThreadPool > GMainThreadPool;
+
+class MainThreadApp : public IBTEWatcher
 {
 private:
 	std::unique_ptr< TimerController > _timer;
@@ -241,6 +248,8 @@ private:
 	std::map<std::string, RemoteClient> _remoteDevices;
 	std::chrono::steady_clock::time_point _lastRemoteJoin;
 
+	std::unique_ptr< BTEWatcher > _watcher;
+
 public:
 	MainThreadApp()
 	{
@@ -250,9 +259,29 @@ public:
 		_lastRemoteJoin = std::chrono::steady_clock::now();
 		_thread.reset(new std::thread(&MainThreadApp::Run, this));
 
+		_watcher = std::make_unique< BTEWatcher >();
+		_watcher->WatchForData("0000bee1-0000-1000-8000-00805f9b34fb",
+			{
+				{ "0000bee2-0000-1000-8000-00805f9b34fb", this }
+			});
+
 #if _DEBUG
 		CreateChildProcess("simpleconnectioncoordinatord", "", true);
 #endif
+	}
+
+	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
+	{
+		//route data
+		//if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
+		//{
+		//	BinaryBlobSerializer thisMessage;
+		//	thisMessage << (uint8_t)4;
+		//	thisMessage << InMessage;
+		//	videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
+		//}
+
+		SPP_LOG(LOG_RD, LOG_INFO, "BTLE Message: %d", DataSize);
 	}
 	
 	void Shutdown()
@@ -521,6 +550,11 @@ public:
 			UpdateRemoteDevices();
 		});
 
+		_timer->AddTimer(1s, true, [&]()
+		{
+			_watcher->IsConnected();
+		});
+
 		// COORDINATOR UPDATES
 		auto LastSQLQuery = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 		_timer->AddTimer(50ms, true, [&]()
@@ -640,11 +674,10 @@ void PageLoaded()
 	JsonToString(jsonData, oString);
 	JavascriptInterface::InvokeJS("SetConfig", oString);
 
-	// startup main app
-	GMainApp = std::make_unique< MainThreadApp >();
-
-
-
+	GMainThreadPool->enqueue([]() {
+		// startup main app
+		GMainApp = std::make_unique< MainThreadApp >();
+	});
 }
 
 void JoinDeviceByGUID(const std::string& InGUID, const std::string& InPWD)
@@ -928,13 +961,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	SPP::GBinaryPath = SPP::GRootPath + "Binaries\\";
 	SPP::GAssetPath = SPP::GRootPath + "Assets\\";
 
+
+	TimerController mainController(16ms);
+	GMainThreadPool = std::make_unique<ThreadPool>("MainThreadPool", 0);
+
 	{
 		std::function<void(const std::string&, Json::Value&) > jsFuncRecv = JSFunctionReceiver;
 
-		std::thread runCEF([hInstance, &jsFuncRecv]()
+		std::thread runCEF([hInstance, &jsFuncRecv, &mainController]()
 		{
 			SPP::RunBrowser(hInstance, "http://spp/assets/web/remotedesktop/indexV2.html", {}, {}, false, &jsFuncRecv);
+			mainController.Stop();
 		});
+
+		mainController.AddTimer(16ms, true, [&]()
+		{
+			GMainThreadPool->RunOnce();
+		});
+		mainController.Run();
 
 		runCEF.join();
 

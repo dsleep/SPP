@@ -40,6 +40,7 @@ import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
 
+import android.view.WindowManager;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -55,7 +56,15 @@ import android.view.MotionEvent;
 import org.json.*;
 
 public class MainActivity extends AppCompatActivity {
-    private static final UUID BT_MODULE_UUID = UUID.fromString("263beec5-a7fe-443a-a9ee-9bdfc5fc17a3");
+
+
+    private static final UUID BT_MODULE_SERVICE = UUID.fromString("0000bee1-0000-1000-8000-00805f9b34fb");
+
+    private static final UUID BT_MODULE_UUID = UUID.fromString("0000bee2-0000-1000-8000-00805f9b34fb");
+
+    // must be this weird UUID!!!
+    public static final UUID BT_CONFIG = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
     private static final String TAG = "BT";
     // private VelocityTracker mVelocityTracker = null;
 
@@ -116,19 +125,24 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "AndroidBTTest");
 
         //setContentView(R.layout.activity_main);
-        checkPermission("android.permission.BLUETOOTH_CONNECT", 1);
+        checkPermission("android.permission.BLUETOOTH_ADVERTISE", 1);
     }
 
     private BluetoothGattService CreateGattService()
     {
-        BluetoothGattService service = new BluetoothGattService(BT_MODULE_UUID,
+        BluetoothGattService service = new BluetoothGattService(BT_MODULE_SERVICE,
                 BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
         // Current Time characteristic
         BluetoothGattCharacteristic currentTime = new BluetoothGattCharacteristic(BT_MODULE_UUID,
                 //Read-only characteristic, supports notifications
-                BluetoothGattCharacteristic.PERMISSION_WRITE,
+                BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ);
+
+        BluetoothGattDescriptor configDescriptor = new BluetoothGattDescriptor(BT_CONFIG,
+                //Read/write descriptor
+                BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
+        currentTime.addDescriptor(configDescriptor);
 
         service.addCharacteristic(currentTime);
         return service;
@@ -145,6 +159,15 @@ public class MainActivity extends AppCompatActivity {
                 //Remove device from any active subscriptions
                 mRegisteredDevices.remove(device);
             }
+        }
+
+        @Override
+        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId,
+                                                 BluetoothGattCharacteristic characteristic,
+                                                 boolean preparedWrite, boolean responseNeeded,
+                                                 int offset, byte[] value) {
+
+            Log.i(TAG, "onCharacteristicWriteRequest");
         }
 
         @Override
@@ -171,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset,
                                             BluetoothGattDescriptor descriptor) {
-            if (BT_MODULE_UUID.equals(descriptor.getUuid())) {
+            if (BT_CONFIG.equals(descriptor.getUuid())) {
                 Log.d(TAG, "Config descriptor read");
                 byte[] returnValue;
                 if (mRegisteredDevices.contains(device)) {
@@ -199,14 +222,24 @@ public class MainActivity extends AppCompatActivity {
                                              BluetoothGattDescriptor descriptor,
                                              boolean preparedWrite, boolean responseNeeded,
                                              int offset, byte[] value) {
-            if (BT_MODULE_UUID.equals(descriptor.getUuid())) {
+
+            Log.w(TAG, "onDescriptorWriteRequest: " + value.length + value[0] + value[1]);
+
+            if (BT_CONFIG.equals(descriptor.getUuid())) {
+                Log.w(TAG, " - our descriptor hit");
+
                 if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
-                    Log.d(TAG, "Subscribe device to notifications: " + device);
+                    Log.w(TAG, "Subscribe device to notifications: " + device);
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                     mRegisteredDevices.add(device);
                 } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
-                    Log.d(TAG, "Unsubscribe device from notifications: " + device);
+                    Log.w(TAG, "Unsubscribe device from notifications: " + device);
+                    descriptor.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
                     mRegisteredDevices.remove(device);
                 }
+
+                if(mRegisteredDevices.isEmpty()) tv.setText("No Connection");
+                else tv.setText("Connected");
 
                 if (responseNeeded) {
                     mBluetoothGattServer.sendResponse(device,
@@ -236,6 +269,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         mBluetoothGattServer.addService(CreateGattService());
+        Log.w(TAG, "Started GATT servivce");
     }
 
     /**
@@ -246,6 +280,8 @@ public class MainActivity extends AppCompatActivity {
 
         mBluetoothGattServer.close();
         mBluetoothGattServer = null;
+
+        Log.w(TAG, "Stopped GATT servivce");
     }
 
     private BroadcastReceiver mBluetoothReceiver = new BroadcastReceiver() {
@@ -255,12 +291,10 @@ public class MainActivity extends AppCompatActivity {
 
             switch (state) {
                 case BluetoothAdapter.STATE_ON:
-                    startAdvertising();
-                    startServer();
+                    ActivateBlueToothAndAdvertise();
                     break;
                 case BluetoothAdapter.STATE_OFF:
-                    stopServer();
-                    stopAdvertising();
+                    DeactivateBlueToothAndAdvertise();
                     break;
                 default:
                     // Do nothing
@@ -292,26 +326,29 @@ public class MainActivity extends AppCompatActivity {
         }
 
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
-                .setConnectable(true)
-                .setTimeout(0)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+                .setAdvertiseMode( AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY )
+                .setTxPowerLevel( AdvertiseSettings.ADVERTISE_TX_POWER_HIGH )
+                .setConnectable( true )
                 .build();
 
+        ParcelUuid pUuid = new ParcelUuid( BT_MODULE_SERVICE );
         AdvertiseData data = new AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
-                .setIncludeTxPowerLevel(false)
-                .addServiceUuid(new ParcelUuid(BT_MODULE_UUID))
+                .setIncludeDeviceName( false )
+                .addServiceUuid( pUuid )
+                .addServiceData( pUuid, "Data".getBytes() )
                 .build();
 
         mBluetoothLeAdvertiser
                 .startAdvertising(settings, data, mAdvertiseCallback);
+        Log.w(TAG, "Is Advertising services");
     }
 
     private void stopAdvertising() {
         if (mBluetoothLeAdvertiser == null) return;
 
         mBluetoothLeAdvertiser.stopAdvertising(mAdvertiseCallback);
+
+        Log.w(TAG, "Stopped Advertising services");
     }
 
     private void notifyRegisteredDevices() {
@@ -323,24 +360,120 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "Sending update to " + mRegisteredDevices.size() + " subscribers");
         for (BluetoothDevice device : mRegisteredDevices) {
             BluetoothGattCharacteristic positionValue = mBluetoothGattServer
-                    .getService(BT_MODULE_UUID)
+                    .getService(BT_MODULE_SERVICE)
                     .getCharacteristic(BT_MODULE_UUID);
             positionValue.setValue(lastPosition);
             mBluetoothGattServer.notifyCharacteristicChanged(device, positionValue, false);
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Log.w(TAG, "onStart");
+
+        // Register for system Bluetooth events
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(mBluetoothReceiver, filter);
+
+        ActivateBlueToothAndAdvertise();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        Log.w(TAG, "onStop");
+
+        unregisterReceiver(mBluetoothReceiver);
+
+        DeactivateBlueToothAndAdvertise();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        BluetoothAdapter bluetoothAdapter = mBluetoothManager.getAdapter();
+        if (bluetoothAdapter.isEnabled()) {
+            stopServer();
+            stopAdvertising();
+        }
+
+    }
+
+    private boolean checkBluetoothSupport(BluetoothAdapter bluetoothAdapter) {
+
+        if (bluetoothAdapter == null) {
+            Log.w(TAG, "Bluetooth is not supported");
+            return false;
+        }
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Log.w(TAG, "Bluetooth LE is not supported");
+            return false;
+        }
+
+        return true;
+    }
+
     private void createScene()
     {
+        Log.w(TAG, "createScene");
+
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         /* Create a TextView and set its text to "Hello world" */
         tv = new TextView(this);
-        tv.setText("BT TEST!!");
+        tv.setText("Startup...");
 
         layout.addView(tv);
 
         setContentView(layout);
+
+        // Devices with a display should not go to sleep
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        mBluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = mBluetoothManager.getAdapter();
+        // We can't continue without proper Bluetooth support
+        //if (!checkBluetoothSupport(bluetoothAdapter)) {
+          //  finish();
+        //}
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            tv.setText("Bluetooth LE is not supported");
+            return;
+        }
+
+
+        if (!bluetoothAdapter.isEnabled()) {
+            tv.setText("Bluetooth is currently disabled...");
+        }
+        else {
+            tv.setText("Active");
+            ActivateBlueToothAndAdvertise();
+        }
+    }
+
+    private boolean bIsActive = false;
+
+    private void ActivateBlueToothAndAdvertise()
+    {
+        if(bIsActive || mBluetoothManager == null) return;
+        bIsActive = true;
+        startAdvertising();
+        startServer();
+    }
+
+    private void DeactivateBlueToothAndAdvertise()
+    {
+        if(!bIsActive || mBluetoothManager == null) return;
+        bIsActive = false;
+        stopServer();
+        stopAdvertising();
     }
 
     @Override
@@ -351,22 +484,25 @@ public class MainActivity extends AppCompatActivity {
             case MotionEvent.ACTION_DOWN:
 
                 //if(connectedThread!=null)
-                {
-                    JSONObject obj = new JSONObject();
-                    try
-                    {
-                        obj.put("X", event.getX());
-                        obj.put("Y", event.getY());
-                    }
-                    catch (JSONException e)  {}
 
-                    lastPosition = obj.toString();
-                    notifyRegisteredDevices();
-                    //connectedThread.write(obj.toString());
-                }
 
                 break;
             case MotionEvent.ACTION_MOVE:
+
+            {
+                JSONObject obj = new JSONObject();
+                try
+                {
+                    obj.put("X", event.getX());
+                    obj.put("Y", event.getY());
+                }
+                catch (JSONException e)  {}
+
+                lastPosition = obj.toString();
+                notifyRegisteredDevices();
+                //connectedThread.write(obj.toString());
+            }
+            
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 break;

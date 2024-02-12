@@ -30,7 +30,7 @@ install(TARGETS SPPRemoteApplicationServer DESTINATION "${SPP_ROOT}/INSTALL")
 ## SPPRemoteDesktop
 ###################################################
 add_executable( SPPRemoteDesktop WIN32 "")
-add_dependencies( SPPRemoteDesktop SPPCore SPPNetworking SPPReflection SPPCEFUserInterface )
+add_dependencies( SPPRemoteDesktop SPPCore SPPNetworking SPPReflection SPPCEFUserInterface SPPWinRTBTE )
 target_sources( SPPRemoteDesktop 
 	PRIVATE 
 		"${CMAKE_CURRENT_LIST_DIR}/SPPRemoteDesktop.cpp"					
@@ -41,6 +41,7 @@ target_link_libraries( SPPRemoteDesktop
         SPPNetworking
 		SPPReflection
         SPPCEFUserInterface
+        SPPWinRTBTE
 	)
 set_target_properties( SPPRemoteDesktop PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 set_property(TARGET SPPRemoteDesktop PROPERTY FOLDER "APPLICATIONS")
