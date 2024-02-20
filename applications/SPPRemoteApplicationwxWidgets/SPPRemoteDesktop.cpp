@@ -53,6 +53,7 @@ using namespace SPP;
 
 #include <shellapi.h>
 
+#define USE_UDP_BEACON 0
 
 LogEntry LOG_RD("RemoteDesktop");
 
@@ -221,6 +222,14 @@ struct RemoteClient
 #endif
 
 
+struct IPCMotionState
+{
+	int32_t buttonState[2];
+	float motionXY[2];
+	float orientationQuaternion[4];
+};
+
+
 std::unique_ptr< ThreadPool > GMainThreadPool;
 
 class MainThreadApp : public IBTEWatcher
@@ -233,10 +242,24 @@ private:
 	std::thread::id _runThreadID;
 
 	std::unique_ptr<UDP_SQL_Coordinator> _coordinator; 
+
+#if USE_UDP_BEACON
 	std::unique_ptr<UDPSocket> _broadReceiver;
+#endif
 	std::unique_ptr<UDPJuiceSocket> _juiceSocket;
 
-	std::unique_ptr < IPCMappedMemory> _appIPC; 
+	//std::unique_ptr < IPCMappedMemory> _appIPC; 
+	//std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
+
+	struct ViewerProcData
+	{
+		std::shared_ptr<PlatformProcess> process;
+		std::unique_ptr<IPCMappedMemory> appIPC;
+		std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > msgQueue;
+		std::string IPCGuid;
+	};
+
+	std::list< std::shared_ptr<ViewerProcData> > _viewerProcesses;
 
 	const uint8_t CoordID = 0;
 	const uint8_t JuiceeID = 1;
@@ -270,18 +293,32 @@ public:
 #endif
 	}
 
-	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
+	void SendIPCs(const IPCMotionState& iData)
 	{
-		//route data
-		//if (videoConnection && videoConnection->IsValid() && videoConnection->IsConnected())
-		//{
-		//	BinaryBlobSerializer thisMessage;
-		//	thisMessage << (uint8_t)4;
-		//	thisMessage << InMessage;
-		//	videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Size(), EMessageMask::IS_RELIABLE);
-		//}
+		if (_runThreadID != std::this_thread::get_id())
+		{
+			_localThreadPool->enqueue([CpyValue = iData,this]()
+			{
+				SendIPCs(CpyValue);
+			});
+			return;
+		}
 
+		for (const auto& curProc : _viewerProcesses)
+		{
+			curProc->msgQueue->PushMessage(iData);
+		}
+	}
+
+	virtual void IncomingData(uint8_t* InData, size_t DataSize) override
+	{		
 		SPP_LOG(LOG_RD, LOG_INFO, "BTLE Message: %d", DataSize);
+
+		if (sizeof(IPCMotionState) == DataSize)
+		{
+			IPCMotionState dataCpy = *(IPCMotionState*)InData;
+			SendIPCs(dataCpy);
+		}
 	}
 	
 	void Shutdown()
@@ -341,8 +378,10 @@ public:
 			if (foundDevice != _remoteDevices.end())
 			{
 				auto FullBinPath = SPP::GRootPath + "Binaries/" + REMOTE_VIEWER_APP;
-				std::string ArgString = "";
 				
+				std::string IPCGuid = std::generate_hex(3);
+				std::string ArgString = std::string_format(" -MEMSHARE=%s", IPCGuid.c_str());;
+
 				if (foundDevice->second.LanAddr.length())
 				{
 					ArgString += std::string_format(" -lanaddr=%s", foundDevice->second.LanAddr.c_str());
@@ -361,7 +400,18 @@ public:
 
 				if (remoteViewerProc->IsValid())
 				{
-					//
+					std::unique_ptr< IPCMappedMemory> appIPC;
+					std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > msgQueue;
+					appIPC = std::make_unique<IPCMappedMemory>(IPCGuid.c_str(), sizeof(IPCMotionState) * 200, true);
+					msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*appIPC);
+
+					std::shared_ptr< ViewerProcData > newRemoteViewer;
+					newRemoteViewer.reset(new ViewerProcData{ remoteViewerProc,
+						std::move(appIPC), 
+						std::move(msgQueue), 
+						IPCGuid });
+
+					_viewerProcesses.push_back(newRemoteViewer);
 				}
 			}
 		}
@@ -386,11 +436,13 @@ public:
 			GAppConfig.coord = InConfig.coord;
 			CreateCoordinator();
 		}
+#if USE_UDP_BEACON
 		if (InConfig.lan != GAppConfig.lan)
 		{
 			GAppConfig.lan = InConfig.lan;
 			_broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
 		}
+#endif
 		if (InConfig.stun != GAppConfig.stun)
 		{
 			GAppConfig.stun = InConfig.stun;
@@ -536,9 +588,9 @@ public:
 		_juiceSocket = std::make_unique<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 
 		//
-
+#if USE_UDP_BEACON
 		_broadReceiver = std::make_unique<UDPSocket>(GAppConfig.lan.port, UDPSocketOptions::Broadcast);
-		
+#endif
 
 		//CHECK BROADCASTS
 		std::vector<uint8_t> BufferRead;
@@ -570,6 +622,7 @@ public:
 			}			
 		});
 
+#if USE_UDP_BEACON
 		_timer->AddTimer(100ms, true, [&]()
 		{
 			IPv4_SocketAddress recvAddr;
@@ -598,6 +651,7 @@ public:
 				}
 			}
 		});
+#endif
 
 		//ICE/STUN management
 		_timer->AddTimer(100ms, true, [&]()

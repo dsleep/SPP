@@ -317,6 +317,7 @@ END_EVENT_TABLE()
 
 const uint8_t KeyBoardMessage = 0x02;
 const uint8_t MouseMessage = 0x03;
+const uint8_t BTMessage = 0x04;
 
 const uint8_t MS_ButtonOrMove = 0x01;
 const uint8_t MS_Window = 0x02;
@@ -815,18 +816,31 @@ void MainWithLanOnly(const std::string& ThisRUNGUID, const std::string &LanAddr)
 	mainController.Run();
 }
 
+struct IPCMotionState
+{
+	int32_t buttonState[2];
+	float motionXY[2];
+	float orientationQuaternion[4];
+};
+
 /// <summary>
 /// 
 /// </summary>
 /// <param name="ThisRUNGUID"></param>
 /// <param name="IncomingGUID"></param>
-void MainWithNatTraverasl(const std::string& ThisRUNGUID, const std::string &IncomingGUID)
+void MainWithNatTraverasl(const std::string& ThisRUNGUID, const std::string &IncomingGUID, const std::string &InMemshareID)
 {
 	auto LastBTTime = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	auto LastRequestJoins = std::chrono::steady_clock::now() - std::chrono::seconds(30);
 	using namespace std::chrono_literals;
 
 	std::shared_ptr< VideoConnection > videoConnection;
+
+	std::unique_ptr< IPCMappedMemory> appIPC;
+	std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > msgQueue;
+	appIPC = std::make_unique<IPCMappedMemory>(InMemshareID.c_str(), sizeof(IPCMotionState) * 200, true);
+	msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*appIPC);
+		
 
 	auto juiceSocket = std::make_shared<UDPJuiceSocket>(GAppConfig.stun.addr.c_str(), GAppConfig.stun.port);
 	std::unique_ptr<UDP_SQL_Coordinator> coordinator = std::make_unique<UDP_SQL_Coordinator>(GAppConfig.coord.addr.c_str());
@@ -900,6 +914,24 @@ void MainWithNatTraverasl(const std::string& ThisRUNGUID, const std::string &Inc
 			}
 		});
 
+	// CHECK IPC
+	mainController.AddTimer(3ms, true, [&]()
+		{
+			auto IPCMessages = msgQueue->GetMessages();
+			for (const auto& curMessage : IPCMessages)
+			{
+				if (videoConnection && videoConnection->IsValid())
+				{
+					//BTMessage
+					BinaryBlobSerializer thisMessage;
+					thisMessage << BTMessage;
+					thisMessage.Write(&curMessage, sizeof(IPCMotionState));
+
+					videoConnection->SendMessage(thisMessage.GetData(), thisMessage.Tell(), EMessageMask::IS_RELIABLE);					
+				}
+			}
+		});
+
 	//VIDEO UPDATES
 	mainController.AddTimer(41.6ms, true, [&]()
 		{
@@ -962,21 +994,23 @@ void SPPApp(int argc, char* argv[])
 	auto CCMap = std::BuildCCMap(argc, argv);
 	auto lanAddr = MapFindOrDefault(CCMap, "lanaddr");
 	auto connectionGUID = MapFindOrDefault(CCMap, "connectionID");
+	auto memshareID = MapFindOrDefault(CCMap, "MEMSHARE");
+
 	GConnectionPWDFromCMD = MapFindOrDefault(CCMap, "pwd");
 
-	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s", ThisRUNGUID.c_str());
+	SPP_LOG(LOG_APP, LOG_INFO, "RUN GUID: %s MEM SHARE: %s", ThisRUNGUID.c_str(), memshareID.c_str());
 
 	// START OS NETWORKING
 	GetOSNetwork();
 
 	//
-	if (lanAddr.length())
+	//if (lanAddr.length())
+	//{
+	//	MainWithLanOnly(ThisRUNGUID, lanAddr);
+	//}
+	//else if(connectionGUID.length())
 	{
-		MainWithLanOnly(ThisRUNGUID, lanAddr);
-	}
-	else if(connectionGUID.length())
-	{
-		MainWithNatTraverasl(ThisRUNGUID, connectionGUID);
+		MainWithNatTraverasl(ThisRUNGUID, connectionGUID, memshareID);
 	}
 }
 

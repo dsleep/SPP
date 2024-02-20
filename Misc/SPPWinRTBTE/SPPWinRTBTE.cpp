@@ -397,7 +397,7 @@ namespace SPP
 
 				auto sDeviceName = std::wstring_to_utf8(std::wstring(eventArgs.Advertisement().LocalName()));
 				auto sType = std::wstring_to_utf8(advertisementTypeToString(eventArgs.AdvertisementType()));
-				SPP_LOG(LOG_BTE, LOG_INFO, "AdvertisementReceived: %s(%s)", sDeviceName.c_str(), sType.c_str());
+				//SPP_LOG(LOG_BTE, LOG_INFO, "AdvertisementReceived: %s(%s)", sDeviceName.c_str(), sType.c_str());
 
 				//std::wcout <<
 				//	"AdvertisementReceived:" << std::endl <<
@@ -410,12 +410,12 @@ namespace SPP
 				for (auto const& g : eventArgs.Advertisement().ServiceUuids())
 				{
 					auto currentServiceGUID = std::wstring_to_utf8(guidToString(g));
-
-					SPP_LOG(LOG_BTE, LOG_INFO, " - adv has service: %s", currentServiceGUID.c_str());
-
+					
 					//std::wcout << "ServiceUUID: [" << guidToString(g) << "]" << std::endl;
 					if (RequestedServiceGUID == g)
 					{
+						SPP_LOG(LOG_BTE, LOG_INFO, " - adv has service we need: %s", currentServiceGUID.c_str());
+
 						auto deviceAddress = eventArgs.BluetoothAddress();
 						//watcher.Stop();
 

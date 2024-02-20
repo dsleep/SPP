@@ -30,6 +30,23 @@ namespace SPP
 {
 	SPP_CORE_API LogEntry LOG_WIN32CORE("WIN32CORE");
 
+	void GetAllWindowsFromProcessID(DWORD dwProcessID, std::vector <HWND>& vhWnds)
+	{
+		// find all hWnds (vhWnds) associated with a process id (dwProcessID)
+		HWND hCurWnd = nullptr;
+		do
+		{
+			hCurWnd = FindWindowEx(nullptr, hCurWnd, nullptr, nullptr);
+			DWORD checkProcessID = 0;
+			GetWindowThreadProcessId(hCurWnd, &checkProcessID);
+			if (checkProcessID == dwProcessID)
+			{
+				vhWnds.push_back(hCurWnd);  // add the found hCurWnd to the vector
+				//wprintf(L"Found hWnd %d\n", hCurWnd);
+			}
+		} while (hCurWnd != nullptr);
+	}
+
 	LONG GetDWORDRegKey(HKEY hKey, const std::string& strValueName, DWORD& nValue)
 	{
 		DWORD dwBufferSize(sizeof(DWORD));
@@ -315,6 +332,17 @@ namespace SPP
 					return;
 				}
 			}			
+		}
+
+		virtual void Send(uint32_t InMessage) override
+		{
+			std::vector <HWND> vhWnds;
+			GetAllWindowsFromProcessID(_processID, vhWnds);
+
+			for (const auto& curhWnd : vhWnds)
+			{
+				PostMessage(curhWnd, WM_USER+1, InMessage, 0);
+			}
 		}
 
 		virtual ~Win32Process()

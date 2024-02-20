@@ -68,6 +68,8 @@ namespace SPP
 		virtual bool IsValid() = 0;
 		virtual bool IsRunning() = 0;
 
+		virtual void Send(uint32_t InMessage) {}
+
 		virtual std::string GetOutput() = 0;
 	};
 

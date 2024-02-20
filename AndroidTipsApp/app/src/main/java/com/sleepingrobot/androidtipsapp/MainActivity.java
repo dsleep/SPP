@@ -6,7 +6,10 @@ import androidx.core.app.ActivityCompat;
 
 import android.os.Bundle;
 
-
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 import android.content.pm.*;
 import android.widget.TextView;
@@ -14,6 +17,8 @@ import android.widget.Spinner;
 import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.Button;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -55,7 +60,7 @@ import java.util.*;
 import android.view.MotionEvent;
 import org.json.*;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SensorEventListener  {
 
 
     private static final UUID BT_MODULE_SERVICE = UUID.fromString("0000bee1-0000-1000-8000-00805f9b34fb");
@@ -77,7 +82,29 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tv = null;
 
-    private String lastPosition = "";
+    private String _BLEMessage = "";
+    private int[] buttonState = {0, 0};
+    private float[] orientationQuaternion = {0,0,0,0};
+    private SensorManager mSensorManager;
+
+    private ByteBuffer _buffer = ByteBuffer.allocateDirect(32);
+
+    private final int offset_buttonState1 = 0;
+    private final int offset_buttonState2 = 4;
+    private final int offset_motionX = 8;
+    private final int offset_motionY = 12;
+    private final int offset_quatX = 16;
+    private final int offset_quatY = 20;
+    private final int offset_quatZ = 24;
+    private final int offset_quatW = 28
+            ;
+    //struct IPCMotionState
+    //{
+    //  int32_t buttonState[2];
+    //  float motionXY[2];
+    //  float orientationQuaternion[4];
+    //};
+
 
     public void checkPermission(String permission, int requestCode)
     {
@@ -123,6 +150,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "AndroidBTTest");
+
+        // initialize your android device sensor capabilities
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         //setContentView(R.layout.activity_main);
         checkPermission("android.permission.BLUETOOTH_ADVERTISE", 1);
@@ -179,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
                         requestId,
                         BluetoothGatt.GATT_SUCCESS,
                         0,
-                        lastPosition.getBytes());
+                        _buffer.array());
             } else {
                 // Invalid characteristic
                 Log.w(TAG, "Invalid Characteristic Read: " + characteristic.getUuid());
@@ -357,12 +387,13 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        BluetoothGattCharacteristic positionValue = mBluetoothGattServer
+                .getService(BT_MODULE_SERVICE)
+                .getCharacteristic(BT_MODULE_UUID);
+        positionValue.setValue(_buffer.array());
+
         Log.i(TAG, "Sending update to " + mRegisteredDevices.size() + " subscribers");
         for (BluetoothDevice device : mRegisteredDevices) {
-            BluetoothGattCharacteristic positionValue = mBluetoothGattServer
-                    .getService(BT_MODULE_SERVICE)
-                    .getCharacteristic(BT_MODULE_UUID);
-            positionValue.setValue(lastPosition);
             mBluetoothGattServer.notifyCharacteristicChanged(device, positionValue, false);
         }
     }
@@ -378,6 +409,13 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(mBluetoothReceiver, filter);
 
         ActivateBlueToothAndAdvertise();
+
+        mSensorManager.registerListener(this,
+                mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this,
+                mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+                SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override
@@ -389,6 +427,10 @@ public class MainActivity extends AppCompatActivity {
         unregisterReceiver(mBluetoothReceiver);
 
         DeactivateBlueToothAndAdvertise();
+
+        // to stop the listener and save battery
+        mSensorManager.unregisterListener(this,mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
+        mSensorManager.unregisterListener(this,mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD));
     }
 
 
@@ -476,35 +518,81 @@ public class MainActivity extends AppCompatActivity {
         stopAdvertising();
     }
 
+    float[] mGravity;
+    float[] mGeomagnetic;
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+            mGravity = event.values;
+        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+            mGeomagnetic = event.values;
+        if (mGravity != null && mGeomagnetic != null) {
+            float R[] = new float[9];
+            float I[] = new float[9];
+            /*Computes the inclination matrix I as well as the rotation matrix R transforming a vector from the device coordinate
+             *  system to the world's coordinate system which is defined as a direct orthonormal basis*/
+            boolean success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic);
+            if (success) {
+                float mOrientation[] = new float[3];
+                SensorManager.getOrientation(R, mOrientation);
+                SensorManager.getQuaternionFromVector(orientationQuaternion, mOrientation);
+
+                _buffer.putFloat(offset_quatX, orientationQuaternion[0]);
+                _buffer.putFloat(offset_quatY, orientationQuaternion[1]);
+                _buffer.putFloat(offset_quatZ, orientationQuaternion[2]);
+                _buffer.putFloat(offset_quatW, orientationQuaternion[3]);
+                notifyRegisteredDevices();
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Do something here if sensor accuracy changes.
+        // You must implement this callback in your code.
+        //if (sensor == mValuen) {
+            switch (accuracy) {
+                case 0:
+                    System.out.println("Unreliable");
+                    break;
+                case 1:
+                    System.out.println("Low Accuracy");
+                    break;
+                case 2:
+                    System.out.println("Medium Accuracy");
+                    break;
+                case 3:
+                    System.out.println("High Accuracy");
+                    break;
+            }
+        //}
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int action = event.getActionMasked();
+        int action = event.getAction() & MotionEvent.ACTION_MASK;
+        int pointerIndex = (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK) >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+        int pointerId = event.getPointerId(pointerIndex);
+
+        if (pointerId > 1 || pointerId < 0)
+        {
+            return false;
+        }
 
         switch(action) {
             case MotionEvent.ACTION_DOWN:
-
-                //if(connectedThread!=null)
-
-
-                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
             case MotionEvent.ACTION_MOVE:
-
-            {
-                JSONObject obj = new JSONObject();
-                try
-                {
-                    obj.put("X", event.getX());
-                    obj.put("Y", event.getY());
-                }
-                catch (JSONException e)  {}
-
-                lastPosition = obj.toString();
+                _buffer.putInt(offset_buttonState1 + pointerId, 1);
+                _buffer.putFloat(offset_motionX, event.getX());
+                _buffer.putFloat(offset_motionY, event.getY());
                 notifyRegisteredDevices();
-                //connectedThread.write(obj.toString());
-            }
-            
+                break;
+
             case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
+                _buffer.putInt(offset_buttonState1 + pointerId, 0);
+                notifyRegisteredDevices();
                 break;
         }
 

@@ -34,6 +34,7 @@ using namespace SPP;
 
 LogEntry LOG_APP("APP");
 
+#define USE_UDP_BEACON 0
 
 HINSTANCE GhInstance = nullptr;
 
@@ -404,69 +405,49 @@ public:
 			//BT message
 			else if (msgType == BTMessage)
 			{
-				std::string JsonMessage;
-				DataView >> JsonMessage;
+				auto whatsLeft = DataLength - DataView.Tell();
 
-				SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived JSON %s", JsonMessage.c_str());
-
-				Json::Value jsonMessageParsed;
-				if (StringToJson(JsonMessage, jsonMessageParsed))
+				if (whatsLeft >= sizeof(IPCMotionState))
 				{
-					Json::Value dataValue = jsonMessageParsed.get("data", Json::Value::nullSingleton());
-					if (!dataValue.isNull())
-					{
-						std::string DataSet = dataValue.asCString();
-						auto SplitData = std::str_split(DataSet, ',');
+					IPCMotionState newMessage;
+					DataView.Read(&newMessage, sizeof(IPCMotionState));
 
-						if (SplitData.size() >= 8)
-						{
-							IPCMotionState newMessage;
-							newMessage.buttonState[0] = std::atoi(SplitData[0].c_str());
-							newMessage.buttonState[1] = std::atoi(SplitData[1].c_str());
-
-							newMessage.motionXY[0] = std::atof(SplitData[2].c_str());
-							newMessage.motionXY[1] = std::atof(SplitData[3].c_str());
-
-							newMessage.orientationQuaternion[0] = std::atof(SplitData[4].c_str());
-							newMessage.orientationQuaternion[1] = std::atof(SplitData[5].c_str());
-							newMessage.orientationQuaternion[2] = std::atof(SplitData[6].c_str());
-							newMessage.orientationQuaternion[3] = std::atof(SplitData[7].c_str());
-
-							_msgQueue->PushMessage(newMessage);
-						}
-
-						/* SOFA TIPS EXAMPLE CODE:
-
-						struct IPCMotionState
-						{
-							int32_t buttonState[2];
-							float motionXY[2];
-							float orientationQuaternion[4];
-						};
-
-						//parsed from -MEMSHARE= commandline argument
-						std::string MemShareID;
-						std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
-						std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
-						_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
-						_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(uint32_t));
-
-						// get all BT messages, and it will auto clear them
-						auto Messages = _msgQueue->GetMessages();
-						for (auto& curMessage : Messages)
-						{
-							//curMessage.buttonState[0]
-							//curMessage.motionXY[0]
-							//curMessage.orientationQuaternion[0]
-						}
-
-						// send buzz back
-						static uint32_t buzzCounter = 1;
-						_mappedSofaMem->WriteMemory(&buzzCounter, sizeof(buzzCounter));
-						buzzCounter++;
-						*/
-					}
+					_msgQueue->PushMessage(newMessage);
 				}
+
+				//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived JSON %s", JsonMessage.c_str());
+
+
+				/* SOFA TIPS EXAMPLE CODE:
+
+				struct IPCMotionState
+				{
+					int32_t buttonState[2];
+					float motionXY[2];
+					float orientationQuaternion[4];
+				};
+
+				//parsed from -MEMSHARE= commandline argument
+				std::string MemShareID;
+				std::unique_ptr< IPCMappedMemory> _mappedSofaMem;
+				std::unique_ptr< SimpleIPCMessageQueue<IPCMotionState> > _msgQueue;
+				_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, false);
+				_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(uint32_t));
+
+				// get all BT messages, and it will auto clear them
+				auto Messages = _msgQueue->GetMessages();
+				for (auto& curMessage : Messages)
+				{
+					//curMessage.buttonState[0]
+					//curMessage.motionXY[0]
+					//curMessage.orientationQuaternion[0]
+				}
+
+				// send buzz back
+				static uint32_t buzzCounter = 1;
+				_mappedSofaMem->WriteMemory(&buzzCounter, sizeof(buzzCounter));
+				buzzCounter++;
+				*/
 			}
 		}
 	}
@@ -595,7 +576,10 @@ void _mainThread(const std::string& ThisRUNGUID,
 	app->Initialize(128, 128, GhInstance);
 	app->CreateNotificationIcon();
 
+#if USE_UDP_BEACON
 	std::shared_ptr<UDPSocket> broadcastSocket = std::make_shared<UDPSocket>(0, UDPSocketOptions::Broadcast);
+#endif
+
 	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
 	std::shared_ptr< UDPSendWrapped > videoSocket;
 	std::shared_ptr< VideoConnection > videoConnection;
@@ -696,6 +680,7 @@ void _mainThread(const std::string& ThisRUNGUID,
 	}
 
 	//UDP BEACON
+#if USE_UDP_BEACON
 	IPv4_SocketAddress broadcastAddr("255.255.255.255", GAppConfig.lan.port);
 	IPv4_SocketAddress localAddr = serverSocket->GetLocalAddress();
 	std::string socketData = std::string_format("%6.6s%6u%24.24s", ThisRUNGUID.c_str(), localAddr.Port, GetOSNetwork().HostName.c_str());
@@ -707,6 +692,7 @@ void _mainThread(const std::string& ThisRUNGUID,
 				broadcastSocket->SendTo(broadcastAddr, socketData.c_str(), socketData.length());
 			}
 		});
+#endif
 
 	//NET UPDATES
 	mainController.AddTimer(16.6666ms, true, [&]()
@@ -779,6 +765,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
+	//Alloc Console regardless of being on windows
+	AllocConsole();
+	freopen("conin$", "r", stdin);
+	freopen("conout$", "w", stdout);
+	freopen("conout$", "w", stderr);
+	printf("Debugging Window:\n");
+
 	GhInstance = hInstance;
 	IntializeCore(nullptr);
 
