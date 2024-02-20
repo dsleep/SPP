@@ -10,8 +10,8 @@
 	},
 	"remote" : 
 	{
-		"bAllowInput" : "false",
-		"bLANOnly" : "false",
+		"commandLine" : "",
+		"execPath" : "",
 		"pwd" : "test"
 	},
 	"stun" : 

@@ -761,8 +761,8 @@ namespace SPP
         window_config.with_osr = settings.windowless_rendering_enabled ? true : false;
         window_config.url = StartupURL;
 
-        window_config.bounds.width = 768;
-        window_config.bounds.height = 400;
+        window_config.bounds.width = 1280;
+        window_config.bounds.height = 720;
 
         window_config.with_game_window = bWithGameWindow;
 

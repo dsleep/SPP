@@ -239,15 +239,24 @@ button:disabled {
 <div id="RemoteControlConfig" class="config-popup" >
   <form action="" class="form-container" name="remote">
     <p style="border-bottom: thin solid #646464;"><b>Remote Control Configuration</b></p>    
-    <div>Allow Input
+    <!-- <div>Allow Input
       <input name="bAllowInput" type="checkbox">
     </div>
 	 <div>LAN Only
       <input name="bLANOnly" type="checkbox">
-    </div>
+    </div> -->
+	
+	<label for="execPath">Executable Path</label>
+    <br>
+    <input type="text" placeholder="" name="execPath" id="execPath" required>
+	
+	<label for="commandLine">Commandline</label>
+    <br>
+    <input type="text" placeholder="" name="commandLine" id="commandLine" required>
+	
 	<label for="pwd">Password</label>
     <br>
-    <input type="text" placeholder="" name="pwd">
+    <input type="text" placeholder="" name="pwd" id="pwd" required>
     <br>
     <br>
     <button type="submit" class="btn" onclick="javascript:closeConfig('RemoteControlConfig',true)">Accept</button>
@@ -369,9 +378,9 @@ button:disabled {
 		},
 		"remote" :
 		{
-			"bEnabled" : "false",
-			"bAllowInput" : "false",
-			"bLANOnly" : "false"
+			"execPath" : "",
+			"commandLine" : "",
+			"pwd" : "false"
 		}
 	};
 	

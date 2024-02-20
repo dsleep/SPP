@@ -36,14 +36,14 @@ struct STUNConfiguration
 
 struct RemoteAccess
 {
-	bool bAllowInput = false;
-	bool bLANOnly = false;
+	std::string execPath = "";
+	std::string commandLine = "";
 	std::string pwd = "";
 
 	bool operator == (const RemoteAccess& cmp) const
 	{
-		return bAllowInput == cmp.bAllowInput && 
-			bLANOnly == cmp.bLANOnly &&
+		return execPath == cmp.execPath &&
+			commandLine == cmp.commandLine &&
 			pwd == cmp.pwd;
 	}
 };
@@ -80,8 +80,8 @@ SPP_AUTOREG_START
 		;
 
 	rttr::registration::class_<RemoteAccess>("RemoteAccess")
-		.property("bAllowInput", &RemoteAccess::bAllowInput)(rttr::policy::prop::as_reference_wrapper)
-		.property("bLANOnly", &RemoteAccess::bLANOnly)(rttr::policy::prop::as_reference_wrapper)
+		.property("execPath", &RemoteAccess::execPath)(rttr::policy::prop::as_reference_wrapper)
+		.property("commandLine", &RemoteAccess::commandLine)(rttr::policy::prop::as_reference_wrapper)
 		.property("pwd", &RemoteAccess::pwd)(rttr::policy::prop::as_reference_wrapper)
 		;
 }

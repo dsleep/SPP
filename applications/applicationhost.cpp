@@ -107,30 +107,29 @@ protected:
 
 	HWND CurrentLinkedApp = nullptr;
 
-	std::string AppPath;
-	std::string AppCommandline;
+	//std::string AppPath;
+	//std::string AppCommandline;
 
 	uint32_t _lastBuzzCnt = 0;
 	uint32_t _currentBuzzCnt = 0;
 
 public:
-	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer, const std::string &InAppPath, const std::string &AppCommandline) : NetworkConnection(InPeer, true)
+	VideoConnection(std::shared_ptr< Interface_PeerConnection > InPeer) : NetworkConnection(InPeer, true)
 	{
 		//set expected password
 		SetPassword(GAppConfig.remote.pwd);
 
 		recvBuffer.resize(std::numeric_limits<uint16_t>::max());
 		
-		if (!InAppPath.empty())
-		{
-			auto MemShareID = std::generate_hex(3);
-			std::string WithMemShare = AppCommandline + std::string_format(" --MEMSHARE=%s", MemShareID.c_str());
+		auto MemShareID = std::generate_hex(3);
+		std::string WithMemShare = GAppConfig.remote.commandLine + std::string_format(" --MEMSHARE=%s", MemShareID.c_str());
 
-			//IPC TO SHARE WITH SOFA
-			_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, true);
-			_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
-			ProcessID = CreateChildProcess(InAppPath.c_str(), WithMemShare.c_str());
-		}
+		//IPC TO SHARE WITH SOFA
+		_mappedSofaMem = std::make_unique<IPCMappedMemory>(MemShareID.c_str(), sizeof(IPCMotionState) * 200, true);
+		_msgQueue = std::make_unique< SimpleIPCMessageQueue<IPCMotionState> >(*_mappedSofaMem, sizeof(_currentBuzzCnt));
+		ProcessID = CreateChildProcess(GAppConfig.remote.execPath.c_str(), WithMemShare.c_str());
+
+		SE_ASSERT(ProcessID != 0);
 	}
 
 	virtual ~VideoConnection()
@@ -152,7 +151,7 @@ public:
 	{
 		//SPP_LOG(LOG_APP, LOG_INFO, "ApplicationHost::MessageReceived %d", DataLength);
 
-		if (!GAppConfig.remote.bAllowInput)return;
+		//if (!GAppConfig.remote.bAllowInput)return;
 	
 		{
 			MemoryView DataView(Data, DataLength);
@@ -580,7 +579,7 @@ void _mainThread(const std::string& ThisRUNGUID,
 	std::shared_ptr<UDPSocket> broadcastSocket = std::make_shared<UDPSocket>(0, UDPSocketOptions::Broadcast);
 #endif
 
-	std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
+	//std::shared_ptr<UDPSocket> serverSocket = std::make_shared<UDPSocket>();
 	std::shared_ptr< UDPSendWrapped > videoSocket;
 	std::shared_ptr< VideoConnection > videoConnection;
 
@@ -697,28 +696,28 @@ void _mainThread(const std::string& ThisRUNGUID,
 	//NET UPDATES
 	mainController.AddTimer(16.6666ms, true, [&]()
 		{
-			IPv4_SocketAddress recvAddr;
-			int32_t DataRecv = 0;
-			while ((DataRecv = serverSocket->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
-			{
-				if (!videoConnection)
-				{					
-					videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
-					videoConnection = std::make_shared< VideoConnection >(videoSocket, "", "");
-					videoConnection->CreateTranscoderStack(
-						// allow reliability to UDP
-						std::make_shared< ReliabilityTranscoder >(),
-						// push on the splitter so we can ignore sizes
-						std::make_shared< MessageSplitTranscoder >());
-				}
+			//IPv4_SocketAddress recvAddr;
+			//int32_t DataRecv = 0;
+			//while ((DataRecv = serverSocket->ReceiveFrom(recvAddr, BufferRead.data(), BufferRead.size())) > 0)
+			//{
+			//	if (!videoConnection)
+			//	{					
+			//		videoSocket = std::make_shared<UDPSendWrapped>(serverSocket, recvAddr);
+			//		videoConnection = std::make_shared< VideoConnection >(videoSocket);
+			//		videoConnection->CreateTranscoderStack(
+			//			// allow reliability to UDP
+			//			std::make_shared< ReliabilityTranscoder >(),
+			//			// push on the splitter so we can ignore sizes
+			//			std::make_shared< MessageSplitTranscoder >());
+			//	}
 
-				SE_ASSERT(videoSocket && videoConnection);
+			//	SE_ASSERT(videoSocket && videoConnection);
 
-				if (videoSocket->GetRemoteAddress() == recvAddr)
-				{
-					videoConnection->ReceivedRawData(BufferRead.data(), DataRecv, 0);
-				}
-			}
+			//	if (videoSocket->GetRemoteAddress() == recvAddr)
+			//	{
+			//		videoConnection->ReceivedRawData(BufferRead.data(), DataRecv, 0);
+			//	}
+			//}
 
 			// if we have a connection it handles it all
 			if (videoConnection)
@@ -740,7 +739,7 @@ void _mainThread(const std::string& ThisRUNGUID,
 				}
 				else if (juiceSocket->IsConnected())
 				{
-					videoConnection = std::make_shared< VideoConnection >(juiceSocket, "", "");
+					videoConnection = std::make_shared< VideoConnection >(juiceSocket);
 					videoConnection->CreateTranscoderStack(
 						// allow reliability to UDP
 						std::make_shared< ReliabilityTranscoder >(),
@@ -807,7 +806,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		"",
 		"",
 		ipcMem,
-		GAppConfig.remote.bLANOnly);
+		false);
 	
 	return 0;
 }
