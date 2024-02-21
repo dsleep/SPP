@@ -40,6 +40,26 @@ target_link_libraries( SPPVideo
 		swresample
 		avutil
 		swscale)
+
+set(DELAY_LOAD_LIST
+	"avcodec-59"
+	"avdevice-59"
+	"avformat-59"
+	"avutil-57"
+	"swresample-4"
+	"swscale-6" )
+		
+set(DELAY_LOAD_STR "")
+
+foreach(curDelayLoad ${DELAY_LOAD_LIST})	
+    set(DELAY_LOAD_STR "/DELAYLOAD:${curDelayLoad}.dll ${DELAY_LOAD_STR}")
+endforeach()    
+
+if(OS_WINDOWS)
+    set_target_properties(SPPVideo PROPERTIES LINK_FLAGS_RELWITHDEBINFO "${DELAY_LOAD_STR}" )
+    set_target_properties(SPPVideo PROPERTIES LINK_FLAGS_RELEASE "${DELAY_LOAD_STR}" )
+    set_target_properties(SPPVideo PROPERTIES LINK_FLAGS_DEBUG "${DELAY_LOAD_STR}" )
+endif() 
   
 if(OS_MAC)
 

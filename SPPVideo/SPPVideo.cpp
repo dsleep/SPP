@@ -61,7 +61,7 @@ namespace SPP
 
 		if (bIsReady == false)
 		{
-			//AddDLLSearchPath("../3rdParty/ffmpeg/bin");
+			AddDLLSearchPath("../3rdParty/ffmpeg/bin");
 			//av_log_set_callback(av_logger);
 
 			bIsReady = true;
