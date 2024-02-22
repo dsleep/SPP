@@ -222,12 +222,32 @@ struct RemoteClient
 #endif
 
 
+ static uint8_t constexpr offset_buttonState1 = 0;
+ static uint8_t constexpr offset_buttonState2 = 4;
+ static uint8_t constexpr offset_motionX = 8;
+ static uint8_t constexpr offset_motionY = 12;
+ static uint8_t constexpr offset_quatX = 16;
+ static uint8_t constexpr offset_quatY = 20;
+ static uint8_t constexpr offset_quatZ = 24;
+ static uint8_t constexpr offset_quatW = 28;
+
 struct IPCMotionState
 {
 	int32_t buttonState[2];
 	float motionXY[2];
-	float orientationQuaternion[4];
+	float orientationQuaternion[4];	
 };
+
+static_assert(offsetof(IPCMotionState, buttonState[0]) == offset_buttonState1);
+static_assert(offsetof(IPCMotionState, buttonState[1]) == offset_buttonState2);
+
+static_assert(offsetof(IPCMotionState, motionXY[0]) == offset_motionX);
+static_assert(offsetof(IPCMotionState, motionXY[1]) == offset_motionY);
+
+static_assert(offsetof(IPCMotionState, orientationQuaternion[0]) == offset_quatX);
+static_assert(offsetof(IPCMotionState, orientationQuaternion[1]) == offset_quatY);
+static_assert(offsetof(IPCMotionState, orientationQuaternion[2]) == offset_quatZ);
+static_assert(offsetof(IPCMotionState, orientationQuaternion[3]) == offset_quatW);
 
 
 std::unique_ptr< ThreadPool > GMainThreadPool;
@@ -264,7 +284,8 @@ private:
 	const uint8_t CoordID = 0;
 	const uint8_t JuiceeID = 1;
 	const uint8_t RemoteID = 2;
-	bool _bLastSent[3] = { false,false,false };
+	const uint8_t BTSignalID = 3;
+	bool _bLastSent[4] = { false,false,false,false };
 
 	std::string _ThisRUNGUID;
 
@@ -314,7 +335,7 @@ public:
 	{		
 		SPP_LOG(LOG_RD, LOG_INFO, "BTLE Message: %d", DataSize);
 
-		if (sizeof(IPCMotionState) == DataSize)
+		if (sizeof(IPCMotionState) <= DataSize)
 		{
 			IPCMotionState dataCpy = *(IPCMotionState*)InData;
 			SendIPCs(dataCpy);
@@ -604,7 +625,7 @@ public:
 
 		_timer->AddTimer(1s, true, [&]()
 		{
-			_watcher->IsConnected();
+			SetNetGood(BTSignalID, _watcher->IsConnected());
 		});
 
 		// COORDINATOR UPDATES

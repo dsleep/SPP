@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.util.Log;
 import java.io.*;
 
+import java.nio.ByteOrder;
 
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float[] orientationQuaternion = {0,0,0,0};
     private SensorManager mSensorManager;
 
-    private ByteBuffer _buffer = ByteBuffer.allocateDirect(32);
+    private ByteBuffer _buffer = ByteBuffer.allocate(32).order(ByteOrder.LITTLE_ENDIAN);
 
     private final int offset_buttonState1 = 0;
     private final int offset_buttonState2 = 4;
@@ -96,8 +97,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final int offset_quatX = 16;
     private final int offset_quatY = 20;
     private final int offset_quatZ = 24;
-    private final int offset_quatW = 28
-            ;
+    private final int offset_quatW = 28;
     //struct IPCMotionState
     //{
     //  int32_t buttonState[2];
@@ -582,7 +582,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
             case MotionEvent.ACTION_MOVE:
-                _buffer.putInt(offset_buttonState1 + pointerId, 1);
+                _buffer.putInt(offset_buttonState1 + pointerId*4, 1);
                 _buffer.putFloat(offset_motionX, event.getX());
                 _buffer.putFloat(offset_motionY, event.getY());
                 notifyRegisteredDevices();
@@ -591,7 +591,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
-                _buffer.putInt(offset_buttonState1 + pointerId, 0);
+                _buffer.putInt(offset_buttonState1 + pointerId*4, 0);
                 notifyRegisteredDevices();
                 break;
         }

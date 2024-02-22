@@ -6,7 +6,10 @@
 #include "SPPLogging.h"
 #include "SPPString.h"
 
+//#include "SPPHandledTimers.h"
+
 #include <winrt/base.h>
+
 
 
 #include <winrt/Windows.Foundation.h>
@@ -161,6 +164,8 @@ namespace SPP
 			std::string GUID;
 			std::string Name;
 
+			std::chrono::high_resolution_clock::time_point lastTime;
+
 			winrt::Windows::Devices::Bluetooth::BluetoothLEDevice device{ nullptr };
 			
 			std::vector<GattCharacteristic> readCharacteristic;
@@ -169,6 +174,19 @@ namespace SPP
 			bool Valid() const
 			{
 				return !GUID.empty();
+			}
+
+			BTEData(const std::string &InGUID, const std::string &InName) : GUID(InGUID), Name(InName)
+			{
+				lastTime = std::chrono::high_resolution_clock::now();
+			}
+
+			float UpdateElapsedSeconds()
+			{
+				auto currentTime = std::chrono::high_resolution_clock::now();
+				auto elaspedTime = (float)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count() / 1000.0f;
+				lastTime = currentTime;
+				return elaspedTime;
 			}
 
 			~BTEData()
@@ -328,8 +346,7 @@ namespace SPP
 
 				if (_devices.find(sDeviceIDU) == _devices.end())
 				{
-					std::shared_ptr< BTEData > thisDevice;
-					thisDevice.reset(new BTEData{ sDeviceIDU, sDeviceName });
+					std::shared_ptr< BTEData > thisDevice = std::make_shared< BTEData >(sDeviceIDU, sDeviceName);
 					thisDevice->device = device;
 					thisDevice->readCharacteristic = std::move(readCharacteristic);
 
@@ -468,9 +485,29 @@ namespace SPP
 
 		bool IsConnected()
 		{
-			std::unique_lock<std::mutex> lock(_devicesMutex);
+			std::vector< winrt::Windows::Devices::Bluetooth::BluetoothLEDevice > devicesToClear;
 
-			return _devices.empty() == false;
+			{
+				std::unique_lock<std::mutex> lock(_devicesMutex);
+
+				for (auto& [key, value] : _devices)
+				{
+					if (value->UpdateElapsedSeconds() > 5)
+					{
+						devicesToClear.push_back(value->device);
+					}
+				}
+			}
+
+			for (const auto& curDevice : devicesToClear)
+			{
+				ClearDevice(curDevice);
+			}
+
+			{
+				std::unique_lock<std::mutex> lock(_devicesMutex);
+				return _devices.empty() == false;
+			}			
 		}
 
 		void Stop()
